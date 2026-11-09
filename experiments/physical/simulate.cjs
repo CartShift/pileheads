@@ -39,7 +39,7 @@ const metadata={
 const result={metadata,results};
 if(process.argv.includes('--output')){
  const dir=path.join(__dirname,'results');fs.mkdirSync(dir,{recursive:true});
- const base='physical-'+deckSize+'-'+games+'x';
+ const base='physical-'+deckSize+'-'+games+'x-generated';
  fs.writeFileSync(path.join(dir,base+'.json'),JSON.stringify(result,null,2)+'\n');
  const fields=['players','pattern','edgeChoice','games','turns','completionRate','noAvailableScoreRate','actualZeroScoreRate','chainRate','multiOutcomeRate','pointsPerTurn','rejectedPerGame','reshufflePerGame','forcedPerGame'];
  fs.writeFileSync(path.join(dir,base+'.csv'),fields.join(',')+'\n'+results.map(r=>fields.map(f=>r[f]).join(',')).join('\n')+'\n');
