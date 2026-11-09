@@ -1,0 +1,224 @@
+{
+  "metadata": {
+    "kind": "spark-push-take-engine-comparison",
+    "rules": "Simple+ v5 vs experimental D",
+    "gamesPerArm": 400,
+    "seed": 91001,
+    "players": [
+      2,
+      3
+    ],
+    "roundsPerPlayer": 8,
+    "hand": 3,
+    "colors": 3,
+    "rows": 9,
+    "controls": [
+      "B-full (10 gaps)",
+      "B-nine (9 gaps)",
+      "D-take (9 gaps)"
+    ],
+    "policyMix": "random / greedy / limited-lookahead, seats rotated each game",
+    "botBudget": "D lookahead evaluates up to 18 immediate candidates; B evaluates 4. Skill comparisons are exploratory, not perfectly equal-budget.",
+    "measurement": "nextScoringOpportunityAfterZero is tested at the player next turn, after opponents move. No user enjoyability can be inferred.",
+    "cautions": [
+      "Same opening seed but different rule outcomes consume different deck cards",
+      "Specials included; bot use may not resemble humans",
+      "360-card digital deck and selective refill, NOT a printed physical deck",
+      "Scoring choice counts approximate tactical distinctness, not subjective excitement"
+    ]
+  },
+  "results": [
+    {
+      "arm": "B-full",
+      "players": 2,
+      "games": 400,
+      "turns": 6400,
+      "zeroRate": 0.44953125,
+      "scoringOpportunityRate": 0.74078125,
+      "distinctScoringPerTurn": 4.3034375,
+      "distinctNonScoreStatesPerTurn": 31.3234375,
+      "chainRate": 0.1125,
+      "nextScoringOpportunityAfterZero": 0.6155108740254411,
+      "pointsPerTurn": 2.155,
+      "takesPerGame": 0,
+      "specialUsesPerGame": 3.7775,
+      "strategies": {
+        "random": {
+          "games": 267,
+          "winShare": 0,
+          "pointsPerTurn": 0.4897003745318352
+        },
+        "greedy": {
+          "games": 267,
+          "winShare": 0.7059925093632958,
+          "pointsPerTurn": 3.0243445692883895
+        },
+        "lookahead": {
+          "games": 266,
+          "winShare": 0.7951127819548872,
+          "pointsPerTurn": 2.9539473684210527
+        }
+      }
+    },
+    {
+      "arm": "B-nine",
+      "players": 2,
+      "games": 400,
+      "turns": 6400,
+      "zeroRate": 0.43984375,
+      "scoringOpportunityRate": 0.741875,
+      "distinctScoringPerTurn": 4.115,
+      "distinctNonScoreStatesPerTurn": 28.11984375,
+      "chainRate": 0.12140625,
+      "nextScoringOpportunityAfterZero": 0.6234413965087282,
+      "pointsPerTurn": 2.21140625,
+      "takesPerGame": 0,
+      "specialUsesPerGame": 3.7875,
+      "strategies": {
+        "random": {
+          "games": 267,
+          "winShare": 0.009363295880149813,
+          "pointsPerTurn": 0.6156367041198502
+        },
+        "greedy": {
+          "games": 267,
+          "winShare": 0.7284644194756554,
+          "pointsPerTurn": 3.0861423220973783
+        },
+        "lookahead": {
+          "games": 266,
+          "winShare": 0.7631578947368421,
+          "pointsPerTurn": 2.9351503759398496
+        }
+      }
+    },
+    {
+      "arm": "D-take",
+      "players": 2,
+      "games": 400,
+      "turns": 6400,
+      "zeroRate": 0.47671875,
+      "scoringOpportunityRate": 0.69625,
+      "distinctScoringPerTurn": 3.976875,
+      "distinctNonScoreStatesPerTurn": 28.160625,
+      "chainRate": 0.11203125,
+      "nextScoringOpportunityAfterZero": 0.5406885758998435,
+      "pointsPerTurn": 2.06140625,
+      "takesPerGame": 7.09,
+      "specialUsesPerGame": 3.7875,
+      "strategies": {
+        "random": {
+          "games": 267,
+          "winShare": 0.003745318352059925,
+          "pointsPerTurn": 0.5435393258426966
+        },
+        "greedy": {
+          "games": 267,
+          "winShare": 0.7209737827715356,
+          "pointsPerTurn": 2.9091760299625467
+        },
+        "lookahead": {
+          "games": 266,
+          "winShare": 0.7763157894736842,
+          "pointsPerTurn": 2.7340225563909772
+        }
+      }
+    },
+    {
+      "arm": "B-full",
+      "players": 3,
+      "games": 400,
+      "turns": 9600,
+      "zeroRate": 0.45135416666666667,
+      "scoringOpportunityRate": 0.7192708333333333,
+      "distinctScoringPerTurn": 4.120416666666666,
+      "distinctNonScoreStatesPerTurn": 31.064166666666665,
+      "chainRate": 0.11020833333333334,
+      "nextScoringOpportunityAfterZero": 0.5921557871640154,
+      "pointsPerTurn": 2.131875,
+      "takesPerGame": 0,
+      "specialUsesPerGame": 5.72,
+      "strategies": {
+        "random": {
+          "games": 400,
+          "winShare": 0,
+          "pointsPerTurn": 0.470625
+        },
+        "greedy": {
+          "games": 400,
+          "winShare": 0.61625,
+          "pointsPerTurn": 3.0596875
+        },
+        "lookahead": {
+          "games": 400,
+          "winShare": 0.38375,
+          "pointsPerTurn": 2.8653125
+        }
+      }
+    },
+    {
+      "arm": "B-nine",
+      "players": 3,
+      "games": 400,
+      "turns": 9600,
+      "zeroRate": 0.4451041666666667,
+      "scoringOpportunityRate": 0.7260416666666667,
+      "distinctScoringPerTurn": 3.9823958333333334,
+      "distinctNonScoreStatesPerTurn": 28.3175,
+      "chainRate": 0.10729166666666666,
+      "nextScoringOpportunityAfterZero": 0.5923460898502496,
+      "pointsPerTurn": 2.143854166666667,
+      "takesPerGame": 0,
+      "specialUsesPerGame": 5.725,
+      "strategies": {
+        "random": {
+          "games": 400,
+          "winShare": 0,
+          "pointsPerTurn": 0.500625
+        },
+        "greedy": {
+          "games": 400,
+          "winShare": 0.5725,
+          "pointsPerTurn": 3.0271875
+        },
+        "lookahead": {
+          "games": 400,
+          "winShare": 0.4275,
+          "pointsPerTurn": 2.90375
+        }
+      }
+    },
+    {
+      "arm": "D-take",
+      "players": 3,
+      "games": 400,
+      "turns": 9600,
+      "zeroRate": 0.45739583333333333,
+      "scoringOpportunityRate": 0.6967708333333333,
+      "distinctScoringPerTurn": 3.8594791666666666,
+      "distinctNonScoreStatesPerTurn": 28.387083333333333,
+      "chainRate": 0.1009375,
+      "nextScoringOpportunityAfterZero": 0.5407586763518967,
+      "pointsPerTurn": 2.079270833333333,
+      "takesPerGame": 10.115,
+      "specialUsesPerGame": 5.7675,
+      "strategies": {
+        "random": {
+          "games": 400,
+          "winShare": 0,
+          "pointsPerTurn": 0.4678125
+        },
+        "greedy": {
+          "games": 400,
+          "winShare": 0.61375,
+          "pointsPerTurn": 2.9721875
+        },
+        "lookahead": {
+          "games": 400,
+          "winShare": 0.38625,
+          "pointsPerTurn": 2.7978125
+        }
+      }
+    }
+  ]
+}
