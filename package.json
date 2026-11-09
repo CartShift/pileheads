@@ -1,12 +1,12 @@
 {
   "name": "spark-card-game",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
-  "description": "SPARK Simple+ private physical-card-game playtesting prototype",
+  "type": "commonjs",
   "scripts": {
-    "test": "node tests/game.cjs"
+    "test": "node tests/game.cjs && node tests/rooms.mjs",
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/dev.mjs"
   },
-  "engines": {
-    "node": ">=20"
-  }
+  "engines": { "node": ">=24" }
 }

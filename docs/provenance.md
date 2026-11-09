@@ -11,3 +11,7 @@ Imported from the existing SPARK Simple+ ChatGPT Sites project on 2026-11-09.
 The `dist/`, `tests/` and `.openai/hosting.json` files are copied unchanged from that deployed source. The GitHub import adds repository setup and reorganized documentation. Earlier source history remains in Sites; this repository retains its own initial commit. The legacy engine fixture and parity tests are included.
 
 No hosting audience changes, automatic deployment integration, or new deployment were made as part of the GitHub import.
+
+## Online rooms update
+
+Worker source replaces static-only hosting in v0.8 while retaining the same Sites project and URL. D1 stores authoritative rooms. The `.openai/hosting.json` and `drizzle/` files declare the binding and schema; the local identity harness is excluded from the deployed Worker.

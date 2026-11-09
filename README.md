@@ -1,24 +1,25 @@
 # SPARK Simple+
 
-Mobile-first Hebrew/English card-game playtesting prototype, hosted privately on ChatGPT Sites. Vanilla HTML, CSS and JavaScript, with no runtime dependencies or build step.
+Mobile-first Hebrew/English card-game playtesting prototype, hosted privately on ChatGPT Sites. Vanilla HTML, CSS and JavaScript, served by a dependency-free Cloudflare Worker with persistent D1 human rooms.
 
 **Private playable site:** https://spark-simple-plus-yotam.yotamonf.chatgpt.site
 
 ## Run locally
 
-Use Node.js 20 or newer for the tests. No dependency installation is required.
+Use Node.js 24 or newer for the tests and local SQLite-backed preview. No dependency installation is required.
 
 ```sh
 npm test
 ```
 
-Serve `dist` over HTTP, for example with Python 3:
+Build and start the local preview:
 
 ```sh
-python3 -m http.server 4173 --directory dist
+npm run build
+npm run dev
 ```
 
-Open http://localhost:4173. Use HTTP rather than opening the HTML directly so the simulation Worker and bundled report load correctly.
+Open http://localhost:4173. The preview provides three clearly labeled local QA identities for testing separate player seats; those identity overrides are excluded from production.
 
 ## Rules and modes
 
@@ -57,3 +58,15 @@ Hosted Chrome QA completed on 2026-11-09 after owner sign-in: full B vs one bot 
 ## Deployment
 
 The imported source matches the private Sites deployment identified in `docs/provenance.md`. This GitHub repository is a source copy, not an automatic deployment connection. GitHub pushes do not publish the site. Keep the existing Sites project, preserve its URL and private audience, and save a rollback version when deploying changes. Never commit authentication credentials or local browser data.
+
+## Online human rooms, v0.8
+
+The Friends tab creates a 2- or 3-player room in modes A/B/C and produces a private invitation link. ChatGPT identity owns each seat; only that player's hand is sent to their browser. The exact v5 engine runs on the server, with optimistic revisions and idempotent commands preventing double moves. Polling synchronizes participants approximately every two seconds while visible. Reconnect/refresh resumes the same seat. Rooms expire after 24 hours. Solo progress remains under its existing local-storage key.
+
+The site is still private. An invitation does not bypass the Sites access policy: the owner must grant each friend's ChatGPT email viewer access through Sites. No public access was enabled. Sharing the room link gives a permitted visitor a seat while the lobby has space. The host starts only when all 2/3 seats have joined. There is no bot substitution or seat transfer in online rooms.
+
+The static site is now served by a dependency-free Worker with a D1 `DB` binding. Source: `worker/`; bounded schema migration: `drizzle/0000_spark_rooms.sql`. `npm run build` embeds the existing assets in `dist/server/index.js`; generated Worker output is ignored in Git. Node 24 is needed for the local SQLite test adapter and preview. `npm test` runs the original regression suite and six complete 2/3-player room games, including hidden-hand responses, all modes, abilities, score totals, concurrency, retries, origin rejection and room expiry.
+
+`npm run dev` is a LOCAL-ONLY preview harness. The `/qa/one/`, `/qa/two/`, `/qa/three/` pages simulate distinct identities for browser QA. These routes, header interpretation and SQLite adapter are never included in the deployed Worker. Production uses only Sites-provided authenticated identity headers. Do not expose the development server as production.
+
+Hosted room creation, persisted lobby after refresh and invite copying were verified through the actual signed-in private site. Browser QA with two simulated local identities exercised joining, independent hands, Swap, explicit Wild and reconnect. A real second-account hosted game is pending friend access; do not treat local identity simulation as that test.
