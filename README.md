@@ -52,7 +52,7 @@ Existing v4 saves continue under the original seven-card rules. The local storag
 
 Local Chrome QA completed A against one bot and B against two bots. It exercised staged Swap, explicit Wild color, refresh, language switching, a two-wave six-point SHIFT move, the simulator Worker, and a 360px frame without page overflow.
 
-Hosted browser QA remains blocked by incomplete account sign-in. Android hardware touch/performance and actual JSON download completion have not been verified. Simulations are bot evidence, not human enjoyment or commercial-readiness evidence. B offers more distinct scoring choices in the bundled sample without an extra rule; it is a playtesting hypothesis, not a proven winner.
+Hosted Chrome QA completed on 2026-11-09 after owner sign-in: full B vs one bot (0–18), A vs two bots (0–24–30), and C vs one bot (9–24); restart, staged Swap surviving refresh, explicit Wild color, every gap for both board lengths, language switching, save/resume, and the two-wave six-point SHIFT scenario passed. Automatic playback returned to the next human turn with zero leftover flying-card elements. The hosted Worker completed another 30 games per mode (seed 1794232368). Browser download events confirmed both session JSON and simulation JSON exports. Downloaded file bytes were not independently re-parsed during this browser session. Android hardware touch/performance remains unverified. Simulations are bot evidence, not human enjoyment or commercial-readiness evidence. B offers more distinct scoring choices in the bundled sample without an extra rule; it is a playtesting hypothesis, not a proven winner.
 
 ## Deployment
 
