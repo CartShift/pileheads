@@ -28,9 +28,9 @@ Open http://localhost:4173. The preview provides three clearly labeled local QA 
 | A: Classic+ | 8 | None |
 | B: Extended | 9 | Recommended starting configuration |
 | C: Experimental | 9 | One neutral SHIFT board card |
-| D: Push & Take (solo experiment) | 9 | A regular zero-point placement takes the rightmost row card into your hand |
+| D: Push & Take (opt-in experiment) | 9 | A regular zero-point placement takes the rightmost row card into your hand |
 
-Every player has three hand cards, eight turns, one Wild and one Swap. There are three colors. A run of three or more identical colors scores one point per removed colored card; collapsing the row can trigger further runs. In modes A/B/C, all insertion gaps including both ends are legal; mode D uses only the nine gaps before row cards. At turn completion the row returns to its mode length. Nonmatching overflow discards the rightmost card; refill avoids automatic triples.
+Every player has three hand cards, eight turns, one Wild and one Swap. There are three colors. A run of three or more identical colors scores one point per removed colored card; collapsing the row can trigger further runs. In modes A/B/C, all insertion gaps including both ends are legal; mode D uses only the nine gaps before row cards. At turn completion the row returns to its mode length. In A/B/C nonmatching overflow discards the rightmost card, while D may take that card into the acting hand; refill avoids automatic triples.
 
 - **Swap:** swap an adjacent pair, then place one regular hand card in the same turn. Resolve only after both actions. Once per player per game; cannot be combined with Wild.
 - **Wild:** replaces the regular placement and requires an explicit color choice. It does not draw or consume a regular hand card or grant another placement.
@@ -61,7 +61,7 @@ Hosted Chrome QA completed on 2026-11-09 after owner sign-in: full B vs one bot 
 
 The implementation, reproducible bot comparisons, score reports, and blind-playtest gate are documented in [Push & Take experiment](docs/push-take-experiment.md). An additional 2,400 game matched-seed study found no decisive bot advantage for D; it slightly reduced next-turn scoring chances after zero-point turns. This is an **experiment to test with people**, not a validated improvement.
 
-Run `node tests/push-take.cjs` and `node experiments/push-take/compare.cjs --games 400 --seed 91001 --output` for focused validation. This mode still uses the **virtual 360-card digital deck**, not physical printed-card stock. It is not automatically deployed with GitHub pushes and is not available in human online rooms.
+Run `node tests/push-take.cjs` and `node experiments/push-take/compare.cjs --games 400 --seed 91001 --output` for focused validation. This mode still uses the **virtual 360-card digital deck**, not physical printed-card stock. It is not automatically deployed with GitHub pushes and is available only as an explicit experimental choice in private human rooms (default remains B).
 
 ## Deployment
 
@@ -69,7 +69,7 @@ The imported source matches the private Sites deployment identified in `docs/pro
 
 ## Online human rooms, v0.8
 
-The Friends tab creates a 2- or 3-player room in modes A/B/C (D is deliberately not enabled online) and produces a private invitation link. ChatGPT identity owns each seat; only that player's hand is sent to their browser. The exact v5 engine runs on the server, with optimistic revisions and idempotent commands preventing double moves. Polling synchronizes participants approximately every two seconds while visible. Reconnect/refresh resumes the same seat. Rooms expire after 24 hours. Solo progress remains under its existing local-storage key.
+The Friends tab creates a 2- or 3-player room in A/B/C and opt-in experimental mode D and produces a private invitation link. ChatGPT identity owns each seat; only that player's hand is sent to their browser. The exact v5 engine runs on the server, with optimistic revisions and idempotent commands preventing double moves. Polling synchronizes participants approximately every two seconds while visible. Reconnect/refresh resumes the same seat. Rooms expire after 24 hours. Solo progress remains under its existing local-storage key.
 
 The site is still private. An invitation does not bypass the Sites access policy: the owner must grant each friend's ChatGPT email viewer access through Sites. No public access was enabled. Sharing the room link gives a permitted visitor a seat while the lobby has space. The host starts only when all 2/3 seats have joined. There is no bot substitution or seat transfer in online rooms.
 
