@@ -33,4 +33,4 @@ const req={revision:room.revision,move:{kind:'hand',index:0,color:room.members[0
 const result=await Promise.all([1,2].map(()=>api(new Request(origin+'/api/rooms'+p+'/move',{method:'POST',headers:{'oai-authenticated-user-id':'racer','Content-Type':'application/json',Origin:origin},body:JSON.stringify({...req,requestId:crypto.randomUUID()})}),env)));assert.deepEqual(result.map(r=>r.status).sort(),[200,409]);
 let response=await api(new Request(origin+'/api/rooms',{method:'POST',headers:{'oai-authenticated-user-id':'x','Content-Type':'application/json',Origin:'https://evil.test'},body:'{}'}),env);assert.equal(response.status,403);
 db.prepare('UPDATE spark_rooms SET expires_at=0 WHERE id=?').run(room.id);await call('racer',p,undefined,410);
-console.log('Six complete authoritative human-room games passed: all modes, 2/3 players, private hands, abilities, scores, idempotency, concurrency, rejoin, origin and expiry.');
+console.log('Eight complete authoritative human-room games passed: all modes, 2/3 players, private hands, abilities, scores, idempotency, concurrency, rejoin, origin and expiry.');
