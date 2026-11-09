@@ -92,7 +92,7 @@ function stateFor({players=3,deckSize=144,seed=1,pattern='triples',edgeChoice=fa
   if(!PATTERNS.includes(pattern))throw Error('Invalid match pattern');
   const state={
     seed,pattern,edgeChoice,turnsPerPlayer,deckSize,
-    rng:random(seed^0xaac49ff1),stock:makeStock(deckSize,seed^0x923c4b77),
+    rng:random(seed^0xaac49ff1),decisionRng:random(seed^0x6a7c821f),stock:makeStock(deckSize,seed^0x923c4b77),
     players:[],row:[],turn:0,earlyStop:false,
     log:[]
   };
@@ -141,7 +141,7 @@ function setupPotential(row){
 function choose(state,playerIndex,policy='greedy'){
   const opts=legalOptions(state,playerIndex);
   if(!opts.length)return null;
-  if(policy==='random')return opts[Math.floor(state.rng()*opts.length)];
+  if(policy==='random')return opts[Math.floor(state.decisionRng()*opts.length)];
   const scored=opts.map(o=>{
     const row=stateAfterOverflow(o.result,o.edge);
     const bonus=setupPotential(row);
@@ -153,7 +153,7 @@ function choose(state,playerIndex,policy='greedy'){
       for(const c of new Set(possible))for(let pos=0;pos<=row.length;pos++)
         bestNext=Math.max(bestNext,resolve(row,c,pos,state.pattern).points);
     }
-    return {o,v:o.result.points+(policy==='lookahead'?.14*bestNext:.035*bonus)+state.rng()*.001};
+    return {o,v:o.result.points+(policy==='lookahead'?.14*bestNext:.035*bonus)+state.decisionRng()*.001};
   });
   scored.sort((a,b)=>b.v-a.v);
   return scored[0].o;
@@ -216,7 +216,6 @@ function runGame(config={}){
 }
 function summarize(games){
   const turns=games.flatMap(g=>g.log),n=turns.length||1;
-  const average=k=>games.reduce((a,g)=>a+g[k],0)/Math.max(1,games.length);
   return {games:games.length,turns:turns.length,
     completionRate:games.filter(g=>g.completed).length/Math.max(1,games.length),
     noAvailableScoreRate:turns.filter(t=>!t.scoringAvailable).length/n,
@@ -227,7 +226,7 @@ function summarize(games){
     avgDistinctScoringOutcomes:turns.reduce((a,t)=>a+t.distinctScoringOutcomes,0)/n,
     multiOutcomeRate:turns.filter(t=>t.distinctScoringOutcomes>=2).length/n,
     pointsPerTurn:turns.reduce((a,t)=>a+t.points,0)/n,
-    reshufflePerGame:average('stockCount')||games.reduce((a,g)=>a+g.stock.reshuffles,0)/Math.max(1,games.length),
+    reshufflePerGame:games.reduce((a,g)=>a+g.stock.reshuffles,0)/Math.max(1,games.length),
     forcedPerGame:games.reduce((a,g)=>a+g.stock.forced,0)/Math.max(1,games.length),
     rejectedPerGame:games.reduce((a,g)=>a+g.stock.rejected,0)/Math.max(1,games.length)};
 }
