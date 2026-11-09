@@ -17,7 +17,7 @@ export function roomService(Engine){
   const raw=await request.text();if(raw.length>4096)fail('request_too_large',413);let body;try{body=JSON.parse(raw)}catch{fail('invalid_json')}
   if(!body||typeof body!=='object'||Array.isArray(body))fail('invalid_json');
   if(!match[1]){
-   if(!['A','B','C'].includes(body.mode)||![2,3].includes(body.capacity)||!cleanName(body.name))fail('invalid_setup');
+   if(!['A','B','C','D'].includes(body.mode)||![2,3].includes(body.capacity)||!cleanName(body.name))fail('invalid_setup');
    const recent=await env.DB.prepare('SELECT COUNT(*) AS n FROM spark_rooms WHERE host_id = ? AND expires_at > ?').bind(user,Date.now()).first();if(recent.n>=10)fail('room_limit',429);
    const id=crypto.randomUUID(),token=crypto.randomUUID()+crypto.randomUUID(),expires=Date.now()+86400000;
    const state={status:'lobby',mode:body.mode,capacity:body.capacity,members:[{id:user,name:cleanName(body.name)}],turn:0,events:[],requests:[]};
