@@ -1,6 +1,6 @@
 # SPARK Push & Take experiment (mode D)
 
-**Status: draft playtest variant, not an approved change to the physical game or published Sites site.** Branch: \`experiment/push-take-mode-2026-11-09\`. Base: A/B/C Simple+ v5.
+**Status: draft playtest variant, not an approved change to the physical game or published Sites site.** Branch: `experiment/push-take-mode-2026-11-09`. Base: A/B/C Simple+ v5.
 
 ## Hypothesis
 
@@ -29,10 +29,10 @@ Seeded starts: 400 games per arm for two players and three players, 8 rounds/pla
 
 Reproduce with:
 
-\`\`\`sh
+```sh
 node tests/push-take.cjs
 node experiments/push-take/compare.cjs --games 400 --seed 91001 --output
-\`\`\`
+```
 
 Outputs: [JSON](../experiments/push-take/results/comparison-400x.json) and [CSV](../experiments/push-take/results/comparison-400x.csv).
 
@@ -81,11 +81,11 @@ Keep D only if a clear majority of independent playtest groups prefer it, people
 
 ## Code and QA scope
 
-- \`dist/engine-v5.js\`: opt-in mode D, deterministic \`preview\` reducer and no-score take.
-- \`dist/index.html\`: separate setup choice, nine insertion gaps, hand-taking narration/animation and rules; old saves keep their original rules.
-- \`dist/sim-core.js\` and \`dist/simulation-results.json\`: mode D comparison and capture metrics in the existing simulator.
-- \`tests/push-take.cjs\`: engine, ability, scoring, illegal gaps, bot completion, UI sequence, save/reload, and animation mapping.
-- \`worker/rooms.mjs\`: explicit A/B/C allowlist for online room creation.
+- `dist/engine-v5.js`: opt-in mode D, deterministic `preview` reducer and no-score take.
+- `dist/index.html`: separate setup choice, nine insertion gaps, hand-taking narration/animation and rules; old saves keep their original rules.
+- `dist/sim-core.js` and `dist/simulation-results.json`: mode D comparison and capture metrics in the existing simulator.
+- `tests/push-take.cjs`: engine, ability, scoring, illegal gaps, bot completion, UI sequence, save/reload, and animation mapping.
+- `worker/rooms.mjs`: explicit A/B/C allowlist for online room creation.
 
 Tests performed in this branch: source-based V8 regression parity of 72 complete legacy-mode games (1,440 turns) vs main; independent V8 execution of the new focused tests (50 games / 1,000 turns); 2,400 seeded comparison games; the bundled 120-games-per-mode simulation. **Native Node/npm test, real Chrome hardware, real human matches, and ChatGPT Sites deployment not performed.**
 
