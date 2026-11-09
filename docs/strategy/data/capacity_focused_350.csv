@@ -1,0 +1,5 @@
+cards,games,premature_end_pct,reshuffle_pct,refill_deadlock_pct,mean_captured
+108,350,3.4,32.3,0.6,63.2
+120,350,0.0,11.1,0.0,63.7
+132,350,0.0,3.4,0.0,62.6
+144,350,0.0,1.1,0.0,64.9
