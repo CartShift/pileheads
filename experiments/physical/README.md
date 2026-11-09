@@ -6,6 +6,7 @@ This directory is a **standalone experiment**, not linked to dist/, web UI, Site
 
     node tests/physical.cjs
     node experiments/physical/simulate.cjs --games 300 --seed 620000 --deck 144 --turns 8 --output
+    node experiments/physical/capacity.cjs --games 125 --seed 811000 --output
 
 No installation or CI required. The runner prints JSON and writes reproducible files in results/ with --output. It runs 12 matched-seed arms (2/3/4 players × triples/AABB × forced-right/choose-end). Each experiment is tagged separately from v5.
 
