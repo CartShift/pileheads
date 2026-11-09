@@ -14,7 +14,7 @@ Can a zero-score turn feel more deliberate if a player knows which card they wil
 - SWAP can precede an ordinary hand placement. A zero-score swapped move takes the rightmost card.
 - WILD does not consume a card from the hand; a zero-score Wild discards the rightmost overflow card instead. This preserves three cards in hand.
 - No new suits, bonus points, two-card turns or arithmetic. Score is still the number of captured colored cards.
-- Opt-in **solo vs bots only**. Server-side friends rooms explicitly continue to accept only modes A/B/C.
+- Opt-in in solo games and **private human rooms**; existing A/B/C remain unchanged and B stays the default. Friends must have Sites viewer access before a private invitation works.
 
 These semantics preserve the existing 360-card **digital** deck and selective refill. They are **not** physical deck-parity rules.
 
@@ -85,8 +85,10 @@ Keep D only if a clear majority of independent playtest groups prefer it, people
 - `dist/index.html`: separate setup choice, nine insertion gaps, hand-taking narration/animation and rules; old saves keep their original rules.
 - `dist/sim-core.js` and `dist/simulation-results.json`: mode D comparison and capture metrics in the existing simulator.
 - `tests/push-take.cjs`: engine, ability, scoring, illegal gaps, bot completion, UI sequence, save/reload, and animation mapping.
-- `worker/rooms.mjs`: explicit A/B/C allowlist for online room creation.
+- `worker/rooms.mjs` and `dist/online.js`: opt-in mode D is offered in private 2–3-player rooms, with nine legal gaps and a take/discard explanation; server validates all moves and continues hiding opponents’ hands.
 
-Tests performed in this branch: source-based V8 regression parity of 72 complete legacy-mode games (1,440 turns) vs main; independent V8 execution of the new focused tests (50 games / 1,000 turns); 2,400 seeded comparison games; the bundled 120-games-per-mode simulation. **Native Node/npm test, real Chrome hardware, real human matches, and ChatGPT Sites deployment not performed.**
+Tests performed in this branch: source-based V8 regression parity of 72 complete legacy-mode games (1,440 turns) vs main; independent V8 execution of the new focused tests (50 games / 1,000 turns); 2,400 seeded comparison games; the bundled 120-games-per-mode simulation; two complete 2/3-person experimental D rooms (40 moves) through a mocked in-memory DB adapter, including private hands, invalid far-right rejection, server scoring, and take resolution. **Native Node/npm test, production D1 browser QA, real human matches, and ChatGPT Sites deployment not performed.**
+
+A successful D multiplayer playtest requires at least two separately authenticated ChatGPT users with private Sites viewer access. Run an actual two-account room after a reviewed private preview deploy; the mock database validation alone does not establish browser compatibility.
 
 No changes should be deployed to the existing private Sites URL until a reviewed preview is tested and approved.
