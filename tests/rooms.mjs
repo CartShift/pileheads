@@ -3,6 +3,7 @@ const env=localDB();env.raw.exec(fs.readFileSync('drizzle/0000_spark_rooms.sql',
 const api=roomService(Engine),origin='https://spark.test';
 async function call(user,path='',body,expected=200){const res=await api(new Request(origin+'/api/rooms'+path,{method:body===undefined?'GET':'POST',headers:{...(user?{'oai-authenticated-user-id':user}:{}),...(body!==undefined?{'Content-Type':'application/json',Origin:origin}:{})},body:body===undefined?undefined:JSON.stringify(body)}),env);const j=await res.json();assert.equal(res.status,expected,JSON.stringify(j));return j}
 await call(null,'/00000000-0000-0000-0000-000000000000',undefined,401);
+await call('host','',{mode:'D',capacity:2,name:'Host'},400); // Experimental rules must remain out of online rooms.
 for(const mode of ['A','B','C'])for(const capacity of [2,3]){
  let r=await call('host','',{mode,capacity,name:'Host'},201);const id=r.id,token=r.inviteToken,path='/'+id;
  await call('stranger',path,undefined,403);await call('guest',path+'/join',{token:'bad',name:'Guest'},403);
