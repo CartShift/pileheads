@@ -41,6 +41,13 @@ function setup(){
  assert.deepEqual(r.steps.map(s=>s.kind),['swap','placed','take']);
 }
 {
+ const g=setup();const r=E.act(g,0,{...move,swapPos:7});
+ assert.equal(r.score,0);
+ assert.equal(r.takenColor,'B','swapping the far-right adjacent pair changes the card taken');
+ assert.equal(g.players[0].swap,0);
+ assert.equal(g.board.length,9);
+}
+{
  const g=setup(),hand=g.players[0].hand.slice(),n=g.deck.length;
  const r=E.act(g,0,{kind:'wild',color:'B',pos:0});
  assert.equal(r.score,0);
