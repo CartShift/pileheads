@@ -1,0 +1,12 @@
+{
+  "name": "spark-card-game",
+  "version": "0.7.0",
+  "private": true,
+  "description": "SPARK Simple+ private physical-card-game playtesting prototype",
+  "scripts": {
+    "test": "node tests/game.cjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
