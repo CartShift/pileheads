@@ -6,7 +6,8 @@ const parseIntFlag=(name,fallback)=>{
   const at=process.argv.indexOf(name);
   if(at<0)return fallback;
   const n=Number(process.argv[at+1]);
-  if(!Number.isInteger(n)||n<1||n>100000)throw Error('Invalid '+name);
+  const max=name==='--seed'?4294967295:name==='--games'?100000:name==='--deck'?10000:100;
+  if(!Number.isInteger(n)||n<1||n>max)throw Error('Invalid '+name);
   return n;
 };
 const games=parseIntFlag('--games',300);
