@@ -39,7 +39,7 @@ No special-card policy, human psychology, timed turns, physical handling or mone
 
 ## Deck-capacity follow-up
 
-Separate capacity sweep: 125 seeded games per deck-size × turn-count combination, four simulated players, AABB, forced-right discard. Bot policies used fixed seats. Details: [results/capacity-125x.csv](results/capacity-125x.csv).
+Separate capacity sweep: 125 seeded games per deck-size × turn-count combination, four simulated players, AABB, forced-right discard. Bot policies used fixed seats. Reproduce with `node experiments/physical/capacity.cjs --games 125 --seed 811000 --output`. Details: [results/capacity-125x.csv](results/capacity-125x.csv).
 
 | Cards | Complete of 125, 6 turns/player | Complete of 125, 8 turns/player |
 | ---: | ---: | ---: |
