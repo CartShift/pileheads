@@ -3,8 +3,8 @@ const env=localDB();env.raw.exec(fs.readFileSync('drizzle/0000_spark_rooms.sql',
 const api=roomService(Engine),origin='https://spark.test';
 async function call(user,path='',body,expected=200){const res=await api(new Request(origin+'/api/rooms'+path,{method:body===undefined?'GET':'POST',headers:{...(user?{'oai-authenticated-user-id':user}:{}),...(body!==undefined?{'Content-Type':'application/json',Origin:origin}:{})},body:body===undefined?undefined:JSON.stringify(body)}),env);const j=await res.json();assert.equal(res.status,expected,JSON.stringify(j));return j}
 await call(null,'/00000000-0000-0000-0000-000000000000',undefined,401);
-await call('host','',{mode:'D',capacity:2,name:'Host'},400); // Experimental rules must remain out of online rooms.
-for(const mode of ['A','B','C'])for(const capacity of [2,3]){
+// D is opt-in only: existing A/B/C remain unchanged.
+for(const mode of ['A','B','C','D'])for(const capacity of [2,3]){
  let r=await call('host','',{mode,capacity,name:'Host'},201);const id=r.id,token=r.inviteToken,path='/'+id;
  await call('stranger',path,undefined,403);await call('guest',path+'/join',{token:'bad',name:'Guest'},403);
  const guest=await call('guest',path+'/join',{token,name:'Guest'});assert.equal(guest.me,1);assert(!JSON.stringify(guest).includes(token));
@@ -15,7 +15,7 @@ for(const mode of ['A','B','C'])for(const capacity of [2,3]){
  for(let turn=0;turn<8*capacity;turn++){
   const player=['host','guest','third'][r.turn],v=await call(player,path);assert.equal(v.members.filter(p=>p.hand).length,1);assert(!('deck' in v));assert(!('seed' in v));assert(!JSON.stringify(v).includes('host_id'));
   const raw=JSON.parse(db.prepare('SELECT state FROM spark_rooms WHERE id=?').get(id).state),g=raw.game;
-  let move=Engine.choose(g,r.turn,'greedy');if(turn<capacity)move={kind:'hand',index:0,color:g.players[r.turn].hand[0],pos:g.rowSize,swapPos:0};else if(turn<capacity*2)move={kind:'wild',color:'P',pos:0};
+  let move=Engine.choose(g,r.turn,'greedy');if(turn<capacity)move={kind:'hand',index:0,color:g.players[r.turn].hand[0],pos:mode==='D'?g.rowSize-1:g.rowSize,swapPos:0};else if(turn<capacity*2)move={kind:'wild',color:'P',pos:0};
   const req={revision:v.revision,requestId:crypto.randomUUID(),move};
   await call(['host','guest','third'][(r.turn+1)%capacity],path+'/move',req,409);
   r=await call(player,path+'/move',req);const rev=r.revision;const retry=await call(player,path+'/move',req);assert.equal(retry.revision,rev,'retry does not score or draw twice');
