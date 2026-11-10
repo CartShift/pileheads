@@ -4,7 +4,8 @@
  * full turn). During a non-matching bonus the right edge is swept into the
  * discard instead of returning to the hand. The bonus can attack but cannot
  * earn another bonus.
- * Modes differ only in cards sent to the opponent.
+ * Momentum mode sends a penalty only for a chain/double Merge, max one
+ * per turn. The other lab modes vary penalty intensity.
  * Pure deterministic UMD engine for browser, Node, and simulation.
  */
 
@@ -55,9 +56,9 @@ function replenish(g){
   if(!accepted){g.blocked='no_safe_refill';break}
  }
 }
-function create({seed=1,mode='attack',players=2,initialHand=DEFAULT_HAND,deckSize=144,rowSize=ROW_SIZE,turnLimit=240}={}){
+function create({seed=1,mode='momentum',players=2,initialHand=DEFAULT_HAND,deckSize=144,rowSize=ROW_SIZE,turnLimit=240}={}){
  check(Number.isInteger(seed)&&seed>=0,'Invalid seed');
- check(['attack','chains','no-penalty'].includes(mode),'Invalid mode');
+ check(['momentum','attack','chains','no-penalty'].includes(mode),'Invalid mode');
  check(players===2,'Attack v0 supports exactly two players');
  check(Number.isInteger(initialHand)&&initialHand>=3&&initialHand<=18,'Invalid initial hand');
  check(Number.isInteger(deckSize)&&deckSize>=48&&deckSize%4===0,'Deck must be at least 48 and divisible by 4');
@@ -139,7 +140,15 @@ function place(g,seat,index,pos){
  // Captured-card penalties are determined by the same waves as the visual FX.
  // Attack = first wave only; Chains = one captured card from each wave.
  const penaltyIndices=[],penalty=[];
- if(g.mode!=='no-penalty'){
+ if(g.mode==='momentum'){
+  // A successful chain (2+ waves) or a second Merge during the bonus
+  // sends one penalty card. Never send more than one per full turn.
+  const alreadyAttacked=previous?.actions?.some(a=>a.received.length>0);
+  if(m.scored&&!alreadyAttacked&&(m.waves.length>=2||isBonus)){
+   penaltyIndices.push(0);
+   penalty.push(m.waves[0].removed[0]);
+  }
+ }else if(g.mode!=='no-penalty'){
   let offset=0;
   for(let i=0;i<m.waves.length;i++){
    if(i===0||g.mode==='chains'){
