@@ -1,7 +1,7 @@
 (function(){'use strict';
 const E=globalThis.SparkAttack,$=id=>document.getElementById(id);
 const SYMBOL={O:'●',B:'◆',P:'✦',G:'▲'},NAME={O:'Orange',B:'Blue',P:'Purple',G:'Green'};
-const STORAGE='spark-attack-lab-v01';
+const STORAGE='spark-attack-lab-v02';
 let game=null,selected=0,busy=false,covered=false,opponents='bots',botTimer=null,epoch=0,message='Choose a card and place it before a row card.';
 function card(color,attrs='',css=''){
  return '<button class="card '+color+' '+css+'" '+attrs+' aria-label="'+NAME[color]+'"><span class="corner" aria-hidden="true">'+SYMBOL[color]+'</span><b>'+SYMBOL[color]+'</b><em>'+NAME[color]+'</em><span class="corner bottom" aria-hidden="true">'+SYMBOL[color]+'</span></button>';
@@ -10,7 +10,7 @@ function seat(){return game?.turn%2||0}
 function label(i){return opponents==='bots'?(i===0?'You':'Bot'):'Player '+(i+1)}
 function done(){return !!game&&(game.winner!==null||game.drawn||!!game.blocked)}
 function record(){try{localStorage.setItem(STORAGE,JSON.stringify({game,opponents,message}))}catch{}}
-function restore(){try{const x=JSON.parse(localStorage.getItem(STORAGE)||'null');if(x?.game?.version==='attack-lab-0.1'){
+function restore(){try{const x=JSON.parse(localStorage.getItem(STORAGE)||'null');if(x?.game?.version==='attack-lab-0.2'){
  game=x.game;opponents=x.opponents||'bots';message=x.message||message;return true;
  }}catch{}return false}
 function cleanGhosts(){document.querySelectorAll?.('.fx-ghost,.fx-numeric')?.forEach(x=>x.remove())}
@@ -33,25 +33,24 @@ function reveal(){covered=false;$('cover').style.display='none';render();if(oppo
 function render(){
  if(!game)return;
  const current=seat(),p=game.players[current],over=done(),hidden=covered||(opponents==='bots'&&current!==0);
- $('status').textContent=over?(game.winner!==null?'Winner: '+label(game.winner):game.blocked?'Deck blocked: '+game.blocked:'Turn limit reached'):
-  'Turn '+(game.turn+1)+' · '+label(current);
- $('scores').innerHTML=game.players.map((p,i)=>'<div class="score '+(!over&&i===current?'active ':'')+(game.winner===i?'leader':'')+'" data-seat="'+i+'"><small>'+label(i)+'</small><strong class="score-count">'+p.hand.length+'</strong><small>cards remaining</small></div>').join('');
+ const canPlay=!over&&!hidden&&!busy,bonus=game.pending?.kind==='bonus';
+ $('status').textContent=over?(game.winner!==null?'Winner: '+label(game.winner):game.blocked?'Deck blocked: '+game.blocked:'Turn limit reached'):'Turn '+(game.turn+1)+' · '+label(current)+(bonus?' · BONUS MOVE':'');
+ $('scores').innerHTML=game.players.map((player,i)=>'<div class="score '+(!over&&i===current?'active ':'')+(game.winner===i?'leader':'')+'" data-seat="'+i+'"><small>'+label(i)+'</small><strong class="score-count">'+player.hand.length+'</strong><small>cards remaining</small></div>').join('');
  $('stockCount').textContent=String(game.stock.length);$('discardCount').textContent=String(game.discard.length);
- const pending=game.pending,canPlay=!over&&!hidden&&!busy,discarding=!!pending;
- $('rowHint').textContent=over?'Game finished':discarding?'Attack succeeded. Choose a hand card to discard.':'Place a card in a gap to make 3 of a color.';
+ $('rowHint').textContent=over?'Game finished':bonus?'BONUS MOVE: Play another card or end your turn.':'Choose a card and a gap. Match 3+ to earn a bonus move.';
  $('turnLabel').textContent=hidden?'Hand hidden':over?'Final hand':label(current)+' · '+p.hand.length+' cards';
- const options=canPlay&&!pending?E.legal(game,current).filter(m=>m.move.index===selected):[];
+ const options=canPlay?E.legal(game,current).filter(m=>m.move.index===selected):[];
  $('board').innerHTML=game.row.map(c=>card(c,'disabled','inactive')).join('');
- $('gaps').style.display=discarding||over?'none':'flex';
- $('gaps').innerHTML=!discarding&&!over?game.row.map((_,i)=>'<button data-pos="'+i+'" '+(!options.some(o=>o.move.pos===i)?'disabled':'')+' aria-label="Insert before position '+(i+1)+'">+'+(i+1)+'</button>').join(''):'';
- $('hand').innerHTML=!hidden&&!over?p.hand.map((c,i)=>card(c,canPlay?'data-index="'+i+'"':'disabled',
-   discarding?'discardable':selected===i?'picked':'' )).join(''):'<p class="muted">'+(over?'Match complete':hidden?'Hand hidden until your turn':'Resolving action')+'</p>';
+ $('gaps').style.display=over?'none':'flex';
+ $('gaps').innerHTML=!over?game.row.map((_,i)=>'<button data-pos="'+i+'" '+(!canPlay||!options.some(o=>o.move.pos===i)?'disabled':'')+' aria-label="Insert before position '+(i+1)+'">+'+(i+1)+'</button>').join(''):'';
+ $('hand').innerHTML=!hidden&&!over?p.hand.map((c,i)=>card(c,canPlay?'data-index="'+i+'"':'disabled',selected===i?'picked':'' )).join(''):'<p class="muted">'+(over?'Match complete':hidden?'Hand hidden until your turn':'Resolving action')+'</p>';
  if(!hidden&&over&&game.winner===current)$('hand').innerHTML='<p class="winner">No cards left. You won!</p>';
- $('message').textContent=over?(game.winner!==null?label(game.winner)+' wins by emptying their hand. '+message:message):
-  discarding?label(current)+': Choose '+pending.remaining+' more card'+(pending.remaining===1?'':'s')+' to discard.':message;
- $('attackFx').textContent=over?'Match over':busy?'Cards in motion':discarding?'CHOOSE A CARD TO DISCARD':'Make your move';
- $('log').innerHTML=game.log.slice(-7).reverse().map(r=>'<div>Turn '+r.turn+' · '+label(r.seat)+' · '+(r.scored?'ATTACK, '+r.received.length+' to opponent, '+r.discarded.length+' discarded':'No run, edge card taken')+'</div>').join('');
- if(canPlay&&!pending)attachDrag();
+ $('endBonus').style.display=bonus&&!over&&!hidden?'inline-flex':'none';
+ $('endBonus').disabled=!canPlay;
+ $('message').textContent=over?(game.winner!==null?label(game.winner)+' wins by emptying their hand. '+message:message):bonus?(label(current)+': You earned one more placement. Another Merge can attack but cannot earn a third move.'):message;
+ $('attackFx').textContent=over?'Match over':busy?'Cards in motion':bonus?'BONUS MOVE · PLAY OR PASS':'Make your move';
+ $('log').innerHTML=game.log.slice(-7).reverse().map(r=>'<div>Turn '+r.turn+' · '+label(r.seat)+' · '+(r.scored?'MERGE, '+r.received.length+' to opponent'+(r.bonusUsed?', BONUS played':''):'No run, edge card taken')+'</div>').join('');
+ if(canPlay)attachDrag();
 }
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 function rect(el){return el?.getBoundingClientRect?.()||null}
