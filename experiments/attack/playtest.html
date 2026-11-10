@@ -116,6 +116,7 @@ button:focus-visible{outline:3px solid #f9de9e}
 .winner{font-size:22px;font-weight:900;color:#f6d69e}
 .fx-numeric{position:fixed;z-index:220;color:#ffe7a6;pointer-events:none;font-size:25px;font-weight:950;text-shadow:0 2px 7px #000;animation:fxPoints .8s forwards}
 @media(max-width:600px){.app{padding:8px}.table{padding:9px 5px 14px}.row .card{min-width:0}.cardrow{padding:16px 2px}.cardrow .card{flex-basis:51px;max-width:51px}.score{min-width:95px;padding:7px}.controls{grid-template-columns:1fr 1fr}}
+@media(max-width:420px){.row .card{border-width:2px}.row .card b{font-size:clamp(18px,5vw,24px)}.row .card em{font-size:6px;letter-spacing:0}.gaps button{font-size:11px;padding:3px 0;min-height:44px}.row{gap:2px}.gaps{gap:2px}}
 </style></head><body>
 <div class="app">
 <header><div><div class="brand">⚡ SPARK <span>MOMENTUM</span></div><small>MERGE MOMENTUM PLAYTEST</small></div><a href="/" class="tag">Exchange Lab</a></header>
@@ -130,6 +131,8 @@ button:focus-visible{outline:3px solid #f9de9e}
 <option value="no-penalty">Pure Race (fast): no penalty cards</option>
 </select></label>
 <label>Starting hand<select id="initialHand"><option value="7">7 cards</option><option value="9" selected>9 cards</option><option value="11">11 cards</option><option value="13">13 cards</option></select></label>
+<label>Row length<select id="rowSize"><option value="9">9 cards · Original</option><option value="10">10 cards · Middle</option><option value="11" selected>11 cards · More combos</option></select></label>
+<label>Merge hints<select id="hints"><option value="off" selected>Off · Discover moves</option><option value="on">On · Show scoring spots</option></select></label>
 <label>Opponents<select id="opponents"><option value="bots">Play against bot</option><option value="hotseat">Two people, one device</option></select></label>
 <label>Seed<input type="number" id="seed" min="0" max="4294967295" step="1" value="20261110"></label>
 <label>Animations<select id="motion"><option value="on">On</option><option value="off">Off / reduced motion</option></select></label>
@@ -137,7 +140,7 @@ button:focus-visible{outline:3px solid #f9de9e}
 </div>
 <div class="callout help">
 <b>The rules in four sentences:</b>
-<p>Play one card into the nine-card row. Three identical colors in a row trigger an attack. A Merge earns one optional <b>free placement</b>. If the bonus does not match, sweep the rightmost row card to discard rather than taking it into your hand. In Momentum mode, making a chain reaction or another Merge during your bonus sends one captured card to your opponent, at most one penalty per turn. Other modes change how often penalties occur. On a turn without a match, take the rightmost card into your hand instead of drawing.</p>
+<p>Play one card into the shared row (try 11 cards for more opportunities, or 9 for the original challenge). Three identical colors in a row trigger an attack. A Merge earns one optional <b>free placement</b>. If the bonus does not match, sweep the rightmost row card to discard rather than taking it into your hand. In Momentum mode, making a chain reaction or another Merge during your bonus sends one captured card to your opponent, at most one penalty per turn. Other modes change how often penalties occur. On a turn without a match, take the rightmost card into your hand instead of drawing.</p>
 <p>Every card counts as one card. <b>Empty your hand to win.</b> There are no bonus points or special cards. Choose <b>End bonus</b> whenever you prefer not to play again.</p>
 </div>
 <button id="simulate" class="wide">Run 12-game simulation of each mode</button>
@@ -161,7 +164,7 @@ button:focus-visible{outline:3px solid #f9de9e}
 <div class="btnrow"><button id="endBonus" class="primary" style="display:none">End bonus · pass</button><button id="export">Export playtest data</button></div>
 <div id="log" class="logs"></div>
 </section></div>
-<p class="footer">Standalone experiment, not the released SPARK game. 2 players only. Hand sizes and winner are visible; opponents' card colors are private. The deck is a finite, balanced 144-card stock with safe refill and explicit exhaustion detection.</p>
+<p class="footer">Decision Density experiment: compare 9 vs 11 row cards and toggle optional Merge hints. The rules and penalties are otherwise identical. Standalone experiment, not the released SPARK game. 2 players only. Hand sizes and winner are visible; opponents' card colors are private. The deck is a finite, balanced 144-card stock with safe refill and explicit exhaustion detection.</p>
 </div>
 <div id="cover" role="dialog" aria-modal="true" aria-labelledby="passHeading"><div class="coverInner"><h2 id="passHeading">Pass to the next player</h2><p>Hands stay hidden while the device changes hands.</p><button id="reveal" class="primary">Reveal my cards</button></div></div>
 <script src="./engine.js"></script><script src="./app.js"></script></body></html>
