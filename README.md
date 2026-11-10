@@ -39,7 +39,7 @@ Existing v4 saves continue under the original seven-card rules. The local storag
 
 ## Exchange game-design experiment (not deployed)
 
-A separate physical-style **Exchange** mechanic (swap one hand card with one different-color row card; count captured 3+ runs) is being evaluated in [experiments/exchange](experiments/exchange/FINDINGS.md). Try the [self-contained offline playtest](experiments/exchange/playtest.html). This experiment does **not** change Simple+ modes, online rooms, the Sites project, or any production code. Initial bot results found the 3-color Exchange too easy to score, and four-color setups more worth human testing; no improved fun has been established.
+A separate physical-style **Exchange** mechanic (swap one hand card with one different-color row card; count captured 3+ runs) is being evaluated in [experiments/exchange](experiments/exchange/FINDINGS.md). Try the [self-contained offline playtest](experiments/exchange/playtest.html), then record the outcome with the [blind-playtest scorecard](experiments/exchange/PLAYTEST_SCORECARD.md). This experiment does **not** change Simple+ modes, online rooms, the Sites project, or any production code. Initial bot results found the 3-color Exchange too easy to score, and four-color setups more worth human testing; no improved fun has been established.
 
 ## Source map
 
