@@ -95,7 +95,7 @@ Risks:
 1. **Play the offline prototype:** [playtest.html](playtest.html). Use the same seed to compare Insert vs Exchange. Support hot-seat human play. The HTML is self-contained and can be saved/opened without hosting. It is not the existing Sites website.
 2. **First contrast:** Insert 9/3/3 vs Exchange 9/3/4. The four-color mode is the first candidate, not the 3-color "demo" which was too generous.
 3. **Second contrast:** Exchange 9/3/4 vs Exchange 7/3/4. Evaluate if the longer row creates useful trade-offs or just search time.
-4. Test 12+ independent groups, rotate mode order, and have participants teach the rules themselves. Record actual time per turn, optional immediate replay, spontaneous "I could have done ..." comments, specific next-turn plans, score pile counts, and preference without telling the group our theory.
+4. Test 12+ independent groups using the [blind playtest scorecard](PLAYTEST_SCORECARD.md), rotate mode order, and have participants teach the rules themselves. Record actual time per turn, optional immediate replay, spontaneous "I could have done ..." comments, specific next-turn plans, score pile counts, and preference without telling the group our theory.
 5. Ask players what they **sacrificed** on each decision. If they can't explain a trade-off more often than in Insert, Exchange is not yet deeper.
 6. If no candidate gives sustained replay interest after five games, stop tuning board size/color count and consider a new core interaction.
 
@@ -107,6 +107,7 @@ Advance a version only if most independently recruited groups prefer it *after b
 
 ```bash
 node experiments/exchange/test.cjs
+node experiments/exchange/ui-test.cjs
 node experiments/exchange/simulate.cjs --games 140 --seed 752001 --players 3 --output
 node experiments/exchange/simulate.cjs --games 140 --seed 752001 --players 3 --all-refills --output
 ```
@@ -117,4 +118,4 @@ Results: [7-arm seed snapshot](results/experiment-140x-3players-752001.csv), [fu
 
 ## Deployment / compatibility
 
-This branch is a standalone experiment only: `experiments/exchange/`. It does **not** import the production `dist/engine-v5.js` and modifies **no** production Worker, D1 schema, Sites asset, saved game or private online room. The standalone HTML supports bots and pass-and-play on one device, not hosted multiplayer. No deploy has been initiated.
+This branch is a standalone experiment only: `experiments/exchange/`. It does **not** import the production `dist/engine-v5.js` and modifies **no** production Worker, D1 schema, Sites asset, saved game or private online room. The standalone HTML supports bots and pass-and-play on one device, not hosted multiplayer. The UI privacy flow was tightened so bot hands do not render and the pass-and-play cover appears before the next hand renders. These assertions have been smoke-tested in an isolated JavaScript DOM stub; native Node and real-device browser testing remain outstanding. No deploy has been initiated.
