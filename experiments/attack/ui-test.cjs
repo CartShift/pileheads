@@ -31,7 +31,7 @@ class El{
    }
   }
   if(this.id==='hand'){
-   const saved=this.context.store.get('spark-attack-lab-v01');
+   const saved=this.context.store.get('spark-attack-lab-v02');
    const g=saved?JSON.parse(saved).game:null;
    this.context.handRenders.push({turn:g?.turn||0,pending:!!g?.pending,visible:this._html.includes('data-index='),cover:this.context.id('cover').style.display==='flex'});
   }
@@ -75,7 +75,7 @@ function mount({mode='attack',opponents='bots',motion='off',seed='1'}={}){
   URL:{createObjectURL:()=> 'blob:stub',revokeObjectURL(){}},Blob:class{},
   alert(msg){throw Error('Unexpected alert '+msg)},console});
  vm.runInContext(engine,sandbox);vm.runInContext(app,sandbox);
- ctx.engine=sandbox.SparkAttack;ctx.state=()=>JSON.parse(ctx.store.get('spark-attack-lab-v01')).game;
+ ctx.engine=sandbox.SparkAttack;ctx.state=()=>JSON.parse(ctx.store.get('spark-attack-lab-v02')).game;
  ctx.drain=async()=>{
   for(let i=0;i<360;i++){
    if(ctx.timers.length)ctx.timers.shift()();
@@ -88,8 +88,8 @@ function mount({mode='attack',opponents='bots',motion='off',seed='1'}={}){
   ctx.id('gaps').onclick({target:{closest:()=>({dataset:{pos:String(op.move.pos)}})}});
   await ctx.drain();
  };
- ctx.discard=async(index=0)=>{
-  ctx.id('hand').onclick({target:{closest:()=>({dataset:{index:String(index)}})}});
+ ctx.skipBonus=async()=>{
+  ctx.id('endBonus').onclick();
   await ctx.drain();
  };
  return ctx;
@@ -99,23 +99,29 @@ async function run(){
  const original=a.state(),scoring=a.engine.legal(original,0).find(x=>x.scored);
  assert.ok(scoring,'controlled seed must have a scoring move');
  await a.clickMove(scoring);
- assert.equal(a.state().turn,0,'successful attack requires one extra discard');
- assert.equal(a.state().pending.remaining,1);
+ assert.equal(a.state().turn,0,'attack bonus keeps the active player');
+ assert.equal(a.state().pending.kind,'bonus');
  assert.equal(a.state().players[1].hand.length,10);
- await a.discard(0);
- assert.ok(a.state().turn>=2,'bot completes its turn after our discard');
- assert.ok(a.state().players[0].hand.length<=9);
+ assert.equal(a.id('endBonus').style.display,'inline-flex');
+ assert.match(a.id('rowHint').textContent,/BONUS MOVE/);
+ assert.ok(a.id('gaps').innerHTML.includes('data-pos='));
+ const follow=a.engine.legal(a.state(),0)[0];
+ assert.ok(follow);
+ await a.clickMove(follow);
+ assert.ok(a.state().turn>=2,'bot completes after our second placement');
+ assert.ok(a.state().log[0].bonusUsed);
+ assert.equal(a.state().log[0].actions.length,2);
  assert.equal(a.engine.conservation(a.state()),144);
  const chains=mount({seed:'5',mode:'chains',motion:'on'});
  const long=chains.engine.legal(chains.state(),0).find(x=>x.waves.length>=2);
  assert.ok(long,'controlled seed must include a chain');
  await chains.clickMove(long);
- assert.equal(chains.state().pending.remaining,2);
+ assert.equal(chains.state().pending.kind,'bonus');
  assert.equal(chains.state().players[1].hand.length,11);
- await chains.discard(0);
- assert.equal(chains.state().pending.remaining,1);
- await chains.discard(0);
+ assert.equal(chains.id('endBonus').style.display,'inline-flex');
+ await chains.skipBonus();
  assert.ok(chains.state().turn>=2);
+ assert.equal(chains.state().log[0].bonusUsed,false);
  assert.ok(chains.animations>8,'exchange, collection and refill should animate');
  assert.equal(chains.ghosts.length,0,'no ghosts left after animations');
  const hot=mount({seed:'1',mode:'no-penalty',opponents:'hotseat',motion:'off'});
@@ -123,11 +129,12 @@ async function run(){
  assert.ok(hot.handRenders.every(x=>!x.visible));
  hot.id('reveal').onclick();
  await hot.clickMove(hot.engine.legal(hot.state(),0).find(o=>o.scored));
- assert.equal(hot.state().pending.remaining,1);
- await hot.discard();
+ assert.equal(hot.state().pending.kind,'bonus');
+ assert.equal(hot.id('cover').style.display,'none','bonus should not hand device to opponent');
+ await hot.skipBonus();
  assert.equal(hot.id('cover').style.display,'flex');
  assert.ok(hot.handRenders.filter(x=>x.turn===1&&!x.cover).every(x=>!x.visible),'opponent hand leaked before cover');
- return {result:'PASS',checks:16,animations:chains.animations,gameTurn:a.state().turn,chainTurn:chains.state().turn};
+ return {result:'PASS',checks:20,animations:chains.animations,gameTurn:a.state().turn,chainTurn:chains.state().turn};
 }
 if(require.main===module)run().then(x=>console.log(JSON.stringify(x))).catch(e=>{console.error(e);process.exitCode=1});
 module.exports={run};
