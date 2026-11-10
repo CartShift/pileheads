@@ -1,7 +1,9 @@
 /* SPARK Attack: physical-style shedding laboratory.
  * Two players, four colors, nine-row, finite deck.
- * A successful Merge grants one OPTIONAL additional placement (at most one
- * per full turn). The bonus can attack, but cannot earn another bonus.
+ * A successful Merge grants one OPTIONAL free placement (at most one per
+ * full turn). During a non-matching bonus the right edge is swept into the
+ * discard instead of returning to the hand. The bonus can attack but cannot
+ * earn another bonus.
  * Modes differ only in cards sent to the opponent.
  * Pure deterministic UMD engine for browser, Node, and simulation.
  */
@@ -79,13 +81,21 @@ function preview(g,seat,index,pos){
  if(!hand||!Number.isInteger(index)||index<0||index>=hand.length||!Number.isInteger(pos)||pos<0||pos>=g.row.length)return null;
  const placed=hand[index],b=g.row.slice();b.splice(pos,0,placed);
  const result=resolve(b),rest=hand.filter((_,i)=>i!==index);
- let taken=null;
+ const bonus=g.pending?.kind==='bonus'&&g.pending.seat===seat;
+ let taken=null,swept=null;
  if(result.captured.length===0){
-  taken=result.row.pop();rest.push(taken);
-  // Do not offer a "move" that leaves both the row and hand unchanged.
-  if(result.row.join('')===g.row.join('')&&rest.slice().sort().join('')===hand.slice().sort().join(''))return null;
+  const edge=result.row.pop();
+  if(bonus){
+   // A free bonus placement sheds one card even without a Merge.
+   // Sweep the displaced right-edge card into the discard pile.
+   swept=edge;
+  }else{
+   taken=edge;rest.push(taken);
+   // Regular non-matching moves still cannot be no-ops.
+   if(result.row.join('')===g.row.join('')&&rest.slice().sort().join('')===hand.slice().sort().join(''))return null;
+  }
  }
- return {move:{index,pos},placed,board:result.row,hand:rest,taken,captured:result.captured,
+ return {move:{index,pos},placed,board:result.row,hand:rest,taken,swept,captured:result.captured,
   waves:result.waves,scored:result.captured.length>0};
 }
 function legal(g,seat){
@@ -142,12 +152,13 @@ function place(g,seat,index,pos){
  const marked=new Set(penaltyIndices);
  opponent.hand.push(...penalty);
  g.discard.push(...m.captured.filter((_,i)=>!marked.has(i)));
- if(m.taken===null)replenish(g);
+ if(m.swept!==null)g.discard.push(m.swept);
+ if(m.scored)replenish(g);
  const action={turn:g.turn+1,seat,bonus:isBonus,move:{index,pos},placed:m.placed,
   before,handBefore,handAfter:p.hand.slice(),opponentBefore,
   scored:m.scored,waves:m.waves,captured:m.captured.slice(),
   received:penalty.slice(),penaltyIndices:penaltyIndices.slice(),
-  taken:m.taken,discarded:[],after:g.row.slice()};
+  taken:m.taken,swept:m.swept,discarded:[],after:g.row.slice()};
  check(conservation(g)===g.deckSize,'Card accounting failure after placement');
  if(!isBonus&&m.scored&&p.hand.length>0&&!g.blocked){
   g.pending={kind:'bonus',seat,actions:[action]};
