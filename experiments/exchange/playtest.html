@@ -1,0 +1,344 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>SPARK Exchange · Playtest</title><style>
+:root{color-scheme:dark;--felt:#092d27;--panel:#144335;--ink:#f7ebca;--muted:#b3c8b4;--accent:#e9c68a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% 0%,#1b5543,#08231d 75%);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+.app{max-width:920px;margin:auto;padding:18px 14px 40px}header{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}
+.brand{font-weight:900;font-size:29px;letter-spacing:-1px}.brand span{color:var(--accent)}header small{display:block;color:var(--muted);font-size:11px;letter-spacing:2px}
+button,select,input{font:inherit;color:inherit}button,select,input{border:1px solid #bfd5ac50;border-radius:11px;background:#153d32;padding:9px 12px;min-height:42px}
+button{cursor:pointer;touch-action:manipulation}button:disabled{opacity:.35;cursor:default}button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--accent)}
+button:hover:not(:disabled){filter:brightness(1.15)}.primary{background:var(--accent);color:#173428;font-weight:800;border:0}.small{font-size:12px;color:var(--muted)}
+.hero{background:#0d3028;padding:16px;border:1px solid #b9d3a43c;border-radius:18px;margin-bottom:14px}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}.controls label{font-size:12px;color:var(--muted);display:grid;gap:5px}.controls select,.controls input{width:100%;max-width:100%;min-width:0}.wide{grid-column:1/-1}
+.layout{display:grid;grid-template-columns:1fr;gap:14px}.table{background:linear-gradient(145deg,#215a3f80,#103b30b0);border:1px solid #b4cba74d;border-radius:23px;padding:15px 10px}
+.summary{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;padding:7px 5px 12px}.scoreboard{display:flex;gap:7px;flex-wrap:wrap}
+.score{border:1px solid #b5c9a747;border-radius:13px;padding:8px 10px;min-width:100px;background:#082d25;text-align:center}
+.score.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.score strong{font-size:25px;color:var(--accent);display:block}.score small{font-size:10px;color:var(--muted)}
+.row{display:flex;gap:4px;justify-content:center;align-items:stretch;overflow-x:auto;padding:12px 2px 18px;scrollbar-width:thin;min-height:102px}
+.card{flex:1 0 0;min-width:32px;max-width:66px;aspect-ratio:44/68;border:2px solid #fff1d8;border-radius:8px;display:flex;justify-content:center;align-items:center;flex-direction:column;box-shadow:0 4px 0 #09271d,0 7px 10px #0005;position:relative;padding:2px}
+.card b{font-size:clamp(21px,5vw,32px)}.card em{font-style:normal;font-size:clamp(8px,1.5vw,11px);text-transform:uppercase;letter-spacing:.03em}
+.card.O{background:#c15d36}.card.B{background:#24779c}.card.P{background:#7850b3}.card.G{background:#438e58}
+.card.clickable{outline:1px solid transparent}.card.clickable:hover,.card.clickable:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.card.inactive{opacity:.68}.card.picked{transform:translateY(-9px);border-color:var(--accent);box-shadow:0 0 0 2px #e9c68a}
+.gaps{display:flex;justify-content:space-between;gap:4px;padding:0 3px 8px}.gaps button{flex:1;min-width:0;padding:4px 0;min-height:45px;border-style:dashed;color:var(--accent)}
+.cardrow{display:flex;gap:8px;justify-content:center;min-height:106px;padding:16px 0}
+.cardrow .card{flex:0 1 70px;max-width:70px}.muted{color:var(--muted)}.callout{padding:12px;border:1px solid #e9c68a55;background:#071f1a;border-radius:14px;margin:11px 0}
+.logs{font-size:12px;color:var(--muted);padding:9px 10px;max-height:200px;overflow-y:auto}.logs div{border-bottom:1px solid #ffffff19;padding:4px 0}
+.rowHint{font-size:11px;color:var(--muted);text-align:center}.btnrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.btnrow button{flex:1}
+#cover{background:#071d19f2;position:fixed;inset:0;z-index:99;display:none;align-items:center;justify-content:center;padding:25px}
+#cover .coverInner{max-width:450px;text-align:center;background:#11392e;border:1px solid var(--accent);border-radius:20px;padding:30px}
+#cover h2{font-size:28px}.footer{margin-top:20px;font-size:12px;color:var(--muted)}.tag{background:#e9c68a23;color:#f4d69e;border:1px solid #e9c68a66;border-radius:30px;padding:2px 9px;font-size:11px}
+@media(min-width:740px){.layout{grid-template-columns:260px 1fr}.table{grid-column:2;grid-row:1/3}.controls{grid-template-columns:1fr}.wide{grid-column:1}.row{gap:7px}}
+</style></head><body><div class="app"><header><div><div class="brand">⚡ SPARK <span>EXCHANGE</span></div><small>OFFLINE GAME DESIGN LAB</small></div><span class="tag">Experimental · not published</span></header>
+<div class="layout"><section class="hero"><h2 style="margin-top:0">Test a different core rule</h2><div class="controls">
+<label class="wide">Ruleset<select id="rules"><option value="insert">Control: Insert · 9 cards / 3 colors</option><option value="ex933">Exchange · 9 cards / 3 colors</option><option value="ex934" selected>Exchange · 9 cards / 4 colors</option><option value="ex734">Exchange · 7 cards / 4 colors</option><option value="ex724">Exchange · 7 cards / 4 colors / 2 in hand</option></select></label>
+<label>Players<select id="players"><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select></label>
+<label>Opponents<select id="opponents"><option value="bots" selected>Computer opponents</option><option value="hotseat">Pass and play</option></select></label>
+<label>Seed<input id="seed" type="number" min="0" max="4294967295" step="1" value="20261110"/></label>
+<label>Refill rule<select id="refill"><option value="safe" selected>No free refill scores</option><option value="cascade">Refill may cascade</option></select></label>
+<button id="start" class="primary wide">Start new game</button>
+</div><p class="small">Scores are only the number of captured cards. No wilds, powers, bonus points, or AABB. This is a mechanics experiment, not the current Sites game.</p></section>
+<section class="table"><div class="summary"><span id="status">Choose a configuration</span><div id="scores" class="scoreboard"></div></div><p class="rowHint" id="rowHint">Tap one of your hand cards, then a card in the shared row.</p><div id="board" class="row"></div><div id="gaps" class="gaps"></div><div class="callout"><strong id="turnLabel">Your hand</strong><div id="hand" class="cardrow"></div><div id="message">Exchange a hand card with a card on the row. Any 3+ consecutive same-colored cards are captured.</div></div><div class="btnrow"><button id="continue" style="display:none" class="primary">Continue</button><button id="export">Export playtest JSON</button></div><div id="log" class="logs"></div></section></div>
+<div class="footer"><p><b>Physical-playtest assumptions:</b> Cards are drawn from one finite, balanced deck; scoring removes matching runs and closes the gaps; refill rejects any top card that would make an automatic triple (with a visible discard pile). This is a provisional rule, and exhausted-deck behavior is still being evaluated.</p><p>In Exchange, cards of the same color cannot be swapped because that would be a no-op. In Insert, one hand card is placed in a gap and replaced from the stock. Games are eight turns per person. The highest captured-card count wins.</p></div></div>
+<div id="cover"><div class="coverInner"><h2 id="passHeading">Pass the device</h2><p>Hands are hidden between player turns.</p><button id="reveal" class="primary">Reveal my hand</button></div></div>
+<script>/* SPARK Exchange laboratory v0.1 - isolated finite-deck game rules.
+ * No Wild, Swap, AABB, powers or numeric bonuses. Count captured cards to win.
+ * Self-contained browser + Node module. NOT loaded by the production site.
+ */
+(function(root){'use strict';
+const COLORS=['O','B','P','G'],ROW=9,HAND=3;
+function invariant(x,message){if(!x)throw Error(message)}
+function stepRng(g){g.random=(Math.imul(g.random,1664525)+1013904223)>>>0;return g.random/4294967296}
+function stepChoice(g){g.choiceRandom=(Math.imul(g.choiceRandom,1664525)+1013904223)>>>0;return g.choiceRandom/4294967296}
+function shuffle(a,g){for(let i=a.length-1;i>0;i--){let j=Math.floor(stepRng(g)*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function triples(row){
+ const groups=[];
+ for(let i=0;i<row.length;){
+   let end=i+1;while(end<row.length&&row[end]===row[i])end++;
+   if(end-i>=3)groups.push(Array.from({length:end-i},(_,k)=>i+k));
+   i=end;
+ }
+ return groups;
+}
+function collapse(input){
+ let row=input.slice(),waves=[],guard=0;
+ while(row.length&&guard++<8){
+  let groups=triples(row);if(!groups.length)break;
+  let removedIndices=new Set(groups.flat());
+  let removed=row.filter((_,i)=>removedIndices.has(i));
+  waves.push({before:row.slice(),removed,indices:Array.from(removedIndices).sort((a,b)=>a-b)});
+  row=row.filter((_,i)=>!removedIndices.has(i));
+ }
+ invariant(guard<=8,'Resolution overflow');
+ return {row,waves,points:waves.reduce((n,w)=>n+w.removed.length,0)};
+}
+function draw(g){
+ if(!g.stock.length){
+  if(!g.discard.length)return null;
+  g.stock=shuffle(g.discard.splice(0),g);g.reshuffles++;
+ }
+ return g.stock.pop();
+}
+function takePoints(g,owner,waves,origin){
+ for(const wave of waves){
+  if(owner===null)g.discard.push(...wave.removed);
+  else {
+   g.players[owner].captured.push(...wave.removed);
+   g.players[owner].score+=wave.removed.length;
+  }
+  g.wavesRecorded.push({kind:origin,owner,...wave});
+ }
+}
+function replenish(g,owner){
+ while(g.row.length<g.rowSize&&!g.blocked){
+  const remaining=g.stock.length+g.discard.length;
+  if(!remaining){g.blocked='stock_exhausted';break}
+  if(g.refillRule==='safe'){
+   let accepted=false;
+   for(let attempts=0;attempts<remaining;attempts++){
+    const c=draw(g);if(c===null)break;
+    if(g.row.length>=2&&g.row.at(-1)===c&&g.row.at(-2)===c){
+     g.discard.push(c);g.rejected++;continue;
+    }
+    g.row.push(c);accepted=true;g.refills++;break;
+   }
+   if(!accepted){g.blocked='no_safe_refill';break}
+  }else{
+   const c=draw(g);if(c===null){g.blocked='stock_exhausted';break}
+   g.row.push(c);g.refills++;
+   const cascaded=collapse(g.row);
+   if(cascaded.points){
+    g.row=cascaded.row;g.refillScored+=cascaded.points;
+    takePoints(g,owner,cascaded.waves,'refill');
+   }
+  }
+ }
+}
+function create({seed=1,players=2,turnsPerPlayer=8,deckSize=144,action='exchange',refillRule='safe',gaps='all',rowSize=ROW,handSize=HAND,colorCount=3}={}){
+ invariant(Number.isInteger(seed)&&seed>=0,'Invalid seed');
+ invariant([2,3,4].includes(players),'Players must be 2, 3 or 4');
+ invariant(Number.isInteger(turnsPerPlayer)&&turnsPerPlayer>=1&&turnsPerPlayer<=30,'Invalid turn count');
+ invariant(Number.isInteger(deckSize)&&deckSize>=36&&deckSize%3===0,'Deck must contain balanced colors and have at least 36 cards');
+ invariant(['exchange','insert'].includes(action),'Invalid action');
+ invariant(['safe','cascade'].includes(refillRule),'Invalid refill rule');
+ invariant(['all','nine'].includes(gaps),'Invalid gap rule');
+ invariant(Number.isInteger(rowSize)&&rowSize>=5&&rowSize<=9,'Row size must be 5-9');
+ invariant(Number.isInteger(handSize)&&handSize>=1&&handSize<=3,'Hand size must be 1-3');
+ invariant([3,4].includes(colorCount)&&deckSize%colorCount===0,'Colors must be 3 or 4, deck divisible by colors');
+ const g={
+  version:'exchange-lab-0.2',seed,action,refillRule,gaps,turnsPerPlayer,deckSize,rowSize,handSize,colorCount,palette:COLORS.slice(0,colorCount),turn:0,blocked:null,
+  random:(seed^0x71c638bd)>>>0,choiceRandom:(seed^0x432a9b61)>>>0,
+  stock:[],discard:[],row:[],players:Array.from({length:players},(_,i)=>({seat:i,hand:[],score:0,captured:[]})),
+  wavesRecorded:[],rejected:0,refills:0,refillScored:0,reshuffles:0,log:[]
+ };
+ g.stock=shuffle(Array.from({length:deckSize},(_,i)=>g.palette[i%colorCount]),g);
+ // Deal three to each player and the central row from the SAME finite deck.
+ for(let t=0;t<g.handSize;t++)for(const p of g.players){const c=draw(g);invariant(c!==null,'Cannot deal');p.hand.push(c)}
+ replenish(g,null);
+ return g;
+}
+function evaluate(row,hand,action,move,gaps='all',rowLimit=ROW){
+ const {index,pos}=move;
+ if(!Number.isInteger(index)||index<0||index>=hand.length||!Number.isInteger(pos))return null;
+ let b=row.slice(),h=hand.slice(),taken=null,overflow=null;
+ if(action==='exchange'){
+  if(pos<0||pos>=b.length||b[pos]===h[index])return null;
+  taken=b[pos];b[pos]=h[index];h[index]=taken;
+ }else{
+  if(pos<0||pos>b.length||(gaps==='nine'&&pos===b.length))return null;
+  b.splice(pos,0,h[index]);h.splice(index,1);
+ }
+ const resolved=collapse(b);
+ b=resolved.row;
+ if(action==='insert'&&resolved.points===0&&b.length>rowLimit)overflow=b.pop();
+ return {move:{index,pos},color:hand[index],taken,overflow,board:b,hand:h,points:resolved.points,waves:resolved.waves.length,removed:resolved.waves.flatMap(x=>x.removed),resolution:resolved.waves};
+}
+function legal(g,seat){
+ const p=g.players[seat],out=[];
+ if(!p||g.blocked||g.turn>=g.players.length*g.turnsPerPlayer)return out;
+ const positions=g.action==='exchange'?g.row.length:g.row.length+(g.gaps==='nine'?0:1);
+ for(let i=0;i<p.hand.length;i++)for(let pos=0;pos<positions;pos++){
+  const result=evaluate(g.row,p.hand,g.action,{index:i,pos},g.gaps,g.rowSize);
+  if(result)out.push(result);
+ }
+ return out;
+}
+function potential(row,hand,action,gaps){
+ let best=0;
+ const len=action==='exchange'?row.length:row.length+(gaps==='nine'?0:1);
+ for(let i=0;i<hand.length;i++)for(let pos=0;pos<len;pos++){
+  const o=evaluate(row,hand,action,{index:i,pos},gaps);if(o)best=Math.max(best,o.points);
+ }
+ return best;
+}
+function expectedOptions(outcome,action,gaps,palette=COLORS.slice(0,3)){
+ // The refill is hidden. Only project the fully visible pre-refill position.
+ // Shorter boards are deliberately not padded with actual stock order.
+ let own=potential(outcome.board,outcome.hand,action,gaps);
+ let enemy=0;
+ for(const c of palette)enemy=Math.max(enemy,potential(outcome.board,[c],action,gaps));
+ const different=new Set(outcome.hand).size;
+ const nearby=outcome.board.reduce((n,c,i,a)=>n+(i>0&&a[i-1]===c?1:0),0);
+ return {own,enemy,different,nearby};
+}
+function optionsMetrics(g,seat,opts=legal(g,seat)){
+ const scored=opts.filter(x=>x.points>0);
+ const distinct=(arr)=>new Set(arr.map(o=>[o.points,o.board.join(''),o.hand.slice().sort().join('')].join('|'))).size;
+ const byColor=new Map();
+ for(const o of scored){const key=o.color;byColor.set(key,Math.max(byColor.get(key)||0,o.points))}
+ const tradeoffs=opts.filter(o=>o.points>0).map(o=>({...expectedOptions(o,g.action,g.gaps,g.palette),score:o.points}));
+ const frontier=tradeoffs.filter((a,i)=>!tradeoffs.some((b,j)=>j!==i&&
+    b.score>=a.score&&b.own>=a.own&&b.enemy<=a.enemy&&(b.score>a.score||b.own>a.own||b.enemy<a.enemy)));
+ return {actions:opts.length,scoring:scored.length,distinctScoring:distinct(scored),
+  distinctNoScore:distinct(opts.filter(x=>x.points===0)),
+  scoringAvailable:scored.length>0,scoringColors:byColor.size,
+  differentTradeoffs:Math.min(distinct(scored),new Set(frontier.map(x=>[x.score,x.own,x.enemy].join('|'))).size)
+ };
+}
+function choose(g,seat,policy='greedy',opts=legal(g,seat)){
+ invariant(opts.length>0,'No legal moves');
+ if(policy==='random')return opts[Math.floor(stepChoice(g)*opts.length)].move;
+ let best=-Infinity,winners=[];
+ for(const o of opts){
+  const p=policy==='planner'?expectedOptions(o,g.action,g.gaps,g.palette):null;
+  const value=o.points+(p?0.24*p.own-0.28*p.enemy+0.12*p.different+0.015*p.nearby:0);
+  if(value>best+1e-9){best=value;winners=[o]}
+  else if(Math.abs(value-best)<1e-9)winners.push(o);
+ }
+ return winners[Math.floor(stepChoice(g)*winners.length)].move;
+}
+function play(g,seat,move){
+ invariant(!g.blocked,'Game already blocked');
+ invariant(seat===g.turn%g.players.length,'Not your turn');
+ const o=legal(g,seat).find(o=>o.move.index===move.index&&o.move.pos===move.pos);
+ invariant(!!o,'Illegal action');
+ const before=g.row.slice(),beforeHand=g.players[seat].hand.slice(),beforeWaves=g.wavesRecorded.length;
+ const p=g.players[seat];
+ p.hand=o.hand.slice();g.row=o.board.slice();
+ if(o.overflow!==null)g.discard.push(o.overflow);
+ takePoints(g,seat,o.resolution,'placement');
+ if(g.action==='insert'){
+  const replacement=draw(g);
+  if(replacement===null)g.blocked='no_hand_replacement';
+  else p.hand.push(replacement);
+ }
+ // Board is replenished without peeking into the hidden deck.
+ if(!g.blocked)replenish(g,seat);
+ g.turn++;
+ const record={
+  seat,turn:g.turn,kind:g.action,move:{...move},before,after:g.row.slice(),handBefore:beforeHand,handAfter:p.hand.slice(),
+  exchanged:o.taken,score:g.wavesRecorded.slice(beforeWaves).filter(w=>w.owner===seat).reduce((n,w)=>n+w.removed.length,0),
+  scoredByDecision:o.points,scoredFromRefill:g.wavesRecorded.slice(beforeWaves).filter(w=>w.owner===seat&&w.kind==='refill').reduce((n,w)=>n+w.removed.length,0),
+  waves:g.wavesRecorded.slice(beforeWaves).length,blocked:g.blocked
+ };
+ g.log.push(record);invariant(cardCount(g)===g.deckSize,'Card conservation failed');
+ invariant(p.hand.length===g.handSize||g.blocked,'Hand must have exactly three cards');
+ invariant(g.row.length===g.rowSize||g.blocked,'Row length mismatch');
+ return record;
+}
+function cardCount(g){return g.stock.length+g.discard.length+g.row.length+g.players.reduce((n,p)=>n+p.hand.length+p.captured.length,0)}
+function run(config={},policies=['planner','greedy','random','greedy']){
+ const g=create(config),firstStates=new Set();let repeats=0,zero=0,scoringAvailable=0,chains=0,decisions=0,distinct=0,noScoreAlternatives=0,
+   tradeoffs=0,decisionScoring=0,refillLuckPoints=0;
+ while(!g.blocked&&g.turn<g.turnsPerPlayer*g.players.length){
+  const seat=g.turn%g.players.length,opts=legal(g,seat),metrics=optionsMetrics(g,seat,opts),move=choose(g,seat,policies[seat]||'greedy',opts);
+  scoringAvailable+=metrics.scoringAvailable;distinct+=metrics.distinctScoring;
+  noScoreAlternatives+=metrics.distinctNoScore;tradeoffs+=metrics.differentTradeoffs>=2;
+  const r=play(g,seat,move);decisions++;
+  zero+=r.score===0;decisionScoring+=r.scoredByDecision>0;chains+=r.waves>1;refillLuckPoints+=r.scoredFromRefill;
+  const key=g.row.join('')+'|'+g.players.map(p=>p.hand.slice().sort().join('')).join('|')+'|'+(g.turn%g.players.length);
+  if(firstStates.has(key))repeats++;firstStates.add(key);
+ }
+ const points=g.players.map(p=>p.score),highest=Math.max(...points);
+ return {seed:g.seed,action:g.action,refillRule:g.refillRule,gaps:g.gaps,players:g.players.length,rounds:g.turnsPerPlayer,rowSize:g.rowSize,handSize:g.handSize,colorCount:g.colorCount,
+  completed:!g.blocked,blocked:g.blocked,turns:g.turn,scores:points,
+  winners:points.flatMap((p,i)=>p===highest?[i]:[]),repeats,zero,decisions,scoringAvailable,distinct,noScoreAlternatives,
+  tradeoffs,decisionScoring,chains,refillLuckPoints,reshuffles:g.reshuffles,rejected:g.rejected,refills:g.refills,
+  log:g.log};
+}
+root.SparkExchange={COLORS,ROW,HAND,create,triples,collapse,evaluate,legal,potential,expectedOptions,optionsMetrics,choose,play,cardCount,run};
+})(typeof globalThis!=='undefined'?globalThis:this);
+if(typeof module!=='undefined')module.exports=globalThis.SparkExchange;
+</script><script>
+(function(){'use strict';
+const E=globalThis.SparkExchange;
+const SYMBOL={O:'●',B:'◆',P:'✦',G:'▲'},NAME={O:'Orange',B:'Blue',P:'Purple',G:'Green'};
+const $=id=>document.getElementById(id);
+const configs={
+ insert:{action:'insert',rowSize:9,handSize:3,colorCount:3,gaps:'nine'},
+ ex933:{action:'exchange',rowSize:9,handSize:3,colorCount:3,gaps:'nine'},
+ ex934:{action:'exchange',rowSize:9,handSize:3,colorCount:4,gaps:'nine'},
+ ex734:{action:'exchange',rowSize:7,handSize:3,colorCount:4,gaps:'nine'},
+ ex724:{action:'exchange',rowSize:7,handSize:2,colorCount:4,gaps:'nine'}
+};
+let game=null,selected=0,busy=false,covered=false,botTimer=null,opponentType='bots',message='';
+function card(color,attrs='',css=''){return '<button class="card '+color+' '+css+'" '+attrs+' aria-label="'+NAME[color]+'"><b>'+SYMBOL[color]+'</b><em>'+NAME[color]+'</em></button>'}
+function current(){return game?game.turn%game.players.length:0}
+function finished(){return game&&(game.turn>=game.turnsPerPlayer*game.players.length||game.blocked)}
+function label(i){return opponentType==='bots'?(i===0?'You':'Bot '+i):'Player '+(i+1)}
+function save(){try{if(game)localStorage.setItem('spark-exchange-lab',JSON.stringify({game,opponentType,message}))}catch{}}
+function restore(){try{const a=JSON.parse(localStorage.getItem('spark-exchange-lab')||'null');if(a?.game?.version==='exchange-lab-0.2'){game=a.game;opponentType=a.opponentType||'bots';message=a.message||'';covered=opponentType==='hotseat';return true}}catch{}return false}
+function kickoff(){
+ const c=configs[$('rules').value],seed=Number($('seed').value);
+ if(!Number.isInteger(seed)||seed<0||seed>4294967295){alert('Choose a valid nonnegative seed.');return}
+ if(botTimer)clearTimeout(botTimer);
+ game=E.create({...c,seed,players:Number($('players').value),refillRule:$('refill').value,deckSize:144,turnsPerPlayer:8});
+ opponentType=$('opponents').value;selected=0;busy=false;covered=false;message='Select a hand card, then a target in the shared row.';
+ save();render();
+ if(opponentType==='hotseat')showCover();
+}
+function showCover(){
+ if(!game||finished())return;
+ covered=true;$('passHeading').textContent='Pass to '+label(current());
+ $('cover').style.display='flex';render();
+}
+function reveal(){covered=false;$('cover').style.display='none';render()}
+function act(pos){
+ if(!game||finished()||busy||covered||(opponentType==='bots'&&current()!==0))return;
+ const player=current(),opts=E.legal(game,player),choice=opts.find(x=>x.move.index===selected&&x.move.pos===pos);
+ if(!choice)return;
+ let r=E.play(game,player,choice.move);
+ message=label(player)+' '+(game.action==='exchange'?'exchanged '+NAME[choice.color]+' for '+NAME[choice.taken]:'inserted '+NAME[choice.color])+
+  '. '+(r.score? 'Captured '+r.score+' cards across '+r.waves+' wave'+(r.waves===1?'':'s')+'.':'No cards captured.');
+ selected=0;save();render();
+ if(!finished()&&opponentType==='hotseat')showCover();
+ else if(!finished())playBots();
+}
+function playBots(){
+ if(opponentType!=='bots'||!game||finished()||current()===0)return;
+ busy=true;render();
+ const advance=()=>{
+  if(finished()||current()===0){busy=false;render();return}
+  const seat=current(),opts=E.legal(game,seat),decision=E.choose(game,seat,seat%2?'planner':'greedy',opts);
+  const r=E.play(game,seat,decision);
+  message=label(seat)+' played '+NAME[r.handBefore[decision.index]]+(r.score?' and captured '+r.score+' cards.':'. No combo.');
+  save();render();
+  botTimer=setTimeout(advance,440);
+ };
+ botTimer=setTimeout(advance,440);
+}
+function render(){
+ if(!game)return;
+ let turn=current(),player=game.players[turn],end=finished(),hidden=covered;
+ const totals=game.players.map((p,i)=>({label:label(i),score:p.captured.length,active:!end&&i===turn}));
+ $('scores').innerHTML=totals.map(p=>'<div class="score '+(p.active?'active':'')+'"><small>'+p.label+'</small><strong>'+p.score+'</strong><small>cards captured</small></div>').join('');
+ $('status').textContent=end?(game.blocked?'Deck blocked: '+game.blocked:'Game finished'):'Turn '+(game.turn+1)+' / '+(game.turnsPerPlayer*game.players.length)+' · '+label(turn);
+ $('turnLabel').textContent=end?'Game over':(hidden?'Hand hidden':label(turn)+' · '+player.hand.length+' cards');
+ $('rowHint').textContent=game.action==='exchange'?'Select a hand card, then a different-colored card in the row.':'Select a hand card, then a gap to insert.';
+ const allowed=!end&&!hidden&&(!busy)&&(!(opponentType==='bots'&&turn!==0));
+ const legal=allowed?E.legal(game,turn).filter(o=>o.move.index===selected):[];
+ $('board').innerHTML=game.row.map((c,i)=>card(c,allowed&&game.action==='exchange'&&legal.some(o=>o.move.pos===i)?'data-position="'+i+'"':'disabled',allowed&&game.action==='exchange'&&legal.some(o=>o.move.pos===i)?'clickable':'inactive')).join('');
+ $('gaps').style.display=game.action==='insert'?'flex':'none';
+ $('gaps').innerHTML=game.action==='insert'?Array.from({length:game.row.length+(game.gaps==='nine'?0:1)},(_,i)=>'<button data-position="'+i+'" '+(!allowed?'disabled':'')+' title="Insert before card '+(i+1)+'">+ '+(i+1)+'</button>').join(''):'';
+ $('hand').innerHTML=!end&&!hidden?player.hand.map((c,i)=>card(c,allowed?'data-index="'+i+'"':'disabled',selected===i?'picked':'' )).join(''):'<p class="muted">'+(hidden?'Pass the device first.':end?'Final score above.':'Opponent is playing...')+'</p>';
+ $('message').textContent=end?(game.blocked?'Deck could not refill under current rules. See research notes.':'Winner: '+game.players.map((p,i)=>({i,score:p.score})).filter(x=>x.score===Math.max(...game.players.map(p=>p.score))).map(x=>label(x.i)).join(' & ')+'. '+message):message;
+ $('log').innerHTML=game.log.slice(-8).reverse().map(e=>'<div>Turn '+e.turn+' · '+label(e.seat)+' · '+(e.score?'+ '+e.score+' captured':'No score')+' · '+e.waves+' waves</div>').join('');
+ $('continue').style.display=!end&&opponentType==='bots'&&busy?'none':'none';
+}
+$('start').onclick=kickoff;
+$('reveal').onclick=reveal;
+$('board').onclick=e=>{const b=e.target.closest('[data-position]');if(b)act(Number(b.dataset.position))};
+$('gaps').onclick=e=>{const b=e.target.closest('[data-position]');if(b)act(Number(b.dataset.position))};
+$('hand').onclick=e=>{const b=e.target.closest('[data-index]');if(b&&!busy){selected=Number(b.dataset.index);render()}};
+$('export').onclick=()=>{if(!game)return;const payload={format:'spark-exchange-playtest',exportedAt:new Date().toISOString(),rules:game.version,config:{action:game.action,rowSize:game.rowSize,handSize:game.handSize,colorCount:game.colorCount,refillRule:game.refillRule,seed:game.seed,opponents:opponentType},moves:game.log,scores:game.players.map(p=>p.score),rejected:game.rejected,reshuffles:game.reshuffles,blocker:game.blocked};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='spark-exchange-playtest-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),800)};
+if(restore()){render();if(!covered&&opponentType==='bots')playBots();else if(covered)showCover()}else kickoff();
+})();
+</script></body></html>
