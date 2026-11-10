@@ -1,0 +1,262 @@
+{
+  "metadata": {
+    "id": "spark-attack-shedding-v0.1",
+    "kind": "seeded-bot-simulations",
+    "seed": 171000,
+    "gamesPerVariant": 24,
+    "players": 2,
+    "deckSize": 144,
+    "rowSize": 9,
+    "colors": 4,
+    "playerPolicies": "planner versus greedy, seat order alternates",
+    "maxTurns": 240,
+    "rules": [
+      "attack",
+      "chains",
+      "no-penalty"
+    ],
+    "initialHands": [
+      7,
+      9,
+      11,
+      13
+    ],
+    "caveats": [
+      "This is NOT human preference or actual duration in minutes.",
+      "One turn includes a placement and any mandatory extra discard steps.",
+      "Alternate scoring outcomes are a rough action-state proxy, not measured fun.",
+      "Bots do not have access to hidden stock or the other player hand.",
+      "The four-color/144-card top-of-deck safe-refill procedure is experimental."
+    ]
+  },
+  "results": [
+    {
+      "hand": 7,
+      "mode": "attack",
+      "games": 24,
+      "completed": 24,
+      "medianTurns": 15,
+      "p90Turns": 21,
+      "avgTurns": 15.583333333333334,
+      "zeroTurnRate": 0.40106951871657753,
+      "chainTurnRate": 0.029411764705882353,
+      "distinctOutcomeProxy": 20.78342245989305,
+      "alternativeScoringRate": 0.13101604278074866,
+      "attacksPerGame": 9.333333333333334,
+      "avgMaxHand": 8.5,
+      "rejectedRefillPerGame": 1.625,
+      "reasons": {
+        "winner": 24
+      }
+    },
+    {
+      "hand": 7,
+      "mode": "chains",
+      "games": 24,
+      "completed": 24,
+      "medianTurns": 15,
+      "p90Turns": 21,
+      "avgTurns": 15.541666666666666,
+      "zeroTurnRate": 0.41823056300268097,
+      "chainTurnRate": 0.024128686327077747,
+      "distinctOutcomeProxy": 20.638069705093834,
+      "alternativeScoringRate": 0.14209115281501342,
+      "attacksPerGame": 9.041666666666666,
+      "avgMaxHand": 8.625,
+      "rejectedRefillPerGame": 1.4583333333333333,
+      "reasons": {
+        "winner": 24
+      }
+    },
+    {
+      "hand": 7,
+      "mode": "no-penalty",
+      "games": 24,
+      "completed": 24,
+      "medianTurns": 13,
+      "p90Turns": 19,
+      "avgTurns": 14.125,
+      "zeroTurnRate": 0.5427728613569321,
+      "chainTurnRate": 0.02359882005899705,
+      "distinctOutcomeProxy": 16.08259587020649,
+      "alternativeScoringRate": 0.07964601769911504,
+      "attacksPerGame": 6.458333333333333,
+      "avgMaxHand": 7,
+      "rejectedRefillPerGame": 1.1666666666666667,
+      "reasons": {
+        "winner": 24
+      }
+    },
+    {
+      "hand": 9,
+      "mode": "attack",
+      "games": 24,
+      "completed": 24,
+      "medianTurns": 24,
+      "p90Turns": 29,
+      "avgTurns": 23.375,
+      "zeroTurnRate": 0.40998217468805703,
+      "chainTurnRate": 0.026737967914438502,
+      "distinctOutcomeProxy": 21.176470588235293,
+      "alternativeScoringRate": 0.16755793226381463,
+      "attacksPerGame": 13.791666666666666,
+      "avgMaxHand": 10.208333333333334,
+      "rejectedRefillPerGame": 2.4583333333333335,
+      "reasons": {
+        "winner": 24
+      }
+    },
+    {
+      "hand": 9,
+      "mode": "chains",
+      "games": 24,
+      "completed": 24,
+      "medianTurns": 23,
+      "p90Turns": 30,
+      "avgTurns": 24.333333333333332,
+      "zeroTurnRate": 0.4383561643835616,
+      "chainTurnRate": 0.025684931506849314,
+      "distinctOutcomeProxy": 20.82191780821918,
+      "alternativeScoringRate": 0.17465753424657535,
+      "attacksPerGame": 13.666666666666666,
+      "avgMaxHand": 10.375,
+      "rejectedRefillPerGame": 2.5,
+      "reasons": {
+        "winner": 24
+      }
+    },
+    {
+      "hand": 9,
+      "mode": "no-penalty",
+      "games": 24,
+      "completed": 24,
+      "medianTurns": 18,
+      "p90Turns": 27,
+      "avgTurns": 18.041666666666668,
+      "zeroTurnRate": 0.535796766743649,
+      "chainTurnRate": 0.023094688221709007,
+      "distinctOutcomeProxy": 17.420323325635103,
+      "alternativeScoringRate": 0.10161662817551963,
+      "attacksPerGame": 8.375,
+      "avgMaxHand": 9,
+      "rejectedRefillPerGame": 1.625,
+      "reasons": {
+        "winner": 24
+      }
+    },
+    {
+      "hand": 11,
+      "mode": "attack",
+      "games": 24,
+      "completed": 24,
+      "medianTurns": 27,
+      "p90Turns": 43,
+      "avgTurns": 29.541666666666668,
+      "zeroTurnRate": 0.4245416078984485,
+      "chainTurnRate": 0.022566995768688293,
+      "distinctOutcomeProxy": 21.960507757404795,
+      "alternativeScoringRate": 0.14245416078984485,
+      "attacksPerGame": 17,
+      "avgMaxHand": 12.375,
+      "rejectedRefillPerGame": 2.75,
+      "reasons": {
+        "winner": 24
+      }
+    },
+    {
+      "hand": 11,
+      "mode": "chains",
+      "games": 24,
+      "completed": 24,
+      "medianTurns": 28,
+      "p90Turns": 37,
+      "avgTurns": 29.208333333333332,
+      "zeroTurnRate": 0.42510699001426533,
+      "chainTurnRate": 0.025677603423680456,
+      "distinctOutcomeProxy": 21.840228245363765,
+      "alternativeScoringRate": 0.14835948644793154,
+      "attacksPerGame": 16.791666666666668,
+      "avgMaxHand": 12.458333333333334,
+      "rejectedRefillPerGame": 2.9583333333333335,
+      "reasons": {
+        "winner": 24
+      }
+    },
+    {
+      "hand": 11,
+      "mode": "no-penalty",
+      "games": 24,
+      "completed": 24,
+      "medianTurns": 20,
+      "p90Turns": 26,
+      "avgTurns": 20.083333333333332,
+      "zeroTurnRate": 0.491701244813278,
+      "chainTurnRate": 0.024896265560165973,
+      "distinctOutcomeProxy": 18.70746887966805,
+      "alternativeScoringRate": 0.12655601659751037,
+      "attacksPerGame": 10.208333333333334,
+      "avgMaxHand": 11,
+      "rejectedRefillPerGame": 1.7916666666666667,
+      "reasons": {
+        "winner": 24
+      }
+    },
+    {
+      "hand": 13,
+      "mode": "attack",
+      "games": 24,
+      "completed": 24,
+      "medianTurns": 33,
+      "p90Turns": 43,
+      "avgTurns": 33.833333333333336,
+      "zeroTurnRate": 0.39039408866995073,
+      "chainTurnRate": 0.014778325123152709,
+      "distinctOutcomeProxy": 22.275862068965516,
+      "alternativeScoringRate": 0.13793103448275862,
+      "attacksPerGame": 20.625,
+      "avgMaxHand": 14.375,
+      "rejectedRefillPerGame": 2.75,
+      "reasons": {
+        "winner": 24
+      }
+    },
+    {
+      "hand": 13,
+      "mode": "chains",
+      "games": 24,
+      "completed": 24,
+      "medianTurns": 33,
+      "p90Turns": 43,
+      "avgTurns": 32.5,
+      "zeroTurnRate": 0.36923076923076925,
+      "chainTurnRate": 0.017948717948717947,
+      "distinctOutcomeProxy": 22.5,
+      "alternativeScoringRate": 0.1346153846153846,
+      "attacksPerGame": 20.5,
+      "avgMaxHand": 14.416666666666666,
+      "rejectedRefillPerGame": 2.625,
+      "reasons": {
+        "winner": 24
+      }
+    },
+    {
+      "hand": 13,
+      "mode": "no-penalty",
+      "games": 24,
+      "completed": 24,
+      "medianTurns": 24,
+      "p90Turns": 34,
+      "avgTurns": 26.166666666666668,
+      "zeroTurnRate": 0.5207006369426752,
+      "chainTurnRate": 0.012738853503184714,
+      "distinctOutcomeProxy": 17.67515923566879,
+      "alternativeScoringRate": 0.09076433121019108,
+      "attacksPerGame": 12.541666666666666,
+      "avgMaxHand": 13,
+      "rejectedRefillPerGame": 2.125,
+      "reasons": {
+        "winner": 24
+      }
+    }
+  ]
+}
