@@ -14,12 +14,13 @@ Deep link parameters: mode, hand (7/9/11/13), opponents (bots/hotseat) and seed 
 
 ## Actual rules
 
-Two players. Four colors. Nine cards in the shared row. Nine cards in each hand at the start (configurable 7–13), from a finite balanced 144-card deck.
+Two players. Four colors. Nine cards in the shared row. Nine cards in each hand at the start (configurable 7–13), from a finite balanced 144-card deck. Momentum is the new recommended mode; the original Attack, Chains and no-penalty modes remain for comparison.
 
 1. Insert exactly one card from your hand before one of the nine row cards.
 2. Any contiguous group of three or more equal cards is removed; the row collapses and new consecutive groups are also removed in successive waves.
 3. If nothing matched, take the rightmost card from the row into your hand, replacing the card you just placed. Your hand size stays constant. A move that changes neither the row nor your hand is prohibited.
 4. If any match occurred, the placed card leaves your hand. Then:
+   - **Momentum (recommended):** send exactly one captured card to the opponent when a placement triggers two or more chain waves, or when the free bonus placement creates another Merge. At most one attack card per complete turn.
    - Attack: send the first captured card to the opponent; discard remaining captured cards.
    - Chains: send one captured card from EACH matching wave; discard remaining captured cards.
    - No Penalties: opponent receives no captured cards; discard all captured cards.
@@ -75,3 +76,9 @@ Test with people in varied orders, including players unfamiliar with our work. R
 4. Keep nine-card hand and nine-card row as baseline until evidence favors another length; avoid adding new special cards or more rules yet.
 
 **Design correction (2026-11-10):** Initial v0.2 runtime simulations found only 32/54 games ending with a winner when non-matching bonus moves still exchanged the rightmost card into the hand. This preserved too many hand cards. The corrected free-bonus sweep rule above is now under validation; that earlier 32/54 result is explicitly NOT a passing balance result.
+
+## Bounded runtime balance probes (six seeds per hand size and mode)
+
+The first bonus-without-shedding trial ended **32/54** bot games and is rejected. After adding the free-bonus sweep but before changing penalty frequency, **54/54** completed and card accounting passed. With nine opening cards, medians were Attack **36** full turns, Chains **49**, and no-penalty **15**; those small seeded samples were enough to justify trying the Momentum penalty rule, not enough to prove its balance.
+
+The new Momentum variant sends penalties only for difficult combinations. The other three modes remain explicit comparison controls. Human evaluation is still mandatory: bot completion and turn counts are not evidence of fun.
