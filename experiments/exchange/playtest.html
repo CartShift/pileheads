@@ -77,6 +77,9 @@ body{background-color:#071f1b;background-image:radial-gradient(ellipse at 50% 13
 .gaps{min-height:50px}.rowHint{letter-spacing:.02em}
 @media(max-width:440px){.app{padding:9px 8px 30px}.table{padding:9px 6px 16px}.card{border-width:2px}.card:before{inset:3px}.card .corner{top:3px;left:3px}.card .corner.bottom{bottom:3px;right:3px}.score{min-width:76px;padding:5px 8px}.score .score-count{font-size:21px}.table-accessories{min-height:60px}.deck-spot{min-width:70px}.cardrow .card{flex-basis:clamp(59px,22vw,80px)}}
 .card.inactive,button.card:disabled{opacity:1;cursor:default}
+.cardrow .card{touch-action:none}
+.card.drop-target,.gaps button.drop-target{outline:3px solid #ffe4a4!important;outline-offset:2px;filter:brightness(1.28)}
+.drag-ghost{opacity:.97;box-shadow:0 13px 35px #0009!important;transform:rotate(-5deg) scale(1.06)!important}
 @media(prefers-reduced-motion:reduce){.card,.fx-matched,#motionStatus.pulse,.score.fx-hit{animation:none!important;transition:none!important}}
 </style></head><body><div class="app"><header><div><div class="brand">⚡ SPARK <span>EXCHANGE</span></div><small>OFFLINE GAME DESIGN LAB</small></div><div class="btnrow" style="flex:0 0 auto;gap:7px"><button id="motionToggle" type="button" class="motion-toggle" aria-pressed="true">Motion: On</button><span class="tag">Experimental</span></div></header>
 <div class="layout"><section class="hero"><h2 style="margin-top:0">Test a different core rule</h2><div class="controls">
@@ -525,10 +528,39 @@ async function motionRefill(current,target,ctx){
  }
  return next;
 }
+async function motionDiscardOverflow(current){
+ const el=Array.from($('board').querySelectorAll?.('.card')||[]).at(-1);
+ const src=motionRect(el),target=firstRect('#discardCount')||motionRect($('deckStack'));
+ moveStatus('Card to discard');
+ if(src&&target){
+  const ghost=ghostFrom(el,src);el.classList.add('fx-covered');
+  await motionFly(ghost,src,target,390,0,-35,13);
+ }
+ const remaining=current.slice(0,-1);
+ await motionReflow(remaining,remaining.map((_,i)=>i),300);
+ return remaining;
+}
+async function motionDrawToHand(ctx){
+ if(opponentType==='bots'&&ctx.seat!==0)return;
+ stageHand(ctx.handAfter,ctx.seat);
+ const hand=Array.from($('hand').querySelectorAll?.('.card')||[]);
+ const last=hand.at(-1);if(!last)return;
+ const source=motionRect($('deckStack')),dest=motionRect(last);
+ if(!source||!dest)return;
+ moveStatus('Draw a new card');
+ last.classList.add('fx-covered');
+ const ghost=ghostCard(ctx.handAfter.at(-1),source);
+ await motionFly(ghost,source,dest,380,0,-30,7);
+ last.classList.remove('fx-covered');
+}
+
 async function motionTurn(ctx,token){
  const {record,waves,seat}=ctx;
  let current=await motionStartPlacement(ctx);
  if(token!==motionEpoch)return;
+ if(ctx.action==='insert'&&record.scoredByDecision===0&&current.length>ctx.rowSize){
+  current=await motionDiscardOverflow(current);
+ }
  for(const wave of waves){
   if(token!==motionEpoch)return;
   if(wave.kind==='refill')current=await motionRefill(current,wave.before,ctx);
@@ -540,7 +572,7 @@ async function motionTurn(ctx,token){
  current=await motionRefill(current,record.after,ctx);
  if(token!==motionEpoch)return;
  if(ctx.action==='insert'&&ctx.handBefore.length===ctx.handAfter.length){
-  stageHand(ctx.handAfter,seat);
+  await motionDrawToHand(ctx);
  }
  moveStatus(record.score?'+'+record.score+' CARDS COLLECTED':'No match · think ahead',!!record.score);
  await motionSleep(record.score?280:110);
