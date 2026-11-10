@@ -42,7 +42,12 @@ function render(){
  const options=canPlay?E.legal(game,current).filter(m=>m.move.index===selected):[];
  $('board').innerHTML=game.row.map(c=>card(c,'disabled','inactive')).join('');
  $('gaps').style.display=over?'none':'flex';
- $('gaps').innerHTML=!over?game.row.map((_,i)=>'<button data-pos="'+i+'" '+(!canPlay||!options.some(o=>o.move.pos===i)?'disabled':'')+' aria-label="Insert before position '+(i+1)+'">+'+(i+1)+'</button>').join(''):'';
+ $('gaps').innerHTML=!over?game.row.map((_,i)=>{
+  const option=options.find(o=>o.move.pos===i),merge=!!option?.scored;
+  const count=merge?option.captured.length:0;
+  return '<button data-pos="'+i+'" class="'+(merge?'merge-gap':'')+'" '+(!canPlay||!option?'disabled':'')+
+   ' aria-label="Insert before card '+(i+1)+(merge?', merge '+count+' cards':'')+'">'+(merge?'✦ '+count:'+'+(i+1))+'</button>';
+ }).join(''):'';
  $('hand').innerHTML=!hidden&&!over?p.hand.map((c,i)=>card(c,canPlay?'data-index="'+i+'"':'disabled',selected===i?'picked':'' )).join(''):'<p class="muted">'+(over?'Match complete':hidden?'Hand hidden until your turn':'Resolving action')+'</p>';
  if(!hidden&&over&&game.winner===current)$('hand').innerHTML='<p class="winner">No cards left. You won!</p>';
  $('endBonus').style.display=bonus&&!over&&!hidden?'inline-flex':'none';
