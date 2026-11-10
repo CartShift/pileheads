@@ -37,6 +37,10 @@ Every player has three hand cards, eight turns, one Wild and one Swap. There are
 
 Existing v4 saves continue under the original seven-card rules. The local storage key remains `spark-simple-v04`. Progress, notes and archived games are browser-local, not cloud-synced. JSON export provides a separate backup.
 
+## Exchange game-design experiment (not deployed)
+
+A separate physical-style **Exchange** mechanic (swap one hand card with one different-color row card; count captured 3+ runs) is being evaluated in [experiments/exchange](experiments/exchange/FINDINGS.md). Try the [self-contained offline playtest](experiments/exchange/playtest.html). This experiment does **not** change Simple+ modes, online rooms, the Sites project, or any production code. Initial bot results found the 3-color Exchange too easy to score, and four-color setups more worth human testing; no improved fun has been established.
+
 ## Source map
 
 - `dist/index.html`: table UI, legacy engine, persistence, narration, physical animations, replay and setup.
