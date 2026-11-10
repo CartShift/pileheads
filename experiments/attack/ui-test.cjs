@@ -98,6 +98,8 @@ async function run(){
  const a=mount({seed:'1',mode:'attack',motion:'off'});
  const original=a.state(),scoring=a.engine.legal(original,0).find(x=>x.scored);
  assert.ok(scoring,'controlled seed must have a scoring move');
+ a.id('hand').onclick({target:{closest:()=>({dataset:{index:String(scoring.move.index)}})}});
+ assert.match(a.id('gaps').innerHTML,/merge-gap/,'scoring placements should be visibly identified');
  await a.clickMove(scoring);
  assert.equal(a.state().turn,0,'attack bonus keeps the active player');
  assert.equal(a.state().pending.kind,'bonus');
