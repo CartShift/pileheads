@@ -182,16 +182,7 @@ async function animatePlace(record){
  status(record.scored?(record.received.length?'Card sent to opponent!':'Combo!'):'Card added to your hand');
  await sleep(170);
 }
-async function animateDiscard(color,index,seatNo,handBefore){
- status('Discard '+NAME[color]);
- stageHand(handBefore,seatNo);
- const el=Array.from($('hand').querySelectorAll('.card'))[index];
- const from=rect(el)||rect(selector('.score[data-seat="'+seatNo+'"]')),to=rect($('discardCount'));
- el?.classList.add('fx-cover');
- const moved=el?ghost(el,from):ghostColor(color,from);
- await fly(moved,from,to,430,-52);
- stageHand(game.players[seatNo].hand,seatNo);
-}
+
 function progress(){
  if(done()){covered=false;$('cover').style.display='none';record();render();return}
  if(game.pending){record();busy=false;render();if(opponents==='bots'&&seat()===1)queueBot();return}
@@ -199,7 +190,7 @@ function progress(){
  record();busy=false;render();if(seat()===1)queueBot();
 }
 async function playAt(pos){
- if(!game||busy||covered||done()||game.pending||(opponents==='bots'&&seat()!==0))return;
+ if(!game||busy||covered||done()||(opponents==='bots'&&seat()!==0))return;
  const who=seat(),choice=E.legal(game,who).find(o=>o.move.index===selected&&o.move.pos===pos);
  if(!choice)return;
  await performPlacement(who,choice.move);
@@ -216,28 +207,17 @@ async function performPlacement(who,move){
  message=rec.scored?(label(who)+' created '+rec.waves.length+' matching wave(s). '+rec.received.length+' card(s) sent to opponent.'):(label(who)+' took the rightmost card instead of scoring.');
  busy=false;progress();
 }
-async function chooseDiscard(index){
- if(!game?.pending||busy||done()||covered||(opponents==='bots'&&seat()!==0))return;
- await performDiscard(seat(),index);
-}
-async function performDiscard(who,index){
- if(!game?.pending||busy)return;
- busy=true;const current=++epoch,handBefore=game.players[who].hand.slice();
- const res=E.discard(game,who,index);record();
- try{if(physical())await animateDiscard(res.color,index,who,handBefore)}
- catch(error){console.warn('Discard animation skipped',error)}
- if(current!==epoch)return;
- message=label(who)+' discarded '+NAME[res.color]+'. '+(game.pending?'Another discard is available.':game.winner!==null?'Hand empty!':'');
- busy=false;progress();
-}
+
 function queueBot(){
  if(!game||done()||opponents!=='bots'||seat()!==1||busy)return;
  busy=true;render();
  botTimer=setTimeout(async()=>{
   if(!game||done()||seat()!==1){busy=false;render();return}
   busy=false;
-  if(game.pending)await performDiscard(1,E.discardChoice(game,1,'planner'));
-  else await performPlacement(1,E.choose(game,1,'planner'));
+  const options=E.legal(game,1);
+  if(!options.length&&game.pending){
+   E.endBonus(game,1);message='Bot finished its bonus move.';progress();
+  }else if(options.length)await performPlacement(1,E.choose(game,1,'planner'));
  },420);
 }
 function attachDrag(){
@@ -301,14 +281,17 @@ async function simulation(){
 }
 $('start').onclick=start;
 $('reveal').onclick=reveal;
+$('endBonus').onclick=()=>{
+ if(!game?.pending||busy||covered||done()||(opponents==='bots'&&seat()!==0))return;
+ const who=seat();E.endBonus(game,who);message=label(who)+' ended the bonus move.';progress();
+};
 $('simulate').onclick=()=>simulation().catch(e=>{$('simResults').textContent='Simulation failed: '+e.message;$('simulate').disabled=false});
 $('gaps').onclick=e=>{const node=e.target.closest('[data-pos]');if(node)playAt(Number(node.dataset.pos))};
 $('hand').onclick=e=>{
  const n=e.target.closest('[data-index]');if(!n||busy)return;
- if(game?.pending)chooseDiscard(Number(n.dataset.index));
- else{selected=Number(n.dataset.index);render()}
+ selected=Number(n.dataset.index);render()
 };
-$('export').onclick=()=>{if(!game)return;const payload={format:'spark-attack-v0.1',mode:game.mode,seed:game.seed,initialHand:game.initialHand,log:game.log,winner:game.winner,handSizes:game.players.map(p=>p.hand.length),blocked:game.blocked};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='spark-attack-playtest.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),700)};
+$('export').onclick=()=>{if(!game)return;const payload={format:'spark-attack-v0.2',mode:game.mode,seed:game.seed,initialHand:game.initialHand,log:game.log,winner:game.winner,handSizes:game.players.map(p=>p.hand.length),blocked:game.blocked};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='spark-attack-playtest.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),700)};
 const query=typeof location!=='undefined'?new URLSearchParams(location.search):null;
 const mode=query?.get('mode');
 if(['attack','chains','no-penalty'].includes(mode))$('rules').value=mode;
