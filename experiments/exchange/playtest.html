@@ -352,6 +352,197 @@ function showCover(){
  $('cover').style.display='flex';render();
 }
 function reveal(){covered=false;$('cover').style.display='none';render()}
+
+/* Physical-table animation choreography, adapted to Exchange rather than
+ * replacing the original game's strategic rules. Only DOM is animated.
+ * Game state is updated once by E.play(), and remains the source of truth.
+ */
+let motionOn=true,motionEpoch=0;
+try{motionOn=localStorage.getItem('spark-exchange-motion')!=='off'}catch{}
+function motionButton(){
+ const b=$('motionToggle');if(!b)return;
+ b.textContent=motionOn?'Motion: On':'Motion: Off';
+ b.setAttribute?.('aria-pressed',String(motionOn));
+}
+function canAnimate(){
+ const el=$('board')?.querySelector?.('.card');
+ if(!motionOn||!el||typeof el.animate!=='function'||typeof el.getBoundingClientRect!=='function'||typeof document.createElement!=='function')return false;
+ if(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches)return false;
+ return true;
+}
+function stageRow(cards,hit=[]){
+ $('board').innerHTML=cards.map((color,index)=>card(color,'disabled',hit.includes(index)?'fx-matched':'inactive')).join('');
+}
+function stageHand(cards,seat){
+ if(opponentType==='bots'&&seat!==0){$('hand').innerHTML='<p class="muted">Opponent hand is hidden</p>';return}
+ $('hand').innerHTML=cards.map(color=>card(color,'disabled')).join('');
+}
+function moveStatus(text,pulse=false){
+ const e=$('motionStatus');if(!e)return;
+ e.textContent=text;e.classList?.remove('pulse');
+ if(pulse){void e.offsetWidth;e.classList?.add('pulse')}
+}
+function motionSleep(ms){return new Promise(done=>setTimeout(done,ms))}
+function motionRect(el){return el?.getBoundingClientRect?.()||null}
+function firstRect(selector){return motionRect(document.querySelector?.(selector))}
+function ghostFrom(source,rect){
+ if(!rect||!source?.cloneNode)return null;
+ const ghost=source.cloneNode(true);
+ ghost.classList?.add('fx-ghost');
+ ghost.classList?.remove('picked','clickable','inactive','fx-matched');
+ ghost.removeAttribute?.('data-index');ghost.removeAttribute?.('data-position');
+ ghost.setAttribute?.('aria-hidden','true');ghost.setAttribute?.('tabindex','-1');
+ Object.assign(ghost.style,{left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px',visibility:'visible'});
+ document.body.appendChild(ghost);
+ return ghost;
+}
+function ghostCard(color,rect){
+ const holder=document.createElement('div');
+ holder.innerHTML=card(color,'disabled');
+ const el=holder.firstElementChild;
+ return ghostFrom(el,rect);
+}
+function motionFly(ghost,from,to,ms=570,delay=0,arc=-30,turn=7){
+ if(!ghost||!from||!to)return Promise.resolve();
+ const dx=to.left-from.left,dy=to.top-from.top;
+ const sx=from.width?to.width/from.width:1,sy=from.height?to.height/from.height:1;
+ const anim=ghost.animate([
+  {transform:'translate3d(0,0,0) rotate(0deg) scale(1)',opacity:1,offset:0},
+  {transform:'translate3d('+dx*.52+'px,'+(dy*.52+arc)+'px,0) rotate('+turn+'deg) scale(1.10)',opacity:1,offset:.53},
+  {transform:'translate3d('+dx+'px,'+dy+'px,0) rotate(0deg) scale('+sx+','+sy+')',opacity:.95,offset:1}
+ ],{duration:ms,delay,easing:'cubic-bezier(.2,.7,.21,1)',fill:'forwards'});
+ return anim.finished.catch(()=>{}).finally(()=>ghost.remove());
+}
+async function motionReflow(next,map,ms=360){
+ const olds=Array.from($('board').querySelectorAll?.('.card')||[]);
+ const coords=olds.map(motionRect);
+ stageRow(next);
+ const newer=Array.from($('board').querySelectorAll?.('.card')||[]);
+ const tasks=[];
+ for(let i=0;i<newer.length;i++){
+  const oldIndex=map[i],from=coords[oldIndex],to=motionRect(newer[i]);
+  if(from&&to&&newer[i].animate){
+   const dx=from.left-to.left,dy=from.top-to.top;
+   if(Math.abs(dx)+Math.abs(dy)>1){
+    const a=newer[i].animate([
+      {transform:'translate3d('+dx+'px,'+dy+'px,0)',opacity:1},
+      {transform:'translate3d(0,0,0)',opacity:1}
+    ],{duration:ms,easing:'cubic-bezier(.16,.82,.25,1)'});
+    tasks.push(a.finished.catch(()=>{}));
+   }
+  }
+ }
+ if(tasks.length)await Promise.all(tasks);
+}
+async function motionStartPlacement(ctx){
+ const {before,handBefore,move,seat}=ctx;
+ const oldHand=Array.from($('hand').querySelectorAll?.('.card')||[]);
+ const oldRow=Array.from($('board').querySelectorAll?.('.card')||[]);
+ const handEl=oldHand[move.index],rowEl=oldRow[move.pos];
+ const handRect=motionRect(handEl)||firstRect('.score[data-seat="'+seat+'"]');
+ const rowRect=motionRect(rowEl)||firstRect('#board');
+ const chosen=handBefore[move.index];
+ moveStatus(ctx.action==='exchange'?'Exchange cards':'Place card');
+ if(ctx.action==='exchange'){
+  if(handRect&&rowRect){
+   const incoming=handEl?ghostFrom(handEl,handRect):ghostCard(chosen,handRect);
+   const outgoing=rowEl?ghostFrom(rowEl,rowRect):ghostCard(before[move.pos],rowRect);
+   if(handEl)handEl.classList.add('fx-covered');
+   if(rowEl)rowEl.classList.add('fx-covered');
+   await Promise.all([
+    motionFly(incoming,handRect,rowRect,570,0,-38,-9),
+    motionFly(outgoing,rowRect,handRect,610,35,-50,9)
+   ]);
+  }
+  const target=before.slice();target[move.pos]=chosen;
+  stageRow(target);
+  const next=handBefore.slice();next[move.index]=before[move.pos];
+  stageHand(next,seat);
+  return target;
+ }
+ const target=before.slice();target.splice(move.pos,0,chosen);
+ if(handRect&&rowRect){
+  const ghost=handEl?ghostFrom(handEl,handRect):ghostCard(chosen,handRect);
+  if(handEl)handEl.classList.add('fx-covered');
+  await motionFly(ghost,handRect,rowRect,490,0,-33,-9);
+ }
+ await motionReflow(target,target.map((_,i)=>i<move.pos?i:i===move.pos?undefined:i-1),310);
+ stageHand(handBefore.filter((_,index)=>index!==move.index),seat);
+ return target;
+}
+async function motionCollect(ctx,wave,current){
+ const hit=wave.indices,who=ctx.seat;
+ if(hit.length===0)return current;
+ stageRow(current,hit);
+ moveStatus('✦ '+(wave.kind==='refill'?'REFILL ':wave===ctx.waves[0]?'COMBO ':'CHAIN ')+'+'+wave.removed.length+' CARDS',true);
+ await motionSleep(260);
+ const targets=firstRect('.score[data-seat="'+who+'"]')||firstRect('#stockCount');
+ const olds=Array.from($('board').querySelectorAll?.('.card')||[]);
+ const tasks=[];
+ for(const [j,index] of hit.entries()){
+  const el=olds[index],src=motionRect(el);
+  if(!src)continue;
+  const ghost=ghostFrom(el,src);
+  el.classList.add('fx-covered');
+  if(ghost){
+   ghost.style.zIndex=140+j;
+   tasks.push(motionFly(ghost,src,targets,440,Math.min(j,7)*45,-85+Math.min(j,7)*6,(j%2?-17:16)));
+  }
+ }
+ await Promise.all(tasks);
+ const score=$('scores').querySelector?.('[data-seat="'+who+'"]');
+ if(score){
+  score.classList.add('fx-hit');const count=score.querySelector?.('.score-count');
+  if(count)count.textContent=String(Number(count.textContent)+hit.length);
+ }
+ const removed=new Set(hit),after=current.filter((_,i)=>!removed.has(i));
+ await motionReflow(after,current.map((_,i)=>i).filter(i=>!removed.has(i)),370);
+ return after;
+}
+async function motionRefill(current,target,ctx){
+ // Safe refill appends cards from the facedown deck. Cascade refill can
+ // produce intervening waves; its before snapshots are replayed separately.
+ if(target.length<current.length||!target.slice(0,current.length).every((c,i)=>c===current[i])){
+  stageRow(target);return target.slice();
+ }
+ let next=current.slice();
+ for(let i=next.length;i<target.length;i++){
+  const color=target[i],oldLength=next.length;
+  const from=motionRect($('deckStack'))||firstRect('#stockCount');
+  next.push(color);
+  const cols=next.slice();stageRow(cols);
+  const el=Array.from($('board').querySelectorAll?.('.card')||[]).at(-1);
+  const to=motionRect(el);
+  if(el)el.classList.add('fx-covered');
+  const ghost=ghostCard(color,from);
+  await motionFly(ghost,from,to,280,0,-20,7);
+  if(el)el.classList.remove('fx-covered');
+  moveStatus('Refilling row');
+  if(i-oldLength===0&&target.length-next.length>0)await motionSleep(50);
+ }
+ return next;
+}
+async function motionTurn(ctx,token){
+ const {record,waves,seat}=ctx;
+ let current=await motionStartPlacement(ctx);
+ if(token!==motionEpoch)return;
+ for(const wave of waves){
+  if(token!==motionEpoch)return;
+  if(wave.kind==='refill')current=await motionRefill(current,wave.before,ctx);
+  else if(current.join('')!==wave.before.join('')){stageRow(wave.before);current=wave.before.slice()}
+  if(token!==motionEpoch)return;
+  current=await motionCollect(ctx,wave,current);
+ }
+ if(token!==motionEpoch)return;
+ current=await motionRefill(current,record.after,ctx);
+ if(token!==motionEpoch)return;
+ if(ctx.action==='insert'&&ctx.handBefore.length===ctx.handAfter.length){
+  stageHand(ctx.handAfter,seat);
+ }
+ moveStatus(record.score?'+'+record.score+' CARDS COLLECTED':'No match · think ahead',!!record.score);
+ await motionSleep(record.score?280:110);
+}
+
 function act(pos){
  if(!game||finished()||busy||covered||(opponentType==='bots'&&current()!==0))return;
  const player=current(),opts=E.legal(game,player),choice=opts.find(x=>x.move.index===selected&&x.move.pos===pos);
