@@ -37,7 +37,7 @@ function render(){
  $('status').textContent=over?(game.winner!==null?'Winner: '+label(game.winner):game.blocked?'Deck blocked: '+game.blocked:'Turn limit reached'):'Turn '+(game.turn+1)+' · '+label(current)+(bonus?' · BONUS MOVE':'');
  $('scores').innerHTML=game.players.map((player,i)=>'<div class="score '+(!over&&i===current?'active ':'')+(game.winner===i?'leader':'')+'" data-seat="'+i+'"><small>'+label(i)+'</small><strong class="score-count">'+player.hand.length+'</strong><small>cards remaining</small></div>').join('');
  $('stockCount').textContent=String(game.stock.length);$('discardCount').textContent=String(game.discard.length);
- $('rowHint').textContent=over?'Game finished':bonus?'BONUS MOVE: Play another card or end your turn.':'Choose a card and a gap. Match 3+ to earn a bonus move.';
+ $('rowHint').textContent=over?'Game finished':bonus?'BONUS MOVE: Place a card for free (no pickup), or end your turn.':'Choose a card and a gap. Match 3+ to earn a bonus move.';
  $('turnLabel').textContent=hidden?'Hand hidden':over?'Final hand':label(current)+' · '+p.hand.length+' cards';
  const options=canPlay?E.legal(game,current).filter(m=>m.move.index===selected):[];
  $('board').innerHTML=game.row.map(c=>card(c,'disabled','inactive')).join('');
@@ -52,7 +52,7 @@ function render(){
  if(!hidden&&over&&game.winner===current)$('hand').innerHTML='<p class="winner">No cards left. You won!</p>';
  $('endBonus').style.display=bonus&&!over&&!hidden?'inline-flex':'none';
  $('endBonus').disabled=!canPlay;
- $('message').textContent=over?(game.winner!==null?label(game.winner)+' wins by emptying their hand. '+message:message):bonus?(label(current)+': You earned one more placement. Another Merge can attack but cannot earn a third move.'):message;
+ $('message').textContent=over?(game.winner!==null?label(game.winner)+' wins by emptying their hand. '+message:message):bonus?(label(current)+': You earned a free placement. Even without a Merge, you shed your played card. Another Merge can attack, but cannot earn a third move.'):message;
  $('attackFx').textContent=over?'Match over':busy?'Cards in motion':bonus?'BONUS MOVE · PLAY OR PASS':'Make your move';
  $('log').innerHTML=game.log.slice(-7).reverse().map(r=>'<div>Turn '+r.turn+' · '+label(r.seat)+' · '+(r.scored?'MERGE, '+r.received.length+' to opponent'+(r.bonusUsed?', BONUS played':''):'No run, edge card taken')+'</div>').join('');
  if(canPlay)attachDrag();
@@ -174,17 +174,17 @@ async function animatePlace(record){
   row=row.filter((_,i)=>!removed.has(i));
   await reflow(row,wave.before.map((_,i)=>i).filter(i=>!removed.has(i)));
  }
- if(!record.scored&&record.taken!==null&&row.length>game.rowSize){
-  status('Take the rightmost card');
+ if(!record.scored&&(record.taken!==null||record.swept!==null)&&row.length>game.rowSize){
+  status(record.swept!==null?'Sweep the rightmost card to discard':'Take the rightmost card');
   const edge=Array.from($('board').querySelectorAll('.card')).at(-1),from=rect(edge);
-  const destination=rect(selector('.score[data-seat="'+record.seat+'"]'))||rect($('hand'));
+  const destination=record.swept!==null?rect($('discardCount')):(rect(selector('.score[data-seat="'+record.seat+'"]'))||rect($('hand')));
   edge?.classList.add('fx-cover');
   await fly(ghost(edge,from),from,destination,400,-25);
   row.pop();await reflow(row,row.map((_,i)=>i));
  }
  await refillFrom(row,record.after);
  stageHand(game.players[record.seat].hand,record.seat);
- status(record.scored?(record.received.length?'Card sent to opponent!':'Combo!'):'Card added to your hand');
+ status(record.scored?(record.received.length?'Card sent to opponent!':'Combo!'):record.swept!==null?'Free bonus placement!':'Card added to your hand');
  await sleep(170);
 }
 
@@ -210,7 +210,7 @@ async function performPlacement(who,move){
  try{if(animated)await animatePlace(rec)}
  catch(error){console.warn('Animation interrupted; game remains saved',error)}
  if(epoch!==current)return;
- message=rec.scored?(label(who)+' created '+rec.waves.length+' matching wave(s). '+rec.received.length+' card(s) sent to opponent.'):(label(who)+' took the rightmost card instead of scoring.');
+ message=rec.scored?(label(who)+' created '+rec.waves.length+' matching wave(s). '+rec.received.length+' card(s) sent to opponent.'):(rec.swept!==null?label(who)+' shed a free card; row edge swept to discard.':label(who)+' took the rightmost card instead of scoring.');
  busy=false;progress();
 }
 
