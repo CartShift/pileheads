@@ -628,6 +628,68 @@ function playBots(){
   commitMove(seat,chosen);
  },390);
 }
+
+/* Touch/pointer drag: pick up a real-looking card and drop it onto a legal
+ * target. Tapping still works, including keyboard/button activation. */
+function enableHandDrag(){
+ if(!game||finished()||busy||covered||(opponentType==='bots'&&current()!==0))return;
+ const hand=Array.from($('hand').querySelectorAll?.('[data-index]')||[]);
+ for(const el of hand){
+  let drag=null;
+  const findTarget=(x,y,index)=>{
+   const container=game.action==='exchange'?'board':'gaps';
+   const targets=Array.from($(container).querySelectorAll?.('[data-position]')||[]);
+   let best=null,distance=Infinity;
+   const legalMoves=E.legal(game,current()).filter(o=>o.move.index===index);
+   for(const t of targets){
+    const r=motionRect(t);if(!r)continue;
+    const dx=Math.max(r.left-x,0,x-(r.left+r.width));
+    const dy=Math.max(r.top-y,0,y-(r.top+r.height));
+    const d=Math.hypot(dx,dy);
+    const pos=Number(t.dataset?.position);
+    if(d<distance&&d<50&&legalMoves.some(o=>o.move.pos===pos)){best=t;distance=d}
+   }
+   return best;
+  };
+  el.onpointerdown=e=>{
+   if(busy||e.button!==0&&e.pointerType==='mouse')return;
+   drag={pointer:e.pointerId,index:Number(el.dataset.index),x:e.clientX,y:e.clientY,ghost:null,target:null,rect:motionRect(el)};
+   el.setPointerCapture?.(e.pointerId);
+  };
+  el.onpointermove=e=>{
+   if(!drag||drag.pointer!==e.pointerId)return;
+   if(!drag.ghost&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<9)return;
+   e.preventDefault?.();
+   if(!drag.ghost){
+    drag.ghost=ghostFrom(el,drag.rect);
+    drag.ghost?.classList.add('drag-ghost');
+    el.style.opacity='.16';
+   }
+   if(drag.ghost){
+    drag.ghost.style.left=(e.clientX-drag.rect.width*.5)+'px';
+    drag.ghost.style.top=(e.clientY-drag.rect.height*.5)+'px';
+   }
+   for(const item of document.querySelectorAll?.('.drop-target')||[])item.classList.remove('drop-target');
+   drag.target=findTarget(e.clientX,e.clientY,drag.index);
+   drag.target?.classList.add('drop-target');
+  };
+  const finish=e=>{
+   if(!drag||drag.pointer!==e.pointerId)return;
+   const ended=drag;drag=null;
+   el.style.opacity='';
+   ended.ghost?.remove();
+   for(const item of document.querySelectorAll?.('.drop-target')||[])item.classList.remove('drop-target');
+   if(ended.ghost&&ended.target){
+    selected=ended.index;
+    const position=Number(ended.target.dataset.position);
+    act(position);
+   }
+  };
+  el.onpointerup=finish;
+  el.onpointercancel=e=>{if(drag){drag.target=null;finish(e)}};
+ }
+}
+
 function render(){
  if(!game)return;
  let turn=current(),player=game.players[turn],end=finished(),hidden=covered||(opponentType==='bots'&&turn!==0);
@@ -647,6 +709,7 @@ function render(){
  $('message').textContent=end?(game.blocked?'Deck could not refill under current rules. See research notes.':'Winner: '+game.players.map((p,i)=>({i,score:p.score})).filter(x=>x.score===Math.max(...game.players.map(p=>p.score))).map(x=>label(x.i)).join(' & ')+'. '+message):message;
  $('log').innerHTML=game.log.slice(-8).reverse().map(e=>'<div>Turn '+e.turn+' · '+label(e.seat)+' · '+(e.score?'+ '+e.score+' captured':'No score')+' · '+e.waves+' waves</div>').join('');
  $('continue').style.display='none';
+ if(!busy&&!hidden)enableHandDrag();
 }
 $('start').onclick=kickoff;
 $('motionToggle').onclick=()=>{motionOn=!motionOn;try{localStorage.setItem('spark-exchange-motion',motionOn?'on':'off')}catch{}motionButton()};
