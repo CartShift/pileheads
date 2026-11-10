@@ -272,11 +272,12 @@ async function simulation(){
   }
   const sorted=series.map(s=>s.turns).sort((a,b)=>a-b);
   results.push({mode,completed:series.filter(s=>s.endedBy==='winner').length,
-   median:sorted[6],p90:sorted[10],blocked:series.filter(s=>s.endedBy!=='winner').length});
+   median:sorted[6],p90:sorted[10],blocked:series.filter(s=>s.endedBy!=='winner').length,
+   bonusAttacks:series.reduce((n,r)=>n+r.bonusAttacks,0)});
  }
- target.innerHTML='<table><thead><tr><th>Variant</th><th>Finished /12</th><th>Median turns</th><th>P90</th></tr></thead><tbody>'+
-  results.map(r=>'<tr><td>'+r.mode+'</td><td>'+r.completed+'/12</td><td>'+r.median+'</td><td>'+r.p90+'</td></tr>').join('')+'</tbody></table>'+
-  '<p>Seeded bot matches, not evidence of enjoyment. One turn is one player action, excluding mandatory discard selections.</p>';
+ target.innerHTML='<table><thead><tr><th>Variant</th><th>Finished /12</th><th>Median turns</th><th>P90</th><th>Bonus attacks</th></tr></thead><tbody>'+
+  results.map(r=>'<tr><td>'+r.mode+'</td><td>'+r.completed+'/12</td><td>'+r.median+'</td><td>'+r.p90+'</td><td>'+r.bonusAttacks+'</td></tr>').join('')+'</tbody></table>'+
+  '<p>Seeded bot matches, not evidence of enjoyment. One turn is a regular placement and up to one optional bonus placement.</p>';
  $('simulate').disabled=false;
 }
 $('start').onclick=start;
