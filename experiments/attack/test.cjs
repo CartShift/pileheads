@@ -57,6 +57,30 @@ check('Bonus can attack but never grants a third placement',()=>{
  assert.throws(()=>E.endBonus(g,0),/No bonus move/);
  assert.equal(E.conservation(g),144);
 });
+check('Unmatched bonus sheds a played card and sweeps the right edge',()=>{
+ let fixture=null;
+ for(let seed=1;seed<50&&!fixture;seed++){
+  const g=E.create({seed,mode:'attack'});
+  const scoring=E.legal(g,0).find(x=>x.scored);
+  if(!scoring)continue;
+  const first=E.place(g,0,scoring.move.index,scoring.move.pos);
+  if(first.status!=='bonus')continue;
+  const noMatch=E.legal(g,0).find(x=>!x.scored);
+  if(noMatch)fixture={g,noMatch};
+ }
+ assert.ok(fixture);
+ const {g,noMatch}=fixture,handBefore=g.players[0].hand.length,discardBefore=g.discard.length;
+ const result=E.place(g,0,noMatch.move.index,noMatch.move.pos);
+ assert.equal(result.status,'done');
+ assert.equal(result.record.scored,false);
+ assert.equal(result.record.taken,null);
+ assert.ok(result.record.swept,'row edge must be discarded');
+ assert.equal(g.players[0].hand.length,handBefore-1);
+ assert.equal(g.discard.length,discardBefore+1);
+ assert.equal(g.log[0].actions.length,2);
+ assert.equal(g.row.length,9);
+ assert.equal(E.conservation(g),144);
+});
 check('Chains send one penalty per wave, with a single bonus only',()=>{
  const g=E.create({seed:5,mode:'chains'});
  const op=E.legal(g,0).find(x=>x.waves.length>=2);
