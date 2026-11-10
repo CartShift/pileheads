@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#092d27"><title>SPARK Attack | Playtest Lab</title><style>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#092d27"><title>SPARK Momentum | Playtest Lab</title><style>
 :root{color-scheme:dark;--felt:#092d27;--panel:#144335;--ink:#f7ebca;--muted:#b3c8b4;--accent:#e9c68a}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% 0%,#1b5543,#08231d 75%);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
 .app{max-width:920px;margin:auto;padding:18px 14px 40px}header{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}
@@ -118,15 +118,16 @@ button:focus-visible{outline:3px solid #f9de9e}
 @media(max-width:600px){.app{padding:8px}.table{padding:9px 5px 14px}.row .card{min-width:0}.cardrow{padding:16px 2px}.cardrow .card{flex-basis:51px;max-width:51px}.score{min-width:95px;padding:7px}.controls{grid-template-columns:1fr 1fr}}
 </style></head><body>
 <div class="app">
-<header><div><div class="brand">⚡ SPARK <span>ATTACK</span></div><small>MERGE MOMENTUM PLAYTEST</small></div><a href="/" class="tag">Exchange Lab</a></header>
+<header><div><div class="brand">⚡ SPARK <span>MOMENTUM</span></div><small>MERGE MOMENTUM PLAYTEST</small></div><a href="/" class="tag">Exchange Lab</a></header>
 <div class="layout">
 <section class="hero">
 <h2 class="panel-title">First player with zero cards wins</h2>
 <div class="controls">
 <label class="wide">Game mode<select id="rules">
-<option value="attack">Attack: 1 penalty + 1 bonus move</option>
-<option value="chains">Attack + Chains: 1 penalty per wave + 1 bonus move</option>
-<option value="no-penalty">No Penalties: 1 bonus move, opponent takes nothing</option>
+<option value="momentum" selected>Momentum (recommended): attack on double Merge or chain</option>
+<option value="attack">Attack (strong): 1 penalty per Merge</option>
+<option value="chains">Chains (chaotic): 1 penalty per wave</option>
+<option value="no-penalty">Pure Race (fast): no penalty cards</option>
 </select></label>
 <label>Starting hand<select id="initialHand"><option value="7">7 cards</option><option value="9" selected>9 cards</option><option value="11">11 cards</option><option value="13">13 cards</option></select></label>
 <label>Opponents<select id="opponents"><option value="bots">Play against bot</option><option value="hotseat">Two people, one device</option></select></label>
@@ -136,7 +137,7 @@ button:focus-visible{outline:3px solid #f9de9e}
 </div>
 <div class="callout help">
 <b>The rules in four sentences:</b>
-<p>Play one card into the nine-card row. Three identical colors in a row trigger an attack. You send one captured card to the other player (one per matching wave in Chains), and earn one optional <b>free placement</b>. If the bonus does not match, the rightmost row card is discarded instead of being taken into your hand. A bonus can attack but never earns another bonus. On a turn without a match, take the rightmost card into your hand instead of drawing.</p>
+<p>Play one card into the nine-card row. Three identical colors in a row trigger an attack. A Merge earns one optional <b>free placement</b>. If the bonus does not match, sweep the rightmost row card to discard rather than taking it into your hand. In Momentum mode, making a chain reaction or another Merge during your bonus sends one captured card to your opponent, at most one penalty per turn. Other modes change how often penalties occur. On a turn without a match, take the rightmost card into your hand instead of drawing.</p>
 <p>Every card counts as one card. <b>Empty your hand to win.</b> There are no bonus points or special cards. Choose <b>End bonus</b> whenever you prefer not to play again.</p>
 </div>
 <button id="simulate" class="wide">Run 12-game simulation of each mode</button>
