@@ -162,7 +162,7 @@ async function animatePlace(record){
   const capturedBefore=record.waves.slice(0,w).reduce((n,x)=>n+x.removed.length,0);
   for(let j=0;j<wave.indices.length;j++){
    const index=wave.indices[j],el=source[index],from=rect(el);
-   const toOpponent=capturedBefore+j<record.received.length;
+   const toOpponent=record.penaltyIndices.includes(capturedBefore+j);
    const dest=rect(toOpponent?selector('.score[data-seat="'+(1-record.seat)+'"]'):$('discardCount'));
    if(el&&from&&dest){el.classList.add('fx-cover');tasks.push(fly(ghost(el,from),from,dest,410+j*18,-67,j%2?12:-10))}
   }
