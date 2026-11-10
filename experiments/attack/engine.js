@@ -1,9 +1,11 @@
-/* SPARK Attack: a separate, finite-deck shedding laboratory.
- * 2 players, 4 colors, 9-card row, a 9-card initial hand.
- * Modes: attack (1 penalty / 1 bonus discard), chains (per wave),
- * no-penalty (0 penalties / 1 bonus discard).
- * Counting cards, not calculating points. UMD for browser and Node.
+/* SPARK Attack: physical-style shedding laboratory.
+ * Two players, four colors, nine-row, finite deck.
+ * A successful Merge grants one OPTIONAL additional placement (at most one
+ * per full turn). The bonus can attack, but cannot earn another bonus.
+ * Modes differ only in cards sent to the opponent.
+ * Pure deterministic UMD engine for browser, Node, and simulation.
  */
+
 (function(root){'use strict';
 const COLORS=['O','B','P','G'],ROW_SIZE=9,DEFAULT_HAND=9;
 function check(ok,msg){if(!ok)throw Error(msg)}
@@ -59,7 +61,7 @@ function create({seed=1,mode='attack',players=2,initialHand=DEFAULT_HAND,deckSiz
  check(Number.isInteger(deckSize)&&deckSize>=48&&deckSize%4===0,'Deck must be at least 48 and divisible by 4');
  check(rowSize===9,'This initial experiment fixes the shared row at 9');
  check(Number.isInteger(turnLimit)&&turnLimit>=8&&turnLimit<=1000,'Invalid turn limit');
- const g={version:'attack-lab-0.1',seed,mode,rowSize,deckSize,initialHand,turnLimit,
+ const g={version:'attack-lab-0.2',seed,mode,rowSize,deckSize,initialHand,turnLimit,
   rng:(seed^0x51a7d1f3)>>>0,botRng:(seed^0x91273c4f)>>>0,stock:[],discard:[],row:[],
   players:Array.from({length:players},(_,i)=>({seat:i,hand:[]})),
   turn:0,winner:null,drawn:false,blocked:null,pending:null,log:[],rejections:0,refills:0,reshuffles:0};
@@ -87,7 +89,8 @@ function preview(g,seat,index,pos){
   waves:result.waves,scored:result.captured.length>0};
 }
 function legal(g,seat){
- if(g.blocked||g.drawn||g.winner!==null||g.pending||g.turn>=g.turnLimit||seat!==g.turn%2)return [];
+ if(g.blocked||g.drawn||g.winner!==null||g.turn>=g.turnLimit||seat!==g.turn%2)return [];
+ if(g.pending&&(g.pending.kind!=='bonus'||g.pending.seat!==seat))return [];
  const out=[];
  for(let index=0;index<g.players[seat].hand.length;index++)
   for(let pos=0;pos<g.row.length;pos++){
@@ -95,12 +98,17 @@ function legal(g,seat){
   }
  return out;
 }
-function finish(g){
- check(g.pending,'No pending move');
- const {seat,record}=g.pending;
- record.handAfter=g.players[seat].hand.slice();
- record.after=g.row.slice();
- record.discardCount=record.discarded.length;
+function finish(g,actions){
+ check(actions.length>=1&&actions.length<=2,'Invalid turn actions');
+ const seat=actions[0].seat;
+ const record={turn:g.turn+1,seat,actions,scored:actions.some(a=>a.scored),
+  waves:actions.flatMap(a=>a.waves),captured:actions.flatMap(a=>a.captured),
+  received:actions.flatMap(a=>a.received),discarded:[],
+  before:actions[0].before.slice(),after:g.row.slice(),
+  handBefore:actions[0].handBefore.slice(),handAfter:g.players[seat].hand.slice(),
+  bonusEarned:actions[0].scored&&actions[0].handAfter.length>0,
+  bonusUsed:actions.length===2,
+  bonusAttacks:actions.length===2&&actions[1].scored?1:0};
  g.log.push(record);
  g.pending=null;g.turn++;
  if(g.players[seat].hand.length===0)g.winner=seat;
@@ -109,16 +117,17 @@ function finish(g){
  return record;
 }
 function place(g,seat,index,pos){
- check(!g.pending&&g.winner===null&&!g.drawn&&!g.blocked,'Not ready to place');
+ check(g.winner===null&&!g.drawn&&!g.blocked,'Not ready to place');
  check(seat===g.turn%2,'Wrong turn');
+ const previous=g.pending,isBonus=!!previous;
+ check(!previous||(previous.kind==='bonus'&&previous.seat===seat),'Wrong bonus owner');
  const m=preview(g,seat,index,pos);
  check(m&&legal(g,seat).some(x=>x.move.index===index&&x.move.pos===pos),'Illegal placement');
  const p=g.players[seat],opponent=g.players[1-seat];
  const before=g.row.slice(),handBefore=p.hand.slice(),opponentBefore=opponent.hand.length;
  g.row=m.board.slice();p.hand=m.hand.slice();
- const strikes=m.scored?(g.mode==='chains'?m.waves.length:1):0;
- // Chains: one card from each wave. Regular Attack: one from the first
- // wave. Those exact cards go to the opponent, all others to discard.
+ // Captured-card penalties are determined by the same waves as the visual FX.
+ // Attack = first wave only; Chains = one captured card from each wave.
  const penaltyIndices=[],penalty=[];
  if(g.mode!=='no-penalty'){
   let offset=0;
@@ -131,39 +140,28 @@ function place(g,seat,index,pos){
   }
  }
  const marked=new Set(penaltyIndices);
- const rest=m.captured.filter((_,i)=>!marked.has(i));
  opponent.hand.push(...penalty);
- g.discard.push(...rest);
- let pendingDiscards=m.scored?Math.min(p.hand.length,g.mode==='chains'?m.waves.length:1):0;
- if(m.taken===null){
-  // Refill only after consuming a matching run. Zero-point moves still
-  // have exactly nine cards: insert 1, remove the rightmost 1.
-  replenish(g);
- }
- const record={turn:g.turn+1,seat,move:{index,pos},placed:m.placed,
-  before,handBefore,opponentBefore,scored:m.scored,waves:m.waves,
-  captured:m.captured.slice(),received:penalty.slice(),penaltyIndices:penaltyIndices.slice(),taken:m.taken,
-  discarded:[],after:g.row.slice(),pendingDiscards,handAfter:null};
- g.pending={seat,remaining:pendingDiscards,record};
+ g.discard.push(...m.captured.filter((_,i)=>!marked.has(i)));
+ if(m.taken===null)replenish(g);
+ const action={turn:g.turn+1,seat,bonus:isBonus,move:{index,pos},placed:m.placed,
+  before,handBefore,handAfter:p.hand.slice(),opponentBefore,
+  scored:m.scored,waves:m.waves,captured:m.captured.slice(),
+  received:penalty.slice(),penaltyIndices:penaltyIndices.slice(),
+  taken:m.taken,discarded:[],after:g.row.slice()};
  check(conservation(g)===g.deckSize,'Card accounting failure after placement');
- if(pendingDiscards===0||p.hand.length===0||g.blocked){
-  return {status:'done',record:finish(g)};
+ if(!isBonus&&m.scored&&p.hand.length>0&&!g.blocked){
+  g.pending={kind:'bonus',seat,actions:[action]};
+  if(legal(g,seat).length)return {status:'bonus',record:action};
+  // No legal bonus move: never strand a game in an unfinishable phase.
+  g.pending=null;
  }
- return {status:'discard',record,remaining:pendingDiscards};
+ const actions=isBonus?[...previous.actions,action]:[action];
+ return {status:'done',record:action,turnRecord:finish(g,actions)};
 }
-function discard(g,seat,index){
- const p=g.pending;
- check(!!p&&!g.blocked,'No pending discard');
- check(p.seat===seat&&p.remaining>0,'Wrong player or no discard required');
- const hand=g.players[seat].hand;
- check(Number.isInteger(index)&&index>=0&&index<hand.length,'Invalid discard index');
- const [color]=hand.splice(index,1);
- g.discard.push(color);p.record.discarded.push(color);p.remaining--;
- check(conservation(g)===g.deckSize,'Card accounting failure after discard');
- if(p.remaining===0||hand.length===0){
-  return {status:'done',color,record:finish(g)};
- }
- return {status:'discard',color,remaining:p.remaining,record:p.record};
+function endBonus(g,seat){
+ check(g.pending?.kind==='bonus'&&g.pending.seat===seat,'No bonus move to end');
+ check(!g.blocked&&g.winner===null&&!g.drawn,'Game already over');
+ return {status:'done',turnRecord:finish(g,g.pending.actions)};
 }
 function estimate(row,hand){
  // No access to the hidden stock or the opponent's hand.
@@ -191,30 +189,21 @@ function choose(g,seat,policy='greedy'){
  }
  return choices[Math.floor(botRandom(g)*choices.length)].move;
 }
-function discardChoice(g,seat,policy='greedy'){
- const h=g.players[seat].hand;
- if(policy==='random')return Math.floor(botRandom(g)*h.length);
- let best=-Infinity,keys=[];
- for(let i=0;i<h.length;i++){
-  const remaining=h.filter((_,j)=>j!==i);
-  const future=policy==='planner'?estimate(g.row,remaining).best:0;
-  const diversity=new Set(remaining).size;
-  const v=policy==='planner'?future*.5+diversity*.2:Math.max(0,...remaining.map(c=>c===h[i]?0:1))*.1;
-  if(v>best+1e-8){best=v;keys=[i]}else if(Math.abs(v-best)<1e-8)keys.push(i);
- }
- return keys[Math.floor(botRandom(g)*keys.length)];
-}
 function step(g,seat,policy='greedy'){
  const move=choose(g,seat,policy);
  let response=place(g,seat,move.index,move.pos);
- while(response.status==='discard'&&!g.blocked){
-  response=discard(g,seat,discardChoice(g,seat,policy));
+ if(response.status==='bonus'){
+  const follow=legal(g,seat);
+  if(follow.length){
+   const nextMove=choose(g,seat,policy);
+   response=place(g,seat,nextMove.index,nextMove.pos);
+  }else response=endBonus(g,seat);
  }
- return response.record;
+ return response.turnRecord;
 }
 function run(config={},policies=['planner','greedy']){
  const g=create(config);
- let noScore=0,scoringAvailable=0,attacks=0,chains=0,meaningful=0,distinct=0,zero=0,repeats=0,maxHand=0;
+ let noScore=0,scoringAvailable=0,attacks=0,chains=0,meaningful=0,distinct=0,repeats=0,maxHand=0,bonusEarned=0,bonusUsed=0,bonusAttacks=0;
  const seen=new Set();
  while(!g.blocked&&g.winner===null&&!g.drawn&&g.turn<g.turnLimit){
   const seat=g.turn%2,opts=legal(g,seat);
@@ -232,6 +221,7 @@ function run(config={},policies=['planner','greedy']){
   if(!r)throw Error('No returned completed move');
   if(!r.scored)noScore++;
   else {attacks++;if(r.waves.length>1)chains++}
+  bonusEarned+=Number(r.bonusEarned);bonusUsed+=Number(r.bonusUsed);bonusAttacks+=r.bonusAttacks;
   const key=g.row.join('')+'|'+g.players.map(p=>p.hand.slice().sort().join('')).join('|')+'|'+g.turn%2;
   if(seen.has(key))repeats++;
   seen.add(key);
@@ -240,8 +230,8 @@ function run(config={},policies=['planner','greedy']){
  }
  return {seed:g.seed,mode:g.mode,initialHand:g.initialHand,turns:g.turn,endedBy:g.winner!==null?'winner':g.blocked||'turn_limit',
   winner:g.winner,handSizes:g.players.map(p=>p.hand.length),maxHand,noScore,scoringAvailable,attacks,chains,
-  meaningful,distinct,repeats,rejections:g.rejections,reshuffles:g.reshuffles,log:g.log};
+  meaningful,distinct,repeats,bonusEarned,bonusUsed,bonusAttacks,rejections:g.rejections,reshuffles:g.reshuffles,log:g.log};
 }
-root.SparkAttack={COLORS,create,conservation,resolve,preview,legal,place,discard,choose,discardChoice,step,run};
+root.SparkAttack={COLORS,create,conservation,resolve,preview,legal,place,endBonus,choose,step,run};
 })(typeof globalThis!=='undefined'?globalThis:this);
 if(typeof module!=='undefined')module.exports=globalThis.SparkAttack;
