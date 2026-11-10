@@ -28,17 +28,18 @@ for(const hand of [7,9,11,13])for(const mode of ['attack','chains','no-penalty']
   distinctOutcomeProxy:sum('distinct')/t,alternativeScoringRate:sum('meaningful')/t,
   attacksPerGame:sum('attacks')/games,
   avgMaxHand:sum('maxHand')/games,
+  bonusesPerGame:sum('bonusUsed')/games,bonusAttacksPerGame:sum('bonusAttacks')/games,
   rejectedRefillPerGame:sum('rejections')/games,
   reasons:Object.fromEntries([...new Set(runs.map(r=>r.endedBy))].map(key=>[key,runs.filter(r=>r.endedBy===key).length]))
  });
 }
 const results={metadata:{
- id:'spark-attack-shedding-v0.1',kind:'seeded-bot-simulations',
+ id:'spark-attack-merge-momentum-v0.2',kind:'seeded-bot-simulations',
  seed,gamesPerVariant:games,players:2,deckSize:144,rowSize:9,colors:4,
  playerPolicies:'planner versus greedy, seat order alternates',maxTurns:240,
  rules:['attack','chains','no-penalty'],initialHands:[7,9,11,13],
  caveats:['This is NOT human preference or actual duration in minutes.',
-  'One turn includes a placement and any mandatory extra discard steps.',
+  'One full turn includes one placement and at most one optional bonus placement.',
   'Alternate scoring outcomes are a rough action-state proxy, not measured fun.',
   'Bots do not have access to hidden stock or the other player hand.',
   'The four-color/144-card top-of-deck safe-refill procedure is experimental.']
@@ -47,7 +48,7 @@ if(process.argv.includes('--output')){
  const dir=path.join(__dirname,'results');fs.mkdirSync(dir,{recursive:true});
  const name='attack-'+games+'x-'+seed;
  fs.writeFileSync(path.join(dir,name+'.json'),JSON.stringify(results,null,2)+'\n');
- const keys=['hand','mode','games','completed','medianTurns','p90Turns','avgTurns','zeroTurnRate','chainTurnRate','attacksPerGame','avgMaxHand','rejectedRefillPerGame'];
+ const keys=['hand','mode','games','completed','medianTurns','p90Turns','avgTurns','zeroTurnRate','chainTurnRate','attacksPerGame','bonusesPerGame','bonusAttacksPerGame','avgMaxHand','rejectedRefillPerGame'];
  fs.writeFileSync(path.join(dir,name+'.csv'),keys.join(',')+'\n'+out.map(row=>keys.map(k=>row[k]).join(',')).join('\n')+'\n');
 }
 console.log(JSON.stringify(results,null,2));
