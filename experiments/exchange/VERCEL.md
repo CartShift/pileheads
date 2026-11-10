@@ -19,12 +19,12 @@ The app supports `mode`, `players=2|3|4`, `opponents=bots|hotseat`, and optional
 - Vercel team: CartShift (Hobby)
 - Vercel project: `spark-exchange-lab`
 - Project ID: `prj_aQI7p60c3h7AXNkXfzYWdf0lHLoO`
-- Deployment ID: `dpl_C6g2apmAc39L8fc3Cm9xcjavc8GE`
-- Source snapshot: GitHub branch `experiment/exchange-core-2026-11-10`, commit `9bbebdf9bba8ae3491738adc4497f2fe4e7e3d86`
+- Deployment ID: `dpl_3YaJ79xGGK5Fq3b72BKXuDWHsPED`
+- Source snapshot: GitHub branch `experiment/exchange-core-2026-11-10`, commit `78eec3dd1a481e7ce408bd47a5d84df5083c4687`
 - Source file: `experiments/exchange/playtest.html`, deployed to Vercel as root `index.html`
 - Environment: production **of the standalone lab project only**; nothing published to the original SPARK Sites project.
 - Project protection: Vercel Authentication, password, and trusted-IP restrictions are disabled so people with links can try the static lab.
-- Vercel API reported `READY`, with the aliases `spark-exchange-lab.vercel.app` and `spark-exchange-lab-cart-shift.vercel.app`.
+- Vercel API reported `READY` for the updated physical-animation build on 2026-11-10, and the project's latest-deployment ID matched. Independent browser HTTP verification was unavailable in this execution environment. The aliases are `spark-exchange-lab.vercel.app` and `spark-exchange-lab-cart-shift.vercel.app`.
 
 ## Important operational limitation
 
