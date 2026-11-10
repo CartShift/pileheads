@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#092a26">
+<title>SPARK Duel | Strategic Playtest</title>
+<style>
+:root{color-scheme:dark;--ink:#f8f0d9;--muted:#c4cdbf;--felt:#103e33;--gold:#f0cf8c;--border:#f0cf8c43}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh;background:radial-gradient(ellipse at 50% 0%,#27654e 0%,#10382f 53%,#081d1a 100%);color:var(--ink);font:15px/1.48 system-ui,-apple-system,Segoe UI,sans-serif}
+button,input,select{font:inherit}button{cursor:pointer;color:var(--ink);background:#1a4b3c;border:1px solid var(--border);border-radius:10px;min-height:44px;padding:9px 14px;touch-action:manipulation}
+button:disabled{opacity:.35;cursor:default}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+button:hover:not(:disabled){filter:brightness(1.16)}
+.app{max-width:1060px;margin:0 auto;padding:16px 13px 34px}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.logo{font-weight:900;font-size:clamp(26px,5vw,38px);letter-spacing:-1px;line-height:1.1}.logo span{color:var(--gold)}
+.kicker{letter-spacing:.19em;text-transform:uppercase;color:#d2ddc8;font-size:10px;font-weight:800;margin-top:6px}
+.top-link{color:#f5d99c;font-size:12px;padding-top:5px}
+.layout{display:grid;grid-template-columns:minmax(225px,275px) 1fr;gap:14px;align-items:start}
+.panel{border-radius:19px;background:#0b3029d9;border:1px solid var(--border);box-shadow:0 10px 25px #03170f37;padding:16px}
+.panel h2{font-size:18px;margin:0 0 7px}
+.panel p{margin:8px 0}.help{font-size:13px;color:#d5e2d3}
+.strong{color:var(--gold);font-weight:800}
+.setup{display:grid;grid-template-columns:1fr;gap:10px;margin:15px 0}
+.setup label{display:grid;gap:4px;color:var(--muted);font-size:12px}
+.setup select,.setup input{width:100%;background:#164839;color:var(--ink);border:1px solid var(--border);border-radius:9px;padding:11px;min-height:43px}
+.primary{background:var(--gold);color:#12342a;border:0;font-weight:900}
+.subtle{font-size:12px;color:var(--muted)}
+.compare{margin-top:12px;font-size:12px}
+.compare a{color:var(--gold)}
+.board-wrap{position:relative;overflow:hidden;border-radius:25px;background:radial-gradient(ellipse at 30% 35%,#2b624b 0%,#124533 65%,#0b2a22 100%);border:1px solid #a6c5a14a;box-shadow:inset 0 1px 24px #041a144a,0 12px 22px #05171055;padding:15px 10px}
+.status-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+.status{font-size:12px;font-weight:800;color:#f5d596;background:#0b2e27;border:1px solid var(--border);border-radius:20px;padding:6px 10px}
+.scores{display:flex;gap:8px;flex-wrap:wrap}
+.score{min-width:106px;padding:9px 11px;border-radius:13px;border:1px solid #d9e2bd45;background:#0b312a;line-height:1.2}
+.score.current{border-color:var(--gold);box-shadow:0 0 0 1px #efc87f56}
+.score small{display:block;color:#c7d9c8;font-size:10px}
+.score strong{display:block;font-size:26px;color:var(--gold);margin:3px 0}
+.deck-line{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:16px 0 7px}
+.deck{display:flex;gap:8px;align-items:center;color:#c6d5c7;font-size:11px}
+.card-back{display:grid;place-items:center;width:37px;height:55px;border:3px solid #f5e3c8;border-radius:7px;box-shadow:0 4px 0 #806b56,0 8px 10px #001b1466;background:repeating-linear-gradient(45deg,#2c6576 0 4px,#174452 4px 8px);font-size:22px;color:#f1d6a3;font-weight:900}
+.instructions{color:#f2d7aa;line-height:1.45;font-size:13px;min-height:35px;text-align:center;font-weight:650}
+.board{display:flex;gap:clamp(2px,.6vw,6px);justify-content:center;align-items:stretch;min-height:94px;margin:7px 0 12px}
+.card{appearance:none;border:3px solid #f7ead2;border-radius:8px;aspect-ratio:44/68;min-width:0;max-width:77px;flex:1 1 0;padding:3px 1px;position:relative;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1px;text-shadow:0 2px 2px #0008;box-shadow:0 3px 0 #ac9d82,0 6px 9px #001e1666;color:#fff}
+.card::after{content:"";pointer-events:none;position:absolute;inset:4px;border:1px solid #ffffff65;border-radius:3px}
+.card b{font-size:clamp(19px,3.4vw,32px);line-height:1.2}
+.card small{font-size:clamp(6px,.9vw,10px);font-weight:800;letter-spacing:.035em}
+.card .corner{position:absolute;left:5px;top:4px;font-size:9px;line-height:1}
+.card.O{background:linear-gradient(125deg,#e98c59,#be5132)}
+.card.B{background:linear-gradient(125deg,#5dc4d3,#236e9c)}
+.card.P{background:linear-gradient(125deg,#b28bdf,#6d48a6)}
+.card.G{background:linear-gradient(125deg,#89c37c,#327a52)}
+.card.selected{outline:3px solid var(--gold);outline-offset:2px;transform:translateY(-8px);z-index:2}
+.card.available{cursor:pointer;box-shadow:0 3px 0 #ac9d82,0 7px 0 #86765a,0 0 0 2px #e6c3825c}
+.card.unavailable{opacity:.68;cursor:not-allowed}
+.card:disabled{opacity:1}
+.divider{height:1px;background:var(--border);margin:14px 3px}
+.hands{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hand-panel{min-width:0}
+.hand-panel h3{font-size:13px;font-weight:800;margin:0 0 5px;display:flex;justify-content:space-between;gap:5px}
+.hand-panel .muted{font-size:10px;font-weight:500;color:var(--muted)}
+.hand{display:flex;gap:8px;min-height:106px;align-items:center;justify-content:flex-start;padding:11px 3px}
+.hand .card{flex:0 1 63px;max-width:63px;min-height:85px}
+.hand .card b{font-size:26px}.hand .card small{font-size:8px}
+.hidden{border-radius:10px;border:1px dashed #e8d39b62;color:#d0d8c6;font-size:12px;padding:26px 7px;text-align:center;min-height:95px}
+.feedback{min-height:48px;background:#082920af;border:1px solid #edcc9360;border-radius:12px;padding:10px 12px;margin:14px 0 11px;color:#f3d8aa;font-size:13px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions button{flex:1 1 130px;font-size:13px}
+.history{margin-top:13px;color:#c9d7c8;font-size:11px;max-height:120px;overflow:auto}
+.history div{padding:6px 2px;border-bottom:1px solid #e6dfc617}
+.footer{font-size:12px;color:#b9cebd;margin-top:15px}
+#cover{display:none;position:fixed;inset:0;z-index:100;background:#061c18fa;align-items:center;justify-content:center;padding:22px}
+#cover .inside{padding:26px;max-width:420px;text-align:center;border:1px solid var(--gold);border-radius:18px;background:#123a2f}
+#cover h2{font-size:23px}
+@media(max-width:740px){.layout{grid-template-columns:1fr}.panel{padding:13px}.setup{grid-template-columns:1fr 1fr}.setup label.wide{grid-column:1/-1}}
+@media(max-width:440px){.app{padding:10px 7px 28px}.board-wrap{padding:12px 5px}.board{gap:2px}.card{border-width:2px}.card::after{inset:3px}.card b{font-size:clamp(17px,4.7vw,24px)}.card small{font-size:6px;letter-spacing:0}.card .corner{left:3px;top:3px;font-size:8px}.hand{gap:5px}.hand .card{flex-basis:55px;min-height:75px}.hands{gap:6px}.score{min-width:95px;padding:7px}.setup{gap:7px}.status{padding:5px 7px}}
+@media(prefers-reduced-motion:reduce){.card.selected{transform:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div><div class="logo">✦ SPARK <span>DUEL</span></div><div class="kicker">Strategic rules experiment · v0.1</div></div><a class="top-link" href="/">Exchange Lab</a></header>
+<div class="layout">
+<aside class="panel">
+<h2>Win by outthinking your opponent</h2>
+<p class="help"><span class="strong">Swap</span> one card from your three-card hand with a different-colored card in the shared row. Keep the card you take.</p>
+<p class="help">Create three or more matching cards in a row to <span class="strong">capture points</span>. The board collapses and refills. After ten turns each, <span class="strong">most captured cards wins.</span></p>
+<p class="help">Try <strong>Open Hands</strong>: see your opponent's three cards, plan traps, deny their best swaps and choose which colors to bring back into your hand.</p>
+<div class="setup">
+<label class="wide">Information<select id="information"><option value="open">Open Hands · strategic duel</option><option value="hidden">Hidden Hands · comparison</option></select></label>
+<label>Opponent<select id="opponents"><option value="bots">Play against bot</option><option value="hotseat">Two players / same device</option></select></label>
+<label>Game seed<input id="seed" type="number" min="0" max="4294967295" step="1" value="20261111"></label>
+<button id="start" class="primary" style="grid-column:1/-1">New game</button>
+</div>
+<p class="subtle">The deck is finite and balanced: four colors, 36 cards each. There are no special cards or mandatory discard decisions. An exchange that leaves the same card in place is illegal.</p>
+<div class="compare">Compare with <a href="/attack/?mode=momentum&row=11&hints=off">Momentum</a>. This is a separate experimental game, not an update to SPARK Simple+.</div>
+</aside>
+<main class="board-wrap" aria-label="Shared card table">
+<div class="status-row"><div id="status" class="status">Ready</div><div id="scores" class="scores"></div></div>
+<div class="deck-line">
+<div class="deck"><div class="card-back">✧</div><div><strong id="stockCount">144</strong><div>Draw stock</div></div></div>
+<div class="deck"><div><strong id="discardCount">0</strong><div>Discarded</div></div><div class="card-back" style="filter:grayscale(.7)">✧</div></div>
+</div>
+<p id="instructions" class="instructions">Choose a hand card and swap with a different-colored row card.</p>
+<div id="board" class="board" aria-label="Visible row of nine cards"></div>
+<div class="divider"></div>
+<div class="hands">
+<div class="hand-panel"><h3><span id="ownTitle">Your hand</span><span id="ownCount" class="muted"></span></h3><div id="hand" class="hand" aria-label="Your cards"></div></div>
+<div class="hand-panel"><h3><span id="otherTitle">Opponent hand</span><span id="otherCount" class="muted"></span></h3><div id="otherHand" class="hand" aria-label="Opponent cards"></div></div>
+</div>
+<div class="feedback" id="message" aria-live="polite">Your choices can change the row and the cards you will hold next turn.</div>
+<div class="actions"><button id="export">Export playtest</button><button id="rematch">Replay same seed</button></div>
+<div id="log" class="history"></div>
+</main>
+</div>
+<p class="footer">Two-player standalone strategy experiment. The open-hand setting reveals exact hand colors to both players; the hidden setting protects the other player's cards. Automated bot matches can test invariants, but real players decide whether the game is fun.</p>
+</div>
+<div id="cover" role="dialog" aria-modal="true" aria-labelledby="passTitle">
+<div class="inside"><h2 id="passTitle">Pass the device</h2><p>The next player's cards are hidden until they're ready.</p><button class="primary" id="reveal">Reveal my hand</button></div>
+</div>
+<script src="./engine.js"></script><script src="./app.js"></script>
+</body></html>
