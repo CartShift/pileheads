@@ -76,6 +76,7 @@ body{background-color:#071f1b;background-image:radial-gradient(ellipse at 50% 13
 .motion-toggle{min-height:34px;padding:6px 9px;font-size:12px;background:#0f3428;white-space:nowrap}
 .gaps{min-height:50px}.rowHint{letter-spacing:.02em}
 @media(max-width:440px){.app{padding:9px 8px 30px}.table{padding:9px 6px 16px}.card{border-width:2px}.card:before{inset:3px}.card .corner{top:3px;left:3px}.card .corner.bottom{bottom:3px;right:3px}.score{min-width:76px;padding:5px 8px}.score .score-count{font-size:21px}.table-accessories{min-height:60px}.deck-spot{min-width:70px}.cardrow .card{flex-basis:clamp(59px,22vw,80px)}}
+.card.inactive,button.card:disabled{opacity:1;cursor:default}
 @media(prefers-reduced-motion:reduce){.card,.fx-matched,#motionStatus.pulse,.score.fx-hit{animation:none!important;transition:none!important}}
 </style></head><body><div class="app"><header><div><div class="brand">⚡ SPARK <span>EXCHANGE</span></div><small>OFFLINE GAME DESIGN LAB</small></div><div class="btnrow" style="flex:0 0 auto;gap:7px"><button id="motionToggle" type="button" class="motion-toggle" aria-pressed="true">Motion: On</button><span class="tag">Experimental</span></div></header>
 <div class="layout"><section class="hero"><h2 style="margin-top:0">Test a different core rule</h2><div class="controls">
@@ -341,6 +342,8 @@ function kickoff(){
  const c=configs[$('rules').value],seed=Number($('seed').value);
  if(!Number.isInteger(seed)||seed<0||seed>4294967295){alert('Choose a valid nonnegative seed.');return}
  if(botTimer)clearTimeout(botTimer);
+ motionEpoch++;document.querySelectorAll?.('.fx-ghost,.fx-float')?.forEach(el=>el.remove());
+ $('cover').style.display='none';
  game=E.create({...c,seed,players:Number($('players').value),refillRule:$('refill').value,deckSize:144,turnsPerPlayer:8});
  opponentType=$('opponents').value;selected=0;busy=false;covered=opponentType==='hotseat';message='Select a hand card, then a target in the shared row.';
  save();
@@ -543,38 +546,64 @@ async function motionTurn(ctx,token){
  await motionSleep(record.score?280:110);
 }
 
+function finishMove(context,record){
+ if(game!==context.ref||context.token!==motionEpoch)return;
+ busy=false;selected=0;
+ const who=label(context.seat);
+ message=who+' '+(context.action==='exchange'?
+  'exchanged '+NAME[context.handBefore[context.move.index]]+' for '+NAME[record.exchanged]:
+  'inserted '+NAME[context.handBefore[context.move.index]])+
+  '. '+(record.score?'Captured '+record.score+' cards across '+record.waves+' wave'+(record.waves===1?'':'s')+'.':'No cards captured.');
+ if(!finished()&&opponentType==='hotseat'){
+  // Always cover the next player's hand BEFORE rendering it.
+  covered=true;save();showCover();
+ }else{
+  save();render();
+  if(!finished())playBots();
+ }
+}
+function commitMove(seat,choice){
+ if(!game||!choice)return;
+ const ref=game,token=++motionEpoch;
+ const before=game.row.slice(),handBefore=game.players[seat].hand.slice(),waveCount=game.wavesRecorded.length;
+ const animating=canAnimate();
+ busy=true;
+ const record=E.play(game,seat,choice.move);
+ const context={ref,token,action:game.action,rowSize:game.rowSize,seat,move:choice.move,
+   before,handBefore,handAfter:game.players[seat].hand.slice(),record,
+   waves:game.wavesRecorded.slice(waveCount)};
+ // Save the authoritative game immediately so reload during an animation never
+ // replays a completed card exchange or creates duplicate score.
+ save();
+ if(!animating){finishMove(context,record);return}
+ motionTurn(context,token).then(
+  ()=>finishMove(context,record),
+  err=>{console.warn('SPARK: decorative animation failed, game is safe',err);finishMove(context,record)}
+ );
+}
 function act(pos){
  if(!game||finished()||busy||covered||(opponentType==='bots'&&current()!==0))return;
- const player=current(),opts=E.legal(game,player),choice=opts.find(x=>x.move.index===selected&&x.move.pos===pos);
- if(!choice)return;
- let r=E.play(game,player,choice.move);
- message=label(player)+' '+(game.action==='exchange'?'exchanged '+NAME[choice.color]+' for '+NAME[choice.taken]:'inserted '+NAME[choice.color])+
-  '. '+(r.score? 'Captured '+r.score+' cards across '+r.waves+' wave'+(r.waves===1?'':'s')+'.':'No cards captured.');
- selected=0;
- if(!finished()&&opponentType==='hotseat'){
-  // Apply the cover BEFORE rendering the next player's hand.
-  covered=true;save();showCover();
- }else{save();render();if(!finished())playBots();}
+ const player=current(),opts=E.legal(game,player),choice=opts.find(o=>o.move.index===selected&&o.move.pos===pos);
+ if(choice)commitMove(player,choice);
 }
 function playBots(){
  if(opponentType!=='bots'||!game||finished()||current()===0)return;
  busy=true;render();
- const advance=()=>{
-  if(finished()||current()===0){busy=false;render();return}
-  const seat=current(),opts=E.legal(game,seat),decision=E.choose(game,seat,seat%2?'planner':'greedy',opts);
-  const r=E.play(game,seat,decision);
-  message=label(seat)+' played '+NAME[r.handBefore[decision.index]]+(r.score?' and captured '+r.score+' cards.':'. No combo.');
-  save();render();
-  botTimer=setTimeout(advance,440);
- };
- botTimer=setTimeout(advance,440);
+ botTimer=setTimeout(()=>{
+  if(!game||finished()||current()===0){busy=false;render();return}
+  const seat=current(),opts=E.legal(game,seat),choiceMove=E.choose(game,seat,seat%2?'planner':'greedy',opts);
+  const chosen=opts.find(o=>o.move.index===choiceMove.index&&o.move.pos===choiceMove.pos);
+  commitMove(seat,chosen);
+ },390);
 }
 function render(){
  if(!game)return;
  let turn=current(),player=game.players[turn],end=finished(),hidden=covered||(opponentType==='bots'&&turn!==0);
  const totals=game.players.map((p,i)=>({label:label(i),score:p.captured.length,active:!end&&i===turn}));
- $('scores').innerHTML=totals.map(p=>'<div class="score '+(p.active?'active':'')+'"><small>'+p.label+'</small><strong>'+p.score+'</strong><small>cards captured</small></div>').join('');
+ $('scores').innerHTML=totals.map((p,i)=>'<div data-seat="'+i+'" class="score '+(p.active?'active':'')+'"><small>'+p.label+'</small><div><span class="score-pip" aria-hidden="true"></span><strong class="score-count">'+p.score+'</strong></div><small>cards captured</small></div>').join('');
  $('status').textContent=end?(game.blocked?'Deck blocked: '+game.blocked:'Game finished'):'Turn '+(game.turn+1)+' / '+(game.turnsPerPlayer*game.players.length)+' · '+label(turn);
+ $('stockCount').textContent=String(game.stock.length);$('discardCount').textContent=String(game.discard.length);
+ motionButton();if(!busy)moveStatus(end?'Game complete':covered?'Pass the device':'Choose your move');
  $('turnLabel').textContent=end?'Game over':(hidden?'Hand hidden':label(turn)+' · '+player.hand.length+' cards');
  $('rowHint').textContent=game.action==='exchange'?'Select a hand card, then a different-colored card in the row.':'Select a hand card, then a gap to insert.';
  const allowed=!end&&!hidden&&(!busy)&&(!(opponentType==='bots'&&turn!==0));
@@ -588,6 +617,8 @@ function render(){
  $('continue').style.display='none';
 }
 $('start').onclick=kickoff;
+$('motionToggle').onclick=()=>{motionOn=!motionOn;try{localStorage.setItem('spark-exchange-motion',motionOn?'on':'off')}catch{}motionButton()};
+motionButton();
 $('reveal').onclick=reveal;
 $('board').onclick=e=>{const b=e.target.closest('[data-position]');if(b)act(Number(b.dataset.position))};
 $('gaps').onclick=e=>{const b=e.target.closest('[data-position]');if(b)act(Number(b.dataset.position))};
