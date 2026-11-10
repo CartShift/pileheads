@@ -1,0 +1,166 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#092d27"><title>SPARK Attack | Playtest Lab</title><style>
+:root{color-scheme:dark;--felt:#092d27;--panel:#144335;--ink:#f7ebca;--muted:#b3c8b4;--accent:#e9c68a}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% 0%,#1b5543,#08231d 75%);color:var(--ink);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+.app{max-width:920px;margin:auto;padding:18px 14px 40px}header{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:16px}
+.brand{font-weight:900;font-size:29px;letter-spacing:-1px}.brand span{color:var(--accent)}header small{display:block;color:var(--muted);font-size:11px;letter-spacing:2px}
+button,select,input{font:inherit;color:inherit}button,select,input{border:1px solid #bfd5ac50;border-radius:11px;background:#153d32;padding:9px 12px;min-height:42px}
+button{cursor:pointer;touch-action:manipulation}button:disabled{opacity:.35;cursor:default}button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--accent)}
+button:hover:not(:disabled){filter:brightness(1.15)}.primary{background:var(--accent);color:#173428;font-weight:800;border:0}.small{font-size:12px;color:var(--muted)}
+.hero{background:#0d3028;padding:16px;border:1px solid #b9d3a43c;border-radius:18px;margin-bottom:14px}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}.controls label{font-size:12px;color:var(--muted);display:grid;gap:5px}.controls select,.controls input{width:100%;max-width:100%;min-width:0}.wide{grid-column:1/-1}
+.layout{display:grid;grid-template-columns:1fr;gap:14px}.table{background:linear-gradient(145deg,#215a3f80,#103b30b0);border:1px solid #b4cba74d;border-radius:23px;padding:15px 10px}
+.summary{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;padding:7px 5px 12px}.scoreboard{display:flex;gap:7px;flex-wrap:wrap}
+.score{border:1px solid #b5c9a747;border-radius:13px;padding:8px 10px;min-width:100px;background:#082d25;text-align:center}
+.score.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}.score strong{font-size:25px;color:var(--accent);display:block}.score small{font-size:10px;color:var(--muted)}
+.row{display:flex;gap:4px;justify-content:center;align-items:stretch;overflow-x:auto;padding:12px 2px 18px;scrollbar-width:thin;min-height:102px}
+.card{flex:1 0 0;min-width:32px;max-width:66px;aspect-ratio:44/68;border:2px solid #fff1d8;border-radius:8px;display:flex;justify-content:center;align-items:center;flex-direction:column;box-shadow:0 4px 0 #09271d,0 7px 10px #0005;position:relative;padding:2px}
+.card b{font-size:clamp(21px,5vw,32px)}.card em{font-style:normal;font-size:clamp(8px,1.5vw,11px);text-transform:uppercase;letter-spacing:.03em}
+.card.O{background:#c15d36}.card.B{background:#24779c}.card.P{background:#7850b3}.card.G{background:#438e58}
+.card.clickable{outline:1px solid transparent}.card.clickable:hover,.card.clickable:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.card.inactive{opacity:.68}.card.picked{transform:translateY(-9px);border-color:var(--accent);box-shadow:0 0 0 2px #e9c68a}
+.gaps{display:flex;justify-content:space-between;gap:4px;padding:0 3px 8px}.gaps button{flex:1;min-width:0;padding:4px 0;min-height:45px;border-style:dashed;color:var(--accent)}
+.cardrow{display:flex;gap:8px;justify-content:center;min-height:106px;padding:16px 0}
+.cardrow .card{flex:0 1 70px;max-width:70px}.muted{color:var(--muted)}.callout{padding:12px;border:1px solid #e9c68a55;background:#071f1a;border-radius:14px;margin:11px 0}
+.logs{font-size:12px;color:var(--muted);padding:9px 10px;max-height:200px;overflow-y:auto}.logs div{border-bottom:1px solid #ffffff19;padding:4px 0}
+.rowHint{font-size:11px;color:var(--muted);text-align:center}.btnrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.btnrow button{flex:1}
+#cover{background:#071d19f2;position:fixed;inset:0;z-index:99;display:none;align-items:center;justify-content:center;padding:25px}
+#cover .coverInner{max-width:450px;text-align:center;background:#11392e;border:1px solid var(--accent);border-radius:20px;padding:30px}
+#cover h2{font-size:28px}.footer{margin-top:20px;font-size:12px;color:var(--muted)}.tag{background:#e9c68a23;color:#f4d69e;border:1px solid #e9c68a66;border-radius:30px;padding:2px 9px;font-size:11px}
+@media(min-width:740px){.layout{grid-template-columns:260px 1fr}.table{grid-column:2;grid-row:1/3}.controls{grid-template-columns:1fr}.wide{grid-column:1}.row{gap:7px}}
+
+/* Layered physical cardstock, felt and hand styling carried forward from Simple+. */
+body{background-color:#071f1b;background-image:radial-gradient(ellipse at 50% 13%,#235440 0%,#10382e 55%,#061e1a 100%)}
+.table{position:relative;background:radial-gradient(ellipse at 45% 40%,#285d43b0,#0f382aa8 77%);box-shadow:inset 0 3px 34px #021d1575,0 14px 34px #021b1370;padding:15px 10px 20px}
+.hero{box-shadow:0 8px 20px #02160f35}.row{overflow:visible;position:relative;min-height:91px;padding:12px 1px 19px;gap:clamp(2px,.6vw,6px)}
+.card{background-clip:padding-box;flex:1 1 0;min-width:0;max-width:70px;border:3px solid #fdf0ce;border-radius:8px;color:#fffaf0;text-shadow:0 2px 3px #0008;box-shadow:0 2px 0 #d1bd96,0 5px 0 #a69576,0 9px 12px #001d1670;isolation:isolate;overflow:visible;user-select:none;transform-style:preserve-3d;transition:filter .15s,box-shadow .15s;will-change:transform}
+.card:before{content:"";position:absolute;inset:4px;border:1px solid #ffffff5b;border-radius:4px;pointer-events:none}
+.card:after{content:"";position:absolute;inset:0;background:linear-gradient(128deg,#ffffff32 0%,transparent 30%,transparent 72%,#00000022 100%);border-radius:5px;pointer-events:none}
+.card.O{background:linear-gradient(145deg,#ed965a 0%,#c8603c 70%,#9b3d2b 100%)}
+.card.B{background:linear-gradient(145deg,#65c4d0 0%,#2d8aaa 58%,#205b90 100%)}
+.card.P{background:linear-gradient(145deg,#b28bdc 0%,#835cbd 60%,#553a95 100%)}
+.card.G{background:linear-gradient(145deg,#82b97c 0%,#4d9d65 62%,#246847 100%)}
+.card b{font-size:clamp(21px,5.8vw,35px);line-height:1.2;filter:drop-shadow(0 2px 2px #0004)}
+.card em{color:#fff7e9;font-size:clamp(7px,1.3vw,10px);letter-spacing:.065em;font-weight:800}
+.card .corner{position:absolute;top:4px;left:5px;font-size:clamp(7px,1.2vw,10px);line-height:1;color:#fffbe6;z-index:2}
+.card .corner.bottom{left:auto;top:auto;right:5px;bottom:5px;transform:rotate(180deg)}
+.card.clickable:focus-visible,.card.clickable:hover{outline:3px solid #ffdc8b;outline-offset:2px;filter:brightness(1.13)}
+.card.picked{transform:translateY(-12px) rotate(-2deg);border-color:#ffdc92;box-shadow:0 0 0 2px #e9c68a,0 7px 0 #977b58,0 14px 18px #0008}
+.cardrow{perspective:900px;gap:clamp(7px,2vw,16px);min-height:119px;padding:20px 0 14px}
+.cardrow .card{flex:0 0 clamp(62px,20vw,84px);max-width:84px;transform-origin:center 160%}
+.cardrow .card:not(.picked):first-child{transform:rotate(-8deg) translateY(6px)}
+.cardrow .card:not(.picked):last-child{transform:rotate(8deg) translateY(6px)}
+.cardrow .card.picked{transform:translateY(-16px) rotate(0)}
+.table-topline{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid #ffffff20;padding:3px 2px 12px;margin-bottom:10px}
+.table-topline .eyebrow{font-size:10px;color:#cfdbbe;letter-spacing:.09em;text-transform:uppercase}
+.table-accessories{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:4px 0 8px;min-height:62px}
+.deck-spot{display:flex;align-items:center;gap:8px;min-width:95px;font-size:10px;color:#d5e1ca}
+.deck-back{position:relative;display:grid;place-items:center;width:38px;height:54px;border:3px solid #f0e0c5;border-radius:6px;color:#eddbb2;font-size:23px;font-weight:900;box-shadow:0 3px 0 #92765b,0 6px 0 #735d49,0 10px 11px #001b1577;background:repeating-linear-gradient(45deg,#214d5e 0 4px,#143948 4px 8px)}
+.deck-back:before{content:"";position:absolute;inset:4px;border:1px solid #e8d8aa8a;border-radius:3px}
+.deck-spot small{display:block;color:var(--muted);white-space:nowrap}
+#motionStatus{display:flex;align-items:center;justify-content:center;flex:1;text-align:center;min-height:48px;font-size:12px;font-weight:900;letter-spacing:.03em;color:#f7d38e}
+#motionStatus.pulse{animation:statusPulse .48s ease-out}
+@keyframes statusPulse{0%{transform:scale(.85);opacity:.45}60%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+.score{position:relative;padding:8px 11px 9px;min-width:86px;background:linear-gradient(150deg,#163f31,#08271f);box-shadow:0 3px 7px #0003}
+.score .score-pip{display:inline-block;width:11px;height:15px;border:1px solid #f2d49f;background:#bb774d;border-radius:2px;transform:rotate(-7deg);box-shadow:3px 2px 0 #735d49;margin-right:5px}
+.score .score-count{font-size:25px;color:var(--accent);font-weight:900;vertical-align:middle}
+.score.fx-hit{animation:scoreBounce .45s ease}
+@keyframes scoreBounce{50%{transform:scale(1.08);box-shadow:0 0 20px #ffd98a6e}}
+.fx-ghost{position:fixed!important;z-index:130!important;pointer-events:none!important;margin:0!important;transform:none;transform-origin:center;transition:none!important;box-sizing:border-box}
+.fx-ghost.card{min-height:0}
+.fx-covered{visibility:hidden!important}
+.fx-matched{animation:matchedFlash .42s ease-in-out infinite alternate;outline:3px solid #ffe8a2;outline-offset:2px;z-index:4}
+@keyframes matchedFlash{to{filter:brightness(1.6);box-shadow:0 0 28px #ffd16c,0 4px 0 #907654}}
+.fx-float{position:fixed;pointer-events:none;z-index:150;color:#ffdf99;font-size:26px;font-weight:950;text-shadow:0 3px 15px #061a13}
+.callout{box-shadow:inset 0 1px 10px #0002;border-radius:18px}
+#message{min-height:38px;font-size:13px;color:#e8dfbe}
+.motion-toggle{min-height:34px;padding:6px 9px;font-size:12px;background:#0f3428;white-space:nowrap}
+.gaps{min-height:50px}.rowHint{letter-spacing:.02em}
+@media(max-width:440px){.app{padding:9px 8px 30px}.table{padding:9px 6px 16px}.card{border-width:2px}.card:before{inset:3px}.card .corner{top:3px;left:3px}.card .corner.bottom{bottom:3px;right:3px}.score{min-width:76px;padding:5px 8px}.score .score-count{font-size:21px}.table-accessories{min-height:60px}.deck-spot{min-width:70px}.cardrow .card{flex-basis:clamp(59px,22vw,80px)}}
+.card.inactive,button.card:disabled{opacity:1;cursor:default}
+.cardrow .card{touch-action:none}
+.card.drop-target,.gaps button.drop-target{outline:3px solid #ffe4a4!important;outline-offset:2px;filter:brightness(1.28)}
+.drag-ghost{opacity:.97;box-shadow:0 13px 35px #0009!important;transform:rotate(-5deg) scale(1.06)!important}
+.fx-face-down{position:absolute;z-index:5;inset:-2px;border-radius:7px;border:3px solid #f4e8d3;background:repeating-linear-gradient(45deg,#245167 0 4px,#173849 4px 8px);box-shadow:inset 0 0 0 5px #dfcda775,0 4px 7px #001b1780;pointer-events:none}
+.fx-face-down:after{content:'✧';display:grid;place-items:center;height:100%;font-size:24px;color:#e7ca94}
+.fx-float{animation:fxPoints .8s cubic-bezier(.16,.7,.25,1) both}@keyframes fxPoints{0%{transform:translateY(14px) scale(.8);opacity:0}20%{transform:translateY(-8px) scale(1.12);opacity:1}100%{transform:translateY(-60px) scale(1);opacity:0}}
+@media(prefers-reduced-motion:reduce){.card,.fx-matched,#motionStatus.pulse,.score.fx-hit{animation:none!important;transition:none!important}}
+
+a{color:#f4d59d}a:hover{color:#ffe8bd}
+.panel-title{font-size:18px;margin:2px 0 9px}.controls{grid-template-columns:1fr 1fr}
+.cardrow{justify-content:flex-start;overflow-x:auto;scrollbar-width:thin;gap:4px;padding:19px 4px 13px;min-height:126px}
+.cardrow .card{flex:0 0 55px;max-width:55px;min-height:85px}
+.cardrow .card em{font-size:8px}
+.table{min-width:0}
+.row{overflow:visible;gap:3px}
+.row .card{min-width:0;max-width:58px;flex:1 1 0}
+.row .card em{font-size:8px}
+.score .score-count{font-size:25px}
+.score.active{border-color:#edc787}
+.score.leader{box-shadow:inset 0 0 0 1px #f7cf84,0 4px 15px #090f076c}
+.help{font-size:12px;color:#d5e0c9}.hint{font-size:13px;color:#efd6a7;min-height:34px}
+.card.clickable{cursor:pointer}
+.card.discardable{border-color:#ffe19a;outline:2px solid #f5b95d;outline-offset:1px}
+.motion-button{min-height:36px;font-size:12px}
+#cover{z-index:210}
+#panel{display:none;margin-top:12px}
+#panel table{width:100%;font-size:12px;border-collapse:collapse}
+#panel th,#panel td{padding:6px;border-bottom:1px solid #ffffff2c;text-align:left}
+#panel td:last-child{text-align:right}
+#panel pre{white-space:pre-wrap}
+#simResults{font-size:12px;min-height:25px}
+#attackFx{min-height:26px;text-align:center;font-weight:800;color:#f9d59a;letter-spacing:.03em}
+button:focus-visible{outline:3px solid #f9de9e}
+.fx-cover{visibility:hidden!important}
+.fx-ghost{position:fixed;pointer-events:none;z-index:180;will-change:transform}
+#hand.cards-processing{pointer-events:none}
+.winner{font-size:22px;font-weight:900;color:#f6d69e}
+.fx-numeric{position:fixed;z-index:220;color:#ffe7a6;pointer-events:none;font-size:25px;font-weight:950;text-shadow:0 2px 7px #000;animation:fxPoints .8s forwards}
+@media(max-width:600px){.app{padding:8px}.table{padding:9px 5px 14px}.row .card{min-width:0}.cardrow{padding:16px 2px}.cardrow .card{flex-basis:51px;max-width:51px}.score{min-width:95px;padding:7px}.controls{grid-template-columns:1fr 1fr}}
+</style></head><body>
+<div class="app">
+<header><div><div class="brand">⚡ SPARK <span>ATTACK</span></div><small>SHEDDING RULES EXPERIMENT</small></div><a href="/" class="tag">Exchange Lab</a></header>
+<div class="layout">
+<section class="hero">
+<h2 class="panel-title">First player with zero cards wins</h2>
+<div class="controls">
+<label class="wide">Game mode<select id="rules">
+<option value="attack">Attack: 1 penalty + 1 extra discard</option>
+<option value="chains">Attack + Chains: 1 penalty + 1 discard per wave</option>
+<option value="no-penalty">No Penalties: 1 extra discard, opponent takes nothing</option>
+</select></label>
+<label>Starting hand<select id="initialHand"><option value="7">7 cards</option><option value="9" selected>9 cards</option><option value="11">11 cards</option><option value="13">13 cards</option></select></label>
+<label>Opponents<select id="opponents"><option value="bots">Play against bot</option><option value="hotseat">Two people, one device</option></select></label>
+<label>Seed<input type="number" id="seed" min="0" max="4294967295" step="1" value="20261110"></label>
+<label>Animations<select id="motion"><option value="on">On</option><option value="off">Off / reduced motion</option></select></label>
+<button id="start" class="primary wide">New game</button>
+</div>
+<div class="callout help">
+<b>The rules in four sentences:</b>
+<p>Play one card into the nine-card row. Three identical colors in a row trigger an attack. The other player receives captured cards (one per attack, or one per chain wave), and you choose one extra card to discard. On a turn without a match, take the rightmost card into your hand instead of drawing.</p>
+<p>Every card counts as one card. <b>Empty your hand to win.</b> There are no bonus points or special cards.</p>
+</div>
+<button id="simulate" class="wide">Run 12-game simulation of each mode</button>
+<div id="panel"><h3 style="margin:10px 0">Simulation comparison</h3><div id="simResults">Not started</div></div>
+</section>
+<section class="table">
+<div class="summary"><div id="status" class="tag">Ready</div><div id="scores" class="scoreboard"></div></div>
+<div class="table-accessories">
+<div class="deck-spot"><div id="deckStack" class="deck-back" aria-label="Face-down deck">✧</div><div><strong id="stockCount">144</strong><small>draw pile</small></div></div>
+<div id="attackFx" aria-live="polite">Make your move</div>
+<div class="deck-spot"><div><strong id="discardCount">0</strong><small>discard</small></div><div class="deck-back" style="filter:grayscale(.6);opacity:.8">✧</div></div>
+</div>
+<p class="rowHint" id="rowHint">Choose a hand card, then an insertion gap.</p>
+<div id="board" class="row" aria-label="Shared row of cards"></div>
+<div id="gaps" class="gaps" aria-label="Place before a card"></div>
+<div class="callout">
+<strong id="turnLabel">Your hand</strong>
+<div id="hand" class="cardrow"></div>
+<p id="message" class="hint">Choose one card from your hand.</p>
+</div>
+<div class="btnrow"><button id="export">Export playtest data</button></div>
+<div id="log" class="logs"></div>
+</section></div>
+<p class="footer">Standalone experiment, not the released SPARK game. 2 players only. Hand sizes and winner are visible; opponents' card colors are private. The deck is a finite, balanced 144-card stock with safe refill and explicit exhaustion detection.</p>
+</div>
+<div id="cover" role="dialog" aria-modal="true" aria-labelledby="passHeading"><div class="coverInner"><h2 id="passHeading">Pass to the next player</h2><p>Hands stay hidden while the device changes hands.</p><button id="reveal" class="primary">Reveal my cards</button></div></div>
+<script src="./engine.js"></script><script src="./app.js"></script></body></html>
