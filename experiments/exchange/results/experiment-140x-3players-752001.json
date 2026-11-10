@@ -1,0 +1,303 @@
+{
+  "metadata": {
+    "kind": "spark-exchange-exploration",
+    "engineVersion": "exchange-lab-0.2",
+    "gamesPerVariant": 140,
+    "seedStart": 752001,
+    "players": 3,
+    "drawDeck": "balanced finite 144-card physical-style deck; exact setup is seeded and shared",
+    "scoring": "only contiguous three-or-more equal cards count, exactly one point per captured card",
+    "refillRules": [
+      "safe"
+    ],
+    "botStrategies": [
+      "random",
+      "immediate greedy",
+      "planner heuristic, no hidden-deck access"
+    ],
+    "variants": "insert and exchange, varied board/hand/color counts; no special abilities",
+    "caveats": [
+      "bot outcomes are not enjoyment or validated market demand",
+      "greedy and planner represent specific heuristics, not human skill",
+      "matched starts diverge after moves and draws",
+      "meaningfulTradeoffProxy is a model-generated heuristic, not a psychological measurement",
+      "safe top-card rejection is physically feasible but must still pass deck exhaustion and human-handling tests"
+    ]
+  },
+  "rows": [
+    {
+      "id": "insert-9-3-3",
+      "action": "insert",
+      "gaps": "nine",
+      "rowSize": 9,
+      "handSize": 3,
+      "colorCount": 3,
+      "refillRule": "safe",
+      "players": 3,
+      "games": 140,
+      "completed": 140,
+      "turns": 3360,
+      "zeroRate": 0.5538690476190476,
+      "availableRate": 0.6154761904761905,
+      "chainRate": 0.06994047619047619,
+      "distinctScoring": 0.9199404761904761,
+      "meaningfulTradeoffProxy": 0.06517857142857143,
+      "distinctNoScoreStates": 12.530059523809523,
+      "averagePointsPerTurn": 1.5851190476190475,
+      "luckPointShare": 0,
+      "rejectionPerGame": 4.25,
+      "repeatedStates": 0,
+      "wins": {
+        "random": {
+          "wins": 0,
+          "games": 140,
+          "winShare": 0
+        },
+        "greedy": {
+          "wins": 26,
+          "games": 140,
+          "winShare": 0.18571428571428572
+        },
+        "planner": {
+          "wins": 114,
+          "games": 140,
+          "winShare": 0.8142857142857143
+        }
+      }
+    },
+    {
+      "id": "exchange-9-3-3",
+      "action": "exchange",
+      "rowSize": 9,
+      "handSize": 3,
+      "colorCount": 3,
+      "refillRule": "safe",
+      "players": 3,
+      "games": 140,
+      "completed": 140,
+      "turns": 3360,
+      "zeroRate": 0.2931547619047619,
+      "availableRate": 0.937202380952381,
+      "chainRate": 0.19732142857142856,
+      "distinctScoring": 2.646130952380952,
+      "meaningfulTradeoffProxy": 0.544345238095238,
+      "distinctNoScoreStates": 9.708333333333334,
+      "averagePointsPerTurn": 3.0872023809523808,
+      "luckPointShare": 0,
+      "rejectionPerGame": 9.785714285714286,
+      "repeatedStates": 0,
+      "wins": {
+        "random": {
+          "wins": 0,
+          "games": 140,
+          "winShare": 0
+        },
+        "greedy": {
+          "wins": 65,
+          "games": 140,
+          "winShare": 0.4642857142857143
+        },
+        "planner": {
+          "wins": 75,
+          "games": 140,
+          "winShare": 0.5357142857142857
+        }
+      }
+    },
+    {
+      "id": "exchange-7-2-3",
+      "action": "exchange",
+      "rowSize": 7,
+      "handSize": 2,
+      "colorCount": 3,
+      "refillRule": "safe",
+      "players": 3,
+      "games": 140,
+      "completed": 140,
+      "turns": 3360,
+      "zeroRate": 0.3726190476190476,
+      "availableRate": 0.8089285714285714,
+      "chainRate": 0.08333333333333333,
+      "distinctScoring": 1.5389880952380952,
+      "meaningfulTradeoffProxy": 0.23482142857142857,
+      "distinctNoScoreStates": 6.16875,
+      "averagePointsPerTurn": 2.3589285714285713,
+      "luckPointShare": 0,
+      "rejectionPerGame": 7.3,
+      "repeatedStates": 0,
+      "wins": {
+        "random": {
+          "wins": 0.5,
+          "games": 140,
+          "winShare": 0.0035714285714285713
+        },
+        "greedy": {
+          "wins": 61.5,
+          "games": 140,
+          "winShare": 0.4392857142857143
+        },
+        "planner": {
+          "wins": 78,
+          "games": 140,
+          "winShare": 0.5571428571428572
+        }
+      }
+    },
+    {
+      "id": "exchange-7-2-4",
+      "action": "exchange",
+      "rowSize": 7,
+      "handSize": 2,
+      "colorCount": 4,
+      "refillRule": "safe",
+      "players": 3,
+      "games": 140,
+      "completed": 140,
+      "turns": 3360,
+      "zeroRate": 0.5744047619047619,
+      "availableRate": 0.5696428571428571,
+      "chainRate": 0.028273809523809524,
+      "distinctScoring": 0.9297619047619048,
+      "meaningfulTradeoffProxy": 0.09107142857142857,
+      "distinctNoScoreStates": 8.427380952380952,
+      "averagePointsPerTurn": 1.4511904761904761,
+      "luckPointShare": 0,
+      "rejectionPerGame": 2.8214285714285716,
+      "repeatedStates": 0,
+      "wins": {
+        "random": {
+          "wins": 1,
+          "games": 140,
+          "winShare": 0.007142857142857143
+        },
+        "greedy": {
+          "wins": 50,
+          "games": 140,
+          "winShare": 0.35714285714285715
+        },
+        "planner": {
+          "wins": 89,
+          "games": 140,
+          "winShare": 0.6357142857142857
+        }
+      }
+    },
+    {
+      "id": "exchange-8-2-4",
+      "action": "exchange",
+      "rowSize": 8,
+      "handSize": 2,
+      "colorCount": 4,
+      "refillRule": "safe",
+      "players": 3,
+      "games": 140,
+      "completed": 140,
+      "turns": 3360,
+      "zeroRate": 0.5452380952380952,
+      "availableRate": 0.6270833333333333,
+      "chainRate": 0.03869047619047619,
+      "distinctScoring": 1.1086309523809523,
+      "meaningfulTradeoffProxy": 0.11577380952380953,
+      "distinctNoScoreStates": 9.667261904761904,
+      "averagePointsPerTurn": 1.5842261904761905,
+      "luckPointShare": 0,
+      "rejectionPerGame": 2.9857142857142858,
+      "repeatedStates": 0,
+      "wins": {
+        "random": {
+          "wins": 0.5,
+          "games": 140,
+          "winShare": 0.0035714285714285713
+        },
+        "greedy": {
+          "wins": 51.5,
+          "games": 140,
+          "winShare": 0.3678571428571429
+        },
+        "planner": {
+          "wins": 88,
+          "games": 140,
+          "winShare": 0.6285714285714286
+        }
+      }
+    },
+    {
+      "id": "exchange-7-3-4",
+      "action": "exchange",
+      "rowSize": 7,
+      "handSize": 3,
+      "colorCount": 4,
+      "refillRule": "safe",
+      "players": 3,
+      "games": 140,
+      "completed": 140,
+      "turns": 3360,
+      "zeroRate": 0.49107142857142855,
+      "availableRate": 0.6985119047619047,
+      "chainRate": 0.03898809523809524,
+      "distinctScoring": 1.2535714285714286,
+      "meaningfulTradeoffProxy": 0.15625,
+      "distinctNoScoreStates": 11.041666666666666,
+      "averagePointsPerTurn": 1.7651785714285715,
+      "luckPointShare": 0,
+      "rejectionPerGame": 3.0785714285714287,
+      "repeatedStates": 0,
+      "wins": {
+        "random": {
+          "wins": 0,
+          "games": 140,
+          "winShare": 0
+        },
+        "greedy": {
+          "wins": 34,
+          "games": 140,
+          "winShare": 0.24285714285714285
+        },
+        "planner": {
+          "wins": 106,
+          "games": 140,
+          "winShare": 0.7571428571428571
+        }
+      }
+    },
+    {
+      "id": "exchange-9-3-4",
+      "action": "exchange",
+      "rowSize": 9,
+      "handSize": 3,
+      "colorCount": 4,
+      "refillRule": "safe",
+      "players": 3,
+      "games": 140,
+      "completed": 140,
+      "turns": 3360,
+      "zeroRate": 0.4264880952380952,
+      "availableRate": 0.794345238095238,
+      "chainRate": 0.07380952380952381,
+      "distinctScoring": 1.7514880952380953,
+      "meaningfulTradeoffProxy": 0.2580357142857143,
+      "distinctNoScoreStates": 14.042261904761904,
+      "averagePointsPerTurn": 2.1095238095238096,
+      "luckPointShare": 0,
+      "rejectionPerGame": 3.7285714285714286,
+      "repeatedStates": 0,
+      "wins": {
+        "random": {
+          "wins": 0,
+          "games": 140,
+          "winShare": 0
+        },
+        "greedy": {
+          "wins": 49.5,
+          "games": 140,
+          "winShare": 0.3535714285714286
+        },
+        "planner": {
+          "wins": 90.5,
+          "games": 140,
+          "winShare": 0.6464285714285715
+        }
+      }
+    }
+  ]
+}
