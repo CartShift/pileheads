@@ -281,9 +281,9 @@ function kickoff(){
  if(!Number.isInteger(seed)||seed<0||seed>4294967295){alert('Choose a valid nonnegative seed.');return}
  if(botTimer)clearTimeout(botTimer);
  game=E.create({...c,seed,players:Number($('players').value),refillRule:$('refill').value,deckSize:144,turnsPerPlayer:8});
- opponentType=$('opponents').value;selected=0;busy=false;covered=false;message='Select a hand card, then a target in the shared row.';
- save();render();
- if(opponentType==='hotseat')showCover();
+ opponentType=$('opponents').value;selected=0;busy=false;covered=opponentType==='hotseat';message='Select a hand card, then a target in the shared row.';
+ save();
+ if(covered)showCover();else render();
 }
 function showCover(){
  if(!game||finished())return;
@@ -298,9 +298,11 @@ function act(pos){
  let r=E.play(game,player,choice.move);
  message=label(player)+' '+(game.action==='exchange'?'exchanged '+NAME[choice.color]+' for '+NAME[choice.taken]:'inserted '+NAME[choice.color])+
   '. '+(r.score? 'Captured '+r.score+' cards across '+r.waves+' wave'+(r.waves===1?'':'s')+'.':'No cards captured.');
- selected=0;save();render();
- if(!finished()&&opponentType==='hotseat')showCover();
- else if(!finished())playBots();
+ selected=0;
+ if(!finished()&&opponentType==='hotseat'){
+  // Apply the cover BEFORE rendering the next player's hand.
+  covered=true;save();showCover();
+ }else{save();render();if(!finished())playBots();}
 }
 function playBots(){
  if(opponentType!=='bots'||!game||finished()||current()===0)return;
@@ -317,7 +319,7 @@ function playBots(){
 }
 function render(){
  if(!game)return;
- let turn=current(),player=game.players[turn],end=finished(),hidden=covered;
+ let turn=current(),player=game.players[turn],end=finished(),hidden=covered||(opponentType==='bots'&&turn!==0);
  const totals=game.players.map((p,i)=>({label:label(i),score:p.captured.length,active:!end&&i===turn}));
  $('scores').innerHTML=totals.map(p=>'<div class="score '+(p.active?'active':'')+'"><small>'+p.label+'</small><strong>'+p.score+'</strong><small>cards captured</small></div>').join('');
  $('status').textContent=end?(game.blocked?'Deck blocked: '+game.blocked:'Game finished'):'Turn '+(game.turn+1)+' / '+(game.turnsPerPlayer*game.players.length)+' · '+label(turn);
@@ -331,7 +333,7 @@ function render(){
  $('hand').innerHTML=!end&&!hidden?player.hand.map((c,i)=>card(c,allowed?'data-index="'+i+'"':'disabled',selected===i?'picked':'' )).join(''):'<p class="muted">'+(hidden?'Pass the device first.':end?'Final score above.':'Opponent is playing...')+'</p>';
  $('message').textContent=end?(game.blocked?'Deck could not refill under current rules. See research notes.':'Winner: '+game.players.map((p,i)=>({i,score:p.score})).filter(x=>x.score===Math.max(...game.players.map(p=>p.score))).map(x=>label(x.i)).join(' & ')+'. '+message):message;
  $('log').innerHTML=game.log.slice(-8).reverse().map(e=>'<div>Turn '+e.turn+' · '+label(e.seat)+' · '+(e.score?'+ '+e.score+' captured':'No score')+' · '+e.waves+' waves</div>').join('');
- $('continue').style.display=!end&&opponentType==='bots'&&busy?'none':'none';
+ $('continue').style.display='none';
 }
 $('start').onclick=kickoff;
 $('reveal').onclick=reveal;
