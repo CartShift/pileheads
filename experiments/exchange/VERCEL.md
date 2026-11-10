@@ -32,6 +32,19 @@ This Vercel project was deployed from a **static file snapshot** via the Vercel 
 
 Do not accidentally deploy the repository root or link the project to `main`: the actual production site there is a different app. A future dedicated deploy workflow may be added if recurring experiments justify the complexity.
 
+## Physical card interactions restored
+
+The deployed lab retains the gameplay changes of Exchange but restores key physical presentation from SPARK Simple+: layered printed card faces, corner icons, felt table, face-down deck, staged card movement, card-for-card exchange flight paths, matches collected to player score piles, cascade-by-cascade removal, collapsing row, face-down/refilled cards flipping into place, point feedback, and pointer/touch drag from the hand. The motion can be disabled with the Motion toggle or by reduced-motion OS preferences. Click/tap-to-play remains available.
+
+The new animation presentation does **not** change scoring or game rules. Authoritative state is committed once, saved before the decorative sequence, and the animation can fail or be disabled without replaying a move. Bot hands remain concealed, and pass-and-play shows the privacy cover before the next player is exposed.
+
+Verification:
+- `node experiments/exchange/test.cjs`: deterministic rules and card accounting
+- `node experiments/exchange/ui-test.cjs`: UI, bot hand/privacy regression
+- `node experiments/exchange/motion-test.cjs`: WAAPI DOM-stub smoke test for exchange, two-wave chain, insertion, discard, refill, hotseat privacy and motion-off fallback
+
+**Limit:** mock DOM tests are not real mobile Chrome performance or touch testing. Manual Android and desktop browser QA remains required.
+
 ## Validation still required
 
 - Open a live URL in mobile Chrome and desktop browser, confirm page load (HTTP 200), rendered board, click/touch selection, and a complete match.
