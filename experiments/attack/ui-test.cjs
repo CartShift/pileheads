@@ -3,8 +3,8 @@
  * Does not replace manual mobile Chrome and actual touch tests.
  */
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const engine=fs.readFileSync('experiments/attack/engine.js','utf8');
-const app=fs.readFileSync('experiments/attack/app.js','utf8');
+const engine=fs.readFileSync(require('node:path').join(__dirname,'engine.js'),'utf8');
+const app=fs.readFileSync(require('node:path').join(__dirname,'app.js'),'utf8');
 class El{
  constructor(context,id,parent=null){
   this.context=context;this.id=id;this.parent=parent;this.style={};this.dataset={};this.children=[];
