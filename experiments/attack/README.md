@@ -95,3 +95,29 @@ The clean Vercel preview returned HTTP 200 for the game, JavaScript engine, app 
 - First failed economy iteration (32/54 finished) was corrected by **sweeping the rightmost card into discard after a nonmatching free bonus placement**; that mechanic is intentional and needed to end games naturally.
 
 The original SPARK Simple+ game and human Friends rooms have not changed. Human playtesting, mobile touch QA, and publish-to-production are intentionally pending. For next iteration: test 9-card Momentum first, observe any confusion about the free placement and earned penalties, then compare more seeds and human replay willingness before adding any new special abilities.
+
+## Decision-density experiment (2026-11-11)
+
+A new experiment branch **`experiment/decision-density-2026-11-11`** adds row lengths of **9, 10, and 11** and makes exact Merge hints **opt-in**. It changes no combat, bonus, penalty, deck or winner rules. The existing Merge Momentum preview remains available unchanged.
+
+### Motivation
+
+The original engine has many nominal insertion choices but too few strategically distinct scoring outcomes. A 200-seed bot probe on the existing 9-row Momentum rules found that only approximately one-third of turns offered a Merge, with the planner always scoring when a Merge existed. The optional free bonus was always used by the planner. These metrics are heuristic, not human enjoyment measurements.
+
+A proposed pair-shedding rule was **rejected** in isolation: in 400 seeded games with the bot prioritizing pairs, almost every turn reduced the hand, games became very short (12-turn median), and the first player won in about 61% of games. That level of automatic reward risks removing tension rather than adding choices.
+
+### Independent row-size comparison
+
+A bounded Vercel runtime executed the full existing engine and DOM-stub UI test suites successfully. An additional seed-paired 80-games-per-row probe found:
+
+| Row | Completed / 80 | Median turns | P90 turns | Turns offering at least one Merge | Turns offering at least two distinct scoring outcomes |
+|---|---:|---:|---:|---:|---:|
+| 9 | 77 | 16 | 33 | 39.1% | 12.9% |
+| 10 | 80 | 16 | 25 | 63.6% | 20.0% |
+| 11 | 80 | 15 | 29 | 59.8% | 20.4% |
+
+All three variants use a nine-card starting hand and original Momentum penalties. Numbers fluctuate by seed sample and bot heuristic, so **do not** treat the ranking of 10 versus 11 as settled. Both longer rows are promising alternatives to nine. Browser/Android touch QA and real-human comparison are pending. The UI reduces card and button sizes on small screens, but a real-device readability and tap-target test is needed.
+
+### Next human comparison
+
+Play three games each with 9 and 11 row cards (ideally swap order), with Merge hints **off**, then repeat at least one game with hints **on**. Track: number of turns without a meaningful decision, whether bonus turns are exciting or automatic, whether the 11-card row is physically readable and tappable on Android, and which setting invites a rematch. 
