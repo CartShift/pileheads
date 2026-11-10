@@ -117,12 +117,23 @@ function place(g,seat,index,pos){
  const before=g.row.slice(),handBefore=p.hand.slice(),opponentBefore=opponent.hand.length;
  g.row=m.board.slice();p.hand=m.hand.slice();
  const strikes=m.scored?(g.mode==='chains'?m.waves.length:1):0;
- const penaltyCount=g.mode==='no-penalty'?0:strikes;
- const penalty=m.captured.slice(0,penaltyCount);
- // Every captured card is accounted for: some become opponent cards,
- // the rest enter the discard stock, which can later be reshuffled.
+ // Chains: one card from each wave. Regular Attack: one from the first
+ // wave. Those exact cards go to the opponent, all others to discard.
+ const penaltyIndices=[],penalty=[];
+ if(g.mode!=='no-penalty'){
+  let offset=0;
+  for(let i=0;i<m.waves.length;i++){
+   if(i===0||g.mode==='chains'){
+    penaltyIndices.push(offset);
+    penalty.push(m.waves[i].removed[0]);
+   }
+   offset+=m.waves[i].removed.length;
+  }
+ }
+ const marked=new Set(penaltyIndices);
+ const rest=m.captured.filter((_,i)=>!marked.has(i));
  opponent.hand.push(...penalty);
- g.discard.push(...m.captured.slice(penaltyCount));
+ g.discard.push(...rest);
  let pendingDiscards=m.scored?Math.min(p.hand.length,g.mode==='chains'?m.waves.length:1):0;
  if(m.taken===null){
   // Refill only after consuming a matching run. Zero-point moves still
@@ -131,7 +142,7 @@ function place(g,seat,index,pos){
  }
  const record={turn:g.turn+1,seat,move:{index,pos},placed:m.placed,
   before,handBefore,opponentBefore,scored:m.scored,waves:m.waves,
-  captured:m.captured.slice(),received:penalty.slice(),taken:m.taken,
+  captured:m.captured.slice(),received:penalty.slice(),penaltyIndices:penaltyIndices.slice(),taken:m.taken,
   discarded:[],after:g.row.slice(),pendingDiscards,handAfter:null};
  g.pending={seat,remaining:pendingDiscards,record};
  check(conservation(g)===g.deckSize,'Card accounting failure after placement');
