@@ -200,6 +200,7 @@ async function performPlacement(who,move){
  const current=++epoch;busy=true;
  const animated=physical();
  const result=E.place(game,who,move.index,move.pos),rec=result.record;
+ selected=Math.min(selected,Math.max(0,game.players[who].hand.length-1));
  record();
  try{if(animated)await animatePlace(rec)}
  catch(error){console.warn('Animation interrupted; game remains saved',error)}
@@ -218,6 +219,7 @@ function queueBot(){
   if(!options.length&&game.pending){
    E.endBonus(game,1);message='Bot finished its bonus move.';progress();
   }else if(options.length)await performPlacement(1,E.choose(game,1,'planner'));
+  else {game.blocked='no_legal_moves';message='No legal placements remain.';progress();}
  },420);
 }
 function attachDrag(){
