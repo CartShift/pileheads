@@ -190,6 +190,23 @@ check('Empty hand wins instantly without requiring a bonus move',()=>{
  assert.equal(g.players[0].hand.length,0);
  assert.equal(E.conservation(g),144);
 });
+check('Configurable row lengths maintain invariants and legal moves',()=>{
+ for(const rowSize of [9,10,11]){
+  const g=E.create({seed:18,mode:'momentum',initialHand:9,rowSize});
+  assert.equal(g.row.length,rowSize);
+  assert.ok(E.legal(g,0).length>0);
+  for(let step=0;step<24&&!g.blocked&&g.winner===null&&!g.drawn;step++){
+   const seat=g.turn%2,opts=E.legal(g,seat);
+   if(!opts.length)break;
+   const act=E.step(g,seat,'planner');
+   assert.ok(act.actions.length<=2);
+   assert.equal(E.conservation(g),g.deckSize);
+   if(!g.blocked)assert.equal(g.row.length,rowSize);
+  }
+ }
+ assert.throws(()=>E.create({rowSize:8}),/Row size/);
+ assert.throws(()=>E.create({rowSize:12}),/Row size/);
+});
 check('Seeded simulations are deterministic and terminate safely',()=>{
  for(const mode of ['momentum','attack','chains','no-penalty']){
   const args={seed:420,mode,initialHand:9};
