@@ -82,3 +82,16 @@ Test with people in varied orders, including players unfamiliar with our work. R
 The first bonus-without-shedding trial ended **32/54** bot games and is rejected. After adding the free-bonus sweep but before changing penalty frequency, **54/54** completed and card accounting passed. With nine opening cards, medians were Attack **36** full turns, Chains **49**, and no-penalty **15**; those small seeded samples were enough to justify trying the Momentum penalty rule, not enough to prove its balance.
 
 The new Momentum variant sends penalties only for difficult combinations. The other three modes remain explicit comparison controls. Human evaluation is still mandatory: bot completion and turn counts are not evidence of fun.
+
+## Verified preview and automated results (2026-11-10)
+
+**Play Momentum:** https://spark-exchange-6uk1xahzx-cart-shift.vercel.app/attack/?mode=momentum
+
+The clean Vercel preview returned HTTP 200 for the game, JavaScript engine, app script, and original Exchange root page. Production aliases remain unchanged. The standalone preview excludes temporary test endpoints.
+
+- A temporary Vercel runtime executed the deterministic engine regression suite and DOM-stub UI test suite successfully: `engineTests: true`, `ui.result: PASS`, including 20 UI checks and 40 physical-animation operations.
+- A separate bounded runtime verification executed 220 rule invariants over 96 seeded bot games: **96/96 completed** (4 modes x 3 opening-hand sizes x 8 seeds). No third placements were observed; card counts stayed conserved.
+- With nine opening cards per player, the sample median turns were **18 Momentum**, **37 Attack**, **44 Chains**, and **15 Pure Race/no-penalty**. These are full turns, not elapsed human minutes; eight seeds per setting is far too small for confident balancing.
+- First failed economy iteration (32/54 finished) was corrected by **sweeping the rightmost card into discard after a nonmatching free bonus placement**; that mechanic is intentional and needed to end games naturally.
+
+The original SPARK Simple+ game and human Friends rooms have not changed. Human playtesting, mobile touch QA, and publish-to-production are intentionally pending. For next iteration: test 9-card Momentum first, observe any confusion about the free placement and earned penalties, then compare more seeds and human replay willingness before adding any new special abilities.
