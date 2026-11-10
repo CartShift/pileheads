@@ -270,6 +270,17 @@ const configs={
  ex724:{action:'exchange',rowSize:7,handSize:2,colorCount:4,gaps:'nine'}
 };
 let game=null,selected=0,busy=false,covered=false,botTimer=null,opponentType='bots',message='';
+const query=typeof location!=='undefined'?new URLSearchParams(location.search):null;
+const urlMode=query?.get('mode');
+const sharedMode=!!(urlMode&&Object.prototype.hasOwnProperty.call(configs,urlMode));
+if(sharedMode)$('rules').value=urlMode;
+const urlPlayers=query?.get('players');
+if(sharedMode&&['2','3','4'].includes(urlPlayers))$('players').value=urlPlayers;
+const urlOpponents=query?.get('opponents');
+if(sharedMode&&['bots','hotseat'].includes(urlOpponents))$('opponents').value=urlOpponents;
+const urlSeed=query?.get('seed');
+if(sharedMode&&urlSeed!==null&&/^[0-9]+$/.test(urlSeed)&&Number(urlSeed)<=4294967295)$('seed').value=urlSeed;
+
 function card(color,attrs='',css=''){return '<button class="card '+color+' '+css+'" '+attrs+' aria-label="'+NAME[color]+'"><b>'+SYMBOL[color]+'</b><em>'+NAME[color]+'</em></button>'}
 function current(){return game?game.turn%game.players.length:0}
 function finished(){return game&&(game.turn>=game.turnsPerPlayer*game.players.length||game.blocked)}
@@ -341,6 +352,6 @@ $('board').onclick=e=>{const b=e.target.closest('[data-position]');if(b)act(Numb
 $('gaps').onclick=e=>{const b=e.target.closest('[data-position]');if(b)act(Number(b.dataset.position))};
 $('hand').onclick=e=>{const b=e.target.closest('[data-index]');if(b&&!busy){selected=Number(b.dataset.index);render()}};
 $('export').onclick=()=>{if(!game)return;const payload={format:'spark-exchange-playtest',exportedAt:new Date().toISOString(),rules:game.version,config:{action:game.action,rowSize:game.rowSize,handSize:game.handSize,colorCount:game.colorCount,refillRule:game.refillRule,seed:game.seed,opponents:opponentType},moves:game.log,scores:game.players.map(p=>p.score),rejected:game.rejected,reshuffles:game.reshuffles,blocker:game.blocked};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='spark-exchange-playtest-'+Date.now()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),800)};
-if(restore()){render();if(!covered&&opponentType==='bots')playBots();else if(covered)showCover()}else kickoff();
+if(sharedMode)kickoff();else if(restore()){render();if(!covered&&opponentType==='bots')playBots();else if(covered)showCover()}else kickoff();
 })();
 </script></body></html>
