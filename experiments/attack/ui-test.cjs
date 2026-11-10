@@ -59,9 +59,9 @@ class El{
  removeAttribute(n){delete this.attrs[n]}
  setPointerCapture(){}
 }
-function mount({mode='attack',opponents='bots',motion='off',seed='1'}={}){
+function mount({mode='attack',opponents='bots',motion='off',seed='1',rowSize='9',hints='off'}={}){
  const ctx={nodes:new Map(),store:new Map(),timers:[],handRenders:[],ghosts:[],animations:0};
- const defaults={rules:mode,opponents,motion,seed,initialHand:'9'};
+ const defaults={rules:mode,opponents,motion,seed,initialHand:'9',rowSize,hints};
  ctx.id=id=>{if(!ctx.nodes.has(id)){const el=new El(ctx,id);el.value=defaults[id]||'';ctx.nodes.set(id,el)}return ctx.nodes.get(id)};
  const document={
   getElementById:ctx.id,createElement:()=>new El(ctx,'holder'),
@@ -99,7 +99,11 @@ async function run(){
  const original=a.state(),scoring=a.engine.legal(original,0).find(x=>x.scored);
  assert.ok(scoring,'controlled seed must have a scoring move');
  a.id('hand').onclick({target:{closest:()=>({dataset:{index:String(scoring.move.index)}})}});
- assert.match(a.id('gaps').innerHTML,/merge-gap/,'scoring placements should be visibly identified');
+ assert.doesNotMatch(a.id('gaps').innerHTML,/merge-gap/,'hints should be off by default');
+ a.id('hints').value='on';a.id('hints').onchange();
+ assert.match(a.id('gaps').innerHTML,/merge-gap/,'opt-in hints should reveal scoring spots');
+ a.id('hints').value='off';a.id('hints').onchange();
+ assert.doesNotMatch(a.id('gaps').innerHTML,/merge-gap/,'hints should be reversible');
  await a.clickMove(scoring);
  assert.equal(a.state().turn,0,'attack bonus keeps the active player');
  assert.equal(a.state().pending.kind,'bonus');
@@ -126,6 +130,11 @@ async function run(){
  assert.equal(chains.state().log[0].bonusUsed,false);
  assert.ok(chains.animations>8,'exchange, collection and refill should animate');
  assert.equal(chains.ghosts.length,0,'no ghosts left after animations');
+ const wide=mount({seed:'1',mode:'momentum',rowSize:'11',motion:'off'});
+ assert.equal(wide.state().rowSize,11);
+ assert.equal(wide.state().row.length,11);
+ assert.equal(wide.id('gaps').children.length,11);
+ assert.equal(wide.engine.conservation(wide.state()),144);
  const hot=mount({seed:'1',mode:'no-penalty',opponents:'hotseat',motion:'off'});
  assert.equal(hot.id('cover').style.display,'flex');
  assert.ok(hot.handRenders.every(x=>!x.visible));
