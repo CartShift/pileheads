@@ -3,7 +3,7 @@
  * Self-contained browser + Node module. NOT loaded by the production site.
  */
 (function(root){'use strict';
-const COLORS=['O','B','P'],ROW=9,HAND=3;
+const COLORS=['O','B','P','G'],ROW=9,HAND=3;
 function invariant(x,message){if(!x)throw Error(message)}
 function stepRng(g){g.random=(Math.imul(g.random,1664525)+1013904223)>>>0;return g.random/4294967296}
 function stepChoice(g){g.choiceRandom=(Math.imul(g.choiceRandom,1664525)+1013904223)>>>0;return g.choiceRandom/4294967296}
@@ -47,7 +47,7 @@ function takePoints(g,owner,waves,origin){
  }
 }
 function replenish(g,owner){
- while(g.row.length<ROW&&!g.blocked){
+ while(g.row.length<g.rowSize&&!g.blocked){
   const remaining=g.stock.length+g.discard.length;
   if(!remaining){g.blocked='stock_exhausted';break}
   if(g.refillRule==='safe'){
@@ -71,7 +71,7 @@ function replenish(g,owner){
   }
  }
 }
-function create({seed=1,players=2,turnsPerPlayer=8,deckSize=144,action='exchange',refillRule='safe',gaps='all'}={}){
+function create({seed=1,players=2,turnsPerPlayer=8,deckSize=144,action='exchange',refillRule='safe',gaps='all',rowSize=ROW,handSize=HAND,colorCount=3}={}){
  invariant(Number.isInteger(seed)&&seed>=0,'Invalid seed');
  invariant([2,3,4].includes(players),'Players must be 2, 3 or 4');
  invariant(Number.isInteger(turnsPerPlayer)&&turnsPerPlayer>=1&&turnsPerPlayer<=30,'Invalid turn count');
@@ -79,19 +79,22 @@ function create({seed=1,players=2,turnsPerPlayer=8,deckSize=144,action='exchange
  invariant(['exchange','insert'].includes(action),'Invalid action');
  invariant(['safe','cascade'].includes(refillRule),'Invalid refill rule');
  invariant(['all','nine'].includes(gaps),'Invalid gap rule');
+ invariant(Number.isInteger(rowSize)&&rowSize>=5&&rowSize<=9,'Row size must be 5-9');
+ invariant(Number.isInteger(handSize)&&handSize>=1&&handSize<=3,'Hand size must be 1-3');
+ invariant([3,4].includes(colorCount)&&deckSize%colorCount===0,'Colors must be 3 or 4, deck divisible by colors');
  const g={
-  version:'exchange-lab-0.1',seed,action,refillRule,gaps,turnsPerPlayer,deckSize,turn:0,blocked:null,
+  version:'exchange-lab-0.2',seed,action,refillRule,gaps,turnsPerPlayer,deckSize,rowSize,handSize,colorCount,palette:COLORS.slice(0,colorCount),turn:0,blocked:null,
   random:(seed^0x71c638bd)>>>0,choiceRandom:(seed^0x432a9b61)>>>0,
   stock:[],discard:[],row:[],players:Array.from({length:players},(_,i)=>({seat:i,hand:[],score:0,captured:[]})),
   wavesRecorded:[],rejected:0,refills:0,refillScored:0,reshuffles:0,log:[]
  };
- g.stock=shuffle(Array.from({length:deckSize},(_,i)=>COLORS[i%3]),g);
+ g.stock=shuffle(Array.from({length:deckSize},(_,i)=>g.palette[i%colorCount]),g);
  // Deal three to each player and the central row from the SAME finite deck.
- for(let t=0;t<HAND;t++)for(const p of g.players){const c=draw(g);invariant(c!==null,'Cannot deal');p.hand.push(c)}
+ for(let t=0;t<g.handSize;t++)for(const p of g.players){const c=draw(g);invariant(c!==null,'Cannot deal');p.hand.push(c)}
  replenish(g,null);
  return g;
 }
-function evaluate(row,hand,action,move,gaps='all'){
+function evaluate(row,hand,action,move,gaps='all',rowLimit=ROW){
  const {index,pos}=move;
  if(!Number.isInteger(index)||index<0||index>=hand.length||!Number.isInteger(pos))return null;
  let b=row.slice(),h=hand.slice(),taken=null,overflow=null;
@@ -104,7 +107,7 @@ function evaluate(row,hand,action,move,gaps='all'){
  }
  const resolved=collapse(b);
  b=resolved.row;
- if(action==='insert'&&resolved.points===0&&b.length>ROW)overflow=b.pop();
+ if(action==='insert'&&resolved.points===0&&b.length>rowLimit)overflow=b.pop();
  return {move:{index,pos},color:hand[index],taken,overflow,board:b,hand:h,points:resolved.points,waves:resolved.waves.length,removed:resolved.waves.flatMap(x=>x.removed),resolution:resolved.waves};
 }
 function legal(g,seat){
@@ -112,7 +115,7 @@ function legal(g,seat){
  if(!p||g.blocked||g.turn>=g.players.length*g.turnsPerPlayer)return out;
  const positions=g.action==='exchange'?g.row.length:g.row.length+(g.gaps==='nine'?0:1);
  for(let i=0;i<p.hand.length;i++)for(let pos=0;pos<positions;pos++){
-  const result=evaluate(g.row,p.hand,g.action,{index:i,pos},g.gaps);
+  const result=evaluate(g.row,p.hand,g.action,{index:i,pos},g.gaps,g.rowSize);
   if(result)out.push(result);
  }
  return out;
@@ -125,12 +128,12 @@ function potential(row,hand,action,gaps){
  }
  return best;
 }
-function expectedOptions(outcome,action,gaps){
+function expectedOptions(outcome,action,gaps,palette=COLORS.slice(0,3)){
  // The refill is hidden. Only project the fully visible pre-refill position.
  // Shorter boards are deliberately not padded with actual stock order.
  let own=potential(outcome.board,outcome.hand,action,gaps);
  let enemy=0;
- for(const c of COLORS)enemy=Math.max(enemy,potential(outcome.board,[c],action,gaps));
+ for(const c of palette)enemy=Math.max(enemy,potential(outcome.board,[c],action,gaps));
  const different=new Set(outcome.hand).size;
  const nearby=outcome.board.reduce((n,c,i,a)=>n+(i>0&&a[i-1]===c?1:0),0);
  return {own,enemy,different,nearby};
@@ -140,7 +143,7 @@ function optionsMetrics(g,seat,opts=legal(g,seat)){
  const distinct=(arr)=>new Set(arr.map(o=>[o.points,o.board.join(''),o.hand.slice().sort().join('')].join('|'))).size;
  const byColor=new Map();
  for(const o of scored){const key=o.color;byColor.set(key,Math.max(byColor.get(key)||0,o.points))}
- const tradeoffs=opts.filter(o=>o.points>0).map(o=>({...expectedOptions(o,g.action,g.gaps),score:o.points}));
+ const tradeoffs=opts.filter(o=>o.points>0).map(o=>({...expectedOptions(o,g.action,g.gaps,g.palette),score:o.points}));
  const frontier=tradeoffs.filter((a,i)=>!tradeoffs.some((b,j)=>j!==i&&
     b.score>=a.score&&b.own>=a.own&&b.enemy<=a.enemy&&(b.score>a.score||b.own>a.own||b.enemy<a.enemy)));
  return {actions:opts.length,scoring:scored.length,distinctScoring:distinct(scored),
@@ -154,7 +157,7 @@ function choose(g,seat,policy='greedy',opts=legal(g,seat)){
  if(policy==='random')return opts[Math.floor(stepChoice(g)*opts.length)].move;
  let best=-Infinity,winners=[];
  for(const o of opts){
-  const p=policy==='planner'?expectedOptions(o,g.action,g.gaps):null;
+  const p=policy==='planner'?expectedOptions(o,g.action,g.gaps,g.palette):null;
   const value=o.points+(p?0.24*p.own-0.28*p.enemy+0.12*p.different+0.015*p.nearby:0);
   if(value>best+1e-9){best=value;winners=[o]}
   else if(Math.abs(value-best)<1e-9)winners.push(o);
@@ -186,8 +189,8 @@ function play(g,seat,move){
   waves:g.wavesRecorded.slice(beforeWaves).length,blocked:g.blocked
  };
  g.log.push(record);invariant(cardCount(g)===g.deckSize,'Card conservation failed');
- invariant(p.hand.length===HAND||g.blocked,'Hand must have exactly three cards');
- invariant(g.row.length===ROW||g.blocked,'Row length mismatch');
+ invariant(p.hand.length===g.handSize||g.blocked,'Hand must have exactly three cards');
+ invariant(g.row.length===g.rowSize||g.blocked,'Row length mismatch');
  return record;
 }
 function cardCount(g){return g.stock.length+g.discard.length+g.row.length+g.players.reduce((n,p)=>n+p.hand.length+p.captured.length,0)}
@@ -204,7 +207,7 @@ function run(config={},policies=['planner','greedy','random','greedy']){
   if(firstStates.has(key))repeats++;firstStates.add(key);
  }
  const points=g.players.map(p=>p.score),highest=Math.max(...points);
- return {seed:g.seed,action:g.action,refillRule:g.refillRule,gaps:g.gaps,players:g.players.length,rounds:g.turnsPerPlayer,
+ return {seed:g.seed,action:g.action,refillRule:g.refillRule,gaps:g.gaps,players:g.players.length,rounds:g.turnsPerPlayer,rowSize:g.rowSize,handSize:g.handSize,colorCount:g.colorCount,
   completed:!g.blocked,blocked:g.blocked,turns:g.turn,scores:points,
   winners:points.flatMap((p,i)=>p===highest?[i]:[]),repeats,zero,decisions,scoringAvailable,distinct,noScoreAlternatives,
   tradeoffs,decisionScoring,chains,refillLuckPoints,reshuffles:g.reshuffles,rejected:g.rejected,refills:g.refills,
