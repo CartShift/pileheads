@@ -80,6 +80,9 @@ body{background-color:#071f1b;background-image:radial-gradient(ellipse at 50% 13
 .cardrow .card{touch-action:none}
 .card.drop-target,.gaps button.drop-target{outline:3px solid #ffe4a4!important;outline-offset:2px;filter:brightness(1.28)}
 .drag-ghost{opacity:.97;box-shadow:0 13px 35px #0009!important;transform:rotate(-5deg) scale(1.06)!important}
+.fx-face-down{position:absolute;z-index:5;inset:-2px;border-radius:7px;border:3px solid #f4e8d3;background:repeating-linear-gradient(45deg,#245167 0 4px,#173849 4px 8px);box-shadow:inset 0 0 0 5px #dfcda775,0 4px 7px #001b1780;pointer-events:none}
+.fx-face-down:after{content:'✧';display:grid;place-items:center;height:100%;font-size:24px;color:#e7ca94}
+.fx-float{animation:fxPoints .8s cubic-bezier(.16,.7,.25,1) both}@keyframes fxPoints{0%{transform:translateY(14px) scale(.8);opacity:0}20%{transform:translateY(-8px) scale(1.12);opacity:1}100%{transform:translateY(-60px) scale(1);opacity:0}}
 @media(prefers-reduced-motion:reduce){.card,.fx-matched,#motionStatus.pulse,.score.fx-hit{animation:none!important;transition:none!important}}
 </style></head><body><div class="app"><header><div><div class="brand">⚡ SPARK <span>EXCHANGE</span></div><small>OFFLINE GAME DESIGN LAB</small></div><div class="btnrow" style="flex:0 0 auto;gap:7px"><button id="motionToggle" type="button" class="motion-toggle" aria-pressed="true">Motion: On</button><span class="tag">Experimental</span></div></header>
 <div class="layout"><section class="hero"><h2 style="margin-top:0">Test a different core rule</h2><div class="controls">
@@ -408,6 +411,27 @@ function ghostCard(color,rect){
  const el=holder.firstElementChild;
  return ghostFrom(el,rect);
 }
+function faceDownReveal(ghost,duration=380){
+ if(!ghost||typeof document.createElement!=='function')return;
+ const back=document.createElement('span');
+ back.className='fx-face-down';ghost.appendChild(back);
+ if(back.animate){
+  const a=back.animate([
+   {opacity:1,transform:'scaleX(1)',offset:0},
+   {opacity:1,transform:'scaleX(1)',offset:.37},
+   {opacity:1,transform:'scaleX(.04)',offset:.59},
+   {opacity:0,transform:'scaleX(.04)',offset:1}
+  ],{duration,fill:'forwards',easing:'ease-in-out'});
+  a.finished.catch(()=>{}).finally(()=>back.remove());
+ }else back.remove();
+}
+function floatScore(source,number){
+ if(!source||typeof document.createElement!=='function')return;
+ const rect=motionRect(source);if(!rect)return;
+ const el=document.createElement('div');el.className='fx-float';el.textContent='+'+number;
+ Object.assign(el.style,{left:rect.left+rect.width*.25+'px',top:rect.top-12+'px'});
+ document.body.appendChild(el);setTimeout(()=>el.remove(),850);
+}
 function motionFly(ghost,from,to,ms=570,delay=0,arc=-30,turn=7){
  if(!ghost||!from||!to)return Promise.resolve();
  const dx=to.left-from.left,dy=to.top-from.top;
@@ -498,6 +522,7 @@ async function motionCollect(ctx,wave,current){
  await Promise.all(tasks);
  const score=$('scores').querySelector?.('[data-seat="'+who+'"]');
  if(score){
+  floatScore(score,hit.length);
   score.classList.add('fx-hit');const count=score.querySelector?.('.score-count');
   if(count)count.textContent=String(Number(count.textContent)+hit.length);
  }
@@ -521,7 +546,8 @@ async function motionRefill(current,target,ctx){
   const to=motionRect(el);
   if(el)el.classList.add('fx-covered');
   const ghost=ghostCard(color,from);
-  await motionFly(ghost,from,to,280,0,-20,7);
+  faceDownReveal(ghost,320);
+  await motionFly(ghost,from,to,330,0,-20,7);
   if(el)el.classList.remove('fx-covered');
   moveStatus('Refilling row');
   if(i-oldLength===0&&target.length-next.length>0)await motionSleep(50);
@@ -550,7 +576,8 @@ async function motionDrawToHand(ctx){
  moveStatus('Draw a new card');
  last.classList.add('fx-covered');
  const ghost=ghostCard(ctx.handAfter.at(-1),source);
- await motionFly(ghost,source,dest,380,0,-30,7);
+ faceDownReveal(ghost,380);
+ await motionFly(ghost,source,dest,410,0,-30,7);
  last.classList.remove('fx-covered');
 }
 
