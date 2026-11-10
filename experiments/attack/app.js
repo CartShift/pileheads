@@ -210,7 +210,7 @@ async function performPlacement(who,move){
  try{if(animated)await animatePlace(rec)}
  catch(error){console.warn('Animation interrupted; game remains saved',error)}
  if(epoch!==current)return;
- message=rec.scored?(label(who)+' created '+rec.waves.length+' matching wave(s). '+rec.received.length+' card(s) sent to opponent.'):(rec.swept!==null?label(who)+' shed a free card; row edge swept to discard.':label(who)+' took the rightmost card instead of scoring.');
+ message=rec.scored?(label(who)+' created '+rec.waves.length+' matching wave(s). '+(rec.received.length?rec.received.length+' card(s) sent to opponent.':'Free bonus earned or completed.')):(rec.swept!==null?label(who)+' shed a free card; row edge swept to discard.':label(who)+' took the rightmost card instead of scoring.');
  busy=false;progress();
 }
 
@@ -269,7 +269,7 @@ async function simulation(){
  const panel=$('panel');panel.style.display='block';const target=$('simResults');
  $('simulate').disabled=true;
  const seedStart=572010,results=[];
- for(const mode of ['attack','chains','no-penalty']){
+ for(const mode of ['momentum','attack','chains','no-penalty']){
   const series=[];
   for(let i=0;i<12;i++){
    const policies=i%2?['planner','greedy']:['greedy','planner'];
@@ -302,7 +302,7 @@ $('hand').onclick=e=>{
 $('export').onclick=()=>{if(!game)return;const payload={format:'spark-attack-v0.2',mode:game.mode,seed:game.seed,initialHand:game.initialHand,log:game.log,winner:game.winner,handSizes:game.players.map(p=>p.hand.length),blocked:game.blocked};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='spark-attack-playtest.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),700)};
 const query=typeof location!=='undefined'?new URLSearchParams(location.search):null;
 const mode=query?.get('mode');
-if(['attack','chains','no-penalty'].includes(mode))$('rules').value=mode;
+if(['momentum','attack','chains','no-penalty'].includes(mode))$('rules').value=mode;
 if(['7','9','11','13'].includes(query?.get('hand')))$('initialHand').value=query.get('hand');
 if(['bots','hotseat'].includes(query?.get('opponents')))$('opponents').value=query.get('opponents');
 if(query?.get('seed')&&/^\d+$/.test(query.get('seed')))$('seed').value=query.get('seed');
