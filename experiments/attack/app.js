@@ -19,7 +19,7 @@ function start(){
  epoch++;cleanGhosts();
  const seed=Number($('seed').value);
  if(!Number.isInteger(seed)||seed<0||seed>4294967295){alert('Seed must be a valid nonnegative integer.');return}
- game=E.create({seed,mode:$('rules').value,initialHand:Number($('initialHand').value),turnLimit:240});
+ game=E.create({seed,mode:$('rules').value,initialHand:Number($('initialHand').value),rowSize:Number($('rowSize').value),turnLimit:240});
  opponents=$('opponents').value;selected=0;busy=false;covered=opponents==='hotseat';$('cover').style.display='none';
  message='Choose a card, then insert it before a row card.';record();
  if(covered)showCover();else render();
@@ -37,13 +37,13 @@ function render(){
  $('status').textContent=over?(game.winner!==null?'Winner: '+label(game.winner):game.blocked?'Deck blocked: '+game.blocked:'Turn limit reached'):'Turn '+(game.turn+1)+' · '+label(current)+(bonus?' · BONUS MOVE':'');
  $('scores').innerHTML=game.players.map((player,i)=>'<div class="score '+(!over&&i===current?'active ':'')+(game.winner===i?'leader':'')+'" data-seat="'+i+'"><small>'+label(i)+'</small><strong class="score-count">'+player.hand.length+'</strong><small>cards remaining</small></div>').join('');
  $('stockCount').textContent=String(game.stock.length);$('discardCount').textContent=String(game.discard.length);
- $('rowHint').textContent=over?'Game finished':bonus?'BONUS MOVE: Place a card for free (no pickup), or end your turn.':'Choose a card and a gap. Match 3+ to earn a bonus move.';
+ $('rowHint').textContent=over?'Game finished':bonus?'BONUS MOVE: Place a card for free (no pickup), or end your turn.':'Choose a card and a gap. Match 3+ to earn a bonus move. Row: '+game.rowSize+'.';
  $('turnLabel').textContent=hidden?'Hand hidden':over?'Final hand':label(current)+' · '+p.hand.length+' cards';
  const options=canPlay?E.legal(game,current).filter(m=>m.move.index===selected):[];
  $('board').innerHTML=game.row.map(c=>card(c,'disabled','inactive')).join('');
  $('gaps').style.display=over?'none':'flex';
  $('gaps').innerHTML=!over?game.row.map((_,i)=>{
-  const option=options.find(o=>o.move.pos===i),merge=!!option?.scored;
+  const option=options.find(o=>o.move.pos===i),merge=$('hints').value==='on'&&!!option?.scored;
   const count=merge?option.captured.length:0;
   return '<button data-pos="'+i+'" class="'+(merge?'merge-gap':'')+'" '+(!canPlay||!option?'disabled':'')+
    ' aria-label="Insert before card '+(i+1)+(merge?', merge '+count+' cards':'')+'">'+(merge?'✦ '+count:'+'+(i+1))+'</button>';
@@ -273,7 +273,7 @@ async function simulation(){
   const series=[];
   for(let i=0;i<12;i++){
    const policies=i%2?['planner','greedy']:['greedy','planner'];
-   series.push(E.run({seed:seedStart+i,mode,initialHand:Number($('initialHand').value),turnLimit:240},policies));
+   series.push(E.run({seed:seedStart+i,mode,initialHand:Number($('initialHand').value),rowSize:Number($('rowSize').value),turnLimit:240},policies));
    target.textContent='Simulating '+mode+' '+(i+1)+'/12...';
    await sleep(0);
   }
@@ -299,16 +299,20 @@ $('hand').onclick=e=>{
  const n=e.target.closest('[data-index]');if(!n||busy)return;
  selected=Number(n.dataset.index);render()
 };
-$('export').onclick=()=>{if(!game)return;const payload={format:'spark-attack-v0.2',mode:game.mode,seed:game.seed,initialHand:game.initialHand,log:game.log,winner:game.winner,handSizes:game.players.map(p=>p.hand.length),blocked:game.blocked};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='spark-attack-playtest.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),700)};
+$('export').onclick=()=>{if(!game)return;const payload={format:'spark-attack-v0.2',mode:game.mode,seed:game.seed,rowSize:game.rowSize,initialHand:game.initialHand,log:game.log,winner:game.winner,handSizes:game.players.map(p=>p.hand.length),blocked:game.blocked};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='spark-attack-playtest.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),700)};
+$('hints').onchange=()=>{record();render()};
 const query=typeof location!=='undefined'?new URLSearchParams(location.search):null;
 const mode=query?.get('mode');
 if(['momentum','attack','chains','no-penalty'].includes(mode))$('rules').value=mode;
 if(['7','9','11','13'].includes(query?.get('hand')))$('initialHand').value=query.get('hand');
+if(['9','10','11'].includes(query?.get('row')))$('rowSize').value=query.get('row');
+if(['on','off'].includes(query?.get('hints')))$('hints').value=query.get('hints');
 if(['bots','hotseat'].includes(query?.get('opponents')))$('opponents').value=query.get('opponents');
 if(query?.get('seed')&&/^\d+$/.test(query.get('seed')))$('seed').value=query.get('seed');
 if(mode)start();
 else if(restore()){
  $('rules').value=game.mode;$('initialHand').value=String(game.initialHand);
+ $('rowSize').value=String(game.rowSize||9);
  $('cover').style.display='none';
  covered=opponents==='hotseat';if(covered)showCover();else{render();if(opponents==='bots'&&seat()===1)queueBot()}
 }else start();
