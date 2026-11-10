@@ -12,7 +12,7 @@ function integerFlag(name,otherwise,max){
 }
 const games=integerFlag('--games',24,10000),seed=integerFlag('--seed',171000,4294967295);
 const out=[];
-for(const hand of [7,9,11,13])for(const mode of ['attack','chains','no-penalty']){
+for(const hand of [7,9,11,13])for(const mode of ['momentum','attack','chains','no-penalty']){
  const runs=[];
  for(let i=0;i<games;i++){
   const policies=i%2?['greedy','planner']:['planner','greedy'];
@@ -37,7 +37,7 @@ const results={metadata:{
  id:'spark-attack-merge-momentum-v0.2',kind:'seeded-bot-simulations',
  seed,gamesPerVariant:games,players:2,deckSize:144,rowSize:9,colors:4,
  playerPolicies:'planner versus greedy, seat order alternates',maxTurns:240,
- rules:['attack','chains','no-penalty'],initialHands:[7,9,11,13],
+ rules:['momentum','attack','chains','no-penalty'],initialHands:[7,9,11,13],
  caveats:['This is NOT human preference or actual duration in minutes.',
   'One full turn includes one placement and at most one optional bonus placement.',
   'Alternate scoring outcomes are a rough action-state proxy, not measured fun.',
