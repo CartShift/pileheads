@@ -23,7 +23,7 @@ Two players. Four colors. Nine cards in the shared row. Nine cards in each hand 
    - Attack: send the first captured card to the opponent; discard remaining captured cards.
    - Chains: send one captured card from EACH matching wave; discard remaining captured cards.
    - No Penalties: opponent receives no captured cards; discard all captured cards.
-   - **All modes:** a successful first placement earns ONE optional additional placement. The extra placement can make another Merge and attack the opponent, but **never earns another bonus**. You may instead end your bonus to preserve the board.
+   - **All modes:** a successful first placement earns ONE optional **free** placement. If that bonus placement does not match, its displaced rightmost card goes to the discard pile instead of returning to your hand. Therefore, even a non-matching bonus sheds one card, preventing the attack game from stalling indefinitely. The bonus can make another Merge and attack, but **never earns another bonus**. You may instead pass.
 5. Refill the row from the top of the shuffled deck. Any newly drawn top card that would create a free three-card match goes into the visible discard pile. Discard may be reshuffled into the draw stock; refill retries are bounded.
 6. The first player with NO CARDS in hand after a placement wins instantly. One full turn consists of one placement and up to one optional bonus placement. No point tracking or special cards. Safety cap: 240 full turns.
 
@@ -73,3 +73,5 @@ Test with people in varied orders, including players unfamiliar with our work. R
 2. Compare equal seeded bot runs of v0.1 and v0.2 for completion, median and P90 full turns, penalty swings, bonus-attack frequency, and no-score stalls.
 3. Run at least 12 independent first-time human playtest groups with randomized variant order. Collect average session minutes, clarity, perceived fairness, rematches, and genuine decisions.
 4. Keep nine-card hand and nine-card row as baseline until evidence favors another length; avoid adding new special cards or more rules yet.
+
+**Design correction (2026-11-10):** Initial v0.2 runtime simulations found only 32/54 games ending with a winner when non-matching bonus moves still exchanged the rightmost card into the hand. This preserved too many hand cards. The corrected free-bonus sweep rule above is now under validation; that earlier 32/54 result is explicitly NOT a passing balance result.
