@@ -1,5 +1,5 @@
 /* SPARK Attack: physical-style shedding laboratory.
- * Two players, four colors, nine-row, finite deck.
+ * Two players, four colors, configurable 9–11 card row, finite deck.
  * A successful Merge grants one OPTIONAL free placement (at most one per
  * full turn). During a non-matching bonus the right edge is swept into the
  * discard instead of returning to the hand. The bonus can attack but cannot
@@ -62,7 +62,7 @@ function create({seed=1,mode='momentum',players=2,initialHand=DEFAULT_HAND,deckS
  check(players===2,'Attack v0 supports exactly two players');
  check(Number.isInteger(initialHand)&&initialHand>=3&&initialHand<=18,'Invalid initial hand');
  check(Number.isInteger(deckSize)&&deckSize>=48&&deckSize%4===0,'Deck must be at least 48 and divisible by 4');
- check(rowSize===9,'This initial experiment fixes the shared row at 9');
+ check([9,10,11].includes(rowSize),'Row size must be 9, 10, or 11');
  check(Number.isInteger(turnLimit)&&turnLimit>=8&&turnLimit<=1000,'Invalid turn limit');
  const g={version:'attack-lab-0.2',seed,mode,rowSize,deckSize,initialHand,turnLimit,
   rng:(seed^0x51a7d1f3)>>>0,botRng:(seed^0x91273c4f)>>>0,stock:[],discard:[],row:[],
