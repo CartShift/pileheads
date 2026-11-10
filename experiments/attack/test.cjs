@@ -97,6 +97,35 @@ check('Chains send one penalty per wave, with a single bonus only',()=>{
  assert.equal(g.log[0].bonusEarned,true);
  assert.equal(E.conservation(g),144);
 });
+check('Momentum attacks only on double Merge or chain, capped once per turn',()=>{
+ let double=null;
+ for(let seed=1;seed<150&&!double;seed++){
+  const g=E.create({seed,mode:'momentum'});
+  for(const first of E.legal(g,0).filter(x=>x.scored&&x.waves.length===1).slice(0,8)){
+   const candidate=E.create({seed,mode:'momentum'});
+   const placed=E.place(candidate,0,first.move.index,first.move.pos);
+   if(placed.status==='bonus'&&E.legal(candidate,0).some(x=>x.scored)){double=candidate;break}
+  }
+ }
+ assert.ok(double,'Must find double Merge opportunity');
+ assert.equal(double.players[1].hand.length,9,'Single Merge is not an attack');
+ const hit=E.legal(double,0).find(x=>x.scored);
+ const second=E.place(double,0,hit.move.index,hit.move.pos);
+ assert.equal(second.status,'done');
+ assert.equal(second.record.received.length,1);
+ assert.equal(double.log[0].received.length,1);
+ assert.equal(double.players[1].hand.length,10);
+ assert.equal(E.conservation(double),144);
+ const chain=E.create({seed:5,mode:'momentum'});
+ const combo=E.legal(chain,0).find(x=>x.waves.length>=2);
+ assert.ok(combo);
+ const initial=E.place(chain,0,combo.move.index,combo.move.pos);
+ assert.equal(initial.record.received.length,1);
+ const further=E.legal(chain,0).find(x=>x.scored)||E.legal(chain,0)[0];
+ E.place(chain,0,further.move.index,further.move.pos);
+ assert.equal(chain.log[0].received.length,1,'A chain and second Merge cannot attack twice');
+ assert.equal(E.conservation(chain),144);
+});
 check('No-penalty mode leaves opponent untouched but awards bonus',()=>{
  const g=E.create({seed:1,mode:'no-penalty'});
  const op=E.legal(g,0).find(x=>x.scored);
@@ -109,7 +138,7 @@ check('No-penalty mode leaves opponent untouched but awards bonus',()=>{
  assert.equal(E.conservation(g),144);
 });
 check('Zero-score placement exchanges row edge without a bonus',()=>{
- for(const mode of ['attack','chains','no-penalty']){
+ for(const mode of ['momentum','attack','chains','no-penalty']){
   const g=E.create({seed:1,mode}),old=g.players[0].hand.length;
   const m=E.legal(g,0).find(x=>!x.scored);
   const r=E.place(g,0,m.move.index,m.move.pos);
@@ -162,7 +191,7 @@ check('Empty hand wins instantly without requiring a bonus move',()=>{
  assert.equal(E.conservation(g),144);
 });
 check('Seeded simulations are deterministic and terminate safely',()=>{
- for(const mode of ['attack','chains','no-penalty']){
+ for(const mode of ['momentum','attack','chains','no-penalty']){
   const args={seed:420,mode,initialHand:9};
   assert.deepEqual(E.run(args),E.run(args));
   const r=E.run(args);
@@ -177,7 +206,7 @@ check('Seeded simulations are deterministic and terminate safely',()=>{
  }
 });
 check('Full games conserve all 144 cards and remain turn-bounded',()=>{
- for(const mode of ['attack','chains','no-penalty'])for(const hand of [7,9,11])for(let seed=171;seed<179;seed++){
+ for(const mode of ['momentum','attack','chains','no-penalty'])for(const hand of [7,9,11])for(let seed=171;seed<179;seed++){
   const g=E.create({seed,mode,initialHand:hand}),policies=['planner','greedy'];
   while(!g.blocked&&!g.drawn&&g.winner===null){
    const seat=g.turn%2,options=E.legal(g,seat);
