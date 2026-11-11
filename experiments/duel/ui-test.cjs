@@ -4,7 +4,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const engine=fs.readFileSync(path.join(__dirname,'engine.js'),'utf8');
 const app=fs.readFileSync(path.join(__dirname,'app.js'),'utf8');
 const html=fs.readFileSync(path.join(__dirname,'index.html'),'utf8');
-for(const id of ['information','opponents','seed','start','rematch','reveal','board','hand','otherHand','scores','cover','export']){
+for(const id of ['information','opponents','seed','start','rematch','reveal','board','hand','otherHand','scores','cover','export','stepHand','stepBoard','swapExplain']){
  assert.match(html,new RegExp('id="'+id+'"'));
 }
 function mount({information='open',opponents='bots',seed='20261111',store=new Map()}={}){
@@ -39,11 +39,21 @@ function run(){
  assert.equal(a.state().information,'open');checks++;
  assert.match(a.node('hand').innerHTML,/class="card/);checks++;
  assert.match(a.node('otherHand').innerHTML,/class="card/);checks++;
+ assert.match(a.node('instructions').textContent,/STEP 1/);checks++;
+ assert.match(a.node('stepHand').textContent,/Choose a card/);checks++;
+ assert.doesNotMatch(a.node('board').innerHTML,/data-pos=/,'No move before picking a hand card');checks++;
+ const firstOptions=a.E.legal(a.state(),0);
+ a.node('hand').onclick({target:{closest:()=>({dataset:{index:String(firstOptions[0].move.index)}})}});
+ assert.match(a.node('instructions').textContent,/STEP 2/);checks++;
+ assert.match(a.node('board').innerHTML,/data-pos=/,'Swap targets become available after selection');checks++;
+ assert.match(a.node('swapExplain').textContent,/comes yours/i);checks++;
  const move=a.E.legal(a.state(),0)[0];
  a.click(move.move.index,move.move.pos);
  assert.equal(a.state().turn,1);checks++;
+ assert.match(a.node('message').textContent,/placed .* on the row, and kept .* in their hand/);checks++;
  a.drain();
  assert.equal(a.state().turn,2);checks++;
+ assert.match(a.node('instructions').textContent,/STEP 1/);checks++;
  assert.equal(a.E.cardCount(a.state()),144);checks++;
  const hidden=mount({information:'hidden'});
  assert.doesNotMatch(hidden.node('otherHand').innerHTML,/class="card/);checks++;
