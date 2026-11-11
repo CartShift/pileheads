@@ -234,7 +234,7 @@ hand.addEventListener?.('pointerdown',e=>{
  const r=rectOf(el);if(!r)return;
  drag={index:Number(el.dataset.index),startX:e.clientX,startY:e.clientY,source:el,rect:r,active:false,ghost:null,pointerId:e.pointerId};
  // Capture the pointer so a finger can travel out of the hand all the way to the center pile.
- try{hand.setPointerCapture?.(e.pointerId)}catch(error){console.debug('Pointer capture unavailable',error)}
+ try{el.setPointerCapture?.(e.pointerId)}catch(error){console.debug('Pointer capture unavailable',error)}
 });
 hand.addEventListener?.('pointermove',e=>{
  if(!drag||drag.pointerId!==e.pointerId)return;
@@ -259,7 +259,7 @@ hand.addEventListener?.('pointermove',e=>{
 function finishDrag(e,cancelled){
  if(!drag||e.pointerId!==drag.pointerId)return;
  const d=drag;drag=null;
- try{hand.releasePointerCapture?.(e.pointerId)}catch(error){console.debug('Pointer release unavailable',error)}
+ try{d.source.releasePointerCapture?.(e.pointerId)}catch(error){console.debug('Pointer release unavailable',error)}
  d.source.classList?.remove('dragging-original');
  $('pileMat').classList?.remove('drop-active');
  if(!d.active)return;
