@@ -2,6 +2,17 @@
 
 **Status: isolated experimental card-game concept. Not production-ready. Not a released product, brand, or ruleset.** This folder was created because the earlier CROSS and FORGE prototypes were consistently perceived as **confusing, complicated and unfriendly**.
 
+## Current verified playable A/B
+
+- **Regular ONE (48 cards / 3 in hand):** https://spark-exchange-mr0fj77oq-cart-shift.vercel.app/
+- **Short strategic ONE (balanced 32 CORE cards / 4 in hand):** https://spark-exchange-mr0fj77oq-cart-shift.vercel.app/?mode=quick
+- **Printable physical CORE / EXTRA cards:** https://spark-exchange-mr0fj77oq-cart-shift.vercel.app/print.html
+- **Evidence and rejected variants:** https://spark-exchange-mr0fj77oq-cart-shift.vercel.app/STRATEGY_REPORT.md
+
+Clean Vercel deployment \`dpl_2Rb7HSmwwsYVbJ3QkBz1Ppbi3GYK\` is READY with no production target. Routes for both variants, JavaScript, print pack and evidence report returned HTTP 200. The temporary QA endpoint is absent (HTTP 404).
+
+**Automated verification:** engine, strategic policy, balanced short-mode invariants, 39 UI-stub checks, 36 tabletop checks, and print-card counts passed in the isolated Node test runtime. The physical print layout was additionally inspected for 32 CORE / 16 EXTRA labels. This is not Android screenshot/touch testing and is not a substitute for human player experience.
+
 ## New controlled strategy experiment (2026-11-11)
 
 The one-tap gameplay, card symbols and physical-first table remain unchanged, but two improvements are now isolated in this experiment:
