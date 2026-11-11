@@ -104,7 +104,7 @@ function clearGhosts(){
 }
 function animateMotion(from,action){
  if(!from||isReducedMotion()||typeof document.body?.appendChild!=='function')return;
- const target=action.action==='take'?$('hand'):(action.reason==='match'?$('discard'):$('pile'));
+ const target=action.action==='take'?(opponents==='bot'&&action.seat===1?$('opponentHand'):$('hand')):(action.reason==='match'?$('discard'):$('pile'));
  const to=rectOf(target);if(!to)return;
  const card=action.card||(action.action==='take'?game.people[action.seat].hand.at(-1):null);
  if(!card)return;
@@ -179,10 +179,13 @@ function queueBot(){
  busy=true;render();const captured=epoch;
  botTimer=setTimeout(()=>{
   if(epoch!==captured||seat()!==1||done()){busy=false;return}
-  const source=$('opponentHand').querySelector?.('.back-card:last-child');
-  const from=rectOf(source);
   busy=false;
-  try{const move=E.choose(game,1,botStyle);finish(E.play(game,1,move),from)}
+  try{
+   const move=E.choose(game,1,botStyle);
+   const source=move.type==='take'?$('pile').querySelector?.('.table-card'):$('opponentHand').querySelector?.('.back-card:last-child');
+   const from=rectOf(source);
+   finish(E.play(game,1,move),from);
+  }
   catch(e){message='Bot could not continue: '+String(e.message);render()}
  },720);
 }
