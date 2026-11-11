@@ -67,17 +67,22 @@ function choose(g,seat,policy='thoughtful'){
  const moves=legal(g,seat);fail(moves.length,'No moves');
  if(policy==='random')return moves[Math.floor(rng(g)*moves.length)];
  if(policy==='basic')return moves[0];
- if(policy==='strategic'){
+ if(policy==='strategic'||policy==='adaptive'){
   // A fair opponent: consider only private hand, public top card and stock count.
   // Play flexible cards while the stock still replenishes hands.
   // Once it is empty, use restrictive cards to pressure the next player.
   const hand=g.people[seat].hand,top=g.pile.at(-1),drawing=g.stock.length>0;
+  // Adaptive bot uses the public move log, never private opponent cards.
+  // Repeated forced pickups often create zero-progress multiplayer loops.
+  // When that happens, prioritize a more permissive arrow for a turn.
+  const breakLoop=policy==='adaptive'&&!drawing &&
+    g.log.slice(-6).filter(e=>e.action==='take').length>=2;
   let choice=moves[0],value=-Infinity;
   for(const m of moves){
    if(m.type!=='play')continue;
    const c=hand[m.index],flexibility=c.arrow==='up'?9-c.n:c.n;
    const match=top!==undefined&&top.n===c.n;
-   const score=(drawing?flexibility:-flexibility)-(match?1:0);
+   const score=(drawing||breakLoop?flexibility:-flexibility)-(match?1:0);
    if(score>value){value=score;choice=m}
   }
   return choice;
