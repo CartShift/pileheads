@@ -70,6 +70,8 @@ A temporary Vercel Node validation runner passed engine tests, the DOM-stub UI s
 
 **Caution:** the handmade "planner" bot is *weaker* than greedy in these head-to-head runs, so it is absolutely **not** evidence that strategic players have an advantage. The data can't distinguish poor bot strategy from a shallow game. CROSS still shows a small percentage of extremely long matches and must improve before considered viable. Human games might end much earlier or later.
 
+**Additional exploratory decision-density scan:** across 150 bot matches per concept, CROSS offered a choice of two playable piles on ~34.8% of turns; LINK constrained the target on ~20.2% of turns. FORGE offered both strike and prepare on ~23% of turns, and a choice between strike and release on ~39.3%. Pickup actions still occupied ~19% of the final ten turns in both. Legal alternatives are **not evidence** that alternatives are strategically distinct or engaging.
+
 We have not observed any real person play the games or verified that they're fun.
 
 ## Commercial guardrails
