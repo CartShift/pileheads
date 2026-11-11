@@ -39,6 +39,17 @@ Vercel clean preview `dpl_AYdy9eyuiMyV5DRMKGLZoQaZ5yKU` reached **READY** with `
 
 **Still unverified:** actual mobile-browser touch interaction and rendered screenshot QA, card-print alignment, and first-time human comprehension. These cannot be inferred from HTTP and stub test success.
 
+## Latest playable first-person preview
+
+- **Play the first-person table:** https://spark-exchange-9ddvy0dey-cart-shift.vercel.app/
+- **Print the original 48-card deck:** https://spark-exchange-9ddvy0dey-cart-shift.vercel.app/print.html
+
+Clean Vercel preview `dpl_57dhSTXrECEy5rc46Rz4r25ctRLw` is **READY** with no production target. HTTP 200 verified for the game HTML, application JS, unchanged engine JS, and printable cards. The preview contains no temporary QA endpoints.
+
+Isolated Node validation preview `dpl_FzpcCo9sHxnMTAQ3AHCgpR4eXE2d` verified the **engine suite**, original **23 UI checks**, expanded **36 first-person tabletop checks**, and print-deck tests. Verified touch-pointer capture, cancel-to-abort, reduced-motion bypass, opt-in audio state, large opponent-hand compactness, opponent hand privacy, and automatic bot continuation through DOM-stub tests.
+
+**Unverified:** real Android touch and audio on the user's device, actual rendered screenshot consistency at 360 / 768 / 1440px, and real-player subjective experience. Automated DOM stubs are not a replacement for manual device testing.
+
 ## First-person tabletop simulator enhancement
 
 The positive first human feedback was for ONE's **simple rules**. This update keeps the engine and physical deck *unchanged* and makes the browser simulator look and behave more like sitting at a table:
