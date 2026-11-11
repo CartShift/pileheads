@@ -230,7 +230,7 @@ function queueBot(){
   busy=false;
   try{
    const move=E.choose(game,1,botStyle);
-   const source=move.type==='take'?$('pile').querySelector?.('.table-card'):$('opponentHand').querySelector?.('.back-card:last-child');
+   const source=['takeTop','takeAll'].includes(move.type)?$('pile').querySelector?.('.table-card'):$('opponentHand').querySelector?.('.back-card:last-child');
    const from=rectOf(source);
    finish(E.play(game,1,move),from);
   }
@@ -240,8 +240,8 @@ function queueBot(){
 function resetGame(seed){
  if(botTimer!==null)clearTimeout(botTimer);
  epoch++;busy=false;covered=false;drag=null;clearGhosts();
- game=E.create({seed,players:2,mode:MODE});
- message='You are at the table. Tap one of your cards to start.';
+ game=E.create({seed,mode:MODE});
+ message='Grow the pile, time your Joker, or keep a card that can counter.';
  $('cover').style.display='none';persist();
  if(opponents==='hotseat')cover();else{render();queueBot()}
 }
@@ -249,18 +249,18 @@ $('hand').onclick=e=>{
  if(suppressClick){suppressClick=false;return}
  if(!canAct())return;
  const el=e.target.closest('[data-index]');if(!el||el.disabled)return;
- play({type:'play',index:Number(el.dataset.index)},el);
+ play({type:game.pending?'counter':'play',index:Number(el.dataset.index)},el);
 };
 $('takeButton').onclick=()=>{
  const source=$('pile').querySelector?.('.table-card');
- play({type:'take'},source);
+ play({type:game.pending?'takeAll':'takeTop'},source);
 };
 $('reveal').onclick=()=>{covered=false;$('cover').style.display='none';render();queueBot()};
 $('newGame').onclick=()=>{
  const n=Number($('seed').value);
  if(!Number.isInteger(n)||n<0||n>4294967295){alert('Please enter a valid nonnegative seed.');return}
  opponents=$('opponents').value==='hotseat'?'hotseat':'bot';
- botStyle=['strategic','thoughtful','basic','random'].includes($('botStyle').value)?$('botStyle').value:'strategic';
+ botStyle=['timing','greedy','hoard','random'].includes($('botStyle').value)?$('botStyle').value:'timing';
  resetGame(n);
 };
 $('soundEnabled').onchange=e=>{sounds=Boolean(e.target.checked);persist()};
@@ -271,7 +271,7 @@ $('done').onclick=e=>{
 $('export').onclick=()=>{
  const payload={version:E.VERSION,game,opponents,botStyle,exportedAt:new Date().toISOString()};
  const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
- const a=document.createElement('a');a.href=url;a.download='tilt-one-'+game.seed+'.json';a.click();
+ const a=document.createElement('a');a.href=url;a.download='tilt-power-'+MODE+'-'+game.seed+'.json';a.click();
  setTimeout(()=>URL.revokeObjectURL(url),1200);
 };
 // Optional drag-to-pile uses Pointer Events, with simple one-tap play as the primary path.
@@ -320,14 +320,14 @@ function finishDrag(e,cancelled){
  const r=rectOf($('pileMat'));
  const hit=!cancelled&&r&&e.clientX>=r.left-22&&e.clientX<=r.left+r.width+22&&
    e.clientY>=r.top-22&&e.clientY<=r.top+r.height+22;
- if(hit&&canAct())play({type:'play',index:d.index},{getBoundingClientRect:()=>from});
+ if(hit&&canAct())play({type:game.pending?'counter':'play',index:d.index},{getBoundingClientRect:()=>from});
 }
 hand.addEventListener?.('pointerup',e=>finishDrag(e,false));
 hand.addEventListener?.('pointercancel',e=>finishDrag(e,true));
 const reset=query.get('new')==='1'||!restore();
 if(reset){
  const seed=query.has('seed')?Number(query.get('seed')):20261111;
- game=E.create({seed:Number.isInteger(seed)&&seed>=0&&seed<=4294967295?seed:20261111,players:2,mode:MODE});
+ game=E.create({seed:Number.isInteger(seed)&&seed>=0&&seed<=4294967295?seed:20261111,mode:MODE});
  persist();
 }
 $('opponents').value=opponents;$('botStyle').value=botStyle;$('seed').value=String(game.seed);
