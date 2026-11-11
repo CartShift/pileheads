@@ -135,6 +135,7 @@ test('Preview is ephemeral and saved progress remains the uncommitted original t
 });
 test('Hotseat hides both hands on handoff and allows private reveal',()=>{
  const a=mount(20261122,new Map(),true);
+ a.elem('opponents').value='hotseat';
  a.elem('newGame').onclick();
  assert.equal(a.elem('cover').style.display,'flex');
  assert.doesNotMatch(a.elem('hand').innerHTML,/data-index/);
