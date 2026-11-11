@@ -4,13 +4,13 @@
 
 ## Current playable gameplay experiment: the best-of-three set
 
-**Verified clean preview:** https://spark-exchange-cc2c8nwjy-cart-shift.vercel.app/
+**Verified clean preview:** https://spark-exchange-mcepukrle-cart-shift.vercel.app/
 
 | Experience | Play |
 |---|---|
-| Original 48-card single match, 3 in hand | https://spark-exchange-cc2c8nwjy-cart-shift.vercel.app/ |
-| Balanced 32-card single match, 4 in hand | https://spark-exchange-cc2c8nwjy-cart-shift.vercel.app/?mode=quick |
-| **Best-of-three set on balanced 32-card deck** | https://spark-exchange-cc2c8nwjy-cart-shift.vercel.app/?mode=quick&series=3 |
+| Original 48-card single match, 3 in hand | https://spark-exchange-mcepukrle-cart-shift.vercel.app/ |
+| Balanced 32-card single match, 4 in hand | https://spark-exchange-mcepukrle-cart-shift.vercel.app/?mode=quick |
+| **Best-of-three set on balanced 32-card deck** | https://spark-exchange-mcepukrle-cart-shift.vercel.app/?mode=quick&series=3 |
 
 **Best-of-three:** The first two rounds alternate who leads. If both players win one, the loser of round 2 starts the decider. First to two wins is the set winner. The core card rules do not change. The entire set is stored in a separate local save, and completed rounds retain their **public move transcripts** for post-game analysis, without saving concealed stock order or hands inside the set history. The local export includes the current game and the series history.
 
@@ -19,7 +19,9 @@
 **Detailed review:** [DESIGN_REVIEW.md](DESIGN_REVIEW.md)  
 **Human trial protocol:** [PLAYTEST_SESSION.md](PLAYTEST_SESSION.md)
 
-**QA:** Engine, strategic/quick/adaptive/series tests, 39 original interface-state checks, 36 first-person table checks, 43 new series-flow checks, exact physical pack checks and 500 multi-round simulated series passed in an isolated Node deployment. The latest clean preview is READY; these tests do not substitute for real touchscreen rendering, blind human enjoyment testing or proof of retail readiness.
+**QA:** Engine, strategic/quick/adaptive/series tests, 39 original interface-state checks, 36 first-person table checks, 47 new series-flow checks, exact physical pack checks and 500 multi-round simulated series passed in an isolated Node deployment. The latest clean preview is READY; these tests do not substitute for real touchscreen rendering, blind human enjoyment testing or proof of retail readiness.
+
+**Final verification:** clean Vercel preview deployment `dpl_6F3e83Xwsj3g5UfxuETK2mwA9hUC` reached READY with no production target. Routes for both play styles, series logic, printable deck, design review and test protocol returned HTTP 200. The temporary QA API is excluded from this clean build (HTTP 404). Latest isolated test runner passed 39 UI checks, 36 first-person tabletop checks and 47 series UI checks, plus engine, physical deck, adaptive, strategy and complete-series tests.
 
 **Scope:** This is a separate experimental branch, not the production SPARK card game.
 
