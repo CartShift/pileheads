@@ -1,9 +1,10 @@
 (function(){'use strict';
-const E=globalThis.OneLab,$=id=>document.getElementById(id);
+const E=globalThis.OneLab,S=globalThis.OneSeries,$=id=>document.getElementById(id);
 const query=new URLSearchParams(location.search);
 const MODE=query.get('mode')==='quick'?'quick':'classic';
-const KEY=MODE==='quick'?'one-card-one-rule-quick-v01':'one-card-one-rule-v01';
-let game=null,opponents='bot',botStyle='strategic',busy=false,covered=false,epoch=0,botTimer=null;
+const SERIES=MODE==='quick'&&query.get('series')==='3';
+const KEY=SERIES?'one-card-one-rule-quick-series-v01':MODE==='quick'?'one-card-one-rule-quick-v01':'one-card-one-rule-v01';
+let game=null,series=null,opponents='bot',botStyle='strategic',busy=false,covered=false,epoch=0,botTimer=null;
 let sounds=false,drag=null,suppressClick=false,voice=null;
 let message='Tap a playable card. Its arrow tells the next player what they need to play.';
 
@@ -12,12 +13,14 @@ function done(){return E.finished(game)}
 function focus(){return opponents==='bot'?0:seat()}
 function name(i){return opponents==='bot'?(i===0?'You':'Bot'):'Player '+(i+1)}
 function canAct(){return !busy&&!covered&&!done()&&(opponents==='hotseat'||seat()===0)}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify({game,opponents,botStyle,message,sounds}))}catch(e){console.warn('Save unavailable',e)}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({game,series,opponents,botStyle,message,sounds}))}catch(e){console.warn('Save unavailable',e)}}
 function restore(){
  try{
   const old=JSON.parse(localStorage.getItem(KEY)||'null');
   if(!old?.game||old.game.version!==E.VERSION||old.game.people?.length!==2||(old.game.mode||'classic')!==MODE)return false;
-  game=old.game;opponents=old.opponents==='hotseat'?'hotseat':'bot';
+  if(SERIES&&(!old.series||old.series.version!==S.VERSION))return false;
+  game=old.game;series=SERIES?old.series:null;
+  opponents=old.opponents==='hotseat'?'hotseat':'bot';
   botStyle=['strategic','thoughtful','basic','random'].includes(old.botStyle)?old.botStyle:'strategic';
   message=typeof old.message==='string'?old.message:message;
   sounds=old.sounds===true;return true;
@@ -51,10 +54,19 @@ function render(){
  $('opponentHand').innerHTML=opponentBacks(op.hand.length);
  $('other').textContent=op.hand.length+' '+(op.hand.length===1?'card':'cards')+' in hand';
  $('stock').textContent=game.stock.length+' left';
- $('modeTitle').textContent=MODE==='quick'?'Short strategic game':'The tabletop prototype';
+ $('modeTitle').textContent=SERIES?'Best-of-three showdown':MODE==='quick'?'Short strategic game':'The tabletop prototype';
  $('classicLink').setAttribute('aria-current',MODE==='classic'?'page':'false');
- $('quickLink').setAttribute('aria-current',MODE==='quick'?'page':'false');
+ $('quickLink').setAttribute('aria-current',MODE==='quick'&&!SERIES?'page':'false');
+ $('seriesLink').setAttribute('aria-current',SERIES?'page':'false');
  $('handRule').textContent=MODE==='quick'?'Keep four cards in hand while the draw deck lasts.':'Keep three cards in hand while the draw deck lasts.';
+ $('setScore').hidden=!SERIES;
+ if(SERIES){
+  const a=name(0),b=name(1),score=series.wins;
+  $('setScore').textContent=(series.complete?'SET COMPLETE':'ROUND '+series.round+' OF 3')+
+    ' · '+a+' '+score[0]+'  :  '+score[1]+' '+b;
+  $('setTip').textContent=series.complete?'Best of three completed. Start a fresh set to play again.':
+   name(S.firstSeat(series))+' leads this round. The first to win two rounds wins the set.';
+ }
  $('deckRule').textContent=MODE==='quick'?
   'Short strategic mode: use the 32 CORE cards (two of every number/arrow pair). Set the 16 EXTRA cards aside and deal four cards per player.':
   'Regular mode: use all 48 purpose-designed cards and deal three cards per player.';
@@ -90,9 +102,13 @@ function render(){
    legal.some(m=>m.type==='take')?'No card fits. Pick up the top card to reset the pile.':
    'Tap a bright card, or drag it to the middle. Dimmed cards cannot be played.';
  $('done').hidden=!done();
- $('done').innerHTML=done()?'<h2>'+(game.draw?'Draw':name(game.winner)+' wins!')+'</h2>'+
-   '<p>'+game.turn+' turns. Your next match might go very differently.</p>'+
-   '<button type="button" class="primary" data-rematch="1">Play again</button>':'';
+ $('done').innerHTML=done()?'<h2>'+
+    (SERIES&&series.complete?name(series.wins[0]===2?0:1)+' wins the set!':
+     game.draw?'Draw':name(game.winner)+' wins!')+'</h2>'+
+   '<p>'+(SERIES?'Set: '+series.wins[0]+' – '+series.wins[1]+' · Round '+series.round+
+     ' · '+game.turn+' turns':game.turn+' turns. Your next match might go very differently.')+'</p>'+
+   '<button type="button" class="primary" data-rematch="1">'+
+    (SERIES?(series.complete?'New best-of-three set':'Next round'): 'Play again')+'</button>':'';
 }
 function cover(){
  covered=true;
@@ -159,6 +175,7 @@ function finish(action,from){
  else if(action.reason==='match')message=name(action.seat)+' matched '+card.n+'. The whole pile was cleared!';
  else message=name(action.seat)+' played '+card.n+' '+(card.arrow==='up'?'↑':'↓')+
    '. Next: '+card.n+' or '+(card.arrow==='up'?'higher.':'lower.');
+ if(done()&&SERIES&&S.canRecord(series)&&game.winner!==null)S.record(series,game);
  persist();
  if(done()){
   covered=false;$('cover').style.display='none';busy=false;render();
@@ -201,8 +218,8 @@ function queueBot(){
 function resetGame(seed){
  if(botTimer!==null)clearTimeout(botTimer);
  epoch++;busy=false;covered=false;drag=null;clearGhosts();
- game=E.create({seed,players:2,mode:MODE});
- message='You are at the table. Tap one of your cards to start.';
+ game=E.create({seed,players:2,mode:MODE,firstSeat:SERIES?S.firstSeat(series):0});
+ message=SERIES?'Round '+series.round+' · '+name(E.active(game))+' leads.':'You are at the table. Tap one of your cards to start.';
  $('cover').style.display='none';persist();
  if(opponents==='hotseat')cover();else{render();queueBot()}
 }
@@ -222,15 +239,22 @@ $('newGame').onclick=()=>{
  if(!Number.isInteger(n)||n<0||n>4294967295){alert('Please enter a valid nonnegative seed.');return}
  opponents=$('opponents').value==='hotseat'?'hotseat':'bot';
  botStyle=['strategic','thoughtful','basic','random'].includes($('botStyle').value)?$('botStyle').value:'strategic';
+ if(SERIES)series=S.create(n);
  resetGame(n);
 };
 $('soundEnabled').onchange=e=>{sounds=Boolean(e.target.checked);persist()};
 $('done').onclick=e=>{
  if(!e.target.closest('[data-rematch]'))return;
- const seed=(game.seed+1)>>>0;$('seed').value=String(seed);resetGame(seed);
+ if(SERIES){
+  if(series.complete)series=S.create((series.baseSeed+1)>>>0);
+  else S.advance(series);
+  const seed=S.roundSeed(series);$('seed').value=String(seed);resetGame(seed);
+ }else{
+  const seed=(game.seed+1)>>>0;$('seed').value=String(seed);resetGame(seed);
+ }
 };
 $('export').onclick=()=>{
- const payload={version:E.VERSION,game,opponents,botStyle,exportedAt:new Date().toISOString()};
+ const payload={version:E.VERSION,game,series,opponents,botStyle,exportedAt:new Date().toISOString()};
  const url=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
  const a=document.createElement('a');a.href=url;a.download='tilt-one-'+game.seed+'.json';a.click();
  setTimeout(()=>URL.revokeObjectURL(url),1200);
@@ -288,7 +312,10 @@ hand.addEventListener?.('pointercancel',e=>finishDrag(e,true));
 const reset=query.get('new')==='1'||!restore();
 if(reset){
  const seed=query.has('seed')?Number(query.get('seed')):20261111;
- game=E.create({seed:Number.isInteger(seed)&&seed>=0&&seed<=4294967295?seed:20261111,players:2,mode:MODE});
+ const chosenSeed=Number.isInteger(seed)&&seed>=0&&seed<=4294967295?seed:20261111;
+ if(SERIES)series=S.create(chosenSeed);
+ game=E.create({seed:SERIES?S.roundSeed(series):chosenSeed,players:2,mode:MODE,
+  firstSeat:SERIES?S.firstSeat(series):0});
  persist();
 }
 $('opponents').value=opponents;$('botStyle').value=botStyle;$('seed').value=String(game.seed);
