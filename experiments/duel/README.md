@@ -71,3 +71,12 @@ Record scores, duration, first player, rounds requiring thought, spontaneous rem
 ## Boundaries
 
 Do not merge this experiment into the original ChatGPT Sites game, overwrite existing saves, or change production aliases without further review and real human playtests. No mass-market claims, physical-product readiness, or rules originality is established.
+
+## Verified clean preview
+
+- **Open-hand strategic duel:** https://spark-exchange-ctk214b37-cart-shift.vercel.app/duel/?information=open
+- **Hidden-hand comparison:** https://spark-exchange-ctk214b37-cart-shift.vercel.app/duel/?information=hidden&new=1
+
+The clean preview is **READY**, with HTTP 200 verified for `/duel/`, `/duel/app.js`, `/duel/engine.js`, the older `/attack/` comparison route and the Exchange root. It deliberately contains no temporary verification API. The production Vercel aliases and ChatGPT Sites URL remain unchanged.
+
+**Browser caveat:** The preview works as static frontend assets and passed a Node DOM-stub integration test, but it has not been exercised with real phone touch gestures or two human players. The `&new=1` query starts a fresh match and replaces that preview's local in-browser saved game.
