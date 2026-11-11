@@ -57,6 +57,21 @@ function choose(g,seat,policy='thoughtful'){
  const moves=legal(g,seat);fail(moves.length,'No moves');
  if(policy==='random')return moves[Math.floor(rng(g)*moves.length)];
  if(policy==='basic')return moves[0];
+ if(policy==='strategic'){
+  // A fair opponent: consider only private hand, public top card and stock count.
+  // Play flexible cards while the stock still replenishes hands.
+  // Once it is empty, use restrictive cards to pressure the next player.
+  const hand=g.people[seat].hand,top=g.pile.at(-1),drawing=g.stock.length>0;
+  let choice=moves[0],value=-Infinity;
+  for(const m of moves){
+   if(m.type!=='play')continue;
+   const c=hand[m.index],flexibility=c.arrow==='up'?9-c.n:c.n;
+   const match=top!==undefined&&top.n===c.n;
+   const score=(drawing?flexibility:-flexibility)-(match?1:0);
+   if(score>value){value=score;choice=m}
+  }
+  return choice;
+ }
  let best=moves[0],val=-Infinity;
  for(const m of moves){
   const c=g.people[seat].hand[m.index],top=g.pile.at(-1);
