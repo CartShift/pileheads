@@ -91,7 +91,7 @@ function render(){
  const playable=new Set(legal.filter(x=>x.type==='play').map(x=>x.index));
  // Against a bot, keep YOUR real cards face up while the bot thinks.
  // In pass-and-play, always hide private cards during handoff.
- const showOwn=!covered&&(opponents==='bot'||live||done());
+ const showOwn=!covered&&(opponents==='bot'||live); // Do not reveal the other hotseat player's remaining hand after a win.
  $('hand').innerHTML=showOwn?p.hand.map((c,i)=>makeCard(c,'data-index="'+i+'" '+(live&&playable.has(i)?'':'disabled'),
    live&&playable.has(i)?'playable':'blocked')).join(''):
    '<p style="font-size:12px;color:#d7e7d8">Private hand hidden during handoff.</p>';
