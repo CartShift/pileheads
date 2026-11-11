@@ -13,7 +13,8 @@ function mount(search='?new=1',store=new Map()){
  const defaults={seed:'20261111',opponents:'bot',botStyle:'thoughtful'};
  function el(id){
   if(!items.has(id))items.set(id,{id,value:defaults[id]||'',innerHTML:'',textContent:'',style:{display:'none'},
-   hidden:false,onclick:null,disabled:false});
+   hidden:false,onclick:null,disabled:false,attrs:{},
+   setAttribute(k,v){this.attrs[k]=v}});
   return items.get(id);
  }
  const ctx=vm.createContext({document:{getElementById:el,createElement:()=>({href:'',download:'',click(){}})},
@@ -25,7 +26,8 @@ function mount(search='?new=1',store=new Map()){
  });
  vm.runInContext(engine,ctx,{filename:'engine.js'});
  vm.runInContext(app,ctx,{filename:'app.js'});
- function state(){return JSON.parse(store.get('one-card-one-rule-v01'))}
+ function state(){const key=new URLSearchParams(search).get('mode')==='quick'?'one-card-one-rule-quick-v01':'one-card-one-rule-v01';
+  return JSON.parse(store.get(key))}
  function tap(index,disabled=false){
   el('hand').onclick({target:{closest:selector=>selector==='[data-index]'?{disabled,dataset:{index:String(index)}}:null}});
  }
@@ -94,6 +96,26 @@ function run(){
  assert.equal(taking.state().game.turn,1);checks++;
  assert.equal(taking.state().game.people[0].hand.length,before+1);checks++;
  assert.equal(taking.state().game.pile.length,0);checks++;
+ const shared=new Map();
+ const quick=mount('?mode=quick&new=1',shared);
+ assert.equal(quick.state().game.mode,'quick');checks++;
+ assert.equal(quick.state().game.people[0].hand.length,4);checks++;
+ assert.equal(quick.state().game.stock.length,24);checks++;
+ assert.equal(quick.state().game.aside.length,16);checks++;
+ assert.match(quick.el('handRule').textContent,/four cards/);checks++;
+ assert.match(quick.el('deckRule').textContent,/32 CORE/);checks++;
+ assert.equal(quick.el('quickLink').attrs['aria-current'],'page');checks++;
+ quick.tap(0);assert.equal(quick.state().game.turn,1);checks++;
+ quick.drain();assert.equal(quick.state().game.turn,2);checks++;
+ assert.equal(quick.engine.count(quick.state().game),48);checks++;
+ const regular=mount('?new=1',shared);
+ assert.equal(regular.state().game.mode,'classic');checks++;
+ assert.equal(regular.state().game.people[0].hand.length,3);checks++;
+ assert.equal(regular.el('classicLink').attrs['aria-current'],'page');checks++;
+ assert.equal(quick.state().game.turn,2,'Quick progress must not be overwritten by classic');checks++;
+ const restoreQuick=mount('?mode=quick',shared);
+ assert.equal(restoreQuick.state().game.turn,2);checks++;
+ assert.equal(restoreQuick.el('hand').innerHTML.includes('data-index'),true);checks++;
  return{pass:true,checks};
 }
 if(require.main===module)console.log(JSON.stringify(run()));
