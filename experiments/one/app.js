@@ -21,7 +21,7 @@ function restore(){
   if(SERIES&&(!old.series||old.series.version!==S.VERSION))return false;
   game=old.game;series=SERIES?old.series:null;
   opponents=old.opponents==='hotseat'?'hotseat':'bot';
-  botStyle=['strategic','thoughtful','basic','random'].includes(old.botStyle)?old.botStyle:'strategic';
+  botStyle=['strategic','adaptive','thoughtful','basic','random'].includes(old.botStyle)?old.botStyle:'strategic';
   message=typeof old.message==='string'?old.message:message;
   sounds=old.sounds===true;return true;
  }catch{return false}
@@ -238,7 +238,7 @@ $('newGame').onclick=()=>{
  const n=Number($('seed').value);
  if(!Number.isInteger(n)||n<0||n>4294967295){alert('Please enter a valid nonnegative seed.');return}
  opponents=$('opponents').value==='hotseat'?'hotseat':'bot';
- botStyle=['strategic','thoughtful','basic','random'].includes($('botStyle').value)?$('botStyle').value:'strategic';
+ botStyle=['strategic','adaptive','thoughtful','basic','random'].includes($('botStyle').value)?$('botStyle').value:'strategic';
  if(SERIES)series=S.create(n);
  resetGame(n);
 };
