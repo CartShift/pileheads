@@ -7,10 +7,11 @@
     "test": "node tests/game.cjs && node tests/rooms.mjs",
     "build": "node scripts/build.mjs",
     "dev": "node scripts/dev.mjs",
-    "test:one": "node experiments/one/test.cjs && node experiments/one/strategy-test.cjs && node experiments/one/quick-test.cjs && node experiments/one/ui-test.cjs && node experiments/one/table-test.cjs && node experiments/one/print-test.cjs",
+    "test:one": "node experiments/one/test.cjs && node experiments/one/strategy-test.cjs && node experiments/one/quick-test.cjs && node experiments/one/adaptive-test.cjs && node experiments/one/series-test.cjs && node experiments/one/ui-test.cjs && node experiments/one/table-test.cjs && node experiments/one/series-ui-test.cjs && node experiments/one/print-test.cjs",
     "simulate:one": "node experiments/one/simulate.cjs --pairs 250",
     "simulate:one-strategy": "node experiments/one/strategy-simulate.cjs --seeds 800 --seed 20261111",
-    "simulate:one-quick": "node experiments/one/quick-simulate.cjs --seeds 750 --seed 20261111"
+    "simulate:one-quick": "node experiments/one/quick-simulate.cjs --seeds 750 --seed 20261111",
+    "simulate:one-series": "node experiments/one/series-simulate.cjs --sets 700 --seed 20261111"
   },
   "engines": {
     "node": ">=24"
