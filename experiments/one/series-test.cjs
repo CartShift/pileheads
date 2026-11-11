@@ -45,6 +45,17 @@ check('Unexpected game or unresolved game cannot be scored',()=>{
  assert.throws(()=>S.record(s,{winner:0,people:[{},{}],seed:11,firstSeat:0}),/does not belong/);
  assert.throws(()=>S.record(s,{winner:0,people:[{},{}],seed:12,firstSeat:1}),/does not belong/);
 });
+check('A drawn round can retry a new shuffled seed without losing set score',()=>{
+ const s=S.create(11),first=S.firstSeat(s),before=S.roundSeed(s);
+ const retry=S.retry(s);
+ assert.notEqual(retry.seed,before);
+ assert.equal(retry.firstSeat,first);
+ assert.equal(s.round,1);assert.deepEqual(s.wins,[0,0]);
+ S.record(s,{winner:0,people:[{},{}],seed:retry.seed,firstSeat:first,turn:52});
+ assert.deepEqual(s.wins,[1,0]);
+ assert.equal(S.advance(s).firstSeat,1-first);
+ assert.equal(s.retries,0);
+});
 check('Old game state with no firstSeat continues to play from seat zero',()=>{
  const old=E.create({mode:'quick',seed:8});
  delete old.firstSeat;
