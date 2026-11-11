@@ -43,7 +43,7 @@ function done(){return mode==='claim'?E.claimDone(game()):E.signalDone(game())}
 function seat(){const g=game();return mode==='claim'?g.turn%g.players.length:E.signalSeat(g)}
 function focus(){return options().opponents==='bot'?0:seat()}
 function label(p){return options().opponents==='bot'?(p===0?'You':'Bot'):'Player '+(p+1)}
-function canAct(){return !covered&&!busy&&!done()&&!session.awaitingSignal&&
+function canAct(){return !covered&&!busy&&!done()&&!(mode==='signal'&&session.awaitingSignal)&&
   (options().opponents==='hotseat'||seat()===0)}
 function cardHtml(c,attrs='',extra=''){
  return '<button type="button" class="gamecard '+c.c+' '+extra+'" '+attrs+' aria-label="'+LABEL[c.c]+' '+c.v+'">'+
@@ -206,7 +206,7 @@ function humanMove(move){
 }
 function scheduleBot(){
  const g=game();
- if(options().opponents!=='bot'||done()||seat()!==1||session.awaitingSignal||busy)return;
+ if(options().opponents!=='bot'||done()||seat()!==1||(mode==='signal'&&session.awaitingSignal)||busy)return;
  busy=true;render();const capturedEpoch=epoch,kind=mode;
  botTimer=setTimeout(()=>{
   if(epoch!==capturedEpoch||mode!==kind||done()||seat()!==1){busy=false;return}
@@ -223,7 +223,7 @@ function chooseMode(to){
  if(botTimer!==null)clearTimeout(botTimer);
  epoch++;busy=false;covered=false;selected=null;mode=to;
  $('cover').style.display='none';syncSettings();save();
- if(options().opponents==='hotseat'&&!done()&&!session.awaitingSignal)showCover();
+ if(options().opponents==='hotseat'&&!done()&&!(mode==='signal'&&session.awaitingSignal))showCover();
  else{render();scheduleBot()}
 }
 $('tabClaim').onclick=()=>chooseMode('claim');
