@@ -38,7 +38,7 @@ function rule(){
 }
 function opponentBacks(n){
  // The backs are deliberately identical. No card content or hidden IDs.
- const count=Math.min(n,10);
+ const count=Math.min(n,5); // keep a readable far-seat fan even when opponent collects many cards
  return Array.from({length:count},(_,i)=>'<span class="back-card" aria-hidden="true" style="--fan:'+((i-(count-1)/2)*5)+'deg;--lift:'+((i%2)*-2)+'px"></span>').join('');
 }
 function render(){
