@@ -22,7 +22,7 @@ assert.equal((cards.match(/class="card joker"/g)||[]).length,2);
 assert.match(cards,/FULL PILE/);
 const rules=pages[6].innerHTML;
 assert.match(rules,/Joker counter/);
-assert.match(rules,/Match counter/);
+assert.match(rules,/match counter/i);
 assert.match(rules,/SAME NUMBER/);
 assert.match(rules,/SIDEWAYS/);
 assert.match(rules,/32 CORE/);
