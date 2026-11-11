@@ -111,16 +111,18 @@ function cover(){
 }
 function bounds(el){
  if(typeof el?.getBoundingClientRect!=='function')return null;
- const r=el.getBoundingClientRect();return{left:r.left,top:r.top,width:r.width,height:r.height};
+ const r=el.getBoundingClientRect();
+ if(!r||!Number.isFinite(r.left)||!Number.isFinite(r.top))return null;
+ return{left:r.left,top:r.top,width:r.width,height:r.height};
 }
 function reduced(){return typeof window!=='undefined'&&window.matchMedia?.('(prefers-reduced-motion: reduce)').matches}
-function motion(source,event){
- const from=bounds(source);if(!from||reduced()||!document.body?.appendChild)return;
+function motion(from,event,pickedCard){
+ if(!from||reduced()||!document.body?.appendChild)return;
  const target=event.action==='take'?
   (opponents==='bot'&&event.seat===1?$('opponentHand'):$('hand')):
   event.reason==='match'?$('discard'):$('pile');
  const to=bounds(target);if(!to)return;
- const shown=event.cards?.length?event.cards:[event.card].filter(Boolean);
+ const shown=event.action==='take'?[pickedCard].filter(Boolean):event.cards||[];
  if(!shown.length)return;
  for(let i=0;i<shown.length;i++){
   const ghost=document.createElement('div');
@@ -152,9 +154,12 @@ function tapSound(){
 }
 function commit(move,source){
  if(!canAct())return;
- const from=source;pending=null;
+ const from=bounds(source),pickedCard=move.type==='take'?game.pile.at(-1):null;
+ pending=null;
+ let event;
+ try{event=E.play(game,seat(),move)}
+ catch(e){message='Cannot make that move: '+e.message;render();return}
  try{
-  const event=E.play(game,seat(),move);
   if(event.action==='take')message=name(event.seat)+' picked up the top card. The rest cleared.';
   else{
    const names=event.cards.map(c=>c.n+(c.arrow==='up'?'↑':'↓'));
@@ -166,9 +171,9 @@ function commit(move,source){
    covered=false;$('cover').style.display='none';busy=false;render();
   }else if(opponents==='hotseat')cover();
   else{render();queueBot()}
-  if(opponents!=='hotseat')motion(from,event);
+  if(opponents!=='hotseat')motion(from,event,pickedCard);
   tapSound();
- }catch(e){message='Cannot make that move: '+e.message;render()}
+ }catch(e){console.warn('Visual feedback failed after a valid move',e);render()}
 }
 function selectCard(index,source){
  if(!canAct()||!Number.isInteger(index))return;
@@ -202,6 +207,7 @@ function queueBot(){
  },700);
 }
 function commitBot(move,source){
+ const from=bounds(source),pickedCard=move.type==='take'?game.pile.at(-1):null;
  const event=E.play(game,1,move);
  if(event.action==='take')message='Bot could not follow and took a card.';
  else{
@@ -210,7 +216,7 @@ function commitBot(move,source){
    'Bot played '+seq;
   if(event.reason==='match')message+=' · pile cleared!';
  }
- save();render();motion(source,event);tapSound();queueBot();
+ save();render();motion(from,event,pickedCard);tapSound();queueBot();
 }
 function restart(seed){
  if(botTimer!==null)clearTimeout(botTimer);
