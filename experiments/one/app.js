@@ -1,7 +1,7 @@
 (function(){'use strict';
 const E=globalThis.OneLab,$=id=>document.getElementById(id),KEY='one-card-one-rule-v01';
 const query=new URLSearchParams(location.search);
-let game=null,opponents='bot',botStyle='thoughtful',busy=false,covered=false,epoch=0,botTimer=null;
+let game=null,opponents='bot',botStyle='strategic',busy=false,covered=false,epoch=0,botTimer=null;
 let sounds=false,drag=null,suppressClick=false,voice=null;
 let message='Tap a playable card. Its arrow tells the next player what they need to play.';
 
@@ -16,7 +16,7 @@ function restore(){
   const old=JSON.parse(localStorage.getItem(KEY)||'null');
   if(!old?.game||old.game.version!==E.VERSION||old.game.people?.length!==2)return false;
   game=old.game;opponents=old.opponents==='hotseat'?'hotseat':'bot';
-  botStyle=['thoughtful','basic','random'].includes(old.botStyle)?old.botStyle:'thoughtful';
+  botStyle=['strategic','thoughtful','basic','random'].includes(old.botStyle)?old.botStyle:'strategic';
   message=typeof old.message==='string'?old.message:message;
   sounds=old.sounds===true;return true;
  }catch{return false}
@@ -212,7 +212,7 @@ $('newGame').onclick=()=>{
  const n=Number($('seed').value);
  if(!Number.isInteger(n)||n<0||n>4294967295){alert('Please enter a valid nonnegative seed.');return}
  opponents=$('opponents').value==='hotseat'?'hotseat':'bot';
- botStyle=['thoughtful','basic','random'].includes($('botStyle').value)?$('botStyle').value:'thoughtful';
+ botStyle=['strategic','thoughtful','basic','random'].includes($('botStyle').value)?$('botStyle').value:'strategic';
  resetGame(n);
 };
 $('soundEnabled').onchange=e=>{sounds=Boolean(e.target.checked);persist()};
