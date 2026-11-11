@@ -2,7 +2,28 @@
 
 **Status: isolated experimental card-game concept. Not production-ready. Not a released product, brand, or ruleset.** This folder was created because the earlier CROSS and FORGE prototypes were consistently perceived as **confusing, complicated and unfriendly**.
 
-## Current verified playable A/B
+## Current playable gameplay experiment: the best-of-three set
+
+**Verified clean preview:** https://spark-exchange-cc2c8nwjy-cart-shift.vercel.app/
+
+| Experience | Play |
+|---|---|
+| Original 48-card single match, 3 in hand | https://spark-exchange-cc2c8nwjy-cart-shift.vercel.app/ |
+| Balanced 32-card single match, 4 in hand | https://spark-exchange-cc2c8nwjy-cart-shift.vercel.app/?mode=quick |
+| **Best-of-three set on balanced 32-card deck** | https://spark-exchange-cc2c8nwjy-cart-shift.vercel.app/?mode=quick&series=3 |
+
+**Best-of-three:** The first two rounds alternate who leads. If both players win one, the loser of round 2 starts the decider. First to two wins is the set winner. The core card rules do not change. The entire set is stored in a separate local save, and completed rounds retain their **public move transcripts** for post-game analysis, without saving concealed stock order or hands inside the set history. The local export includes the current game and the series history.
+
+**Additional experimental bot:** Adaptive uses publicly observed recent pickups to occasionally avoid self-defeating restrictive-card cycles. It is not stronger than Strategic in all two-player comparisons; Strategic remains the default.
+
+**Detailed review:** [DESIGN_REVIEW.md](DESIGN_REVIEW.md)  
+**Human trial protocol:** [PLAYTEST_SESSION.md](PLAYTEST_SESSION.md)
+
+**QA:** Engine, strategic/quick/adaptive/series tests, 39 original interface-state checks, 36 first-person table checks, 43 new series-flow checks, exact physical pack checks and 500 multi-round simulated series passed in an isolated Node deployment. The latest clean preview is READY; these tests do not substitute for real touchscreen rendering, blind human enjoyment testing or proof of retail readiness.
+
+**Scope:** This is a separate experimental branch, not the production SPARK card game.
+
+## Previous strategic single-match preview (archived)
 
 - **Regular ONE (48 cards / 3 in hand):** https://spark-exchange-mr0fj77oq-cart-shift.vercel.app/
 - **Short strategic ONE (balanced 32 CORE cards / 4 in hand):** https://spark-exchange-mr0fj77oq-cart-shift.vercel.app/?mode=quick
