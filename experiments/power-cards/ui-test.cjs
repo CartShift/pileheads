@@ -62,7 +62,7 @@ function replaceInHand(g,seat,index,predicate){
 function fixture(mode='match',defend=true){
  for(let seed=100;seed<500;seed++){
   const g=E.create({seed,mode,firstSeat:1});
-  const hasJoker=g.stock.some(c=>c.kind==='joker');
+  const hasJoker=g.stock.filter(c=>c.kind==='joker').length>=(mode==='joker'?2:1);
   const hasTarget=g.stock.filter(c=>c.n===5).length>=(defend?2:1);
   if(!hasJoker||!hasTarget)continue;
   replaceInHand(g,1,0,c=>c.kind==='joker');
