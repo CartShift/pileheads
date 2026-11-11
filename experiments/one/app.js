@@ -62,7 +62,7 @@ function render(){
  $('setScore').hidden=!SERIES;
  if(SERIES){
   const a=name(0),b=name(1),score=series.wins;
-  $('setScore').textContent=(series.complete?'SET COMPLETE':'ROUND '+series.round+' OF 3')+
+  $('setHeadline').textContent=(series.complete?'SET COMPLETE':'ROUND '+series.round+' OF 3')+
     ' · '+a+' '+score[0]+'  :  '+score[1]+' '+b;
   $('setTip').textContent=series.complete?'Best of three completed. Start a fresh set to play again.':
    name(S.firstSeat(series))+' leads this round. The first to win two rounds wins the set.';
