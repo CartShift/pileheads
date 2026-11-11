@@ -26,6 +26,14 @@ Normal STRIKE compares an incoming CREST ≥ the current top SHADE. A player may
 
 **Differentiation challenge:** preparing a rescue cannot simply become an obvious routine or a disguised 10-card burn. We deliberately tested unconditional release and rejected it because it eliminated nearly all punishment.
 
+## Verified isolated previews
+
+- **Play CROSS:** https://spark-exchange-1rwfnfme2-cart-shift.vercel.app/?concept=cross&new=1
+- **Play FORGE:** https://spark-exchange-1rwfnfme2-cart-shift.vercel.app/?concept=forge&new=1
+- **Print the original 48-card deck:** https://spark-exchange-1rwfnfme2-cart-shift.vercel.app/print.html
+
+Deployment `dpl_jnfKY7vqdkBXYmzboGRHBkjUNZqf` reached **READY** with an unset production target. Both game query routes, JS assets, print pack, rules and playtest documents returned HTTP 200. The clean preview has **no temporary verification API** and did not alter the original SPARK site or production alias. Browser-on-Android interaction and real paper print alignment remain unverified.
+
 ## How to play
 
 - Mobile web playtest: static files in this directory (index.html, app.js, engine.js).
