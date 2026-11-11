@@ -108,7 +108,7 @@ function render(){
    '<p>'+(SERIES?'Set: '+series.wins[0]+' – '+series.wins[1]+' · Round '+series.round+
      ' · '+game.turn+' turns':game.turn+' turns. Your next match might go very differently.')+'</p>'+
    '<button type="button" class="primary" data-rematch="1">'+
-    (SERIES?(series.complete?'New best-of-three set':'Next round'): 'Play again')+'</button>':'';
+    (SERIES?(game.draw?'Retry this round':series.complete?'New best-of-three set':'Next round'): 'Play again')+'</button>':'';
 }
 function cover(){
  covered=true;
@@ -246,7 +246,8 @@ $('soundEnabled').onchange=e=>{sounds=Boolean(e.target.checked);persist()};
 $('done').onclick=e=>{
  if(!e.target.closest('[data-rematch]'))return;
  if(SERIES){
-  if(series.complete)series=S.create((series.baseSeed+1)>>>0);
+  if(game.draw)S.retry(series);
+  else if(series.complete)series=S.create((series.baseSeed+1)>>>0);
   else S.advance(series);
   const seed=S.roundSeed(series);$('seed').value=String(seed);resetGame(seed);
  }else{
