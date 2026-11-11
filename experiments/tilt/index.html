@@ -1,0 +1,96 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#112a2c">
+<title>TILT Lab: CROSS vs FORGE</title>
+<style>
+:root{color-scheme:dark;--bg:#0a2225;--fg:#f9f2df;--muted:#c2d0c7;--edge:#d8d3ba58;--gold:#f5d89b}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;background:radial-gradient(ellipse at top,#24535a 0%,#122f32 45%,#091e21 100%);font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--fg)}
+button,select,input{font:inherit}button{cursor:pointer;touch-action:manipulation;color:var(--fg);background:#28515a;border:1px solid var(--edge);padding:10px 13px;min-height:43px;border-radius:11px}button:disabled{opacity:.35;cursor:default}button:hover:not(:disabled){filter:brightness(1.18)}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.wrap{max-width:1100px;margin:0 auto;padding:14px clamp(8px,2.5vw,25px) 34px}
+header{display:flex;align-items:start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.logo{font-size:clamp(30px,6vw,41px);letter-spacing:-1.5px;font-weight:950}.logo span{color:var(--gold)}
+.kicker{color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.13em;font-size:10px}
+header a,.footer a,.box a{color:var(--gold);font-size:12px}
+.intro{color:#d3e3d8;font-size:13px;margin:0 0 12px}
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}
+.tab{font-weight:900;border-radius:12px;padding:12px 7px;background:#15363b}.tab[aria-selected=true]{color:#172f30;background:var(--gold);border-color:var(--gold);box-shadow:0 3px 0 #a68a54}.tab small{font-size:11px;font-weight:500;opacity:.8}
+.table{background:radial-gradient(ellipse at 50% 30%,#255c57 0%,#163d3e 70%,#10292e 100%);border:1px solid #abc8b64a;border-radius:22px;padding:14px;box-shadow:0 16px 30px #0004,inset 0 0 20px #0003}
+.headline{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.status{border:1px solid #d9ce9d65;background:#0e3637;padding:7px 11px;color:#f4da9f;font-size:12px;font-weight:850;border-radius:24px}
+.counts{display:flex;gap:8px}.count{background:#0d3031;padding:7px 11px;border:1px solid #dfdeba4f;border-radius:11px;text-align:center}.count strong{display:block;color:var(--gold);font-size:22px}.count small{font-size:11px;color:#c8d3cf}
+.prompt{color:#ffe1a4;background:#0e3838;border:1px solid #f0cf8a70;border-radius:10px;padding:11px 12px;font-weight:800;font-size:13px;margin:14px 0}
+.stage{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.stack{border-radius:16px;background:#0b3031b9;border:1px solid #cce5d64d;padding:10px;min-height:150px;display:flex;flex-direction:column;gap:4px;align-items:center}
+.stack h3{margin:0;font-size:15px;font-weight:850;color:var(--gold)}
+.stack p{font-size:11px;margin:0;color:var(--muted);text-align:center}
+.stack .stack-content{display:flex;gap:9px;align-items:center;justify-content:center;flex:1}
+.top-card{min-height:100px;display:grid;place-items:center}
+.stack .empty{border:2px dashed #e3d8ba64;display:grid;place-items:center;width:73px;height:112px;border-radius:11px;color:#d1e3d2;font-size:12px}
+.pill{font-size:11px;border-radius:6px;padding:4px 6px;background:#1b5050;color:#e6e7d6}
+.single-stage{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.own-plan,.opp-plan{background:#103b3c;border:1px solid #d4cbac52;padding:10px;border-radius:14px;text-align:center;min-height:115px}
+.own-plan h3,.opp-plan h3{margin:0 0 9px;color:var(--gold);font-size:13px}
+.own-plan .card,.opp-plan .card{margin:auto}
+.own-plan .none,.opp-plan .none{font-size:12px;color:var(--muted)}
+.single-main{margin-bottom:12px}
+.hand-box{margin:13px 0 9px;border:1px solid #eed6a15a;background:#0d3434;border-radius:14px;padding:12px}
+.hand-box h3{font-size:14px;margin:0 0 7px;color:var(--gold)}.hand-box h3 small{color:var(--muted);font-size:11px;font-weight:500}
+.hand{display:flex;gap:8px;flex-wrap:wrap;min-height:112px;align-items:center}
+.card{background:linear-gradient(135deg,#f5e6c5,#dec5a4);color:#243536;border:3px solid #fff8e8;box-shadow:0 3px 0 #947b5e,0 7px 13px #0004;border-radius:10px;padding:5px 3px;display:grid;grid-template-rows:auto 1fr auto;gap:2px;min-width:0;width:76px;height:113px;flex:0 0 76px;text-align:center;text-shadow:none}
+.card .crest{font-size:26px;font-weight:950;line-height:1.1}.card .shade{font-size:25px;font-weight:950;line-height:1.1}
+.card .labels{display:flex;justify-content:space-around;font-size:8px;font-weight:850;letter-spacing:.04em}.card .mid{font-size:11px;border-top:1px solid #b59c7a;border-bottom:1px solid #b59c7a;margin:2px 6px}
+.card .crest span{color:#b3533c}.card .shade span{color:#2c7585}
+.card.selected{transform:translateY(-8px);outline:3px solid var(--gold);outline-offset:2px}
+.card:disabled{opacity:1;cursor:default}
+.btns{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.action{background:#0d3537;border:1px solid #e1ce9e63;border-radius:14px;padding:11px;margin:10px 0}
+.action h3{margin:0 0 9px;color:var(--gold);font-size:13px}
+.action button{font-size:13px;font-weight:750;min-height:46px;text-align:left}
+.action button.best{background:var(--gold);color:#143437;border-color:#ecd18d}
+.feedback{min-height:47px;padding:10px 12px;border-radius:10px;background:#092b2e;border:1px solid #f0d08b52;color:#f4d9aa;font-size:13px}
+.history{font-size:11px;color:#cedbd3;margin-top:12px;max-height:120px;overflow:auto}.history div{padding:6px 3px;border-bottom:1px solid #d8e7d523}
+.below{display:grid;grid-template-columns:1.2fr .8fr;gap:12px;margin-top:13px}
+.box{border:1px solid var(--edge);border-radius:15px;background:#0d2c30;padding:15px}
+.box h2{font-size:16px;margin:0 0 9px}.box p,.box li{font-size:13px;line-height:1.5;color:#dce8df}.box p{margin:7px 0}.box ol{padding-left:20px;margin-top:5px}.box li{margin-bottom:6px}.box details{margin-top:10px}.box summary{font-size:13px;cursor:pointer;color:var(--gold)}
+.settings{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:11px}
+.settings label{display:grid;gap:4px;color:var(--muted);font-size:12px}
+.settings input,.settings select{width:100%;background:#1a4850;border-radius:9px;color:white;border:1px solid var(--edge);min-height:40px;padding:7px;min-width:0}
+.utility{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.utility button{flex:1}.primary{background:var(--gold);color:#153538;border-color:transparent;font-weight:900}
+.footer{font-size:12px;color:#c6d6ca;margin-top:15px}
+#cover{display:none;position:fixed;inset:0;background:#071e20f5;z-index:100;align-items:center;justify-content:center;padding:21px}
+#cover .inner{background:#1b4845;border:1px solid #f5d396;border-radius:17px;max-width:410px;text-align:center;padding:27px}#cover h2{font-size:22px;margin:0 0 8px}#cover p{font-size:13px}
+@media(max-width:720px){.below{grid-template-columns:1fr}}
+@media(max-width:430px){.wrap{padding:10px 6px}.table{padding:9px}.stage{gap:5px}.stack{padding:7px 4px;min-height:137px}.stack h3{font-size:13px}.card{flex-basis:62px;width:62px;height:101px;border-width:2px}.card .crest,.card .shade{font-size:23px}.hand{gap:6px}.tab small{display:none}.count{padding:6px}.counts{gap:5px}.count strong{font-size:20px}.stack .empty{width:65px;height:101px}.single-stage{gap:5px}}
+@media(prefers-reduced-motion:reduce){.card.selected{transform:none}}
+</style></head><body><div class="wrap">
+<header><div><div class="logo">TILT <span>LAB</span></div><div class="kicker">Original-deck prototypes · not the SPARK release</div></div>
+<a href="https://github.com/yotamon/spark-card-game" target="_blank" rel="noopener noreferrer">Repository</a></header>
+<p class="intro">One custom 48-card deck, two different experiments inspired by the tension of Shithead. Try both before we commit to a retail rule set.</p>
+<nav class="tabs" aria-label="Game concepts">
+<button id="tabCross" class="tab" aria-selected="true">01 · CROSS <small>Two linked dangers</small></button>
+<button id="tabForge" class="tab" aria-selected="false">02 · FORGE <small>Prepare an escape</small></button>
+</nav>
+<main class="table">
+<div class="headline"><div id="status" class="status">Match ready</div><div class="counts"><div class="count"><strong id="stock">40</strong><small>draw stock</small></div><div class="count"><strong id="ashes">0</strong><small>cleared</small></div></div></div>
+<p id="instruction" class="prompt">Step 1: Choose a card in your hand.</p>
+<div id="board" aria-label="Public piles and prepared cards"></div>
+<section class="hand-box"><h3 id="handLabel">Your hand <small>Tap a card</small></h3><div id="hand" class="hand" aria-label="Cards you can play"></div></section>
+<section class="action"><h3 id="actionTitle">Choose a card first</h3><div id="actions" class="btns" aria-label="Legal actions"></div></section>
+<div class="feedback" id="feedback" aria-live="polite">Your next move changes what opponents can play.</div>
+<div class="history" id="history"></div>
+</main>
+<div class="below">
+<section class="box"><h2 id="ruleTitle">How to play</h2><div id="rules"></div></section>
+<section class="box"><h2>Playtest controls</h2><p>Each concept saves independently in this browser. These are mechanical prototypes, not retail-ready releases.</p>
+<div class="settings">
+<label>Opponent<select id="opponents"><option value="bot">Play against a bot</option><option value="hotseat">Two players · same device</option></select></label>
+<label>Bot<select id="botStyle"><option value="planner">Planning heuristic</option><option value="greedy">Greedy</option><option value="random">Random</option></select></label>
+<label style="grid-column:1/-1">Repeatable game seed<input id="seed" type="number" min="0" max="4294967295" value="20261111"></label></div>
+<div class="utility"><button id="newGame" class="primary">New match</button><button id="export">Export playtest</button></div>
+<p><a href="./print.html">Print the unique 48-card deck and scorecards</a></p>
+<details><summary>What should we evaluate?</summary><p>Can you explain the rules after your first turn? Could you make the next player pick up cards on purpose? Did preparing a card give you a real rescue? Would you voluntarily play again? Tell us where the ending felt unfair or boring.</p></details>
+</section></div>
+<p class="footer">Physical-first design. Same original two-value deck for both concepts, not a 52-card deck reskin. No manufacturing or production deployment is approved by these previews.</p>
+</div>
+<div id="cover" role="dialog" aria-modal="true" aria-labelledby="coverTitle"><div class="inner"><h2 id="coverTitle">Pass the device</h2><p>The next player should see only their own hand.</p><button class="primary" id="reveal">Reveal my cards</button></div></div>
+<script src="./engine.js"></script><script src="./app.js"></script>
+</body></html>
