@@ -23,13 +23,13 @@ function create({seed=1,kind='cross',players=2}={}){
  ok(Number.isInteger(players)&&players>=2&&players<=4,'Supports 2 to 4 players');
  const g={version:'tilt-mechanics-lab-v01',kind,seed,rng:(seed^0x23ae6c41)>>>0,turn:0,winner:null,drawn:false,
   players:Array.from({length:players},(_,seat)=>({seat,hand:[],prepared:null,pickups:0})),
-  stock:[],log:[],piles:{sun:[],moon:[]},pile:[],force:null};
+  stock:[],burned:[],log:[],piles:{sun:[],moon:[]},pile:[],force:null};
  g.stock=shuffle(makeDeck(),g);
  for(let i=0;i<HAND;i++)for(const p of g.players)p.hand.push(g.stock.pop());
  ok(count(g)===SIZE,'Initial conservation');return g;
 }
 function count(g){
- return g.stock.length+g.players.reduce((n,p)=>n+p.hand.length+(p.prepared?1:0),0)+
+ return g.stock.length+g.burned.length+g.players.reduce((n,p)=>n+p.hand.length+(p.prepared?1:0),0)+
  (g.kind==='cross'?g.piles.sun.length+g.piles.moon.length:g.pile.length);
 }
 function ended(g){return g.winner!==null||g.drawn}
@@ -59,7 +59,7 @@ function legal(g,seat){
    if(!top||p.hand[i].crest>=top.shade)out.push({type:'play',index:i});
    if(p.prepared===null)out.push({type:'prepare',index:i});
   }
-  if(p.prepared&&(!top||p.prepared.shade>=top.shade))out.push({type:'release'});
+  if(p.prepared&&(!top||p.prepared.shade>=Math.max(1,top.shade-3)))out.push({type:'release'});
   const attack=out.some(m=>m.type==='play'||m.type==='release');
   if(!attack&&g.pile.length)out.push({type:'pickup'});
  }
@@ -77,6 +77,7 @@ function move(g,seat,a){
   if(a.type==='play'){
    p.hand.splice(a.index,1);
    g.piles[a.lane].push(card);
+   if(g.piles[a.lane].length>=3){const expired=g.piles[a.lane].splice(0);g.burned.push(...expired);event.burnedCount=expired.length}
    g.force=card.pivot?(a.lane==='sun'?'moon':'sun'):null;
    refill(g,p);
   }else{
@@ -88,14 +89,18 @@ function move(g,seat,a){
  }else{
   if(a.type==='play'){
    p.hand.splice(a.index,1);
-   g.pile.push({card,mode:'strike'});refill(g,p);
+   g.pile.push({card,mode:'strike'});
+   if(g.pile.length>=6){const expired=g.pile.splice(0);g.burned.push(...expired.map(x=>x.card));event.burnedCount=expired.length}
+   refill(g,p);
   }else if(a.type==='prepare'){
    p.hand.splice(a.index,1);p.prepared=card;refill(g,p);
   }else if(a.type==='release'){
    event.card=p.prepared;g.pile.push({card:p.prepared,mode:'release'});
+   if(g.pile.length>=6){const expired=g.pile.splice(0);g.burned.push(...expired.map(x=>x.card));event.burnedCount=expired.length}
    p.prepared=null;refill(g,p);
   }else{
-   const taken=g.pile.splice(0).map(x=>x.card);
+   const taken=g.pile.splice(-1).map(x=>x.card);
+   const cleared=g.pile.splice(0).map(x=>x.card);g.burned.push(...cleared);event.burnedCount=cleared.length;
    p.hand.push(...taken);p.pickups++;event.spent=taken.length;
   }
   event.height=g.pile.length;
