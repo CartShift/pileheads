@@ -39,6 +39,18 @@ Sources:
 - https://www.nsv.de/wp-content/uploads/2024/04/TheGame_QE_GB.pdf (publisher's ascending/descending pile rules)
 - https://www.dpma.de/english/trade_marks/trade_mark_search/ (trademark checks before product naming)
 
+## Implementation checkpoint · 2026-11-11
+
+Two independent paper-first mechanics have now been implemented and simulated at [experiments/tilt/](../../experiments/tilt/README.md), still in the **same GitHub repository**.
+
+- **CROSS:** shared SUN and MOON piles, with two printed values and a LINK symbol that can force opponents onto the opposite pile.
+- **FORGE:** one pile, and a deliberate choice to prepare a publicly visible rescue card whose alternative printed value can be used on a later turn.
+- **Both** use a **48-card original paired-value prototype deck**, instead of the earlier speculative 76-card allocation. This is a testing fixture, *not* a locked product count.
+- **Neither** has been selected for product release. Real human interest, mechanical clarity, replay desire, Shithead preference comparison, originality and commercial viability remain unverified.
+- Initial tests found and partially addressed long turn loops. CROSS can still draw at a 320-turn safety cap; prioritize human pacing data and further design simplification rather than visual polish.
+
+The reference 2/3/7/8/10 powers remain documented above. Their **emotional appeal**, rather than exact copied card effects, guides the original deck design.
+
 ## Card information design: prototype hypothesis (NOT a locked production specification)
 
 An initial physical trial can use a **76-card custom deck**:
