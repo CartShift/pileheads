@@ -41,12 +41,12 @@ Vercel clean preview `dpl_AYdy9eyuiMyV5DRMKGLZoQaZ5yKU` reached **READY** with `
 
 ## Latest playable first-person preview
 
-- **Play the first-person table:** https://spark-exchange-9ddvy0dey-cart-shift.vercel.app/
-- **Print the original 48-card deck:** https://spark-exchange-9ddvy0dey-cart-shift.vercel.app/print.html
+- **Play the first-person table:** https://spark-exchange-hqt6hjkhx-cart-shift.vercel.app/
+- **Print the original 48-card deck:** https://spark-exchange-hqt6hjkhx-cart-shift.vercel.app/print.html
 
-Clean Vercel preview `dpl_57dhSTXrECEy5rc46Rz4r25ctRLw` is **READY** with no production target. HTTP 200 verified for the game HTML, application JS, unchanged engine JS, and printable cards. The preview contains no temporary QA endpoints.
+Clean Vercel preview `dpl_446jJQRz5Rp3segYVV8eFQqgXY6n` is **READY** with no production target. HTTP 200 verified for the game HTML, application JS, unchanged engine JS, and printable cards. The preview contains no temporary QA endpoints.
 
-Isolated Node validation preview `dpl_FzpcCo9sHxnMTAQ3AHCgpR4eXE2d` verified the **engine suite**, original **23 UI checks**, expanded **36 first-person tabletop checks**, and print-deck tests. Verified touch-pointer capture, cancel-to-abort, reduced-motion bypass, opt-in audio state, large opponent-hand compactness, opponent hand privacy, and automatic bot continuation through DOM-stub tests.
+Isolated Node validation preview `dpl_3qxz2pQ4XJC7SrWQ1rv2SkrgH4gr` verified the **engine suite**, original **23 UI checks**, expanded **36 first-person tabletop checks**, and print-deck tests. Verified card-level touch-pointer capture, cancel-to-abort, reduced-motion bypass, opt-in audio state, large opponent-hand compactness, opponent hand privacy, and automatic bot continuation through DOM-stub tests.
 
 **Unverified:** real Android touch and audio on the user's device, actual rendered screenshot consistency at 360 / 768 / 1440px, and real-player subjective experience. Automated DOM stubs are not a replacement for manual device testing.
 
