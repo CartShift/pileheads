@@ -80,3 +80,23 @@ Do not merge this experiment into the original ChatGPT Sites game, overwrite exi
 The clean preview is **READY**, with HTTP 200 verified for `/duel/`, `/duel/app.js`, `/duel/engine.js`, the older `/attack/` comparison route and the Exchange root. It deliberately contains no temporary verification API. The production Vercel aliases and ChatGPT Sites URL remain unchanged.
 
 **Browser caveat:** The preview works as static frontend assets and passed a Node DOM-stub integration test, but it has not been exercised with real phone touch gestures or two human players. The `&new=1` query starts a fresh match and replaces that preview's local in-browser saved game.
+
+## Guided-play UX revision (2026-11-11)
+
+Direct player feedback: "Now I don't understand this game at all." This is a significant onboarding failure, not evidence that more mechanics are required.
+
+**Rule logic unchanged.** The new experiment branch `feature/duel-guided-play-2026-11-11` makes the steps explicit:
+
+- On mobile, the interactive game appears **before advanced configuration**. Most settings live in a collapsed "Game settings" section.
+- First interaction is unambiguous: choose one of the three cards in your hand. No card is silently preselected, and no row swap is enabled before that choice.
+- Second interaction highlights *only* different-colored row cards that can be swapped. Those cards are available to take, not insertion gaps.
+- A live prompt states what moves where: your selected card moves into the row, and the row card becomes yours. Your hand remains at three cards.
+- A worked three-of-a-kind example illustrates capture scoring, and a short rule summary states the fixed ten turns and higher-score victory condition.
+- Move feedback describes both transferred cards plus the points captured.
+- This preserves Open and Hidden Hands, bot difficulty, independent saves, same-device multiplayer, the original Momentum comparison, and the unchanged original SPARK game.
+
+**Verified tests:** a temporary server-side Node runner executed the existing Duel engine suite and updated DOM-stub UI suite with a passing result (26 UI checks), including new select-then-swap prompts, hotseat privacy, and restore. The clean Vercel deployment, without temporary verification APIs, returned 200 for all Duel assets, the Attack comparison and Exchange root.
+
+**Guided clean preview:** https://spark-exchange-aes3w0j57-cart-shift.vercel.app/duel/?information=open
+
+This doesn't establish that the rules are intuitively understandable to a first-time real player; observe that in a five-minute unguided usability test before deciding whether Duel itself has a viable core loop. The rules and gameplay are deliberately frozen until then.
