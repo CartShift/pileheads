@@ -6,7 +6,11 @@
   "scripts": {
     "test": "node tests/game.cjs && node tests/rooms.mjs",
     "build": "node scripts/build.mjs",
-    "dev": "node scripts/dev.mjs"
+    "dev": "node scripts/dev.mjs",
+    "test:tilt": "node experiments/tilt/test.cjs && node experiments/tilt/ui-test.cjs && node experiments/tilt/print-test.cjs",
+    "simulate:tilt": "node experiments/tilt/simulate.cjs --seeds 200 --seed 20261111"
   },
-  "engines": { "node": ">=24" }
+  "engines": {
+    "node": ">=24"
+  }
 }
