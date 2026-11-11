@@ -102,12 +102,12 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
 .player-seat{position:relative;z-index:1;border-top:1px solid #dbdfb92c;margin-top:10px;padding-top:11px}
 .hand-label{text-align:center;font-size:11px;color:#e4e8d4;font-weight:850;letter-spacing:.14em}
 .hand-hint{text-align:center;color:#cfdfce;font-size:11px;margin:3px 0 12px}
-.hand{display:flex;justify-content:center;gap:clamp(6px,2vw,12px);flex-wrap:nowrap;overflow-x:auto;min-height:140px;padding:7px 8px 13px;scrollbar-width:thin;scrollbar-color:#b9c8aa44 transparent;scroll-snap-type:x proximity}
+.hand{display:flex;justify-content:safe center;gap:clamp(6px,2vw,12px);flex-wrap:nowrap;overflow-x:auto;min-height:140px;padding:7px 8px 13px;scrollbar-width:thin;scrollbar-color:#b9c8aa44 transparent;scroll-snap-type:x proximity}
 .hand .card{scroll-snap-align:center;touch-action:pan-y;flex:0 0 clamp(74px,20vw,94px);width:clamp(74px,20vw,94px);height:132px;box-shadow:0 3px 0 #ad9d7c,0 6px 12px #061e1b55}
 .hand .card .number{font-size:64px}
 .hand .card.playable{border-color:#e9dab3;cursor:grab;touch-action:none}
 .hand .card.playable:hover,.hand .card.playable:focus-visible{transform:translateY(-9px) rotate(-1deg);box-shadow:0 6px 0 #aa9b79,0 12px 23px #03170d83}
-.hand .card.playable:active{cursor:grabbing}
+.hand .card.playable:active{cursor:grabbing;transform:translateY(-2px) scale(.98)}
 .hand .card.blocked{opacity:.48;filter:saturate(.45);box-shadow:0 2px 0 #ad9d7c}
 .hand .card:disabled{cursor:default}
 .take-zone{text-align:center;margin:4px 0 3px}
