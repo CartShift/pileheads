@@ -10,7 +10,7 @@ const needed=['turn','opponentHand','opponentName','other','stock','deckVisual',
 for(const id of needed)assert.match(html,new RegExp('id="'+id+'"'),'Missing '+id);
 let checks=0;
 function test(name,fn){fn();checks++;console.log('PASS '+name)}
-function mount(seed=20261111,store=new Map(),hotseat=false){
+function mount(seed=20261111,store=new Map(),hotseat=false,fresh=true){
  const els=new Map(),tasks=[];
  function elem(id){
   if(!els.has(id)){
@@ -27,7 +27,7 @@ function mount(seed=20261111,store=new Map(),hotseat=false){
  const ctx=vm.createContext({
   ZigzagLab:E,document:{getElementById:elem,querySelectorAll:()=>[],createElement:()=>({style:{},click(){}}),
    body:{appendChild(){}}},
-  window:{matchMedia:()=>({matches:true})},location:{search:'?new=1&seed='+seed},URLSearchParams,
+  window:{matchMedia:()=>({matches:true})},location:{search:(fresh?'?new=1&seed=':'?seed=')+seed},URLSearchParams,
   localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},
   setTimeout:fn=>{tasks.push(fn);return tasks.length},clearTimeout(){},Date,
   URL:{createObjectURL:()=> 'blob:fake',revokeObjectURL(){}},Blob:class{},
@@ -129,12 +129,13 @@ test('Preview is ephemeral and saved progress remains the uncommitted original t
  assert.equal(a.saved().game.turn,before.turn);
  // Recreate the app in a new context using saved game, not ?new=1.
  const saved=new Map(a.store);
- const b=mount(seed,saved);
+ const b=mount(seed,saved,false,false);
  assert.equal(b.saved().game.turn,0);
  assert.equal(b.elem('chainControls').hidden,true);
 });
 test('Hotseat hides both hands on handoff and allows private reveal',()=>{
  const a=mount(20261122,new Map(),true);
+ a.elem('newGame').onclick();
  assert.equal(a.elem('cover').style.display,'flex');
  assert.doesNotMatch(a.elem('hand').innerHTML,/data-index/);
  a.elem('reveal').onclick();
