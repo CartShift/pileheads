@@ -8,7 +8,7 @@ const VERSION='one-series-v01';
 function assert(ok,msg){if(!ok)throw Error(msg)}
 function create(seed){
  assert(Number.isInteger(seed)&&seed>=0&&seed<=4294967295,'Invalid series seed');
- return{version:VERSION,baseSeed:seed,round:1,wins:[0,0],history:[],complete:false};
+ return{version:VERSION,baseSeed:seed,round:1,retries:0,wins:[0,0],history:[],complete:false};
 }
 function firstSeat(s){
  assert(s.version===VERSION,'Invalid series');
@@ -17,7 +17,7 @@ function firstSeat(s){
  assert(s.round===3&&s.history.length===2,'Round 3 requires completed rounds');
  return 1-s.history[1].winner; // loser of previous round gets the lead
 }
-function roundSeed(s){return (s.baseSeed+(s.round-1)*7919)>>>0}
+function roundSeed(s){return (s.baseSeed+(s.round-1)*7919+(s.retries||0)*104729)>>>0}
 function canRecord(s){return !s.complete&&s.round===s.history.length+1}
 function record(s,game){
  assert(canRecord(s),'Round already recorded or set finished');
@@ -32,9 +32,14 @@ function record(s,game){
 }
 function advance(s){
  assert(!s.complete&&s.history.length===s.round&&s.round<3,'Cannot start next round');
- s.round++;
+ s.round++;s.retries=0;
  return{seed:roundSeed(s),firstSeat:firstSeat(s)};
 }
-root.OneSeries={VERSION,create,firstSeat,roundSeed,record,advance,canRecord};
+function retry(s){
+ assert(canRecord(s),'Cannot retry a completed round');
+ s.retries=(s.retries||0)+1;
+ return{seed:roundSeed(s),firstSeat:firstSeat(s)};
+}
+root.OneSeries={VERSION,create,firstSeat,roundSeed,record,advance,retry,canRecord};
 })(typeof globalThis!=='undefined'?globalThis:this);
 if(typeof module!=='undefined')module.exports=globalThis.OneSeries;
