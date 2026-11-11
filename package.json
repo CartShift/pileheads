@@ -10,7 +10,9 @@
     "test:one": "node experiments/one/test.cjs && node experiments/one/strategy-test.cjs && node experiments/one/quick-test.cjs && node experiments/one/ui-test.cjs && node experiments/one/table-test.cjs && node experiments/one/print-test.cjs",
     "simulate:one": "node experiments/one/simulate.cjs --pairs 250",
     "simulate:one-strategy": "node experiments/one/strategy-simulate.cjs --seeds 800 --seed 20261111",
-    "simulate:one-quick": "node experiments/one/quick-simulate.cjs --seeds 750 --seed 20261111"
+    "simulate:one-quick": "node experiments/one/quick-simulate.cjs --seeds 750 --seed 20261111",
+    "test:zigzag": "node experiments/zigzag/test.cjs && node experiments/zigzag/ui-test.cjs && node experiments/zigzag/print-test.cjs",
+    "simulate:zigzag": "node experiments/zigzag/simulate.cjs --seeds 1000 --seed 20261111"
   },
   "engines": {
     "node": ">=24"
