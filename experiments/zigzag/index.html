@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123e35">
+<title>TILT ZIGZAG · Two-card experiment</title>
+<style>
+:root{
+  color-scheme:light;
+  --ink:#17362f;--muted:#64786f;--paper:#f3efe4;--card:#fff9ec;
+  --felt:#155243;--felt-deep:#0d3d34;--felt-light:#276e58;
+  --up:#be513a;--down:#1b7186;--gold:#dfc58e;
+  --edge:#c9c7b7;--shadow:0 9px 24px #071f1938;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{margin:0;min-height:100dvh;background:var(--paper);color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer;touch-action:manipulation}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #efac4d;outline-offset:3px}
+button:disabled{cursor:default}
+main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
+.site-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:3px 3px 11px}
+.brand{display:flex;gap:12px;align-items:baseline}
+.logo{font:900 30px/.94 Georgia,"Times New Roman",serif;letter-spacing:-1.3px}
+.brand-tag{font-size:10px;letter-spacing:.15em;text-transform:uppercase;font-weight:850;color:var(--muted)}
+.site-head a{color:var(--ink);font-size:12px;text-decoration-thickness:1px}
+.mode-switch{display:flex;gap:7px;margin:2px 2px 10px;flex-wrap:wrap}
+.mode-switch a{border-radius:9px;padding:7px 11px;color:var(--ink);text-decoration:none;font-size:12px;font-weight:800;border:1px solid #afc1b4;background:#fff9eb}
+.mode-switch a[aria-current="page"]{background:#234a3e;color:white;border-color:#234a3e}
+.rule-strip{display:flex;justify-content:space-between;align-items:center;gap:12px;background:#e8dab6;border-radius:12px;padding:10px 13px;margin:0 2px 12px}
+.rule-strip strong{font-size:13px}.rule-strip small{font-size:11px;color:#4e6256}
+.rule-strip .contrast{color:#255a44;font-size:13px;font-weight:900;white-space:nowrap}
+.chain-controls{margin:7px auto 3px;display:flex;align-items:center;justify-content:center;gap:9px;flex-wrap:wrap}
+.chain-controls button{border:1px solid #d2c48c;border-radius:9px;min-height:43px;padding:9px 13px;font-size:12px;font-weight:900}
+.chain-controls .end{background:#edd1a2;color:#264636}
+.chain-controls .change{background:transparent;color:#f4edd4;border-color:#b9cfb57d}
+.card.selected{opacity:.22!important;pointer-events:none}
+.pile-preview{outline:3px solid #f1d69b80;outline-offset:2px}
+.combo-toast{display:inline-block;padding:3px 9px;border-radius:30px;background:#e6d6ae;color:#204738;font-weight:900;font-size:10px}
+.teaser{font-size:12px;color:#50675c;margin:0 3px 12px}
+.teaser strong{color:var(--ink)}
+/* Felt, rail, seats, and the player's-eye composition. */
+.table-frame{border:9px solid #795744;border-radius:31px;background:#785741;box-shadow:0 4px 0 #4c382d,0 21px 40px #4c392822;overflow:hidden}
+.table-felt{
+  position:relative;isolation:isolate;overflow:hidden;border-radius:19px;
+  background:
+   radial-gradient(ellipse 75% 82% at 48% 41%,#2b7058a5,transparent 78%),
+   repeating-linear-gradient(125deg,#ffffff05 0 1px,transparent 1px 5px),
+   linear-gradient(115deg,#164f42,#155444 52%,#0f4339);
+  box-shadow:inset 0 0 0 2px #e8d69b28,inset 0 0 45px #071e1745;
+  color:#fff9ec;padding:12px 13px 16px
+}
+.table-felt::before{content:"";position:absolute;inset:9px;pointer-events:none;border:1px solid #e5d6a51d;border-radius:13px}
+.table-top{display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:8px;position:relative;z-index:1;min-height:88px}
+.turn-badge{background:#ebd9ae;color:#24483c;border-radius:30px;padding:7px 11px;font-size:11px;font-weight:900;text-align:center;white-space:nowrap}
+.opponent-seat{grid-column:2;text-align:center;min-width:100px}
+.opponent-label{font-size:11px;letter-spacing:.06em;font-weight:850;color:#dfebdf}
+.opponent-hand{display:flex;justify-content:center;align-items:center;gap:0;min-height:70px;margin-top:4px}
+.opponent-hand .back-card{margin-left:-8px;transform:rotate(var(--fan,0deg)) translateY(var(--lift,0px))}
+.opponent-hand .back-card:first-child{margin-left:0}
+.other-count{font-size:11px;color:#d2e7d9}
+.table-turn{grid-column:3;justify-self:end;padding-top:3px}
+.stations{display:grid;grid-template-columns:minmax(66px,1fr) minmax(120px,1.65fr) minmax(66px,1fr);align-items:center;gap:7px;min-height:170px;position:relative;z-index:1}
+.station{display:grid;justify-items:center;align-content:center;gap:7px;position:relative;min-width:0}
+.station-caption{font-size:10px;letter-spacing:.1em;color:#d5e4d5;text-transform:uppercase;font-weight:850;text-align:center}
+.station-number{font-size:11px;color:#fff4d6;font-variant-numeric:tabular-nums}
+.stack-back{height:89px;width:62px;position:relative;display:grid;place-items:center}
+.stack-back::before,.stack-back::after{content:"";position:absolute;width:58px;height:84px;border-radius:8px;border:2px solid #e4d6b9;background:#133c37;box-shadow:0 4px 4px #00190f42}
+.stack-back::before{transform:translate(-4px,4px) rotate(-5deg)}
+.stack-back::after{transform:translate(0,0) rotate(2deg)}
+.stack-back .back-card{z-index:1}
+.back-card{
+ display:block;position:relative;flex:0 0 auto;width:49px;height:68px;border-radius:7px;
+ border:3px solid #e8d9b9;
+ background:repeating-linear-gradient(45deg,#b89258 0 2px,#245747 2px 7px,#184a40 7px 11px,#b89258 11px 12px);
+ box-shadow:0 3px 7px #0418116e;
+}
+.back-card::before{content:"T";position:absolute;inset:6px;border:1px solid #fae7b5b8;background:#123c35e8;border-radius:2px;display:grid;place-items:center;font:800 22px Georgia,serif;color:#eddda9}
+.back-card::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;box-shadow:inset 0 0 0 1px #09291e94}
+.empty-stock{width:58px;height:84px;border:2px dashed #e5d9ad7a;border-radius:8px;display:grid;place-items:center;font-size:10px;color:#f3ead5}
+.discard-card{position:relative;width:60px;height:85px;background:#e6d9b2;border:2px solid #e9d6b5;border-radius:8px;transform:rotate(9deg);box-shadow:0 3px 6px #001b1545;color:#526d61;display:grid;place-items:center;font:900 27px Georgia,serif}
+.discard-card::before{content:"";position:absolute;inset:5px;border:1px solid #7c91806e;border-radius:4px}
+.discard-empty{width:60px;height:85px;border:2px dashed #d0d8b991;border-radius:8px;display:grid;place-items:center;font-size:10px;color:#dce6d7;text-align:center}
+.pile-mat{border:1px solid #f7e8c13b;border-radius:19px;min-width:124px;min-height:153px;padding:7px;display:grid;place-items:center;position:relative;background:#0c352b43}
+.pile-mat::before{content:"PLAY HERE";position:absolute;bottom:6px;left:0;right:0;text-align:center;font-size:9px;color:#e7e1c56c;font-weight:850;letter-spacing:.15em}
+.pile-mat.drop-active{outline:3px dashed #ffe5a5;outline-offset:3px;background:#2c7b5a7a}
+.pile-mat.match-flash{animation:pileFlash .36s ease-out}
+@keyframes pileFlash{0%{background:#fee0a870;transform:scale(1.07)}100%{background:#0c352b43;transform:scale(1)}}
+.pile{position:relative;display:flex;align-items:center;justify-content:center;min-height:130px;min-width:109px}
+.pile-under{position:absolute;width:85px;height:125px;border:2px solid #e5d8b3;border-radius:10px;background:#ddd1b5;transform:translate(-3px,5px) rotate(-6deg);box-shadow:0 5px 6px #0005}
+.pile-under.two{transform:translate(4px,3px) rotate(4deg);background:#f2e6c8}
+.pile-count{position:absolute;right:-1px;top:-6px;background:#e8d7ab;color:#274537;font-size:10px;font-weight:900;border-radius:20px;padding:3px 7px;z-index:2}
+.empty-pile{height:123px;min-width:84px;border:2px dashed #d7e2cb74;border-radius:9px;display:grid;place-items:center;font-size:11px;font-weight:700;color:#dde9d9;text-align:center}
+/* Card typography matches the printable custom deck: one rank + one directional symbol. */
+.card{--arrow-color:var(--up);display:flex;position:relative;align-items:center;justify-content:center;flex-direction:column;
+ width:94px;height:135px;flex:0 0 94px;border:3px solid #e8d5b0;border-radius:11px;
+ background:linear-gradient(145deg,#fffdf4 0%,#f4ebd8 100%);color:#223e36;
+ box-shadow:0 3px 0 #a89876,0 7px 12px #071c1645;padding:4px;text-align:center;
+ transition:transform .18s ease,filter .18s ease,opacity .18s ease}
+.card[data-arrow="down"]{--arrow-color:var(--down)}
+.card .corner{position:absolute;top:7px;left:8px;letter-spacing:.12em;font-size:8px;font-weight:900;color:#708477}
+.card .number{font:900 68px/.93 Georgia,"Times New Roman",serif;letter-spacing:-2px}
+.card .arrow{color:var(--arrow-color);font:900 29px/.95 system-ui,sans-serif}
+.card .footer{position:absolute;bottom:6px;letter-spacing:.08em;color:#647469;font-weight:850;font-size:9px}
+.card.table-card{height:126px;width:86px;flex-basis:86px;transform:rotate(-4deg);z-index:1;pointer-events:none}
+.card.table-card .number{font-size:63px}.card.table-card .arrow{font-size:26px}
+.condition-banner{text-align:center;border-radius:13px;background:#0b382f91;padding:9px 8px 8px;margin:8px 1px 11px;border:1px solid #d6e5c847}
+.condition-kicker{font-size:9px;font-weight:900;letter-spacing:.16em;color:#d8e6d8}
+.condition{font-weight:950;font-size:clamp(19px,4.2vw,26px);letter-spacing:-.025em;color:#fff4d6;margin:2px 0}
+.rule-tip{font-size:11px;color:#c9e1d1}
+.message{background:#f7df9c19;border-top:1px solid #f9e4aa2f;text-align:center;padding:8px 5px 0;font-size:12px;color:#e6e9d6;min-height:26px}
+.player-seat{position:relative;z-index:1;border-top:1px solid #dbdfb92c;margin-top:10px;padding-top:11px}
+.hand-label{text-align:center;font-size:11px;color:#e4e8d4;font-weight:850;letter-spacing:.14em}
+.hand-hint{text-align:center;color:#cfdfce;font-size:11px;margin:3px 0 12px}
+.hand{display:flex;justify-content:safe center;gap:clamp(6px,2vw,12px);flex-wrap:nowrap;overflow-x:auto;min-height:140px;padding:7px 8px 13px;scrollbar-width:thin;scrollbar-color:#b9c8aa44 transparent;scroll-snap-type:x proximity}
+.hand .card{scroll-snap-align:center;touch-action:pan-y;flex:0 0 clamp(74px,20vw,94px);width:clamp(74px,20vw,94px);height:132px;box-shadow:0 3px 0 #ad9d7c,0 6px 12px #061e1b55}
+.hand .card .number{font-size:64px}
+.hand .card.playable{border-color:#e9dab3;cursor:grab;touch-action:none}
+.hand .card.playable:hover,.hand .card.playable:focus-visible{transform:translateY(-9px) rotate(-1deg);box-shadow:0 6px 0 #aa9b79,0 12px 23px #03170d83}
+.hand .card.playable:active{cursor:grabbing;transform:translateY(-2px) scale(.98)}
+.hand .card.blocked{opacity:.48;filter:saturate(.45);box-shadow:0 2px 0 #ad9d7c}
+.hand .card:disabled{cursor:default}
+.take-zone{text-align:center;margin:4px 0 3px}
+.take-button{border:0;background:#ebc889;color:#213f36;border-radius:10px;padding:11px 18px;min-height:46px;font-weight:900;box-shadow:0 3px 0 #a98d5b}
+.take-explain{font-size:11px;color:#d4ead8;margin:7px 0 0}
+.done{margin:10px auto 0;background:#f3e4b6;color:#254236;border-radius:11px;padding:12px;text-align:center}
+.done h2{font:900 23px Georgia,serif;margin:0 0 4px}.done p{font-size:12px;margin:5px 0}
+.primary{background:#193e35;color:#fff;border:0;border-radius:9px;padding:11px 17px;font-weight:850}
+.tool-row{margin:15px 2px 0;border-top:1px solid #c4cabd;padding-top:13px}
+.tool-row details{background:#fcf9ef;border:1px solid var(--edge);border-radius:12px;margin:8px 0;padding:11px 14px}
+.tool-row summary{font-size:13px;font-weight:850;cursor:pointer}
+.tool-row p,.tool-row li{font-size:12px;line-height:1.6}
+.tool-row ol{padding-left:20px}
+.settings{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:11px}
+.settings label{display:grid;gap:5px;color:#456153;font-size:12px}
+.settings input,.settings select{min-width:0;width:100%;min-height:42px;border-radius:8px;border:1px solid #adbea8;background:#fff;color:var(--ink);padding:8px}
+.settings .wide{grid-column:1/-1}
+.sound-option{display:flex!important;flex-direction:row;align-items:center;gap:9px!important}
+.sound-option input{width:19px;min-height:19px;height:19px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.controls button,.controls a{flex:1;min-width:130px;border:1px solid #aec0b4;border-radius:9px;background:#fff;color:var(--ink);min-height:43px;padding:10px 12px;font-size:12px;font-weight:800;text-decoration:none;text-align:center}
+.controls .primary{background:var(--ink);color:#fff}
+.disclaimer{color:#728076;font-size:11px;margin:15px 4px}
+#cover{position:fixed;inset:0;z-index:70;display:none;align-items:center;justify-content:center;padding:20px;background:#112f2cef}
+#cover .inner{background:var(--paper);color:var(--ink);padding:27px;text-align:center;border-radius:18px;max-width:380px}
+#cover h2{margin:0 0 8px;font:900 25px Georgia,serif}
+#cover p{font-size:13px}
+.flying-card{position:fixed!important;z-index:80;pointer-events:none!important;will-change:transform;transform-origin:center center}
+.flying-card .card{pointer-events:none}
+.dragging-original{opacity:.25!important}
+.drag-ghost{z-index:99!important;box-shadow:0 19px 29px #0008!important;pointer-events:none!important;transform:rotate(-6deg) scale(1.06)}
+/* Keep the hand visible on phones without losing the center play space. */
+@media(max-width:520px){
+ main{padding:9px 5px 30px}.site-head{padding:4px 8px 7px}
+ .logo{font-size:27px}.brand-tag{font-size:9px}.teaser{padding:0 8px;margin-bottom:7px;font-size:11px}
+ .table-frame{border-width:6px;border-radius:22px}.table-felt{border-radius:15px;padding:8px 7px 10px}
+ .table-top{min-height:68px}.opponent-hand{min-height:49px}
+ .back-card{height:53px;width:38px;border-width:2px;border-radius:5px}
+ .opponent-hand .back-card{margin-left:-7px}
+ .opponent-hand .back-card::before{inset:5px;font-size:16px}
+ .table-turn{padding-top:0}.turn-badge{font-size:9px;padding:6px 8px}
+ .stations{min-height:147px;grid-template-columns:minmax(58px,1fr) minmax(100px,1.5fr) minmax(58px,1fr);gap:1px}
+ .station{gap:4px}.station-caption{font-size:9px;letter-spacing:.05em}
+ .stack-back{height:68px;width:51px}.stack-back::before,.stack-back::after{height:65px;width:45px}
+ .discard-card,.discard-empty{height:66px;width:49px}
+ .pile-mat{min-height:137px;min-width:110px;padding:4px}
+ .pile{min-width:94px;min-height:120px}
+ .card.table-card{height:114px;width:76px;flex-basis:76px}.card.table-card .number{font-size:57px}
+ .pile-under{width:73px;height:108px}
+ .condition-banner{margin:6px 0 8px;padding:7px 5px}
+ .condition{font-size:21px}.rule-tip{font-size:10px}
+ .hand{min-height:117px;padding:4px 4px 9px;justify-content:center;gap:6px}
+ .hand .card{flex-basis:76px;width:76px;height:109px;border-width:2px}
+ .hand .card .number{font-size:52px}.hand .card .arrow{font-size:24px}.hand .card .corner{font-size:7px}
+ .hand .card .footer{font-size:8px}.hand-hint{margin:1px 0 6px}
+ .message{font-size:11px;min-height:22px}
+ .player-seat{margin-top:7px;padding-top:7px}
+}
+@media(max-width:350px){.table-felt{padding:8px 3px}.stations{grid-template-columns:minmax(49px,1fr) minmax(102px,1.4fr) minmax(49px,1fr)}.station-caption{font-size:8px}.hand .card{width:67px;flex-basis:67px;height:107px}.hand .card .number{font-size:46px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.hand .card.playable:hover{transform:none}}
+</style>
+</head>
+<body>
+<main>
+<header class="site-head">
+ <div class="brand"><span class="logo">TILT ZIGZAG</span><span id="modeTitle" class="brand-tag">Two-card mechanic lab</span></div>
+ <a href="./print.html">Print CORE cards</a>
+</header>
+<p class="teaser"><strong>Your hand is at the bottom.</strong> Tap to play, or drag a card to the pile.</p>
+<div class="rule-strip">
+ <div><strong>One card, or a clever pair.</strong>
+ <small> A second card must follow the first arrow and point the opposite way.</small></div>
+ <span class="contrast">↑ ↔ ↓</span>
+</div>
+<nav class="mode-switch" aria-label="Compare mechanics">
+ <a href="./" aria-current="page">Zigzag · 2-card runs</a>
+ <a href="https://spark-exchange-mr0fj77oq-cart-shift.vercel.app/?mode=quick">Original one-card rules</a>
+</nav>
+<section class="table-frame" aria-label="First-person card table">
+ <div class="table-felt">
+  <div class="table-top">
+   <div class="opponent-seat"><div id="opponentName" class="opponent-label">BOT</div><div id="opponentHand" class="opponent-hand" aria-label="Opponent face-down cards"></div><div id="other" class="other-count">3 cards</div></div>
+   <div class="table-turn"><div id="turn" class="turn-badge">YOUR TURN</div></div>
+  </div>
+  <div class="stations">
+   <div class="station"><div class="station-caption">Draw deck</div><div id="deckVisual" class="stack-back"></div><div id="stock" class="station-number">42 left</div></div>
+   <div id="pileMat" class="station pile-mat"><div id="pile" class="pile" aria-label="Shared pile, drop cards here"></div></div>
+   <div class="station"><div class="station-caption">Discard</div><div id="discard" class="discard-empty"></div><div id="discardCount" class="station-number">0 cards</div></div>
+  </div>
+  <div class="condition-banner" aria-live="polite">
+   <div class="condition-kicker">THE NEXT CARD MUST BE</div>
+   <div id="condition" class="condition">ANY CARD</div>
+   <div id="ruleTip" class="rule-tip">Start with any card</div>
+  </div>
+  <div id="message" class="message" aria-live="polite">Choose a card.</div>
+  <div class="player-seat">
+   <div id="handTitle" class="hand-label">YOUR HAND</div>
+   <div id="handHint" class="hand-hint">Tap or drag a playable card</div>
+   <div id="hand" class="hand" aria-label="Your cards, playable cards are enabled"></div>
+<div id="chainControls" class="chain-controls" hidden>
+ <button id="endTurn" class="end">End turn with one card</button>
+ <button id="changeCard" class="change">Choose a different first card</button>
+</div>
+   <div id="take" class="take-zone" hidden>
+    <button id="takeButton" class="take-button">Pick up the top card</button>
+    <p class="take-explain">You have no playable card. The rest of the pile clears.</p>
+   </div>
+   <div id="done" class="done" hidden></div>
+  </div>
+ </div>
+</section>
+<section class="tool-row">
+ <details id="howto"><summary>Learn the rules in 30 seconds</summary>
+ <ol>
+  <li><strong>Follow the top arrow:</strong> ↑ means the same number or higher, ↓ means the same number or lower.</li>
+  <li><strong>Optional Zigzag:</strong> after your first card you may play one more immediately, if it follows the new arrow <em>and</em> its arrow points the other way. Or stop after one to set a trap. Maximum two cards per turn.</li>
+  <li><strong>Matching numbers:</strong> same number as the card underneath clears the pile and ends your turn, even if you could have continued.</li>
+  <li><strong>Stuck?</strong> take the top pile card and discard the rest. Draw back to four after a successful turn while the deck lasts. When empty, the first player with no cards wins.</li>
+ </ol>
+ <p>Physical two-player test: 32 CORE cards, two copies of every number (1–8) and arrow combination. Set the 16 EXTRA cards aside. No extra tokens.</p>
+ </details>
+ <details><summary>Table settings</summary>
+  <div class="settings">
+   <label>Opponent<select id="opponents"><option value="bot">Play against the bot</option><option value="hotseat">Two people, one phone</option></select></label>
+   <label>Bot style<select id="botStyle"><option value="strategic">Strategic · plans the finishing arrow</option><option value="greedy">Greedy · longest run</option><option value="single">Single-card only</option><option value="random">Random</option></select></label>
+   <label class="wide">Replay seed<input id="seed" type="number" min="0" max="4294967295" step="1" value="20261111"></label>
+   <label class="sound-option wide"><input id="soundEnabled" type="checkbox"> Soft card sounds (off by default)</label>
+  </div>
+  <div class="controls"><button id="newGame" class="primary">New match</button><button id="export">Export match</button></div>
+  <p>Your saved game stays in this browser. Changing opponent or bot mode starts a new match.</p>
+ </details>
+</section>
+<p class="disclaimer">Unreleased rules experiment, not the retail SPARK game. This prototype tests whether choosing when to stop a two-card Zigzag genuinely adds strategy.</p>
+</main>
+<div id="cover" role="dialog" aria-modal="true" aria-labelledby="coverTitle">
+ <div class="inner"><h2 id="coverTitle">Pass the phone</h2><p>Your cards stay hidden until the next player is ready.</p><button id="reveal" class="primary">I'm ready. Show my hand</button></div>
+</div>
+<script src="./engine.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
