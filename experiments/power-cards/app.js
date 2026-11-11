@@ -147,9 +147,11 @@ function clearGhosts(){
 }
 function animateMotion(from,action){
  if(!from||isReducedMotion()||typeof document.body?.appendChild!=='function')return;
- const target=action.action==='take'?(opponents==='bot'&&action.seat===1?$('opponentHand'):$('hand')):(action.reason==='match'?$('discard'):$('pile'));
+ const gathering=['takeTop','takeAll','counter'].includes(action.action);
+ const target=gathering?(opponents==='bot'&&action.seat===1?$('opponentHand'):$('hand')):
+   action.reason==='match'?$('discard'):$('pile');
  const to=rectOf(target);if(!to)return;
- const card=action.card||(action.action==='take'?game.people[action.seat].hand.at(-1):null);
+ const card=action.card||(gathering?game.people[action.seat].hand.at(-1):null);
  if(!card)return;
  const ghost=document.createElement('div');
  ghost.className='flying-card';
@@ -160,7 +162,7 @@ function animateMotion(from,action){
  document.body.appendChild(ghost);
  const dx=(to.left+to.width/2)-(from.left+from.width/2);
  const dy=(to.top+to.height/2)-(from.top+from.height/2);
- const duration=action.action==='take'?390:315;
+ const duration=gathering?390:315;
  if(typeof ghost.animate==='function'){
   const animation=ghost.animate([
    {transform:'translate(0,0) rotate(-5deg) scale(1)',opacity:1,offset:0},
@@ -188,25 +190,28 @@ function cardSound(){
  }catch(e){console.debug('Optional card audio unavailable',e)}
 }
 function finish(action,from){
- const card=action.card;
- if(action.action==='take')message=name(action.seat)+' had no legal card, picked up one and cleared the rest.';
- else if(action.reason==='match')message=name(action.seat)+' matched '+card.n+'. The whole pile was cleared!';
- else message=name(action.seat)+' played '+card.n+' '+(card.arrow==='up'?'↑':'↓')+
-   '. Next: '+card.n+' or '+(card.arrow==='up'?'higher.':'lower.');
+ const c=action.card;
+ if(action.reason==='joker')message=name(action.seat)+' played a Joker. The entire pile is now in danger!';
+ else if(action.reason==='jokerHit')message=name(action.seat)+' took ALL '+action.taken+
+  ' pile cards. The attacker starts a fresh pile.';
+ else if(action.reason==='jokerBlocked')message='COUNTER! '+name(action.seat)+
+  ' sent '+action.taken+' cards back to '+name(action.victim)+'.';
+ else if(action.reason==='pickup')message=name(action.seat)+' picked up the top card.';
+ else if(action.reason==='match')message=name(action.seat)+' matched '+c.n+'. The pile was cleared!';
+ else message=name(action.seat)+' played '+c.n+' '+(c.arrow==='up'?'↑':'↓')+'.';
  persist();
  if(done()){
   covered=false;$('cover').style.display='none';busy=false;render();
   animateMotion(from,action);cardSound();return;
  }
  if(opponents==='hotseat'){
-  cover();
-  // Never animate or show faces through the full-screen privacy handoff.
+  if(seat()!==action.seat)cover();
+  else render(); // A successful counter lets this defender immediately lead.
   cardSound();return;
  }
  render();animateMotion(from,action);cardSound();queueBot();
  if(action.reason==='match'&&$('pileMat').classList){
   const mat=$('pileMat');mat.classList.remove('match-flash');
-  // Reflow only on real DOM; leave test stubs unchanged.
   if(typeof mat.offsetWidth==='number')void mat.offsetWidth;
   mat.classList.add('match-flash');
  }
