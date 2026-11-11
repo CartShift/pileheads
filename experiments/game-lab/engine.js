@@ -1,7 +1,7 @@
 /*
  * SPARK GAME DESIGN LAB, v0.1.
  * Two independent experimental physical card games, no production imports.
- * Claim: public lane-control + action-economy race to claim 3+ cards.
+ * Claim: public lane-control, optional banking after a mandatory play.
  * Signal: hidden simultaneous bids for three public prizes.
  * Intentionally plain UMD so the same rules work in browsers and Node.
  */
@@ -39,66 +39,77 @@ function leader(lane,n){
 }
 function claimLegal(g,p){
  if(claimDone(g)||!g.players[p]||g.turn%g.players.length!==p)return[];
- const arr=[];
- for(let index=0;index<g.players[p].hand.length;index++)arr.push({type:'play',index});
- for(const c of CLAIM_COLORS){
-  const lane=g.lanes[c];
-  if(lane.length>=3&&leader(lane,g.players.length)===p)arr.push({type:'claim',lane:c});
+ const opts=[];
+ for(let index=0;index<g.players[p].hand.length;index++){
+  const card=g.players[p].hand[index],lanes={};
+  for(const c of CLAIM_COLORS)lanes[c]=g.lanes[c].slice();
+  lanes[card.c].push({owner:p,card});
+  if(lanes[card.c].length>=7)lanes[card.c]=[];
+  opts.push({type:'play',index,bank:null});
+  for(const c of CLAIM_COLORS)if(lanes[c].length>=3&&leader(lanes[c],g.players.length)===p)
+    opts.push({type:'play',index,bank:c});
  }
- return arr;
+ return opts;
 }
-function sameMove(a,b){return a.type===b.type&&(a.type==='play'?a.index===b.index:a.lane===b.lane)}
+function sameMove(a,b){return a.type===b.type&&a.index===b.index&&(a.bank||null)===(b.bank||null)}
+function bankPoints(cardCount){return cardCount>=5?cardCount*2:cardCount}
 function grantClaim(g,c,p,reason){
- const cards=g.lanes[c].map(e=>e.card);
+ const cards=g.lanes[c].map(e=>e.card),points=bankPoints(cards.length);
  g.lanes[c]=[];
  if(p===null)g.discard.push(...cards);
- else {g.players[p].captured.push(...cards);g.players[p].score+=cards.length}
- return{winner:p,lane:c,points:cards.length,reason};
+ else {g.players[p].captured.push(...cards);g.players[p].score+=points}
+ return{winner:p,lane:c,cards:cards.length,points:p===null?0:points,reason};
 }
 function playClaim(g,p,move){
  ensure(g.kind==='claim'&&g.turn%g.players.length===p&&!claimDone(g),'Wrong seat or finished Claim');
  ensure(claimLegal(g,p).some(x=>sameMove(x,move)),'Illegal Claim move');
  const before=g.players.map(x=>x.score),turn=g.turn+1;
- let event;
- if(move.type==='claim')event={type:'claim',seat:p,turn,...grantClaim(g,move.lane,p,'claimed')};
- else {
-  const [card]=g.players[p].hand.splice(move.index,1);
-  const lane=g.lanes[card.c];
-  lane.push({owner:p,card});
-  const replacement=draw(g);
-  ensure(!!replacement,'Stock depleted before final turn');
-  g.players[p].hand.push(replacement);
-  const trigger=lane.length>=7?grantClaim(g,card.c,leader(lane,g.players.length),'overload'):null;
-  event={type:'play',seat:p,turn,card,lane:card.c,trigger};
- }
- g.turn++;event.scores=g.players.map(x=>x.score);event.scoreChanges=event.scores.map((x,i)=>x-before[i]);
+ const [card]=g.players[p].hand.splice(move.index,1),lane=g.lanes[card.c];
+ lane.push({owner:p,card});
+ const replacement=draw(g);ensure(!!replacement,'Stock depleted before final turn');
+ g.players[p].hand.push(replacement);
+ const trigger=lane.length>=7?grantClaim(g,card.c,leader(lane,g.players.length),'overload'):null;
+ const bank=move.bank?grantClaim(g,move.bank,p,'banked'):null;
+ const event={type:'play',seat:p,turn,card,lane:card.c,trigger,bank,scores:g.players.map(x=>x.score)};
+ g.turn++;event.scoreChanges=event.scores.map((x,i)=>x-before[i]);
  g.lastEvent=event;g.log.push(event);
  ensure(cardCount(g)===72,'Claim card conservation failed');
  ensure(g.players.every(x=>x.hand.length===4),'Claim hand size changed');
  return event;
 }
 function claimAnalysis(g,p,move){
- if(move.type==='claim')return{immediate:g.lanes[move.lane].length,pressure:0,oppClaim:0,margin:0,overload:false};
- const card=g.players[p].hand[move.index],lane=[...g.lanes[card.c],{owner:p,card}];
- const n=g.players.length;
- const win=leader(lane,n),margin=strength(lane,p)-Math.max(...g.players.filter(x=>x.seat!==p).map(x=>strength(lane,x.seat)));
- const immediate=lane.length>=7&&win===p?lane.length:0;
- const risk=(lane.length>=3&&win!==null&&win!==p)?lane.length:0;
- return{immediate,pressure:lane.length,oppClaim:risk,margin,overload:lane.length>=7};
+ const card=g.players[p].hand[move.index],lanes={};
+ for(const c of CLAIM_COLORS)lanes[c]=g.lanes[c].slice();
+ lanes[card.c].push({owner:p,card});
+ const overload=lanes[card.c].length>=7;
+ const auto=overload&&leader(lanes[card.c],g.players.length)===p?bankPoints(lanes[card.c].length):0;
+ if(overload)lanes[card.c]=[];
+ const immediate=auto+(move.bank?bankPoints(lanes[move.bank].length):0);
+ if(move.bank)lanes[move.bank]=[];
+ const lane=lanes[card.c],margin=strength(lane,p)-Math.max(...g.players.filter(x=>x.seat!==p).map(x=>strength(lane,x.seat)));
+ let goodUnbanked=0,opportunityRisk=0;
+ for(const c of CLAIM_COLORS){
+  const items=lanes[c],winner=leader(items,g.players.length),n=items.length;
+  if(n>=3&&winner===p){
+   // A stronger position near 5+ can reward waiting, but is never guaranteed.
+   goodUnbanked+=n>=5?bankPoints(n)*.50:(n===4?4.4:3.2);
+   const oppStrength=Math.max(...g.players.filter(x=>x.seat!==p).map(x=>strength(items,x.seat)));
+   const lead=strength(items,p)-oppStrength;
+   if(lead<=3)opportunityRisk+=(n>=5?bankPoints(n):n)*.40;
+  }else if(n>=3&&winner!==null&&winner!==p)opportunityRisk+=Math.min(6,bankPoints(n));
+ }
+ return{immediate,pressure:lane.length,margin,goodUnbanked,oppClaim:opportunityRisk,overload};
 }
 function claimChoose(g,p,policy='planner'){
  const options=claimLegal(g,p);ensure(options.length>0,'No Claim moves available');
  let best=-Infinity,bestMove=options[0];
  for(const m of options){
-  const a=claimAnalysis(g,p,m);
-  const color=m.type==='play'?g.players[p].hand[m.index].c:m.lane;
-  const ownColorCount=g.players[p].hand.filter(c=>c.c===color).length;
-  const val=m.type==='claim'?a.immediate*(policy==='greedy'?4:3.3):
-    policy==='random'?next(g):
-    policy==='greedy'?a.immediate*4+a.margin*.12+(m.type==='play'?g.players[p].hand[m.index].v*.16:0):
-    a.immediate*4+a.margin*.38+Math.min(4,a.pressure)*.32-
-     a.oppClaim*1.8+(a.margin>0&&a.pressure>=3?1.4:0)+(ownColorCount>1?.2:0);
-  if(val>best+1e-9){best=val;bestMove=m}
+  const a=claimAnalysis(g,p,m),card=g.players[p].hand[m.index];
+  const value=policy==='random'?next(g):
+   policy==='greedy'?a.immediate*3+a.margin*.08+card.v*.1:
+    a.immediate*2.45+a.goodUnbanked*1.7+a.margin*.25-
+      a.oppClaim*.4+Math.min(3,a.pressure)*.11;
+  if(value>best+1e-9){best=value;bestMove=m}
  }
  return bestMove;
 }
@@ -189,7 +200,7 @@ function runClaim(config={},policies=['planner','greedy','greedy','greedy']){
   const seat=g.turn%g.players.length;const legal=claimLegal(g,seat);
   availableClaim+=legal.some(x=>x.type==='claim')?1:0;
   const e=playClaim(g,seat,claimChoose(g,seat,policies[seat]||'planner'));
-  claims+=e.type==='claim'?1:0;overloads+=e.trigger?1:0;
+  claims+=e.bank?1:0;overloads+=e.trigger?1:0;
   scoreless+=e.scoreChanges.every(x=>x===0)?1:0;
  }
  return{game:g,summary:{completed:claimDone(g),scores:g.players.map(p=>p.score),claims,overloads,
