@@ -8,15 +8,24 @@ function fail(test,message){if(!test)throw Error(message)}
 function rng(g){g.rng=(Math.imul(1664525,g.rng)+1013904223)>>>0;return g.rng/4294967296}
 function shuffle(arr,g){for(let i=arr.length-1;i>0;i--){let j=Math.floor(rng(g)*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}return arr}
 function deck(){const out=[];let id=0;for(let n=1;n<=8;n++)for(const arrow of ['up','down'])for(let c=0;c<3;c++)out.push({id:id++,n,arrow});return out}
-function create({seed=20261111,players=2}={}){
+function create({seed=20261111,players=2,mode='classic'}={}){
  fail(Number.isInteger(seed)&&seed>=0&&seed<=4294967295,'Bad seed');
  fail(Number.isInteger(players)&&players>=2&&players<=4,'Supports 2–4 players');
- const g={version:VERSION,seed,rng:(seed^0x912a6dc3)>>>0,turn:0,winner:null,draw:false,
-  stock:[],pile:[],ashes:[],people:Array.from({length:players},(_,seat)=>({seat,hand:[],pickups:0})),log:[]};
- g.stock=shuffle(deck(),g);for(let i=0;i<HAND;i++)for(const p of g.people)p.hand.push(g.stock.pop());
+ fail(mode==='classic'||mode==='quick','Unknown mode');
+ fail(mode!=='quick'||players===2,'Quick prototype currently supports 2 players');
+ const g={version:VERSION,seed,mode,handLimit:mode==='quick'?4:HAND,rng:(seed^0x912a6dc3)>>>0,turn:0,winner:null,draw:false,
+  stock:[],aside:[],pile:[],ashes:[],people:Array.from({length:players},(_,seat)=>({seat,hand:[],pickups:0})),log:[]};
+ const all=deck();
+ if(mode==='quick'){
+  // The retail prototype contains a 32-card CORE plus a 16-card EXTRA set.
+  // Each number/arrow pair has exactly two CORE copies and one EXTRA copy.
+  g.stock=shuffle(all.filter(c=>c.id%3!==2),g);
+  g.aside=all.filter(c=>c.id%3===2);
+ }else g.stock=shuffle(all,g);
+ for(let i=0;i<g.handLimit;i++)for(const p of g.people)p.hand.push(g.stock.pop());
  fail(count(g)===DECK_SIZE,'Deck accounting');return g;
 }
-function count(g){return g.stock.length+g.ashes.length+g.pile.length+g.people.reduce((x,p)=>x+p.hand.length,0)}
+function count(g){return g.stock.length+(g.aside?.length||0)+g.ashes.length+g.pile.length+g.people.reduce((x,p)=>x+p.hand.length,0)}
 function finished(g){return g.winner!==null||g.draw}
 function active(g){return g.turn%g.people.length}
 function valid(top,card){return !top||(top.arrow==='up'?card.n>=top.n:card.n<=top.n)}
@@ -37,7 +46,7 @@ function play(g,seat,move){
   const card=who.hand.splice(move.index,1)[0];record.card=card;
   g.pile.push(card);
   if(before?.n===card.n){record.cleared=g.pile.length;record.reason='match';g.ashes.push(...g.pile.splice(0))}
-  while(who.hand.length<HAND&&g.stock.length)who.hand.push(g.stock.pop());
+  while(who.hand.length<(g.handLimit||HAND)&&g.stock.length)who.hand.push(g.stock.pop());
  }else{
   const captured=g.pile.splice(-1);
   const discarded=g.pile.splice(0);
