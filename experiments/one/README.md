@@ -2,6 +2,17 @@
 
 **Status: isolated experimental card-game concept. Not production-ready. Not a released product, brand, or ruleset.** This folder was created because the earlier CROSS and FORGE prototypes were consistently perceived as **confusing, complicated and unfriendly**.
 
+## New controlled strategy experiment (2026-11-11)
+
+The one-tap gameplay, card symbols and physical-first table remain unchanged, but two improvements are now isolated in this experiment:
+
+1. **Strategic bot (new default for new matches):** deliberately plays easier-to-follow cards while the draw stock remains, and saves restrictive arrows for the final phase. It uses only its own hand, visible top card and stock count. The old Thoughtful, Basic and Random bots are still selectable.
+2. **Short strategic mode, two players:** use the **32 balanced CORE cards** (2 copies per number/arrow pair), deal **four** to each player, and set the 16 EXTRA cards aside. The original **48-card, three-card-hand** mode is still the regular default. Gameplay rules are identical. The new mode uses its **own** local save key and does not overwrite an existing regular match.
+
+[Open the full strategy report, experimental comparisons and limitations](STRATEGY_REPORT.md). The selected Classic vs Quick and bot matchups are reproducible with npm scripts.
+
+We should keep both variants as an A/B test until actual human players choose which one to replay. Quick improves synthetic decision opportunity and endgame proportion, but **does not prove fun**. First-player advantage and repetitive three-player stalemates under restrictive policies are unresolved product blockers.
+
 ## User feedback is our design constraint
 
 > "שני המשחקים מבלבלים ונראים מסובכים ולא ידידותיים"
@@ -71,7 +82,7 @@ There are no new rules, no extra turns, no card mechanics, no network services a
 
 - Browser: index.html, app.js, engine.js (all static, no runtime network requirement).
 - Pass-and-play: one phone can be handed between two people, with private hands covered between turns.
-- Bot: Basic, Thoughtful and Random. The Thoughtful policy is **not** an expert; in early pairings, it actually lost more frequently than Basic.
+- Bot: Strategic (new recommended), Basic, original Thoughtful and Random. Strategic is a tested, interpretable policy, not a perfect or cheating opponent.
 - Save and replay: stored in an independent localStorage key; the original SPARK/CROSS/FORGE save state is not altered.
 - Paper: [print.html](print.html) prints 48 custom card faces across six A4 sheets, plus one rules page. Use 100% scale and identical opaque sleeves.
 - Export: JSON game transcript for inspection.
