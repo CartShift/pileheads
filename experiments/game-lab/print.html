@@ -3,6 +3,8 @@
 <style>
 :root{color-scheme:light}*{box-sizing:border-box}body{font:14px/1.45 system-ui,sans-serif;color:#15241f;background:#f2f1eb;margin:0}.controls{background:#152f29;color:white;padding:20px;text-align:center}.controls h1{margin:0;font-size:26px}.controls p{margin:8px auto;max-width:660px}.controls button,.controls a{display:inline-block;background:#efcd86;color:#14332a;border:0;border-radius:8px;font:inherit;font-weight:bold;padding:10px 15px;margin:5px;cursor:pointer;text-decoration:none}.notes{max-width:720px;margin:20px auto;padding:15px;background:white;border:1px solid #bbb}.notes h2{margin:0 0 5px;font-size:18px}.sheets{max-width:210mm;margin:auto}.sheet{width:190mm;min-height:269mm;margin:12mm auto;padding:0;page-break-after:always;break-after:page;display:flex;flex-direction:column;align-items:center;justify-content:center}.sheet h2{font-size:12px;letter-spacing:1px;text-align:center;margin:0 0 4mm;font-weight:800}.nine{display:grid;grid-template-columns:repeat(3,58mm);grid-template-rows:repeat(3,80mm);gap:3mm}.card{position:relative;border:1.4px dashed #666;border-radius:1.7mm;background:var(--bg);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;text-shadow:0 1px 2px #0007}
 .card:after{content:"";position:absolute;inset:4mm;border:0.5mm solid #ffebd0cc;border-radius:1mm}.card .corner{position:absolute;left:6mm;top:4mm;font-size:23px;font-weight:900}.card .symbol{font-size:70px;line-height:1.05}.card .rank{font-size:36px;font-weight:950}.card .name{font-size:12px;font-weight:700;letter-spacing:2px}.card .edition{font-size:8px;margin-top:3px;letter-spacing:1px;opacity:.82}.card.O{--bg:#bd5b36}.card.B{--bg:#277ba1}.card.P{--bg:#8051aa}.card.G{--bg:#478958}.sheet footer{font-size:8px;margin-top:4mm;color:#485954}.score-sheet{background:#fff;padding:15mm;display:block}.score-sheet h2{font-size:24px}.score-sheet h3{font-size:16px}.score-sheet table{border-collapse:collapse;width:100%;margin:9mm 0}.score-sheet th,.score-sheet td{border:1px solid #888;text-align:center;height:11mm;font-size:12px}.score-sheet p{font-size:12px}.score-sheet .line{border-bottom:1px solid #777;height:9mm}
+.target-markers{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;margin:4mm 0}
+.target-markers span{border:1px dashed #666;padding:3mm 4mm;text-align:center;font-size:12px;font-weight:900;background:#f4eee0}
 @page{size:A4; margin:10mm}
 @media print{body{margin:0;background:white}.controls,.notes{display:none!important}.sheets{max-width:none}.sheet{width:100%;margin:0;min-height:275mm;max-height:275mm}.nine{grid-template-columns:repeat(3,58mm);grid-template-rows:repeat(3,80mm);gap:3mm}.sheet h2{margin-bottom:4mm}.sheet footer{margin-top:4mm}.card{break-inside:avoid;page-break-inside:avoid}.score-sheet{padding:8mm}}
 </style></head><body>
@@ -41,7 +43,10 @@ Array.from({length:14},(_,i)=>'<tr><td>'+(i+1)+'</td><td></td><td></td><td></td>
 '<h3>Ask separately, without prompting</h3><p>What move did you seriously consider but reject? Why?</p><div class="line"></div>'+
 '<p>Could you anticipate or block the opponent? What changed your plan?</p><div class="line"></div>'+
 '<p>Where did you get confused, bored, or excited?</p><div class="line"></div>'+
-'<p>Would you immediately play another match if no one asked you to?</p><div class="line"></div>';
+'<p>Would you immediately play another match if no one asked you to?</p><div class="line"></div>'+
+'<h3>SIGNAL secret target markers (cut along dotted lines)</h3>'+
+'<p>Keep a set of three markers per player. Place one face down next to a face-down bid card; reveal together.</p>'+
+'<div class="target-markers">'+['P1 TARGET 1','P1 TARGET 2','P1 TARGET 3','P2 TARGET 1','P2 TARGET 2','P2 TARGET 3'].map(x=>'<span>'+x+'</span>').join('')+'</div>';
 root.appendChild(sheet);
 document.getElementById('noteTitle').textContent=mode.toUpperCase()+' cards and test sheet';
 document.getElementById('noteText').textContent=mode==='claim'?'CLAIM: 72 cards, three colors × ranks 1–3 × eight copies. Four-card hands, three lanes.':
