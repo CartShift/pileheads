@@ -25,7 +25,19 @@ function record(s,game){
  assert(game.people.length===2,'Only two-person sets supported');
  assert(game.seed===roundSeed(s)&&game.firstSeat===firstSeat(s),'Scored match does not belong to current round');
  const winner=game.winner;
- s.history.push({round:s.round,seed:game.seed,winner,firstSeat:game.firstSeat,turns:game.turn});
+ // Retain the completed round's public action history for local playtest review.
+ // Do not serialize concealed hands, stock order or other private game state.
+ const events=Array.isArray(game.log)?game.log.map(e=>({
+  turn:e.turn,seat:e.seat,action:e.action,
+  card:e.card?{n:e.card.n,arrow:e.card.arrow}:null,
+  reason:e.reason||null,cleared:e.cleared||0,taken:e.taken||0,
+  remainingHand:e.hand,remainingStock:e.stock
+ })):[];
+ s.history.push({
+  round:s.round,seed:game.seed,winner,firstSeat:game.firstSeat,turns:game.turn,
+  pickups:events.filter(e=>e.action==='take').length,
+  clears:events.filter(e=>e.reason==='match').length,events
+ });
  s.wins[winner]++;
  s.complete=s.wins[winner]===2;
  return s;
