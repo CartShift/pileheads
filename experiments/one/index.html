@@ -30,6 +30,9 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
 .mode-switch{display:flex;gap:7px;margin:2px 2px 10px;flex-wrap:wrap}
 .mode-switch a{border-radius:9px;padding:7px 11px;color:var(--ink);text-decoration:none;font-size:12px;font-weight:800;border:1px solid #afc1b4;background:#fff9eb}
 .mode-switch a[aria-current="page"]{background:#234a3e;color:white;border-color:#234a3e}
+.set-score{display:grid;gap:3px;margin:0 3px 11px;padding:10px 12px;background:#ecdfbd;border:1px solid #c4b792;border-radius:11px;color:#234437;text-align:center}
+.set-score strong{font-size:13px;font-weight:900;letter-spacing:.035em;font-variant-numeric:tabular-nums}
+.set-score span{font-size:11px;color:#516459}
 .teaser{font-size:12px;color:#50675c;margin:0 3px 12px}
 .teaser strong{color:var(--ink)}
 /* Felt, rail, seats, and the player's-eye composition. */
@@ -183,7 +186,12 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
 <nav class="mode-switch" aria-label="Choose playtest length">
  <a id="classicLink" href="./" aria-current="page">Regular · 48 cards</a>
  <a id="quickLink" href="./?mode=quick" aria-current="false">Short strategic · 32 cards</a>
+ <a id="seriesLink" href="./?mode=quick&amp;series=3" aria-current="false">Best of 3</a>
 </nav>
+<div id="setScore" class="set-score" hidden aria-live="polite">
+ <strong>ROUND 1 OF 3 · You 0 : 0 Bot</strong>
+ <span id="setTip">First to win two rounds wins.</span>
+</div>
 <section class="table-frame" aria-label="First-person card table">
  <div class="table-felt">
   <div class="table-top">
@@ -237,6 +245,7 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
  <div class="inner"><h2 id="coverTitle">Pass the phone</h2><p>Your cards stay hidden until the next player is ready.</p><button id="reveal" class="primary">I'm ready. Show my hand</button></div>
 </div>
 <script src="./engine.js"></script>
+<script src="./series.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>
