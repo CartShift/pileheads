@@ -57,54 +57,75 @@ function opponentBacks(n){
  return Array.from({length:count},(_,i)=>'<span class="back-card" aria-hidden="true" style="--fan:'+((i-(count-1)/2)*5)+'deg;--lift:'+((i%2)*-2)+'px"></span>').join('');
 }
 function render(){
- const turn=seat(),human=focus(),p=game.people[human],op=game.people[1-human],top=game.pile.at(-1);
- $('turn').textContent=done()?'MATCH OVER':covered?'PASS THE PHONE':busy?'OPPONENT TURN':
-    turn===human?'YOUR TURN':name(turn).toUpperCase()+' TURN';
+ const turn=seat(),human=focus(),you=game.people[human],other=game.people[1-human],
+  top=game.pile.at(-1),pending=game.pending;
+ $('turn').textContent=done()?'GAME OVER':covered?'PASS THE PHONE':busy?'BOT THINKING':
+  turn===human?'YOUR TURN':name(turn).toUpperCase()+' TURN';
  $('opponentName').textContent=name(1-human).toUpperCase();
- $('opponentHand').innerHTML=opponentBacks(op.hand.length);
- $('other').textContent=op.hand.length+' '+(op.hand.length===1?'card':'cards')+' in hand';
+ $('opponentHand').innerHTML=opponentBacks(other.hand.length);
+ $('other').textContent=other.hand.length+' '+(other.hand.length===1?'card':'cards')+' in hand';
  $('stock').textContent=game.stock.length+' left';
- $('modeTitle').textContent=MODE==='quick'?'Short strategic game':'The tabletop prototype';
- $('classicLink').setAttribute('aria-current',MODE==='classic'?'page':'false');
- $('quickLink').setAttribute('aria-current',MODE==='quick'?'page':'false');
- $('handRule').textContent=MODE==='quick'?'Keep four cards in hand while the draw deck lasts.':'Keep three cards in hand while the draw deck lasts.';
- $('deckRule').textContent=MODE==='quick'?
-  'Short strategic mode: use the 32 CORE cards (two of every number/arrow pair). Set the 16 EXTRA cards aside and deal four cards per player.':
-  'Regular mode: use all 48 purpose-designed cards and deal three cards per player.';
- $('deckVisual').innerHTML=game.stock.length?'<span class="back-card" aria-hidden="true"></span>':'<span class="empty-stock">Empty</span>';
+ $('modeTitle').textContent=MODE==='plain'?'Joker forces pickup':
+  MODE==='joker'?'Joker counters Joker':'Visible-rank counter';
+ for(const mode of E.MODES)$(mode+'Link').setAttribute('aria-current',MODE===mode?'page':'false');
+ $('deckVisual').innerHTML=game.stock.length?
+  '<span class="back-card" aria-hidden="true"></span>':'<span class="empty-stock">Empty</span>';
  $('deckVisual').className=game.stock.length?'stack-back':'';
  const ashes=game.ashes.length;
  $('discardCount').textContent=ashes+' '+(ashes===1?'card':'cards');
  $('discard').className=ashes?'discard-card':'discard-empty';
- $('discard').textContent=ashes?String(game.ashes.at(-1).n):'EMPTY';
+ $('discard').textContent=ashes?
+  (game.ashes.at(-1).kind==='joker'?'↯':String(game.ashes.at(-1).n)):'EMPTY';
  $('discard').setAttribute?.('aria-label',ashes?'Discard pile, '+ashes+' cards':'Empty discard pile');
- const r=rule();$('condition').textContent=r[0];$('ruleTip').textContent=r[1];
- $('pile').innerHTML=top?
+ const condition=rule();
+ $('condition').textContent=condition[0];$('ruleTip').textContent=condition[1];
+ $('pile').innerHTML=(top?
    (game.pile.length>2?'<span class="pile-under"></span>':'')+
    (game.pile.length>1?'<span class="pile-under two"></span>':'')+
    makeCard(top,'disabled','table-card')+
    '<span class="pile-count">'+game.pile.length+'</span>':
-   '<div class="empty-pile">PLACE A CARD</div>';
- $('message').textContent=done()?(game.draw?'The game reached its turn limit.':name(game.winner)+' played their last card!'):message;
- $('handTitle').textContent=opponents==='hotseat'?name(human).toUpperCase()+' · YOUR HAND':'YOUR HAND · '+p.hand.length;
- const live=canAct(),legal=live?E.legal(game,turn):[];
- const playable=new Set(legal.filter(x=>x.type==='play').map(x=>x.index));
- // Against a bot, keep YOUR real cards face up while the bot thinks.
- // In pass-and-play, always hide private cards during handoff.
- const showOwn=!covered&&(opponents==='bot'||live||done());
- $('hand').innerHTML=showOwn?p.hand.map((c,i)=>makeCard(c,'data-index="'+i+'" '+(live&&playable.has(i)?'':'disabled'),
-   live&&playable.has(i)?'playable':'blocked')).join(''):
-   '<p style="font-size:12px;color:#d7e7d8">Private hand hidden during handoff.</p>';
- $('take').hidden=!live||!legal.some(m=>m.type==='take');
- $('handHint').textContent=done()?'The deck is finished. Want another round?':
-   covered?'Your cards will appear when you are ready.':
-   busy?'Your hand stays here while the opponent plays.':
-   !live?'Waiting for the other player.':
-   legal.some(m=>m.type==='take')?'No card fits. Pick up the top card to reset the pile.':
-   'Tap a bright card, or drag it to the middle. Dimmed cards cannot be played.';
+   '<div class="empty-pile">PLACE A CARD</div>')+
+  (pending?'<span class="joker-signal">JOKER ↯<small>CHALLENGE '+
+    (pending.targetRank??'?')+'</small></span>':'');
+ $('jokerWarning').hidden=!pending;
+ if(pending){
+  $('jokerWarningTitle').textContent=MODE==='match'?
+    'JOKER: MATCH '+(pending.targetRank??'?')+' OR TAKE ALL':
+    MODE==='joker'?'JOKER: COUNTER OR TAKE ALL':'JOKER: TAKE THE WHOLE PILE';
+  $('jokerWarningBody').textContent=MODE==='match'?
+    'Play the same number as the card still visible beneath the Joker to send the pile BACK.':
+    MODE==='joker'?'Play another Joker to return the pile to your attacker.':
+    'No counter in this mode: take the full pile, then the attacker plays again.';
+ }
+ $('message').textContent=done()?(game.draw?'Unresolved game.':'Winner: '+name(game.winner)+'!'):message;
+ $('handTitle').textContent=opponents==='hotseat'?
+  name(human).toUpperCase()+' · YOUR HAND':'YOUR HAND · '+you.hand.length;
+ const act=canAct(),options=act?E.legal(game,turn):[];
+ const playable=new Set(options.filter(x=>x.type==='play'||x.type==='counter').map(x=>x.index));
+ const showOwn=!covered&&(opponents==='bot'||act);
+ $('hand').innerHTML=showOwn?
+  you.hand.map((c,i)=>makeCard(c,'data-index="'+i+'" '+(act&&playable.has(i)?'':'disabled'),
+  act&&playable.has(i)?'playable':'blocked')).join(''):
+  '<p style="font-size:12px;color:#d7e7d8">Private hand hidden during handoff.</p>';
+ const takeOption=options.some(x=>x.type==='takeTop'||x.type==='takeAll');
+ $('take').hidden=!act||!takeOption;
+ $('takeButton').textContent=pending?'TAKE THE WHOLE PILE ('+game.pile.length+')':'Pick up the top card';
+ $('takeExplain').textContent=pending?
+  'This consumes your turn. If a counter card is bright, you can play it instead.':
+  'No legal card fits. The rest of the pile is discarded.';
+ $('handHint').textContent=done()?'Would you like a rematch?':
+  covered?'Your private hand is hidden until you are ready.':
+  busy?'You can see your cards while the bot thinks.':
+  pending?(playable.size?
+   'Counter with a bright card, or take the whole pile.':
+   'No counter available. Take the entire pile.'):
+  options.some(x=>x.type==='takeTop')?
+   'No card fits. Pick up the top card.':
+   'Tap a bright card to play. The Joker always fits, but timing matters.';
  $('done').hidden=!done();
  $('done').innerHTML=done()?'<h2>'+(game.draw?'Draw':name(game.winner)+' wins!')+'</h2>'+
-   '<p>'+game.turn+' turns. Your next match might go very differently.</p>'+
+   '<p>'+game.turn+' actions · '+game.log.filter(x=>x.reason==='joker').length+
+   ' Joker plays · '+game.log.filter(x=>x.reason==='jokerBlocked').length+' counters.</p>'+
    '<button type="button" class="primary" data-rematch="1">Play again</button>':'';
 }
 function cover(){
