@@ -1,11 +1,11 @@
 (function(){'use strict';
-const E=globalThis.OneLab,$=id=>document.getElementById(id);
+const E=globalThis.PowerLab,$=id=>document.getElementById(id);
 const query=new URLSearchParams(location.search);
-const MODE=query.get('mode')==='quick'?'quick':'classic';
-const KEY=MODE==='quick'?'one-card-one-rule-quick-v01':'one-card-one-rule-v01';
-let game=null,opponents='bot',botStyle='strategic',busy=false,covered=false,epoch=0,botTimer=null;
+const MODE=['plain','joker','match'].includes(query.get('rule'))?query.get('rule'):'match';
+const KEY='tilt-joker-lab-'+MODE+'-v01';
+let game=null,opponents='bot',botStyle='timing',busy=false,covered=false,epoch=0,botTimer=null;
 let sounds=false,drag=null,suppressClick=false,voice=null;
-let message='Tap a playable card. Its arrow tells the next player what they need to play.';
+let message='Hold your Joker until the pile is dangerous, or surprise the other player early.';
 
 function seat(){return E.active(game)}
 function done(){return E.finished(game)}
@@ -16,27 +16,40 @@ function persist(){try{localStorage.setItem(KEY,JSON.stringify({game,opponents,b
 function restore(){
  try{
   const old=JSON.parse(localStorage.getItem(KEY)||'null');
-  if(!old?.game||old.game.version!==E.VERSION||old.game.people?.length!==2||(old.game.mode||'classic')!==MODE)return false;
+  if(!old?.game||old.game.version!==E.VERSION||old.game.people?.length!==2||old.game.mode!==MODE)return false;
   game=old.game;opponents=old.opponents==='hotseat'?'hotseat':'bot';
-  botStyle=['strategic','thoughtful','basic','random'].includes(old.botStyle)?old.botStyle:'strategic';
+  botStyle=['timing','greedy','hoard','random'].includes(old.botStyle)?old.botStyle:'timing';
   message=typeof old.message==='string'?old.message:message;
   sounds=old.sounds===true;return true;
  }catch{return false}
 }
 function makeCard(c,attrs='',cls=''){
+ if(c.kind==='joker')return '<button type="button" class="card joker '+cls+'" '+attrs+
+   ' aria-label="Joker. Attacks the entire pile unless countered.">'+
+   '<span class="corner">TILT / POWER</span><span class="number">!</span>'+
+   '<span class="arrow" aria-hidden="true">↯</span>'+
+   '<span class="footer">FULL PILE</span></button>';
  const word=c.arrow==='up'?'UP':'DOWN',sym=c.arrow==='up'?'↑':'↓';
  return '<button type="button" class="card '+cls+'" data-arrow="'+c.arrow+'" '+attrs+
   ' aria-label="Number '+c.n+', arrow '+word+'">'+
-  '<span class="corner">TILT / ONE</span>'+
+  '<span class="corner">TILT / POWER</span>'+
   '<span class="number">'+c.n+'</span>'+
   '<span class="arrow" aria-hidden="true">'+sym+'</span>'+
   '<span class="footer">'+word+' NEXT</span></button>';
 }
 function rule(){
+ if(game.pending){
+  if(MODE==='match')return game.pending.targetRank===null?
+    ['TAKE THE WHOLE PILE','The Joker is on an empty pile, so there is no number to match.']:
+    ['MATCH '+game.pending.targetRank+' OR TAKE ALL','The rank below the sideways Joker remains visible.'];
+  if(MODE==='joker')return['JOKER OR TAKE ALL','Another Joker can reflect the attack.'];
+  return['TAKE ALL','This Joker cannot be countered in this rule variant.'];
+ }
  const top=game.pile.at(-1);
  if(!top)return['ANY CARD','The pile is empty. Choose what to start with.'];
- if(top.arrow==='up')return['↑ '+top.n+' OR HIGHER','The arrow on the last card sets your rule.'];
- return['↓ '+top.n+' OR LOWER','The arrow on the last card sets your rule.'];
+ return top.arrow==='up'?
+  ['↑ '+top.n+' OR HIGHER','The top arrow sets your rule.']:
+  ['↓ '+top.n+' OR LOWER','The top arrow sets your rule.'];
 }
 function opponentBacks(n){
  // The backs are deliberately identical. No card content or hidden IDs.
