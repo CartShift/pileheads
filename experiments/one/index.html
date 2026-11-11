@@ -27,6 +27,9 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
 .logo{font:900 30px/.94 Georgia,"Times New Roman",serif;letter-spacing:-1.3px}
 .brand-tag{font-size:10px;letter-spacing:.15em;text-transform:uppercase;font-weight:850;color:var(--muted)}
 .site-head a{color:var(--ink);font-size:12px;text-decoration-thickness:1px}
+.mode-switch{display:flex;gap:7px;margin:2px 2px 10px;flex-wrap:wrap}
+.mode-switch a{border-radius:9px;padding:7px 11px;color:var(--ink);text-decoration:none;font-size:12px;font-weight:800;border:1px solid #afc1b4;background:#fff9eb}
+.mode-switch a[aria-current="page"]{background:#234a3e;color:white;border-color:#234a3e}
 .teaser{font-size:12px;color:#50675c;margin:0 3px 12px}
 .teaser strong{color:var(--ink)}
 /* Felt, rail, seats, and the player's-eye composition. */
@@ -173,10 +176,14 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
 <body>
 <main>
 <header class="site-head">
- <div class="brand"><span class="logo">TILT ONE</span><span class="brand-tag">The tabletop prototype</span></div>
+ <div class="brand"><span class="logo">TILT ONE</span><span id="modeTitle" class="brand-tag">The tabletop prototype</span></div>
  <a href="./print.html">Print the deck</a>
 </header>
 <p class="teaser"><strong>Your hand is at the bottom.</strong> Tap a card to play it, or drag it onto the pile.</p>
+<nav class="mode-switch" aria-label="Choose playtest length">
+ <a id="classicLink" href="./" aria-current="page">Regular · 48 cards</a>
+ <a id="quickLink" href="./?mode=quick" aria-current="false">Short strategic · 32 cards</a>
+</nav>
 <section class="table-frame" aria-label="First-person card table">
  <div class="table-felt">
   <div class="table-top">
@@ -210,8 +217,8 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
  <details id="howto"><summary>Rules in 30 seconds</summary>
   <ol><li>Follow the arrow on the pile: ↑ means the same number or higher; ↓ means the same number or lower.</li>
   <li>Put down any playable card. Its arrow decides what the next person must play. Match the same number to clear the pile.</li>
-  <li>If you are stuck, pick up the top card. Keep three cards while the draw deck lasts. Once the deck is empty, the first to empty their hand wins.</li></ol>
-  <p>Forty-eight purpose-designed cards. Every number 1–8 appears with both arrows.</p>
+  <li>If you are stuck, pick up the top card. <span id="handRule">Keep three cards in hand while the draw deck lasts.</span> Once the deck is empty, the first to empty their hand wins.</li></ol>
+  <p id="deckRule">Regular mode: use all 48 purpose-designed cards and deal three cards per player.</p>
  </details>
  <details><summary>Table settings</summary>
   <div class="settings">
