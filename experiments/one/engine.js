@@ -8,12 +8,13 @@ function fail(test,message){if(!test)throw Error(message)}
 function rng(g){g.rng=(Math.imul(1664525,g.rng)+1013904223)>>>0;return g.rng/4294967296}
 function shuffle(arr,g){for(let i=arr.length-1;i>0;i--){let j=Math.floor(rng(g)*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]]}return arr}
 function deck(){const out=[];let id=0;for(let n=1;n<=8;n++)for(const arrow of ['up','down'])for(let c=0;c<3;c++)out.push({id:id++,n,arrow});return out}
-function create({seed=20261111,players=2,mode='classic'}={}){
+function create({seed=20261111,players=2,mode='classic',firstSeat=0}={}){
  fail(Number.isInteger(seed)&&seed>=0&&seed<=4294967295,'Bad seed');
  fail(Number.isInteger(players)&&players>=2&&players<=4,'Supports 2–4 players');
  fail(mode==='classic'||mode==='quick','Unknown mode');
+ fail(Number.isInteger(firstSeat)&&firstSeat>=0&&firstSeat<players,'Invalid first seat');
  fail(mode!=='quick'||players===2,'Quick prototype currently supports 2 players');
- const g={version:VERSION,seed,mode,handLimit:mode==='quick'?4:HAND,rng:(seed^0x912a6dc3)>>>0,turn:0,winner:null,draw:false,
+ const g={version:VERSION,seed,mode,firstSeat,handLimit:mode==='quick'?4:HAND,rng:(seed^0x912a6dc3)>>>0,turn:0,winner:null,draw:false,
   stock:[],aside:[],pile:[],ashes:[],people:Array.from({length:players},(_,seat)=>({seat,hand:[],pickups:0})),log:[]};
  const all=deck();
  if(mode==='quick'){
@@ -27,7 +28,7 @@ function create({seed=20261111,players=2,mode='classic'}={}){
 }
 function count(g){return g.stock.length+(g.aside?.length||0)+g.ashes.length+g.pile.length+g.people.reduce((x,p)=>x+p.hand.length,0)}
 function finished(g){return g.winner!==null||g.draw}
-function active(g){return g.turn%g.people.length}
+function active(g){return (g.turn+(g.firstSeat||0))%g.people.length}
 function valid(top,card){return !top||(top.arrow==='up'?card.n>=top.n:card.n<=top.n)}
 function legal(g,seat){
  if(finished(g)||active(g)!==seat)return[];
