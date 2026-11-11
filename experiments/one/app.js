@@ -60,6 +60,7 @@ function render(){
  $('seriesLink').setAttribute('aria-current',SERIES?'page':'false');
  $('handRule').textContent=MODE==='quick'?'Keep four cards in hand while the draw deck lasts.':'Keep three cards in hand while the draw deck lasts.';
  $('setScore').hidden=!SERIES;
+ $('setRule').hidden=!SERIES;
  if(SERIES){
   const a=name(0),b=name(1),score=series.wins;
   $('setHeadline').textContent=(series.complete?'SET COMPLETE':'ROUND '+series.round+' OF 3')+
