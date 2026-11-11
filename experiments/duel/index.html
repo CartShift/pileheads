@@ -56,6 +56,24 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 .card.available{cursor:pointer;box-shadow:0 3px 0 #ac9d82,0 7px 0 #86765a,0 0 0 2px #e6c3825c}
 .card.unavailable{opacity:.68;cursor:not-allowed}
 .card:disabled{opacity:1}
+.card.unavailable:disabled{opacity:.43;filter:grayscale(.24)}
+.card.available{border-color:#ffe2a4;outline:2px solid #ffe2a45e;outline-offset:1px}
+.your-hand{background:#082a22b5;border:1px solid #f0cf8c45;border-radius:14px;padding:11px 12px;margin:8px 0 12px}
+.your-hand h3{color:var(--gold)}
+.step-heading{font-size:14px;margin:12px 1px 8px;font-weight:800;color:var(--gold)}
+.hint-row{font-size:11px;color:var(--muted);line-height:1.4}
+.swap-explain{font-size:13px;line-height:1.5;padding:11px 12px;background:#eac77a17;border:1px solid #f0cf8c45;border-radius:10px;min-height:45px}
+.rule-strip{display:grid;gap:8px;margin:12px 0}
+.rule-strip div{display:flex;align-items:center;gap:9px;font-size:13px}
+.rule-strip strong{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:100%;background:var(--gold);color:#12342a}
+.mini{display:inline-block;margin-left:3px;padding:0px 5px;border-radius:3px;border:1px solid #f5e5cf;color:#fff;font-weight:900}
+.mini.blue{background:#236e9c}.mini.orange{background:#be5132}
+.advanced{margin-top:14px;padding:9px;border:1px solid var(--border);border-radius:10px}
+.advanced summary{cursor:pointer;font-weight:700;color:#efd7a4}
+.wide-start{width:100%;margin:10px 0}
+.opponent-hand{margin:10px 2px}
+.opponent-hand .hand{min-height:90px}
+.instructions{background:#133c30;border-radius:10px;padding:10px 12px;border:1px solid #e9c88670}
 .divider{height:1px;background:var(--border);margin:14px 3px}
 .hands{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .hand-panel{min-width:0}
@@ -74,7 +92,7 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 #cover{display:none;position:fixed;inset:0;z-index:100;background:#061c18fa;align-items:center;justify-content:center;padding:22px}
 #cover .inside{padding:26px;max-width:420px;text-align:center;border:1px solid var(--gold);border-radius:18px;background:#123a2f}
 #cover h2{font-size:23px}
-@media(max-width:740px){.layout{grid-template-columns:1fr}.panel{padding:13px}.setup{grid-template-columns:1fr 1fr}.setup label.wide{grid-column:1/-1}}
+@media(max-width:740px){.layout{display:flex;flex-direction:column}.board-wrap{order:0;width:100%}.panel{order:1;width:100%;padding:13px}.setup{grid-template-columns:1fr 1fr}.setup label.wide{grid-column:1/-1}}
 @media(max-width:440px){.app{padding:10px 7px 28px}.board-wrap{padding:12px 5px}.board{gap:2px}.card{border-width:2px}.card::after{inset:3px}.card b{font-size:clamp(17px,4.7vw,24px)}.card small{font-size:6px;letter-spacing:0}.card .corner{left:3px;top:3px;font-size:8px}.hand{gap:5px}.hand .card{flex-basis:55px;min-height:75px}.hands{gap:6px}.score{min-width:95px;padding:7px}.setup{gap:7px}.status{padding:5px 7px}}
 @media(prefers-reduced-motion:reduce){.card.selected{transform:none}}
 </style>
@@ -84,17 +102,20 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 <header><div><div class="logo">✦ SPARK <span>DUEL</span></div><div class="kicker">Strategic rules experiment · v0.1</div></div><a class="top-link" href="/">Exchange Lab</a></header>
 <div class="layout">
 <aside class="panel">
-<h2>Win by outthinking your opponent</h2>
-<p class="help"><span class="strong">Swap</span> one card from your three-card hand with a different-colored card in the shared row. Keep the card you take.</p>
-<p class="help">Create three or more matching cards in a row to <span class="strong">capture points</span>. The board collapses and refills. After ten turns each, <span class="strong">most captured cards wins.</span></p>
+<h2>How to play</h2>
+<div class="rule-strip"><div><strong>1</strong> Choose one of your 3 cards</div><div><strong>2</strong> Swap it with a different-colored row card</div><div><strong>3</strong> Capture 3+ matching cards to score</div></div>
+<p class="help"><strong>You do not add a card to the row.</strong> The card you choose replaces one row card. That row card comes into your hand. You always finish your turn holding 3 cards.</p>
+<p class="help">Example: if the row shows <span class="mini blue">◆</span><span class="mini blue">◆</span><span class="mini orange">●</span> and you replace the orange card with your blue card, the three blue cards are captured for <strong>3 points</strong>. You keep the orange card.</p>
+<p class="help">After <strong>10 turns each</strong>, whoever captured the most cards wins. There are no bonus turns or attacks.</p>
 <p class="help">Try <strong>Open Hands</strong>: see your opponent's three cards, plan traps, deny their best swaps and choose which colors to bring back into your hand.</p>
+<details class="advanced"><summary>Game settings</summary>
 <div class="setup">
 <label class="wide">Information<select id="information"><option value="open">Open Hands · strategic duel</option><option value="hidden">Hidden Hands · comparison</option></select></label>
 <label>Opponent<select id="opponents"><option value="bots">Play against bot</option><option value="hotseat">Two players / same device</option></select></label>
 <label>Bot style<select id="botStyle"><option value="tactical">Tactical · anticipates replies</option><option value="basic">Basic · maximizes points</option></select></label>
 <label>Game seed<input id="seed" type="number" min="0" max="4294967295" step="1" value="20261111"></label>
-<button id="start" class="primary" style="grid-column:1/-1">New game</button>
-</div>
+</div></details>
+<button id="start" class="primary wide-start">New game</button>
 <p class="subtle">The deck is finite and balanced: four colors, 36 cards each. There are no special cards or mandatory discard decisions. An exchange that leaves the same card in place is illegal.</p>
 <div class="compare">Compare with <a href="/attack/?mode=momentum&row=11&hints=off">Momentum</a>. This is a separate experimental game, not an update to SPARK Simple+.</div>
 </aside>
@@ -104,12 +125,20 @@ header{display:flex;align-items:flex-start;justify-content:space-between;gap:12p
 <div class="deck"><div class="card-back">✧</div><div><strong id="stockCount">144</strong><div>Draw stock</div></div></div>
 <div class="deck"><div><strong id="discardCount">0</strong><div>Discarded</div></div><div class="card-back" style="filter:grayscale(.7)">✧</div></div>
 </div>
-<p id="instructions" class="instructions">Choose a hand card and swap with a different-colored row card.</p>
+<p id="instructions" class="instructions">STEP 1: Choose one card from your hand.</p>
+<div class="hand-panel your-hand">
+<h3><span id="stepHand">1. Choose a card from your hand</span><span id="ownCount" class="muted"></span></h3>
+<div class="hint-row" id="ownTitle">Your hand</div>
+<div id="hand" class="hand" aria-label="Your three cards"></div>
+</div>
+<div class="swap-explain" id="swapExplain" aria-live="polite">Your chosen card will replace a row card. You keep the row card you take.</div>
+<h3 class="step-heading" id="stepBoard">2. Then choose a different-colored card in the row</h3>
 <div id="board" class="board" aria-label="Visible row of nine cards"></div>
 <div class="divider"></div>
-<div class="hands">
-<div class="hand-panel"><h3><span id="ownTitle">Your hand</span><span id="ownCount" class="muted"></span></h3><div id="hand" class="hand" aria-label="Your cards"></div></div>
-<div class="hand-panel"><h3><span id="otherTitle">Opponent hand</span><span id="otherCount" class="muted"></span></h3><div id="otherHand" class="hand" aria-label="Opponent cards"></div></div>
+<div class="hand-panel opponent-hand">
+<h3><span id="otherTitle">Opponent's hand</span><span id="otherCount" class="muted"></span></h3>
+<div class="hint-row">In Open Hands, these cards are public, so you can plan around them.</div>
+<div id="otherHand" class="hand" aria-label="Opponent cards"></div>
 </div>
 <div class="feedback" id="message" aria-live="polite">Your choices can change the row and the cards you will hold next turn.</div>
 <div class="actions"><button id="export">Export playtest</button><button id="rematch">Replay same seed</button></div>
