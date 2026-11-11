@@ -39,7 +39,7 @@ function play(g,seat,move){
   if(before?.n===card.n){record.cleared=g.pile.length;record.reason='match';g.ashes.push(...g.pile.splice(0))}
   while(who.hand.length<HAND&&g.stock.length)who.hand.push(g.stock.pop());
  }else{
-  const captured=g.pile.splice(-Math.min(2,g.pile.length));
+  const captured=g.pile.splice(-1);
   const discarded=g.pile.splice(0);
   who.hand.push(...captured);who.pickups++;record.taken=captured.length;record.cleared=discarded.length;record.reason='pickup';
   g.ashes.push(...discarded);
