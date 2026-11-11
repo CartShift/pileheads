@@ -2,7 +2,7 @@
 const E=globalThis.SparkDuel, $=id=>document.getElementById(id);
 const NAME={O:'Orange',B:'Blue',P:'Purple',G:'Green'};
 const ICON={O:'●',B:'◆',P:'✦',G:'▲'},KEY='spark-duel-lab-v01';
-let game=null,selected=0,opponents='bots',covered=false,busy=false,botTimer=null,epoch=0;
+let game=null,selected=0,opponents='bots',botStyle='tactical',covered=false,busy=false,botTimer=null,epoch=0;
 let message='Choose a card from your hand, then swap it with a different-colored row card.';
 function seat(){return game?game.turn%game.players.length:0}
 function done(){return !!game&&(!!game.blocked||game.turn>=game.turnsPerPlayer*game.players.length)}
@@ -13,11 +13,11 @@ function card(color,attrs='',css=''){
  return '<button type="button" class="card '+color+' '+css+'" '+attrs+' aria-label="'+NAME[color]+' card">'+
   '<span class="corner" aria-hidden="true">'+ICON[color]+'</span><b aria-hidden="true">'+ICON[color]+'</b><small>'+NAME[color]+'</small></button>';
 }
-function persist(){try{localStorage.setItem(KEY,JSON.stringify({game,opponents,message}))}catch(error){console.warn('Save unavailable',error)}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({game,opponents,botStyle,message}))}catch(error){console.warn('Save unavailable',error)}}
 function restore(){
  try{const saved=JSON.parse(localStorage.getItem(KEY)||'null');
   if(saved?.game?.version!=='duel-lab-0.1'||!['open','hidden'].includes(saved.game.information))return false;
-  game=saved.game;opponents=saved.opponents==='hotseat'?'hotseat':'bots';message=saved.message||message;
+  game=saved.game;opponents=saved.opponents==='hotseat'?'hotseat':'bots';botStyle=saved.botStyle==='basic'?'basic':'tactical';message=saved.message||message;
   return true;
  }catch{return false}
 }
@@ -93,7 +93,7 @@ function queueBot(){
  botTimer=setTimeout(()=>{
   if(epoch!==session||!game||done()||seat()!==1){busy=false;render();return}
   busy=false;
-  const policy=game.information==='open'?'counter':'planner';
+  const policy=botStyle==='basic'?'greedy':game.information==='open'?'counter':'planner';
   try{move(1,E.choose(game,1,policy))}catch(error){
    game.blocked='bot_error';message='Bot error: '+String(error.message);next();
   }
@@ -104,7 +104,7 @@ function start(){
  epoch++;busy=false;selected=0;covered=false;
  const seed=Number($('seed').value);
  if(!Number.isInteger(seed)||seed<0||seed>4294967295){alert('Seed must be a nonnegative integer under 2^32.');return}
- opponents=$('opponents').value==='hotseat'?'hotseat':'bots';
+ opponents=$('opponents').value==='hotseat'?'hotseat':'bots';botStyle=$('botStyle').value==='basic'?'basic':'tactical';
  game=E.create({seed,players:2,turnsPerPlayer:10,deckSize:144,action:'exchange',refillRule:'safe',
   rowSize:9,handSize:3,colorCount:4,information:$('information').value});
  message='Think ahead: the row card you exchange becomes part of your next hand.';
@@ -140,9 +140,16 @@ $('export').onclick=()=>{
  link.href=url;link.download='spark-duel-'+game.seed+'.json';link.click();
  setTimeout(()=>URL.revokeObjectURL(url),800);
 };
-if(restore()){
+const query=typeof location!=='undefined'?new URLSearchParams(location.search):null;
+if(['open','hidden'].includes(query?.get('information')))$('information').value=query.get('information');
+if(['bots','hotseat'].includes(query?.get('opponents')))$('opponents').value=query.get('opponents');
+if(['tactical','basic'].includes(query?.get('bot')))$('botStyle').value=query.get('bot');
+if(query?.get('seed')&&/^\d+$/.test(query.get('seed')))$('seed').value=query.get('seed');
+if(query?.get('new')==='1')start();
+else if(restore()){
  $('information').value=game.information;
  $('opponents').value=opponents;
+ $('botStyle').value=botStyle;
  $('seed').value=String(game.seed);
  if(opponents==='hotseat'&&game.information==='hidden'&&!done())showCover();
  else {render();if(opponents==='bots'&&seat()===1)queueBot()}
