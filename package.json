@@ -6,7 +6,11 @@
   "scripts": {
     "test": "node tests/game.cjs && node tests/rooms.mjs",
     "build": "node scripts/build.mjs",
-    "dev": "node scripts/dev.mjs"
+    "dev": "node scripts/dev.mjs",
+    "test:game-lab": "node experiments/game-lab/test.cjs && node experiments/game-lab/ui-test.cjs",
+    "simulate:game-lab": "node experiments/game-lab/simulate.cjs --games 200 --seed 20261111"
   },
-  "engines": { "node": ">=24" }
+  "engines": {
+    "node": ">=24"
+  }
 }
