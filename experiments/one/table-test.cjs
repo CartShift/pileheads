@@ -46,6 +46,8 @@ function mount(q='?new=1',store=new Map(),reduced=false){
    style:{},innerHTML:'',className:'',disabled:false,classList:mockClass(),
    remove(){const i=ghosts.indexOf(this);if(i>=0)ghosts.splice(i,1)},
    removeAttribute(){},
+   setPointerCapture:()=>state.captures++,
+   releasePointerCapture:()=>state.releases++,
    animate(){state.animations++;const a={onfinish:null,oncancel:null};return a},
    cloneNode(){return mockNode()},
    getBoundingClientRect(){return{left:105,top:500,width:82,height:121}}
