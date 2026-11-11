@@ -39,6 +39,16 @@ Sources:
 - https://www.nsv.de/wp-content/uploads/2024/04/TheGame_QE_GB.pdf (publisher's ascending/descending pile rules)
 - https://www.dpma.de/english/trade_marks/trade_mark_search/ (trademark checks before product naming)
 
+## Usability reset after CROSS and FORGE · 2026-11-11
+
+The owner directly rejected both mechanical alphas as **confusing, complicated and not user-friendly**. This feedback overrules any presumption that those candidates deserve more rules or visual polish.
+
+The next experiment is [TILT ONE](../../experiments/one/README.md), an intentionally simplified **one-pile, one-number, one-arrow** candidate played with a purpose-built 48-card deck. The top arrow determines whether the next card must be the same number or higher/lower. One tap plays a legal card; a same-number match clears the pile; when blocked, the player takes only the top card and the rest clear.
+
+This is a *new hypothesis*, not a selected retail product. We should **prioritize first-time understanding and spontaneous rematches** over simulation sophistication or elaborate UI. Don't reintroduce dual numbers, stacked exceptions, another game mode or multiple special card types unless a human playtest provides a specific reason.
+
+The custom physical deck and own-store-first commercial intent remain firm. Exact identity, deck composition and name remain conditional on meaningful human evidence and originality checks.
+
 ## Card information design: prototype hypothesis (NOT a locked production specification)
 
 An initial physical trial can use a **76-card custom deck**:
