@@ -1,5 +1,7 @@
 # SPARK Simple+
 
+> **Latest isolated gameplay experiment:** [TILT ONE](experiments/one/README.md) cuts the earlier CROSS/FORGE complexity to one number, one arrow, one pile and one-tap play. The prototype includes a custom 48-card print pack and tests. It does not change this project's released SPARK game.
+
 > **New retail-game direction (concept only):** See [`design/tilt/PRODUCT_BRIEF.md`](design/tilt/PRODUCT_BRIEF.md) for the Shithead-inspired, original proprietary-deck product brief. It locks the owner's 2/3/7/8/10 house-special reference, the requirement for unique physical cards, and the own-store direct-sales strategy. This is not an update to the SPARK Simple+ rules below.
 
 Mobile-first Hebrew/English card-game playtesting prototype, hosted privately on ChatGPT Sites. Vanilla HTML, CSS and JavaScript, served by a dependency-free Cloudflare Worker with persistent D1 human rooms.
