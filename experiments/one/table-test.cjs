@@ -11,7 +11,7 @@ const required=['opponentName','opponentHand','deckVisual','stock','other','disc
  'takeButton','soundEnabled','done','cover','reveal'];
 for(const id of required)assert.match(html,new RegExp('id="'+id+'"'),'Missing first-person region: '+id);
 assert.match(html,/touch-action:none/,'Touch dragging must not be consumed by mobile scrolling');
-function mount(q='?new=1',store=new Map()){
+function mount(q='?new=1',store=new Map(),reduced=false){
  const elements=new Map(),tasks=[],ghosts=[],state={captures:0,releases:0,animations:0},defaults={
   seed:'20261111',opponents:'bot',botStyle:'thoughtful'
  };
@@ -55,7 +55,7 @@ function mount(q='?new=1',store=new Map()){
   document:{getElementById:el,createElement:mockNode,
    body:{appendChild:n=>{ghosts.push(n);return n}},
    querySelectorAll:()=>ghosts
-  },window:{matchMedia:()=>({matches:false})},location:{search:q},URLSearchParams,
+  },window:{matchMedia:()=>({matches:reduced})},location:{search:q},URLSearchParams,
   localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},
   setTimeout:fn=>{tasks.push(fn);return tasks.length},clearTimeout(){},
   URL:{createObjectURL:()=> 'blob:fake',revokeObjectURL(){}},
@@ -70,15 +70,15 @@ function mount(q='?new=1',store=new Map()){
    getBoundingClientRect:()=>({left:105,top:500,width:82,height:121})};
   el('hand').onclick({target:{closest:s=>s==='[data-index]'?card:null}});
  }
- function drag(i){
+ function drag(i,x=190,y=285){
   const source=mockNode();source.dataset={index:String(i)};
   const callbacks=el('hand').events;
   const ev=(x,y)=>({pointerId:17,clientX:x,clientY:y,button:0,
      preventDefault(){},target:{closest:selector=>selector==='[data-index]'?source:null}});
   callbacks.pointerdown(ev(115,565));
-  callbacks.pointermove(ev(190,285));
+  callbacks.pointermove(ev(x,y));
   const over=el('pileMat').classList.contains('drop-active');
-  callbacks.pointerup(ev(190,285));
+  callbacks.pointerup(ev(x,y));
   return over;
  }
  function drain(){
@@ -101,6 +101,7 @@ function run(){
  a.tap(0);
  assert.equal(a.game().turn,1);checks++;
  assert.match(a.el('hand').innerHTML,/data-index/);checks++; // own hand stays visible during bot turn
+ assert.match(a.el('hand').innerHTML,/disabled/);checks++; // not actionable while the bot plays
  assert.match(a.el('opponentHand').innerHTML,/back-card/);checks++;
  assert.equal(a.el('stock').textContent,'41 left');checks++;
  assert.ok(a.state.animations>=1,'Card flight should be activated when browser DOM supports it');checks++;
@@ -117,6 +118,19 @@ function run(){
  assert.equal(b.state.releases,1);checks++;
  assert.equal(b.el('pileMat').classList.contains('drop-active'),false);checks++;
  b.drain();assert.equal(b.game().turn,2);checks++;
+ const canceled=mount();
+ assert.equal(canceled.drag(0,345,450),false);checks++;
+ assert.equal(canceled.game().turn,0,'Dragging outside the pile should not play');checks++;
+ const reduced=mount('?new=1',new Map(),true);
+ reduced.tap(0);
+ assert.equal(reduced.state.animations,0,'Respect prefers-reduced-motion');checks++;
+ const many=mount();
+ const manySnapshot=JSON.parse(many.store.get('one-card-one-rule-v01'));
+ for(let i=0;i<8;i++)manySnapshot.game.people[1].hand.push(manySnapshot.game.stock.pop());
+ many.store.set('one-card-one-rule-v01',JSON.stringify(manySnapshot));
+ const compact=mount('',many.store);
+ assert.equal((compact.el('opponentHand').innerHTML.match(/class="back-card"/g)||[]).length,5);checks++;
+ assert.equal(compact.el('other').textContent,'11 cards in hand');checks++;
  const c=mount();
  c.el('soundEnabled').checked=true;c.el('soundEnabled').onchange({target:{checked:true}});
  assert.equal(JSON.parse(c.store.get('one-card-one-rule-v01')).sounds,true);checks++;
