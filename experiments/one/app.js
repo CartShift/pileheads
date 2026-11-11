@@ -108,6 +108,10 @@ function render(){
      game.draw?'Draw':name(game.winner)+' wins!')+'</h2>'+
    '<p>'+(SERIES?'Set: '+series.wins[0]+' – '+series.wins[1]+' · Round '+series.round+
      ' · '+game.turn+' turns':game.turn+' turns. Your next match might go very differently.')+'</p>'+
+   (SERIES&&series.history.length?
+     '<p class="round-recap">'+series.history.map(h=>
+       'Round '+h.round+': '+name(h.winner)+' · '+h.turns+' turns · '+
+       (h.pickups||0)+' pickups').join('  |  ')+'</p>':'')+
    '<button type="button" class="primary" data-rematch="1">'+
     (SERIES?(game.draw?'Retry this round':series.complete?'New best-of-three set':'Next round'): 'Play again')+'</button>':'';
 }
