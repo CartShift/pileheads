@@ -1,0 +1,117 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f7f3e8">
+<title>TILT ONE · Playtest</title>
+<style>
+:root{--ink:#183a34;--muted:#657a72;--paper:#f7f3e8;--white:#fffdf6;--felt:#155347;--up:#d35d40;--down:#137d8a;--gold:#ead59c;--border:#cad1c6;--focus:#f0bc6c;color-scheme:light}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-height:100dvh;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--paper);color:var(--ink);line-height:1.4}
+button,select,input{font:inherit}button{cursor:pointer;touch-action:manipulation}
+button:focus-visible,summary:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #bd6b35;outline-offset:3px}
+.app{max-width:780px;margin:auto;padding:16px clamp(12px,3vw,24px) 40px}
+header{display:flex;justify-content:space-between;gap:14px;align-items:start;margin-bottom:12px}
+.logo{font-family:Georgia,serif;font-size:29px;letter-spacing:-1.3px;font-weight:900;color:var(--ink)}
+.logo strong{font-family:system-ui,sans-serif;font-size:10px;letter-spacing:.17em;vertical-align:middle;padding:5px 7px;border:1px solid var(--border);border-radius:6px;margin-left:7px}
+.micro{font-size:12px;color:var(--muted)}header a{color:var(--ink);font-size:12px;text-decoration-thickness:1px}
+.rules-teaser{margin:0 0 13px;font-size:14px;color:#466056}
+.rules-teaser strong{color:#1e423a}
+.table{background:radial-gradient(ellipse at 50% 12%,#216658,#164c43 72%,#123c36);color:#fff;border-radius:24px;border:1px solid #16473e;box-shadow:0 14px 26px #21473a24;padding:clamp(13px,3vw,25px)}
+.table-meta{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.turn{font-weight:800;font-size:13px;color:#f9e8b6}.counts{font-size:12px;color:#e1ece3;display:flex;gap:12px}
+.rule-display{text-align:center;margin:20px auto 13px}
+.rule-display .label{font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:800;color:#c9ddcc}
+.rule-display .big{font-size:clamp(23px,5.5vw,38px);font-weight:900;letter-spacing:-.6px;margin:5px 0 3px;line-height:1.15}
+.rule-display .big em{font-style:normal;color:#ffe0b2}
+.rule-display .tip{font-size:12px;color:#d9eadd;margin-top:6px}
+.pile{display:flex;justify-content:center;min-height:199px;align-items:center;position:relative}
+.pile-count{position:absolute;top:8px;left:calc(50% + 55px);border:1px solid #cfddcb7a;border-radius:18px;padding:3px 9px;font-size:11px;color:#d9e8d8}
+.card{--direction:var(--up);position:relative;border:3px solid #eee0bb;background:var(--white);color:var(--ink);width:100px;min-width:100px;height:155px;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 4px 0 #9d987e,0 9px 19px #00000024;padding:5px 3px;transition:transform .13s ease,border-color .13s ease}
+.card[data-arrow="down"]{--direction:var(--down)}
+.card .number{font-family:Georgia,serif;font-size:70px;font-weight:900;line-height:1;letter-spacing:-3px}
+.card .arrow{font-weight:950;font-size:26px;line-height:1;color:var(--direction)}
+.card .corner{font-size:10px;font-weight:800;letter-spacing:.09em;color:#586b60;position:absolute;top:8px;left:10px}
+.card .footer{font-size:9px;color:#6c7a72;letter-spacing:.07em;font-weight:700;position:absolute;bottom:7px}
+.card.table-card{transform:rotate(-3deg);height:173px;width:113px}
+.card.table-card .number{font-size:79px}
+.card.table-card .arrow{font-size:31px}
+.empty-pile{height:167px;width:115px;border:2px dashed #c6dbc49c;border-radius:14px;display:grid;place-items:center;font-size:12px;color:#e3eee4}
+.feedback{margin:10px 0 0;border:1px solid #dfe9d3aa;background:#103f36a8;border-radius:12px;padding:10px 12px;font-size:13px;color:#f8efdb;min-height:44px}
+.hand-section{margin-top:19px;padding:19px 4px 4px;text-align:center}
+.hand-heading{font-weight:850;font-size:15px;margin:0 0 5px}
+.hand-hint{color:var(--muted);font-size:12px;margin:0 0 16px}
+.hand{display:flex;gap:clamp(7px,3.5vw,20px);justify-content:center;flex-wrap:wrap;min-height:161px}
+.hand .card{width:clamp(82px,24vw,112px);min-width:0;flex:0 0 clamp(82px,24vw,112px);height:149px}
+.hand .card .number{font-size:64px}
+.hand .card.playable{border-color:#337766;box-shadow:0 3px 0 #86a88f,0 7px 15px #0001}
+.hand .card.playable:hover{transform:translateY(-5px)}
+.hand .card:disabled{opacity:.33;filter:grayscale(.6);cursor:default}
+.hand .card:disabled .footer{color:#6e756d}
+.take-zone{text-align:center;margin-top:17px}.take-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:12px;background:var(--up);color:white;font-weight:900;padding:14px 24px;font-size:15px;min-height:54px}
+.take-explain{font-size:12px;color:var(--muted);margin:8px 0}
+.done{margin:13px auto;padding:16px;border:1px solid var(--border);background:#fff9eb;border-radius:13px;text-align:center}
+.done h2{font-family:Georgia,serif;margin:0 0 8px;font-size:24px}.done p{font-size:13px}.primary{background:var(--ink);color:white;border:0;border-radius:11px;font-weight:850;min-height:44px;padding:11px 18px}
+.below{margin-top:22px;border-top:1px solid var(--border);padding-top:16px}
+.below details{background:#fffaf0;border:1px solid #dcd9ca;border-radius:12px;margin-bottom:10px;padding:12px 14px}
+.below summary{font-weight:800;cursor:pointer;font-size:13px}
+.below p,.below li{font-size:13px;line-height:1.6}
+.below ol{padding-left:20px}
+.settings{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.settings label{font-size:12px;color:#40564e;display:flex;flex-direction:column;gap:5px}
+.settings select,.settings input{width:100%;min-width:0;border:1px solid #bac9c0;border-radius:8px;padding:9px;color:var(--ink);background:white;min-height:42px}
+.settings .wide{grid-column:1/-1}
+.utility{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}
+.utility button,.utility a{min-height:43px;flex:1;border:1px solid #b8cabd;border-radius:10px;background:white;color:var(--ink);text-decoration:none;padding:10px 12px;text-align:center;font-size:12px;font-weight:800}
+.utility button.primary{background:var(--ink);color:white}
+.disclaimer{font-size:11px;color:var(--muted);margin-top:17px}
+#cover{display:none;position:fixed;inset:0;z-index:10;background:#112f2bea;align-items:center;justify-content:center;padding:20px}
+#cover .inner{max-width:380px;background:var(--paper);color:var(--ink);border-radius:20px;text-align:center;padding:26px}
+#cover h2{font-family:Georgia,serif;font-size:25px;margin:0 0 8px}
+#cover p{font-size:13px}
+@media(max-width:410px){.app{padding:11px 9px}.table{border-radius:17px}.hand .card{width:79px;flex-basis:79px;height:132px}.hand .card .number{font-size:55px}.hand .card .arrow{font-size:22px}.hand .card .footer{font-size:8px}.hand{gap:8px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}.hand .card.playable:hover{transform:none}}
+</style></head><body>
+<div class="app">
+<header><div><div class="logo">TILT <strong>ONE</strong></div><div class="micro">A simpler original-deck experiment</div></div><a href="./print.html">Print cards</a></header>
+<p class="rules-teaser">One pile. <strong>One number + one arrow.</strong> Play a card, and its arrow sets the rule for the next player.</p>
+<main>
+<section class="table" aria-label="Shared playing area">
+<div class="table-meta"><span id="turn" class="turn">Your turn</span><div class="counts"><span id="stock">Deck: 42</span><span id="other">Bot: 3 cards</span></div></div>
+<div class="rule-display" aria-live="polite">
+<div class="label">THE RULE RIGHT NOW</div>
+<div id="condition" class="big">ANY CARD</div>
+<div id="ruleTip" class="tip">Start the pile with any card.</div>
+</div>
+<div id="pile" class="pile" aria-label="Top card of shared pile"></div>
+<div id="message" class="feedback" aria-live="polite">Tap one of your bright cards to play.</div>
+</section>
+<section class="hand-section">
+<h2 id="handTitle" class="hand-heading">YOUR CARDS</h2>
+<p id="handHint" class="hand-hint">Bright = playable. Dimmed = cannot play right now.</p>
+<div id="hand" class="hand" aria-label="Your playable cards"></div>
+<div id="take" class="take-zone" hidden>
+<button id="takeButton" class="take-button">Take the top card</button>
+<p class="take-explain">Only when you can't play. The rest of the pile is cleared.</p>
+</div>
+<div id="done" class="done" hidden></div>
+</section>
+</main>
+<section class="below">
+<details id="howto"><summary>How do I play? Three simple rules</summary>
+<ol><li><strong>Play one card</strong> with a number that follows the pile's arrow. ↑ means the same number or higher; ↓ means the same number or lower.</li>
+<li><strong>Your card sets the next rule.</strong> The arrow printed on your card applies to the next player. Play the same number as the top card to clear the whole pile.</li>
+<li><strong>Stuck?</strong> Take the pile's top card, clear the rest and end your turn. Keep three cards in hand while the draw deck lasts. Once it's empty, the first player to shed their entire hand wins.</li></ol>
+<p>This is a custom 48-card deck, not ordinary playing cards. There are six copies of each number (1–8), half ↑ and half ↓.</p>
+</details>
+<details><summary>Game options and playtest controls</summary>
+<div class="settings">
+<label>Opponent<select id="opponents"><option value="bot">Play against bot</option><option value="hotseat">Two people, one phone</option></select></label>
+<label>Bot style<select id="botStyle"><option value="thoughtful">Thoughtful</option><option value="basic">Basic</option><option value="random">Random</option></select></label>
+<label class="wide">Replay seed<input id="seed" type="number" min="0" max="4294967295" step="1" value="20261111"></label>
+</div>
+<div class="utility"><button id="newGame" class="primary">Start a new match</button><button id="export">Export game</button></div>
+<p>Settings apply when you start a new match. Saved progress is local to this browser.</p>
+</details>
+</section>
+<p class="disclaimer">Experimental concept, not a final product. We need real players to verify clarity, decisions and originality before making this a physical game for sale.</p>
+</div>
+<div id="cover" role="dialog" aria-modal="true" aria-labelledby="coverTitle"><div class="inner"><h2 id="coverTitle">Pass the phone</h2><p>Only the next player should see their cards.</p><button id="reveal" class="primary">Show my hand</button></div></div>
+<script src="./engine.js"></script><script src="./app.js"></script></body></html>
