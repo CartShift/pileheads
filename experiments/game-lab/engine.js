@@ -133,21 +133,25 @@ function signalLegal(g,p){
 }
 function signalPower(card,prize){return card.v+(card.c===prize.c?2:0)}
 function signalChoose(g,p,policy='planner'){
- // All policies use own hand plus public prizes, never read an opponent's
- // hand/commit/stock. In live play the bot selects before the opponent reveals.
+ // Each bot evaluates its own hand and the THREE publicly visible prizes.
+ // It never reads opponent hand, hidden commitment or stock order. A secret
+ // selection is resolved only after both players have independently bid.
  const choices=g.players[p].hand.flatMap((card,index)=>g.prizes.map((prize,slot)=>({type:'bid',index,slot,card,prize})));
  ensure(choices.length>0,'No Signal bids');
+ const maxPrize=Math.max(...g.prizes.map(x=>x.v));
+ const weights=g.prizes.map(x=>Math.exp((x.v-maxPrize)*1.35));
+ const totalWeight=weights.reduce((a,b)=>a+b,0);
  let winner=choices[0],max=-Infinity;
  for(const o of choices){
   const bid=signalPower(o.card,o.prize);
-  const prizeValues=g.prizes.reduce((sum,x)=>sum+x.v,0);
-  const contest=.12+.73*o.prize.v/prizeValues;
-  const contestedWin=Math.min(.96,Math.max(.12,(bid-1)/8));
-  const futureCost=(g.round+1<g.rounds?(o.card.v-1)*.27:0);
+  const chanceOpponentTargets=.04+.87*weights[o.slot]/totalWeight;
+  // Heuristic estimate over UNKNOWN opponent cards, not a look at hidden data.
+  const chanceWinContest=Math.min(.94,Math.max(.12,(bid-1.2)/6.2));
+  const opportunityCost=(g.round+1<g.rounds?(o.card.v-1)*.37:0);
   const value=policy==='random'?next(g):
     policy==='greedy'?o.prize.v*2+.10*bid:
-    o.prize.v*(1-contest*(1-contestedWin))-.60*futureCost+
-      .18*bid+(g.round>6?.14*o.prize.v:0);
+    o.prize.v*(1-chanceOpponentTargets*(1-chanceWinContest))-opportunityCost+
+       .06*bid+(o.card.c===o.prize.c?.05:0);
   if(value>max+1e-9){max=value;winner=o}
  }
  return{type:'bid',index:winner.index,slot:winner.slot};
