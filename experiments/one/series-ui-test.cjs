@@ -116,6 +116,25 @@ function run(){
  assert.equal(reset.series.baseSeed,(before+1)>>>0);checks++;
  assert.equal(E.count(reset.game),48);checks++;
  assert.equal(a.store.has(originalSessionKey),false);checks++;
+ // Hotseat set must not expose the next player's face-up hand after the round ends.
+ const hot=mount(seed+19);
+ hot.el('opponents').value='hotseat';
+ hot.el('newGame').onclick();
+ let hotTurns=0;
+ while(!E.finished(hot.saved().game)){
+  if(hot.el('cover').style.display==='flex')hot.el('reveal').onclick();
+  const g=hot.saved().game,seat=E.active(g),move=E.choose(g,seat,'strategic');
+  if(move.type==='take')hot.el('takeButton').onclick();
+  else{
+   const card={disabled:false,dataset:{index:String(move.index)}};
+   hot.el('hand').onclick({target:{closest:s=>s==='[data-index]'?card:null}});
+  }
+  assert.ok(++hotTurns<180,'Hotseat stalled');
+ }
+ assert.equal(hot.el('done').hidden,false);checks++;
+ assert.doesNotMatch(hot.el('hand').innerHTML,/data-index|aria-label="Number/);checks++;
+ assert.match(hot.el('hand').innerHTML,/hidden during handoff/);checks++;
+ assert.equal(hot.saved().series.history.length,1);checks++;
  return{pass:true,checks,turns,seed};
 }
 if(require.main===module)console.log(JSON.stringify(run()));
