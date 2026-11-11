@@ -39,6 +39,23 @@ Vercel clean preview `dpl_AYdy9eyuiMyV5DRMKGLZoQaZ5yKU` reached **READY** with `
 
 **Still unverified:** actual mobile-browser touch interaction and rendered screenshot QA, card-print alignment, and first-time human comprehension. These cannot be inferred from HTTP and stub test success.
 
+## First-person tabletop simulator enhancement
+
+The positive first human feedback was for ONE's **simple rules**. This update keeps the engine and physical deck *unchanged* and makes the browser simulator look and behave more like sitting at a table:
+
+- **Opposite seat:** opponent's cards shown as identical face-down backs; private IDs/values are never exposed by the DOM or ARIA labels.
+- **Near seat:** your own real hand stays at the bottom and remains visible while the bot chooses (disabled during their turn). In two-player hotseat, a full-screen handoff curtain hides the next player's hand until ready.
+- **Physical table:** felt surface with a wooden border, visible stock and discard stacks, a readable shared pile in the center and the current comparison rule directly on the table.
+- **Play a card:** one tap still plays instantly. Pointer drag-and-drop onto the central pile is optional, with capture to support long touch drags from the lower hand. Dropping outside cancels.
+- **Motion:** the played card travels from the hand to the pile or discard; pickups travel toward the hand, and opponent turns animate from the far seat. Reduced-motion preference disables movement.
+- **Optional sound:** soft synthesized card taps, OFF by default, only enabled from the settings. No external samples or network calls.
+- **Real deck:** rank and arrow have the same look and information semantics as the printable physical cards.
+- **Save contract:** existing localStorage key and serialized engine state are preserved, with an optional backward-compatible sound setting.
+
+There are no new rules, no extra turns, no card mechanics, no network services and no new progression concepts. Keep first-person enhancements subordinate to the next playable action.
+
+**QA:** engine invariants, original UI suite, new first-person tabletop DOM-stub integration tests and exact print-deck counts. Automated DOM checks are *not* a substitute for inspecting the site on Android or in real browser screenshots. When shipping a clean Vercel preview, never include temporary verification endpoints in that user-facing deployment.
+
 ## Play and physical proof
 
 - Browser: index.html, app.js, engine.js (all static, no runtime network requirement).
