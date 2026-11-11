@@ -7,8 +7,9 @@
     "test": "node tests/game.cjs && node tests/rooms.mjs",
     "build": "node scripts/build.mjs",
     "dev": "node scripts/dev.mjs",
-    "test:one": "node experiments/one/test.cjs && node experiments/one/ui-test.cjs && node experiments/one/table-test.cjs && node experiments/one/print-test.cjs",
-    "simulate:one": "node experiments/one/simulate.cjs --pairs 250"
+    "test:one": "node experiments/one/test.cjs && node experiments/one/strategy-test.cjs && node experiments/one/ui-test.cjs && node experiments/one/table-test.cjs && node experiments/one/print-test.cjs",
+    "simulate:one": "node experiments/one/simulate.cjs --pairs 250",
+    "simulate:one-strategy": "node experiments/one/strategy-simulate.cjs --seeds 800 --seed 20261111"
   },
   "engines": {
     "node": ">=24"
