@@ -1,6 +1,8 @@
 (function(){'use strict';
-const E=globalThis.OneLab,$=id=>document.getElementById(id),KEY='one-card-one-rule-v01';
+const E=globalThis.OneLab,$=id=>document.getElementById(id);
 const query=new URLSearchParams(location.search);
+const MODE=query.get('mode')==='quick'?'quick':'classic';
+const KEY=MODE==='quick'?'one-card-one-rule-quick-v01':'one-card-one-rule-v01';
 let game=null,opponents='bot',botStyle='strategic',busy=false,covered=false,epoch=0,botTimer=null;
 let sounds=false,drag=null,suppressClick=false,voice=null;
 let message='Tap a playable card. Its arrow tells the next player what they need to play.';
@@ -14,7 +16,7 @@ function persist(){try{localStorage.setItem(KEY,JSON.stringify({game,opponents,b
 function restore(){
  try{
   const old=JSON.parse(localStorage.getItem(KEY)||'null');
-  if(!old?.game||old.game.version!==E.VERSION||old.game.people?.length!==2)return false;
+  if(!old?.game||old.game.version!==E.VERSION||old.game.people?.length!==2||(old.game.mode||'classic')!==MODE)return false;
   game=old.game;opponents=old.opponents==='hotseat'?'hotseat':'bot';
   botStyle=['strategic','thoughtful','basic','random'].includes(old.botStyle)?old.botStyle:'strategic';
   message=typeof old.message==='string'?old.message:message;
@@ -49,6 +51,13 @@ function render(){
  $('opponentHand').innerHTML=opponentBacks(op.hand.length);
  $('other').textContent=op.hand.length+' '+(op.hand.length===1?'card':'cards')+' in hand';
  $('stock').textContent=game.stock.length+' left';
+ $('modeTitle').textContent=MODE==='quick'?'Short strategic game':'The tabletop prototype';
+ $('classicLink').setAttribute('aria-current',MODE==='classic'?'page':'false');
+ $('quickLink').setAttribute('aria-current',MODE==='quick'?'page':'false');
+ $('handRule').textContent=MODE==='quick'?'Keep four cards in hand while the draw deck lasts.':'Keep three cards in hand while the draw deck lasts.';
+ $('deckRule').textContent=MODE==='quick'?
+  'Short strategic mode: use the 32 CORE cards (two of every number/arrow pair). Set the 16 EXTRA cards aside and deal four cards per player.':
+  'Regular mode: use all 48 purpose-designed cards and deal three cards per player.';
  $('deckVisual').innerHTML=game.stock.length?'<span class="back-card" aria-hidden="true"></span>':'<span class="empty-stock">Empty</span>';
  $('deckVisual').className=game.stock.length?'stack-back':'';
  const ashes=game.ashes.length;
@@ -192,7 +201,7 @@ function queueBot(){
 function resetGame(seed){
  if(botTimer!==null)clearTimeout(botTimer);
  epoch++;busy=false;covered=false;drag=null;clearGhosts();
- game=E.create({seed,players:2});
+ game=E.create({seed,players:2,mode:MODE});
  message='You are at the table. Tap one of your cards to start.';
  $('cover').style.display='none';persist();
  if(opponents==='hotseat')cover();else{render();queueBot()}
@@ -279,7 +288,7 @@ hand.addEventListener?.('pointercancel',e=>finishDrag(e,true));
 const reset=query.get('new')==='1'||!restore();
 if(reset){
  const seed=query.has('seed')?Number(query.get('seed')):20261111;
- game=E.create({seed:Number.isInteger(seed)&&seed>=0&&seed<=4294967295?seed:20261111,players:2});
+ game=E.create({seed:Number.isInteger(seed)&&seed>=0&&seed<=4294967295?seed:20261111,players:2,mode:MODE});
  persist();
 }
 $('opponents').value=opponents;$('botStyle').value=botStyle;$('seed').value=String(game.seed);
