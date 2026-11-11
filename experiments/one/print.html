@@ -29,7 +29,7 @@ header p{max-width:700px;margin:8px auto}header button,header a{display:inline-b
 </style></head><body>
 <header><h1>TILT ONE · Print-and-play</h1><p>48 original prototype cards, each with one number and one direction. Six A4 card sheets plus one-page rules. Use identical opaque-backed sleeves.</p>
 <button onclick="window.print()">Print at 100% size</button><a href="./">Back to the game</a></header>
-<div class="note">These are mechanical test cards, not final commercial artwork. Print at actual size, cut on dashed edges, and sleeve all cards with indistinguishable backs. Every number 1–8 has three ↑ and three ↓ cards. Do not mix with a standard playing-card deck.</div>
+<div class="note">These are mechanical test cards, not final commercial artwork. Print at actual size, cut on dashed edges, and sleeve all cards with indistinguishable backs. Every number 1–8 has three ↑ and three ↓ cards. Two copies of each combination are marked CORE, and one EXTRA. For the short two-player game, use only the 32 CORE cards. Do not substitute a standard playing-card deck.</div>
 <main class="sheets" id="sheets"></main>
 <script src="./engine.js"></script>
 <script>
@@ -42,18 +42,18 @@ header p{max-width:700px;margin:8px auto}header button,header a{display:inline-b
   cards.slice(offset,offset+9).map(c=>'<article class="card '+c.arrow+'"><div class="top">TILT / ONE</div>'+
   '<div class="rank">'+c.n+'</div><div class="direction">'+(c.arrow==='up'?'↑':'↓')+'</div>'+
   '<div class="label">'+(c.arrow==='up'?'HIGHER NEXT':'LOWER NEXT')+'</div>'+
-  '<div class="bottom">PROTOTYPE ONLY</div><div class="index">'+(c.id+1)+'</div></article>').join('')+
+  '<div class="bottom">'+(c.id%3===2?'EXTRA · REGULAR':'CORE · BOTH MODES')+'</div><div class="index">'+(c.id+1)+'</div></article>').join('')+
   '</div><footer>Cut on dashed lines · Sleeve with identical opaque backs · Not for resale</footer>';
   root.appendChild(section);
  }
  const rules=document.createElement('section');rules.className='sheet rule-page';
  rules.innerHTML='<h2>TILT ONE · Play in 60 seconds</h2><ol>'+
-  '<li><strong>Goal:</strong> be the first to have no cards in your hand after the draw deck is empty. Deal three private cards to each player; the rest are the face-down draw deck.</li>'+
+  '<li><strong>Goal:</strong> be the first to have no cards in your hand after the draw deck is empty. Regular: deal three cards each and use all 48. Short strategic: use 32 CORE cards, set 16 EXTRA aside, and deal four cards each.</li>'+
   '<li><strong>Play one card:</strong> if the pile is empty, any card works. Otherwise follow the arrow on the top card: ↑ means your number must be the same or higher; ↓ means the same or lower.</li>'+
   '<li><strong>Change the next rule:</strong> the arrow printed on the card you play tells the next player what they must play.</li>'+
   '<li><strong>Match = clear:</strong> if you put the same number on top of the pile, every card in that pile goes to the discard pile. There is no bonus turn.</li>'+
   '<li><strong>No playable card?</strong> Take only the top card into your hand, discard the rest of the pile, and finish your turn.</li>'+
-  '<li><strong>Draw:</strong> after playing a card, draw back to three while the deck lasts. Do not draw after picking up. When the deck is empty, the first player to play their last card wins.</li></ol>'+
+  '<li><strong>Draw:</strong> after playing a card, refill to three (regular) or four (short) while the draw deck lasts. Do not draw after picking up. When the deck is empty, the first player to play their last card wins.</li></ol>'+
   '<div class="sample"><strong>Example:</strong> the pile shows 5 ↑. You can play 5, 6, 7 or 8. You play 7 ↓. Now the next player must play 7 or lower. If you had played 5 instead, you would clear the whole pile.</div>'+
   '<h3>After the match</h3><p>Where did you get confused? Did you make a smart move? Would you play again? Would you choose this over your familiar Shithead game?</p>'+
   '<div class="line"></div><div class="line"></div>';
