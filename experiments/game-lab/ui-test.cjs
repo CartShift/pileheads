@@ -71,6 +71,17 @@ function run(){
  assert.equal(signal.state().awaitingSignal,true);checks++;
  assert.equal(signal.node('reveal').hidden,false);checks++;
  assert.match(signal.node('reveal').innerHTML,/Bids revealed/);checks++;
+ // A pending SIGNAL reveal must never prevent playing the separate CLAIM game.
+ signal.node('tabClaim').onclick();
+ assert.match(signal.node('instruction').textContent,/STEP 1/);checks++;
+ signal.clickHand(0);
+ assert.match(signal.node('actionButtons').innerHTML,/data-claim-index/);checks++;
+ signal.clickClaim(0,null);
+ assert.equal(signal.state().games.claim.turn,1);checks++;
+ signal.drain();
+ signal.node('tabSignal').onclick();
+ assert.equal(signal.state().awaitingSignal,true);checks++;
+ assert.equal(signal.node('reveal').hidden,false);checks++;
  assert.doesNotMatch(signal.node('hand').innerHTML,/data-hand/);checks++;
  signal.nextRound();
  assert.equal(signal.state().awaitingSignal,false);checks++;
