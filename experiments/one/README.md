@@ -30,6 +30,15 @@ We preserve the emotional kernel of Shithead: shedding cards, controlling what t
 
 The name TILT ONE is a working internal label; trademark clearance has not happened.
 
+## Verified browser preview
+
+- **Play TILT ONE:** https://spark-exchange-38a2lb4k0-cart-shift.vercel.app/?new=1
+- **Print the 48-card deck:** https://spark-exchange-38a2lb4k0-cart-shift.vercel.app/print.html
+
+Vercel clean preview `dpl_AYdy9eyuiMyV5DRMKGLZoQaZ5yKU` reached **READY** with `target: null` (non-production). HTML, engine, app and print pack returned HTTP 200. A separate temporary Node validation preview confirmed the rules-engine suite, **23 UI-stub assertions** and the print generator passed. The clean preview does not include any temporary verification endpoint.
+
+**Still unverified:** actual mobile-browser touch interaction and rendered screenshot QA, card-print alignment, and first-time human comprehension. These cannot be inferred from HTTP and stub test success.
+
 ## Play and physical proof
 
 - Browser: index.html, app.js, engine.js (all static, no runtime network requirement).
