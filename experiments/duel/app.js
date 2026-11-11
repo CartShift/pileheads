@@ -2,7 +2,7 @@
 const E=globalThis.SparkDuel, $=id=>document.getElementById(id);
 const NAME={O:'Orange',B:'Blue',P:'Purple',G:'Green'};
 const ICON={O:'●',B:'◆',P:'✦',G:'▲'},KEY='spark-duel-lab-v01';
-let game=null,selected=0,opponents='bots',botStyle='tactical',covered=false,busy=false,botTimer=null,epoch=0;
+let game=null,selected=null,opponents='bots',botStyle='tactical',covered=false,busy=false,botTimer=null,epoch=0;
 let message='Choose a card from your hand, then swap it with a different-colored row card.';
 function seat(){return game?game.turn%game.players.length:0}
 function done(){return !!game&&(!!game.blocked||game.turn>=game.turnsPerPlayer*game.players.length)}
@@ -31,8 +31,8 @@ function winnerText(){
 function render(){
  if(!game)return;
  const active=seat(),player=focus(),other=1-player,available=canPlay(),ended=done(),p=game.players[player],op=game.players[other];
- if(selected>=p.hand.length)selected=0;
- const chosen=p.hand[selected];
+ if(selected!==null&&selected>=p.hand.length)selected=null;
+ const chosen=selected===null?null:p.hand[selected];
  $('status').textContent=ended?'Game over':opponents==='bots'&&active===1?'Bot planning · '+(game.turn+1)+'/'+(game.turnsPerPlayer*2):
   'Turn '+(game.turn+1)+'/'+(game.turnsPerPlayer*2)+' · '+label(active);
  $('scores').innerHTML=game.players.map((x,i)=>'<div class="score '+(!ended&&active===i?'current':'')+'"><small>'+
@@ -50,15 +50,22 @@ function render(){
   available&&i===selected?'selected':'')).join(''):'<div class="hidden">Pass the device to reveal</div>';
  $('otherHand').innerHTML=visible&&openInfo?op.hand.map(c=>card(c,'disabled')).join(''):
   '<div class="hidden">'+op.hand.length+' cards hidden'+(visible?'':' · device handoff')+'</div>';
- const opts=available?E.legal(game,active).filter(x=>x.move.index===selected):[];
+ const opts=available&&selected!==null?E.legal(game,active).filter(x=>x.move.index===selected):[];
  $('board').innerHTML=game.row.map((c,pos)=>{
   const playable=opts.some(x=>x.move.pos===pos);
   return card(c,playable?'data-pos="'+pos+'"':'disabled',
    available?(playable?'available':'unavailable'):'');
  }).join('');
- $('instructions').textContent=ended?'The match has finished.':covered?'Pass the device.':
-  opponents==='bots'&&active===1?'The bot is choosing a counter-move.':
-  'Swap '+(chosen?NAME[chosen]:'a hand card')+' with any different-colored card in the row.';
+ $('instructions').textContent=ended?'Match finished. Most captured cards wins.':covered?'Pass the device.':
+  opponents==='bots'&&active===1?'The bot is deciding its move.':
+  selected===null?'STEP 1: Tap one of your 3 cards below.':
+  'STEP 2: Tap a highlighted card in the middle row to TAKE it in exchange for your '+NAME[chosen]+' card.';
+ $('stepHand').textContent=ended?'Your final cards':selected===null?'1. Choose a card from your hand':'1. '+NAME[chosen]+' selected';
+ $('stepBoard').textContent=ended?'Final row':selected===null?'2. Then choose a different-colored card in the row':'2. Tap a highlighted card to complete the swap';
+ $('swapExplain').textContent=ended?'The player with the higher captured-card score wins.':
+  covered?'Cards stay private during handoff.':
+  selected===null?'You always trade one card for another. Your hand remains at 3 cards.':
+  'Your '+NAME[chosen]+' goes onto the row. The row card you tap becomes yours. Three adjacent matching cards score points.';
  $('message').textContent=ended?winnerText()+' '+message:message;
  $('log').innerHTML=game.log.slice(-7).reverse().map(record=>
   '<div>Turn '+record.turn+' · '+label(record.seat)+': '+NAME[record.handBefore[record.move.index]]+
@@ -81,9 +88,9 @@ function next(){
 function move(who,m){
  if(!game||done()||game.turn%2!==who)return;
  const record=E.play(game,who,m);
- selected=0;
- message=label(who)+' exchanged '+NAME[record.handBefore[record.move.index]]+' for '+NAME[record.exchanged]+
-  (record.score?', captured '+record.score+' card'+(record.score===1?'':'s')+'.':'. You may have prepared a later combination.');
+ selected=null;
+ message=label(who)+' placed '+NAME[record.handBefore[record.move.index]]+' on the row, and kept '+NAME[record.exchanged]+
+  ' in their hand. '+(record.score?'Captured '+record.score+' matching cards for '+record.score+' points.':'No points this turn. The next swap can build on the changed row.');
  next();
 }
 function queueBot(){
@@ -101,13 +108,13 @@ function queueBot(){
 }
 function start(){
  if(botTimer!==null)clearTimeout(botTimer);
- epoch++;busy=false;selected=0;covered=false;
+ epoch++;busy=false;selected=null;covered=false;
  const seed=Number($('seed').value);
  if(!Number.isInteger(seed)||seed<0||seed>4294967295){alert('Seed must be a nonnegative integer under 2^32.');return}
  opponents=$('opponents').value==='hotseat'?'hotseat':'bots';botStyle=$('botStyle').value==='basic'?'basic':'tactical';
  game=E.create({seed,players:2,turnsPerPlayer:10,deckSize:144,action:'exchange',refillRule:'safe',
   rowSize:9,handSize:3,colorCount:4,information:$('information').value});
- message='Think ahead: the row card you exchange becomes part of your next hand.';
+ message='Your first move: tap any card in your hand below. Then tap a highlighted row card to swap.';
  $('cover').style.display='none';
  persist();
  if(opponents==='hotseat'&&game.information==='hidden')showCover();
@@ -127,6 +134,7 @@ $('board').onclick=event=>{
  const node=event.target.closest('[data-pos]');
  if(!node)return;
  const pos=Number(node.dataset.pos),index=selected,active=seat();
+ if(index===null)return;
  const legal=E.legal(game,active).some(x=>x.move.index===index&&x.move.pos===pos);
  if(!legal)return;
  move(active,{index,pos});
