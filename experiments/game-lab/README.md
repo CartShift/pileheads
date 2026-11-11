@@ -6,7 +6,7 @@
 
 The earlier SPARK variants were too procedural: many apparent options, few meaningful trade-offs, too many turns without interesting scoring, and endgames that grew flatter. Improving the UI or increasing the row length did not solve the underlying game-design issue. This experiment compares **two distinct kinds of interaction** and makes physical viability part of the test from the first version.
 
-### CLAiM (open contested lanes)
+### CLAIM (open contested lanes)
 
 - 2–4 people physically, prototype browser supports 2; 72 ranked ordinary cards, three colors
 - 4 private cards per player, three public color lanes
@@ -28,9 +28,9 @@ The mechanisms have different possible strengths and weaknesses, and both can fa
 
 ## Play and print
 
-- Play CLAIM: Open the live preview URL with ?game=claim.
-- Play SIGNAL: Open the same live preview with ?game=signal.
-- Print the physical decks: Open print.html in the same live preview. It generates 72 CLAIM cards, 60 SIGNAL cards, secret bid target markers, and a score sheet on A4 print pages.
+- **CLAIM live preview:** https://spark-exchange-biyeudl9q-cart-shift.vercel.app/?game=claim
+- **SIGNAL live preview:** https://spark-exchange-biyeudl9q-cart-shift.vercel.app/?game=signal
+- **Printable decks:** https://spark-exchange-biyeudl9q-cart-shift.vercel.app/print.html (72 CLAIM cards, 60 SIGNAL cards, secret target markers and a score sheet).
 - Read [RULES.md](RULES.md) and [PLAYTEST.md](PLAYTEST.md) to run independent physical tests.
 
 No special code, game rules engine or UI depends on a cloud service at runtime. The standalone files index.html, app.js, engine.js and print.html can be served statically.
@@ -67,3 +67,7 @@ The physical and DOM-stub automated tests were executed in an isolated Vercel pr
 **Do not pick a winner by developer preference or bot scores.** Ask at least 12 independent two-person groups to play both physical variants in randomized order, record specific sacrifices, confusions, replay requests and perceived agency. Kill weak designs rather than endlessly polishing them. A concept moves to product work only after independent preference, teachability, replay interest, physical feasibility, originality and quote-backed economics meet their decision gates.
 
 **Production rule:** No source changes or deployments to the existing SPARK Sites game, public rooms, saved data or production aliases from this branch.
+
+## Verified deployment
+
+Clean preview ID: dpl_GaMC4W1VsKy4uXYBpafc17iugZcb. Status READY, target unset (non-production). HTTP 200 checks passed for both game query links, engine.js, app.js, print.html, RULES.md and PLAYTEST.md. The clean preview has no temporary QA endpoints. No production alias was modified. Browser-on-Android QA remains open.
