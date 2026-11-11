@@ -6,6 +6,8 @@ Mobile-first Hebrew/English card-game playtesting prototype, hosted privately on
 
 **Private playable site:** https://spark-simple-plus-yotam.yotamonf.chatgpt.site
 
+> **Experimental physical-deck mechanics:** [CROSS vs FORGE playtest](experiments/tilt/README.md), [print the 48-card original deck](experiments/tilt/print.html), and [human playtest gates](experiments/tilt/PLAYTEST.md). These are isolated rulesets and do not modify the published SPARK game.
+
 ## Run locally
 
 Use Node.js 24 or newer for the tests and local SQLite-backed preview. No dependency installation is required.
