@@ -5,7 +5,7 @@
 ## Non-negotiable product decisions (from the owner)
 
 1. **Inspiration, not a clone:** take the emotional appeal of the card game Shithead / Palace, but design a substantially different game with its own rules and identity.
-2. **Reference house rules:** the owner's beloved version specifically has **2, 3, 7, 8 and 10** as special cards. The **exact effect of each in their house rules is NOT YET CONFIRMED**. Do not silently substitute a generic Shithead ruleset or assign abilities without checking.
+2. **Reference house rules:** the owner's beloved version has **2, 3, 7, 8 and 10** as special cards. **Confirmed by the owner on 2026-11-11:** **3 is transparent** (the effective underlying card/rank remains in force), and **7 requires the next played card to be strictly lower than 7**. This is a next-card restriction, not a permanent reversal of direction. The exact effects of **2, 8 and 10**, and interactions such as transparent 3 on a 7, have **not yet been explicitly confirmed**. Do not silently substitute a generic Shithead ruleset.
 3. **Proprietary deck:** the retail game must be played with **purpose-designed, originally illustrated physical cards**, not a standard 52-card deck with a new back. The deck's content and information architecture should enable game rules that a conventional deck does not readily express.
 4. **Own-store-first commercial path:** develop it as a consumer product for **direct sales through our own online store** (Shopify is a possible implementation, not a brand commitment). A conventional publisher-license pitch is not the default plan.
 5. **Physical game first:** no app, server, tokens, smartphone, or electricity should be required to play. A digital implementation may facilitate rules testing and community play, not replace the physical product.
@@ -68,7 +68,7 @@ Target (hypotheses, not independently validated specs):
 **Reference match:** compare against the owner's actual five-special-card Shithead variant, with the same friend group. If our prototype is not preferred for replay, do not assume it is worth retailing. Test physically first.
 
 Minimum validation:
-1. Confirm exact reference effects for 2, 3, 7, 8, 10, including any interactions and house-rule exceptions.
+1. Treat **3 = transparent** and **7 = the next card must be lower than 7** as confirmed reference behaviors. Confirm the precise effects of 2, 8 and 10, and edge cases (especially how a 3 interacts with a preceding 7).
 2. Develop two very small paper mockups, changing one core difference at a time; do not commit to art or production.
 3. Simulate conservation, forced moves, first-seat advantage, distribution and likely stalled endings.
 4. Playtest in person, including strangers to the design. Ask whether they'd immediately rematch and why.
@@ -93,7 +93,7 @@ Before spending on manufacturing, compare:
 
 ### Decisions deliberately left open
 
-- Exact meaning of the reference house rules, especially 3 and 7;
+- Remaining reference house rules: 2, 8 and 10, plus stacking/interaction edge cases. The basic effects of 3 and 7 are already confirmed;
 - Final game name and visual world;
 - Number and effects of unique cards;
 - Exact deck size, number of players, modes, win condition and whether special cards are numbers or illustrated roles;
