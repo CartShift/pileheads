@@ -106,7 +106,7 @@ function run(){
  assert.ok(a.state.animations>=1,'Card flight should be activated when browser DOM supports it');checks++;
  a.drain();
  assert.equal(a.game().turn,2);checks++;
- assert.equal(a.el('stock').textContent,'40 left');checks++;
+ assert.equal(a.el('stock').textContent,a.game().stock.length+' left');checks++; // pickup doesn't draw
  assert.match(a.el('hand').innerHTML,/data-index/);checks++;
  assert.ok(a.state.animations>=2,'Bot should also animate a played card');checks++;
  const b=mount();
