@@ -93,4 +93,21 @@ check('500 complete sets with seeded bots and no duplicated scores',()=>{
   sets++;
  }
 });
+check('Series export retains public action history, never private hands or hidden stock',()=>{
+ const S2=S.create(12345);
+ const g=E.create({seed:S.roundSeed(S2),firstSeat:S.firstSeat(S2),mode:'quick'});
+ while(!E.finished(g)){
+  const seat=E.active(g);E.play(g,seat,E.choose(g,seat,'adaptive'));
+ }
+ S.record(S2,g);
+ const h=S2.history[0];
+ assert.equal(h.events.length,g.turn);
+ assert.equal(h.pickups,g.log.filter(e=>e.action==='take').length);
+ assert.equal(h.clears,g.log.filter(e=>e.reason==='match').length);
+ assert.equal(h.events[0].turn,1);
+ const json=JSON.stringify(S2);
+ assert.equal(json.includes('"stock":['),false,'Must not store stock card order');
+ assert.equal(json.includes('"hand":['),false,'Must not store hidden hands');
+ assert.ok(h.events.every(e=>e.card===null||(Number.isInteger(e.card.n)&&['up','down'].includes(e.card.arrow))));
+});
 console.log(JSON.stringify({pass:true,checks,sets}));
