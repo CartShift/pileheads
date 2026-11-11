@@ -79,6 +79,7 @@ test('First card with a valid Zigzag previews, second commits one actual turn',(
  const g=a.saved().game;
  assert.equal(g.turn,1);assert.equal(g.log[0].cards.length,2);
  assert.equal(g.log[0].action,'play');assert.equal(E.count(g),48);
+ assert.doesNotMatch(a.elem('message').textContent,/Cannot make that move/i);
  assert.equal(a.elem('chainControls').hidden,true);
  a.drain();
  assert.equal(a.saved().game.turn,2,'Bot should respond exactly once after completed Zigzag');
