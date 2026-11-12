@@ -37,9 +37,23 @@ Every player has three hand cards, eight turns, one Wild and one Swap. There are
 
 Existing v4 saves continue under the original seven-card rules. The local storage key remains `spark-simple-v04`. Progress, notes and archived games are browser-local, not cloud-synced. JSON export provides a separate backup.
 
+## Physical tabletop playtesting UI
+
+The default **Physical table** presentation is designed for evaluating a future printed card game, not for maximizing digital-game convenience. It puts opponents across the felt, the shared row at table center, and the player's three cards nearest the viewer. Insert points live **between** cards. The interface does not suggest optimal moves, and the underlying v4/v5 rules and game saves remain unchanged.
+
+- **Touch / mouse:** tap a hand card to lift it, then tap the seam where you want to insert it. The placement is immediate, as with a real card. Alternatively drag a hand card over the row, inspect the highlighted insertion seam, and release to play; release away from the row to cancel.
+- **Wild:** select Wild, choose its color, then tap an insertion seam.
+- **Swap:** select Swap, tap the seam between the adjacent pair, then lift and insert a regular hand card in the same turn.
+- **Focus:** use the Focus control to remove site chrome and use more of the screen as a table, especially in landscape.
+- **Guided mode:** switch from Physical table to Guided mode for the original choose-position-and-confirm interaction. All gaps and both ends remain accessible with keyboard buttons in both modes.
+
+The surface includes tighter landscape phone styling, reduced-motion support, explicit readable button labels, and a single deterministic state machine for tap and drag. `tests/tabletop.cjs` covers all placement seams, direct moves, the two special abilities and guided fallback. Card motion and real hardware responsiveness still need browser / touch QA; do not interpret a convincing animation as evidence that the printed game is enjoyable.
+
+**Publishing:** GitHub changes do not update the private ChatGPT Sites deployment. Rebuild/republish the **existing** Sites project rather than create a new URL. The new `dist/tabletop.css` must accompany `dist/index.html`; the Worker build now includes this asset.
+
 ## Source map
 
-- `dist/index.html`: table UI, legacy engine, persistence, narration, physical animations, replay and setup.
+- `dist/index.html` and `dist/tabletop.css`: tabletop interaction, responsive felt surface, legacy engine, persistence, narration, physical animations, replay and setup.
 - `dist/engine-v5.js`: deterministic mode engine, move validation and bot policies.
 - `dist/sim-core.js`, `dist/simulation.worker.js`: comparison simulator running off the UI thread.
 - `dist/simulation-results.json`: reproducible bundled comparison, 120 games per mode.
