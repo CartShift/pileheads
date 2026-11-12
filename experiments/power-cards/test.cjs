@@ -45,15 +45,21 @@ check('Discarding the last Joker on an empty pile ends the game normally',()=>{
  assert.equal(e.reason,'jokerBurned');assert.equal(g.winner,0);
  assert.equal(g.pending,null);assert.equal(P.count(g),48);
 });
-check('A Joker can be played on any visible pile direction',()=>{
- const g=P.create({seed:12,mode:'match'});
- put(g,0,0,c=>c.kind==='joker');
- const i=P.legal(g,0).find(x=>x.type==='play'&&x.index===0);
- assert.ok(i);
- P.play(g,0,i);
- assert.equal(g.pending.to,1);assert.equal(P.active(g),1);
- assert.equal(g.pending.targetRank,null);
- assert.equal(P.count(g),48);
+check('A Joker can attack a nonempty pile with either visible direction',()=>{
+ for(const arrow of ['up','down']){
+  const g=P.create({seed:12,mode:'match'});
+  put(g,0,0,c=>c.kind==='joker');
+  const index=g.stock.findIndex(c=>c.arrow===arrow);
+  assert.ok(index>=0);
+  const top=g.stock.splice(index,1)[0];
+  g.pile.push(top);
+  const i=P.legal(g,0).find(x=>x.type==='play'&&x.index===0);
+  assert.ok(i);
+  P.play(g,0,i);
+  assert.equal(g.pending.to,1);assert.equal(P.active(g),1);
+  assert.equal(g.pending.targetRank,top.n);
+  assert.equal(P.count(g),48);
+ }
 });
 check('Rank challenge stays visible and a matching reply sends the entire pile back',()=>{
  const g=P.create({seed:101,mode:'match'}),target=put(g,0,0,c=>c.n===5&&c.kind!=='joker');
@@ -92,6 +98,7 @@ check('Joker-on-Joker counter possible only in duel mode',()=>{
  for(const mode of ['joker','match','plain']){
   const g=P.create({seed:55,mode});
   put(g,0,0,c=>c.kind==='joker');put(g,1,0,c=>c.kind==='joker');
+  g.pile.push(g.stock.pop()); // Joker-on-Joker is meaningful only over a nonempty pile.
   P.play(g,0,{type:'play',index:0});
   const answers=P.legal(g,1);
   assert.equal(answers.some(x=>x.type==='counter'&&x.index===0),mode==='joker');
