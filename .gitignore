@@ -9,3 +9,4 @@ coverage/
 *.log
 *.tar.gz
 .DS_Store
+vercel-static/
