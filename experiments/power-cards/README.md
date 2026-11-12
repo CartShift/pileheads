@@ -88,11 +88,28 @@ During each match, record:
 
 **Kill conditions:** Players spend more time processing Joker exceptions than anticipating opponents; the same card always dominates once drawn; attacks on empty piles feel cheap; or the game routinely turns into a tedious 10-card hand for the victim.
 
+## Additional Joker-timing study with unknown opponent cards
+
+We also ran an information-set counterfactual: from positions where the acting player had a Joker, **at least one legal normal card**, and at least two cards in the visible pile, we compared **playing the Joker now** versus **playing the best available normal card**. For each decision, we shuffled only the opponent's unseen hand and unrevealed stock, keeping the public state and the acting player's own hand fixed, and followed both branches with the same non-cheating Timing bots.
+
+In an exploratory cohort of **60 distinct decision positions per game stage, 30 unseen worlds per position**, the mean absolute difference in expected win probability between the two actions was **12.1 percentage points early**, **12.9 in the middle**, and **26.2 late**. Importantly, neither "always play" nor "always save" won: both were clearly preferable in different states. This is promising for a timing decision, but early choices still have relatively small expected differences, and the simulation's ordinary-card alternative is just a heuristic.
+
+Reproduce via `npm run simulate:power-cards-hidden`, or choose a separate seed cohort with `node experiments/power-cards/hidden-info-simulate.cjs --states 60 --worlds 30 --seed 20261201`.
+
+**Human caution:** Even a real expected-value difference does not prove a person can *perceive* it. Observing players explaining why they held a Joker is still the essential next step.
+
+### Playtest-ready checklist
+
+- Facilitator sheet: [PLAYTEST.md](PLAYTEST.md).
+- Use the print-and-play deck to compare **Plain**, **Joker-vs-Joker**, and **Match-counter**.
+- After two randomized variants, offer a voluntary replay choice rather than teaching the preferred answer.
+- The Joker's special effect must remain understandable from the visible cards, never a two-turn memory test.
+
 ## Research next, not implemented
 
 - Whether one Joker is sufficient, given two Jokers produce around two threat moments per match.
 - Whether the only defense should be a universal **clear** card or a successful ordinary-rank match.
-- Public-card-counting and information-set Monte Carlo agents to test whether a skilled player can actually select high-value Joker timing.
+- More robust public-information policy search and actual human skill studies; the first paired hidden-state counterfactual is implemented, but does not prove player mastery.
 - Redesigning the CORE count distribution after choosing the special cards, to avoid unfairly allocating the strongest normal ranks.
 - Human testing of the shared pile's emotional visibility and its increasing threat.
 - Familiar Shithead numbered powers 2/3/7/8/10 were **not** copied into this prototype; accumulating more rules is a conscious non-goal.
