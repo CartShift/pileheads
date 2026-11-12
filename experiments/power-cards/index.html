@@ -38,10 +38,15 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
 .card.joker .corner,.card.joker .footer{color:#572f45}
 .card.joker .number{color:#5d213e}
 .card.joker .arrow{color:#b04c5f}
-.joker-signal{position:absolute;right:-7px;top:-12px;background:#612840;color:#fff2d9;border:2px solid #ebba7e;
- border-radius:10px;padding:6px 8px;transform:rotate(9deg);font-size:11px;font-weight:900;
- box-shadow:0 9px 17px #0005;z-index:5;pointer-events:none}
-.joker-signal small{display:block;font-size:8px;font-weight:750}
+.joker-signal{position:absolute;right:-11px;top:-28px;width:80px;height:52px;z-index:5;
+ display:flex;align-items:center;justify-content:center;flex-direction:column;
+ background:linear-gradient(130deg,#f6e6bd,#dfb98c);color:#56263c;
+ border:3px solid #8c425d;border-radius:7px;outline:1px solid #f7edd8;outline-offset:-7px;
+ transform:rotate(12deg);font-size:13px;font-weight:950;
+ box-shadow:0 6px 0 #6a3b38,0 11px 17px #0005;pointer-events:none}
+.joker-signal small{display:block;font-size:8px;letter-spacing:.02em;font-weight:850}
+.pile.pending-attack .pile-count{right:auto;left:-10px;top:5px}
+@media(max-width:520px){.joker-signal{right:-5px;top:-22px;width:69px;height:45px;font-size:11px}}
 .joker-risk{font-weight:800;color:#f7d79e}
 
 .teaser{font-size:12px;color:#50675c;margin:0 3px 12px}
