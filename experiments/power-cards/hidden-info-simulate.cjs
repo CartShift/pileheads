@@ -54,7 +54,7 @@ for(let i=1;i<=Math.max(9000,limit*300)&&Object.values(stages).some(a=>a.length<
     normals[0]);
    stages[stage].push({game:clone(g),actor:s,joker,normal,seed:g.seed,pile:g.pile.length});
   }
-  const s=P.active(g);P.play(g,s,P.choose(g,s,'timing'));
+  const next=P.active(g);P.play(g,next,P.choose(g,next,'timing'));
  }
 }
 const result={experiment:'Two realistic hidden-hand choices: use Joker now or keep it',baseSeed,limit,worlds,
