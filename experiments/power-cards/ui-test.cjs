@@ -98,6 +98,21 @@ check('First person UI shows a private 4-card hand, opaque opponent backs, and s
  assert.equal(a.el('jokerWarning').hidden,true);
  assert.equal(a.store.has('one-card-one-rule-quick-v01'),false);
 });
+check('Playing a Joker on an empty pile never creates a pending attack or steals a turn',()=>{
+ const g=E.create({seed:891,mode:'match'});
+ replaceInHand(g,0,0,c=>c.kind==='joker');
+ const a=mount('match',g.seed,stored('match',g),false);
+ assert.match(a.el('handHint').textContent,/discarded with no attack/);
+ a.tap(0);
+ const after=a.saved().game;
+ assert.equal(after.log.at(-1).reason,'jokerBurned');
+ assert.equal(after.pending,null);
+ assert.equal(after.pile.length,0);
+ assert.equal(E.active(after),1);
+ assert.equal(a.el('jokerWarning').hidden,true);
+ assert.match(a.saved().message,/No attack/i);
+ assert.equal(E.count(after),48);
+});
 check('Incoming Joker leaves the target rank visible and offers a matching-card counter',()=>{
  const g=fixture('match',true),a=mount('match',g.seed,stored('match',g),false);
  assert.equal(a.saved().game.pending.targetRank,5);
