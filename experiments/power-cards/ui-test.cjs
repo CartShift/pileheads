@@ -104,6 +104,7 @@ check('Incoming Joker leaves the target rank visible and offers a matching-card 
  assert.equal(a.el('jokerWarning').hidden,false);
  assert.match(a.el('condition').textContent,/MATCH 5/);
  assert.match(a.el('pile').innerHTML,/CHALLENGE 5/);
+ assert.equal(a.el('pile').className,'pile pending-attack');
  assert.match(a.el('pile').innerHTML,/class="number">5/);
  assert.match(a.el('hand').innerHTML,/data-index="0"/);
  assert.equal(a.el('takeButton').textContent,'TAKE THE WHOLE PILE (1)');
@@ -115,6 +116,7 @@ check('Incoming Joker leaves the target rank visible and offers a matching-card 
  assert.equal(E.active(after),0,'Defender leads again');
  assert.equal(E.count(after),48);
  assert.equal(a.el('jokerWarning').hidden,true);
+ assert.equal(a.el('pile').className,'pile');
 });
 check('Without a counter, user takes all visible cards and the attacker gets the next turn',()=>{
  const g=fixture('plain',false);
