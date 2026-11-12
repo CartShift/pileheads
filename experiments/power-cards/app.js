@@ -93,7 +93,7 @@ function render(){
   $('jokerWarningTitle').textContent=MODE==='match'?
     'JOKER: MATCH '+(pending.targetRank??'?')+' OR TAKE ALL':
     MODE==='joker'?'JOKER: COUNTER OR TAKE ALL':'JOKER: TAKE THE WHOLE PILE';
-  $('jokerWarningBody').textContent=game.pile.length+' cards at stake. '+(MODE==='match'?
+  $('jokerWarningBody').textContent=game.pile.length+' '+(game.pile.length===1?'card':'cards')+' at stake. '+(MODE==='match'?
     'Play the same number as the card still visible beneath the Joker to send the pile BACK.':
     MODE==='joker'?'Play another Joker to return the pile to your attacker.':
     'No counter in this mode: take the full pile, then the attacker plays again.');
