@@ -25,7 +25,7 @@ function restore(){
 }
 function makeCard(c,attrs='',cls=''){
  if(c.kind==='joker')return '<button type="button" class="card joker '+cls+'" '+attrs+
-   ' aria-label="Joker. Attacks the entire pile unless countered.">'+
+   ' aria-label="Joker. Forces the opponent to take the pile, or discards without attack when the pile is empty.">'+
    '<span class="corner">TILT / POWER</span><span class="number">!</span>'+
    '<span class="arrow" aria-hidden="true">↯</span>'+
    '<span class="footer">FULL PILE</span></button>';
@@ -122,7 +122,9 @@ function render(){
    'No counter available. Take the entire pile.'):
   options.some(x=>x.type==='takeTop')?
    'No card fits. Pick up the top card.':
-   'Tap a bright card to play. The Joker always fits, but timing matters.';
+   (!game.pile.length&&you.hand.some(c=>c.kind==='joker')?
+    'The pile is empty. A Joker played now is discarded with no attack.':
+    'Tap a bright card to play. The Joker always fits, but timing matters.');
  $('done').hidden=!done();
  $('done').innerHTML=done()?'<h2>'+(game.draw?'Draw':name(game.winner)+' wins!')+'</h2>'+
    '<p>'+game.turn+' actions · '+game.log.filter(x=>x.reason==='joker').length+
@@ -193,6 +195,8 @@ function cardSound(){
 function finish(action,from){
  const c=action.card;
  if(action.reason==='joker')message=name(action.seat)+' played a Joker. The entire pile is now in danger!';
+ else if(action.reason==='jokerBurned')message=name(action.seat)+
+  ' discarded a Joker on an empty pile. No attack; the other player takes the next turn.';
  else if(action.reason==='jokerHit')message=name(action.seat)+' took ALL '+action.taken+
   ' pile cards. The attacker starts a fresh pile.';
  else if(action.reason==='jokerBlocked')message='COUNTER! '+name(action.seat)+
