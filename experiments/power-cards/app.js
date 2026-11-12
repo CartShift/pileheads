@@ -79,6 +79,7 @@ function render(){
  $('discard').setAttribute?.('aria-label',ashes?'Discard pile, '+ashes+' cards':'Empty discard pile');
  const condition=rule();
  $('condition').textContent=condition[0];$('ruleTip').textContent=condition[1];
+ $('pile').className=pending?'pile pending-attack':'pile';
  $('pile').innerHTML=(top?
    (game.pile.length>2?'<span class="pile-under"></span>':'')+
    (game.pile.length>1?'<span class="pile-under two"></span>':'')+
