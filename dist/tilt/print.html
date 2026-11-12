@@ -1,0 +1,65 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TILT Joker · Printable CORE Cards</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f2eb;color:#1d3b35;font:14px/1.4 system-ui,Arial,sans-serif}
+header{background:#18453d;color:white;padding:17px;text-align:center}header h1{font-family:Georgia,serif;margin:0;font-size:29px}
+header p{max-width:700px;margin:8px auto}header button,header a{display:inline-block;margin:5px;font:inherit;border:0;border-radius:8px;padding:11px 16px;background:#e9d299;color:#173c35;text-decoration:none;cursor:pointer;font-weight:850}
+.note{max-width:800px;margin:14px auto;padding:12px;background:white;border:1px solid #c4c9bf}
+.sheets{max-width:210mm;margin:auto}.sheet{width:188mm;min-height:274mm;margin:10mm auto;page-break-after:always;break-after:page;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.sheet h2{font:800 11px/1.3 system-ui,sans-serif;letter-spacing:1px;text-transform:uppercase;margin:0 0 5mm}
+.nine{display:grid;grid-template-columns:repeat(3,57mm);grid-template-rows:repeat(3,82mm);gap:3mm}
+.card{position:relative;width:57mm;height:82mm;border:1.5px dashed #555;border-radius:1.6mm;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fffaf0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.card:after{content:"";position:absolute;inset:3mm;border:.5mm solid #a1ada1;border-radius:1mm}
+.card.up .direction{color:#c3583d}.card.down .direction{color:#176d83}.card.joker{background:#efdfc2;border-color:#8d4866}.card.joker .direction{color:#8d3654}.card.joker .rank{font-size:48px;letter-spacing:-1.5px;max-width:48mm;white-space:nowrap}.card.joker .label{color:#6e2943}
+.card .top{position:absolute;top:6mm;left:6mm;font-size:11px;font-weight:900;letter-spacing:1.2px}
+.card .rank{font:900 100px/.9 Georgia,serif;letter-spacing:-3px;margin-top:4mm}
+.card .direction{font:950 75px/1 system-ui,sans-serif}
+.card .label{font-size:12px;letter-spacing:2px;font-weight:900}
+.card .bottom{position:absolute;bottom:5mm;left:6mm;font-size:9px;letter-spacing:1.2px;font-weight:700}
+.card .index{position:absolute;bottom:5mm;right:6mm;font-size:9px}
+.sheet footer{margin-top:4mm;font-size:9px;color:#59695b}
+.rule-page{display:block;background:white;padding:10mm;text-align:left}
+.rule-page h2{font:900 25px Georgia,serif;margin:0 0 9mm}
+.rule-page p,.rule-page li{font-size:14px;line-height:1.5}
+.rule-page li{margin:0 0 8mm}
+.rule-page .sample{border:1px solid #8caa95;padding:6mm;margin:7mm 0;border-radius:3mm}
+.rule-page .line{border-bottom:1px solid #aaa;height:14mm}
+@page{size:A4;margin:9mm}
+@media print{body{background:white}.note,header{display:none!important}.sheets{max-width:none}.sheet{width:100%;margin:0;min-height:273mm;max-height:273mm}.nine{grid-template-columns:repeat(3,57mm);grid-template-rows:repeat(3,82mm)}.card{break-inside:avoid}}
+</style></head><body>
+<header><h1>TILT POWER · Print-and-play</h1><p>48 custom physical cards: 32 CORE (including 2 Jokers) and 16 EXTRA. Six A4 sheets plus rules. Use identical opaque sleeves.</p>
+<button onclick="window.print()">Print at 100% size</button><a href="./">Back to the game</a></header>
+<div class="note">Mechanical proof, not commercial artwork. Print at actual size and use identical opaque backs. Use 32 CORE cards (30 numbered cards and two Jokers). Set all 16 EXTRA cards aside. Place a Joker sideways next to the pile, leaving the rank beneath visible.</div>
+<main class="sheets" id="sheets"></main>
+<script src="./engine.js"></script>
+<script>
+(function(){
+ const cards=globalThis.PowerLab.deck(),root=document.getElementById('sheets');
+ for(let offset=0;offset<cards.length;offset+=9){
+  const section=document.createElement('section');section.className='sheet';
+  const count=Math.floor(offset/9)+1;
+  section.innerHTML='<h2>TILT POWER · Card sheet '+count+' / 6</h2><div class="nine">'+
+  cards.slice(offset,offset+9).map(c=>'<article class="card '+(c.kind==='joker'?'joker':c.arrow)+'"><div class="top">TILT / POWER</div>'+
+  '<div class="rank">'+(c.kind==='joker'?'JOKER':c.n)+'</div><div class="direction">'+
+  (c.kind==='joker'?'↯':c.arrow==='up'?'↑':'↓')+'</div>'+
+  '<div class="label">'+(c.kind==='joker'?'FULL PILE':c.arrow==='up'?'HIGHER NEXT':'LOWER NEXT')+'</div>'+
+  '<div class="bottom">'+(c.kind==='joker'?'JOKER · CORE':c.id%3===2?'EXTRA · OPTIONAL':'CORE · BOTH MODES')+'</div>'+
+  '<div class="index">'+(c.id+1)+'</div></article>').join('')+
+  '</div><footer>Cut on dashed lines · Sleeve with identical opaque backs · Not for resale</footer>';
+  root.appendChild(section);
+ }
+ const rules=document.createElement('section');rules.className='sheet rule-page';
+ rules.innerHTML='<h2>TILT POWER · Joker playtest</h2><ol>'+
+ '<li><strong>Setup:</strong> 2 players. Shuffle the 32 CORE cards including exactly two Jokers, deal 4 cards each, leave 24 in the draw deck. Put the 16 EXTRA cards aside.</li>'+
+ '<li><strong>Play:</strong> follow the top arrow. ↑ means the same rank or higher. ↓ means the same rank or lower. Same number clears the pile. When stuck, take ONLY the top card, discard the rest, then end your turn.</li>'+
+ '<li><strong>Joker:</strong> playable on any card. On a nonempty pile, place it SIDEWAYS beside the pile so the last number stays visible. Your opponent must respond or TAKE THE ENTIRE PILE and miss their turn. On an empty pile, discard the Joker with no attack or skip. The Joker is removed from play after either use.</li>'+
+ '<li><strong>Variant A, plain:</strong> there is no counter. Take the full pile.</li>'+
+ '<li><strong>Variant B, Joker counter:</strong> the defender may play another Joker to send the pile to the attacker instead.</li>'+
+ '<li><strong>Variant C, match counter:</strong> the defender may play any card with the SAME NUMBER as the top card still visible beneath the sideways Joker. This sends the entire pile to the attacker instead. The defender immediately leads a fresh pile.</li>'+
+ '<li><strong>Draw:</strong> refill to four from the stock after a normal or Joker play. Do not draw after picking up. When the draw deck empties, first person with no hand cards wins. A pending Joker must resolve before victory.</li></ol>'+
+ '<div class="sample"><strong>Example:</strong> pile shows 6 ↓, with 5 cards beneath it. You play Joker sideways. The opponent must match number 6 to reflect your attack (variant C), or take all 6 visible pile cards. The target 6 stays visible throughout. No memory required.</div>'+
+ '<h3>Discussion</h3><p>Did you save a Joker for a better moment? Was a counter satisfying or too punishing? Which version would you replay? How many Jokers would you put in the physical deck?</p>'+
+ '<div class="line"></div><div class="line"></div>'; 
+ root.appendChild(rules);
+})();
+</script></body></html>
