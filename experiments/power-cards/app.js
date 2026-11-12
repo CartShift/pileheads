@@ -224,8 +224,13 @@ function finish(action,from){
 function play(move,source){
  if(!canAct())return;
  const from=rectOf(source);
- try{finish(E.play(game,seat(),move),from)}
- catch(e){message='That move is not allowed: '+e.message;render()}
+ let event;
+ try{event=E.play(game,seat(),move)}
+ catch(e){message='That move is not allowed: '+e.message;render();return}
+ // Once the engine has committed, presentation errors must not masquerade
+ // as rejected moves or encourage another tap of an already-played card.
+ try{finish(event,from)}
+ catch(e){console.warn('Joker move succeeded but visual feedback failed',e);persist();render()}
 }
 function queueBot(){
  if(opponents!=='bot'||done()||seat()!==1||busy)return;
