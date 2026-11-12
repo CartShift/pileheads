@@ -93,10 +93,10 @@ function render(){
   $('jokerWarningTitle').textContent=MODE==='match'?
     'JOKER: MATCH '+(pending.targetRank??'?')+' OR TAKE ALL':
     MODE==='joker'?'JOKER: COUNTER OR TAKE ALL':'JOKER: TAKE THE WHOLE PILE';
-  $('jokerWarningBody').textContent=MODE==='match'?
+  $('jokerWarningBody').textContent=game.pile.length+' cards at stake. '+(MODE==='match'?
     'Play the same number as the card still visible beneath the Joker to send the pile BACK.':
     MODE==='joker'?'Play another Joker to return the pile to your attacker.':
-    'No counter in this mode: take the full pile, then the attacker plays again.';
+    'No counter in this mode: take the full pile, then the attacker plays again.');
  }
  $('message').textContent=done()?(game.draw?'Unresolved game.':'Winner: '+name(game.winner)+'!'):message;
  $('handTitle').textContent=opponents==='hotseat'?
@@ -150,11 +150,13 @@ function clearGhosts(){
 }
 function animateMotion(from,action){
  if(!from||isReducedMotion()||typeof document.body?.appendChild!=='function')return;
- const gathering=['takeTop','takeAll','counter'].includes(action.action);
- const target=gathering?(opponents==='bot'&&action.seat===1?$('opponentHand'):$('hand')):
-   action.reason==='match'?$('discard'):$('pile');
+ // The defending counter card is discarded, never returned to its owner's hand.
+ // A burned Joker likewise goes straight to the discard pile, not onto the table.
+ const collecting=action.action==='takeTop'||action.action==='takeAll';
+ const target=collecting?(opponents==='bot'&&action.seat===1?$('opponentHand'):$('hand')):
+   (['match','jokerBurned','jokerBlocked'].includes(action.reason)?$('discard'):$('pile'));
  const to=rectOf(target);if(!to)return;
- const card=action.card||(gathering?game.people[action.seat].hand.at(-1):null);
+ const card=action.card||(collecting?game.people[action.seat].hand.at(-1):null);
  if(!card)return;
  const ghost=document.createElement('div');
  ghost.className='flying-card';
@@ -165,7 +167,7 @@ function animateMotion(from,action){
  document.body.appendChild(ghost);
  const dx=(to.left+to.width/2)-(from.left+from.width/2);
  const dy=(to.top+to.height/2)-(from.top+from.height/2);
- const duration=gathering?390:315;
+ const duration=collecting?390:315;
  if(typeof ghost.animate==='function'){
   const animation=ghost.animate([
    {transform:'translate(0,0) rotate(-5deg) scale(1)',opacity:1,offset:0},
