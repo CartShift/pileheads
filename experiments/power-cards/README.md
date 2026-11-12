@@ -17,7 +17,7 @@ We need the right **counterplay**, not merely bigger punishment.
 - Number cards: play a number in the direction shown on the top card. Matching rank clears the pile. If you cannot play, take only the top card; the rest clears.
 - Joker: playable over any card. **Place it SIDEWAYS to the pile, so the previous top number remains visible**. The next player must respond to the threat; otherwise they take the *entire pile*, consume their turn and the attacker leads again. The Joker is burned permanently, not put into either hand.
 - Draw back to 4 after playing any card while the stock lasts; never draw after taking cards. First player with no hand cards after stock depletion wins. **A pending Joker must resolve before victory**.
-- An early Joker played onto an empty pile functions as a zero-damage skip. This is a known experimental edge case, **not** an endorsed final rule.
+- On an empty pile, playing a Joker **discards the Joker without any attack or skipped turn**. This removes the previous zero-damage skip exploit while still allowing the Joker to be played as a last card.
 
 The current 48-face custom prototype retains all 16 EXTRA cards and replaces 2 CORE numbered cards, rather than appending Jokers to an ordinary poker deck. Specifically, one 1↑ and one 8↓ were replaced. That changes the regular number distribution slightly; those removed cards are both very flexible.
 
@@ -86,7 +86,13 @@ During each match, record:
 6. Did any reflection feel like a deserved comeback versus a random punishment?
 7. Which version did players choose voluntarily to replay? Compare this with familiar Shithead, not just our previous ONE prototype.
 
-**Kill conditions:** Players spend more time processing Joker exceptions than anticipating opponents; the same card always dominates once drawn; attacks on empty piles feel cheap; or the game routinely turns into a tedious 10-card hand for the victim.
+**Kill conditions:** Players spend more time processing Joker exceptions than anticipating opponents; the same card always dominates once drawn; empty-pile Joker discards feel pointless or confusing; or the game routinely turns into a tedious 10-card hand for the victim.
+
+## Rule refinement: no empty-pile skip (12 November 2026)
+
+Playing a Joker on an **empty pile** previously let the attacker steal the opponent's turn without any cards at risk. That produced a low-stakes exploit, so the new experimental rule is simpler: **discard the Joker with no attack; the other player takes a normal turn**. It remains legal so a player's last Joker never traps them in a dead-end. The card remains single-use.
+
+This is covered by engine and interface tests in all three variants, plus a last-card endgame test. Simulations now report `jokersBurnedWithoutAttackPerGame` separately rather than treating zero-stakes skips as real Joker attacks. Earlier statistics above are from the **previous rule revision** and are retained as historical comparisons; new rule numbers should be generated with the updated `simulate.cjs` script.
 
 ## Additional Joker-timing study with unknown opponent cards
 
@@ -107,7 +113,7 @@ Reproduce via `npm run simulate:power-cards-hidden`, or choose a separate seed c
 
 ## Research next, not implemented
 
-- Whether one Joker is sufficient, given two Jokers produce around two threat moments per match.
+- Whether one Joker is sufficient, given two Jokers generate around two possible power-card moments per match. Track spent Jokers separately when they are played on empty piles.
 - Whether the only defense should be a universal **clear** card or a successful ordinary-rank match.
 - More robust public-information policy search and actual human skill studies; the first paired hidden-state counterfactual is implemented, but does not prove player mastery.
 - Redesigning the CORE count distribution after choosing the special cards, to avoid unfairly allocating the strongest normal ranks.
