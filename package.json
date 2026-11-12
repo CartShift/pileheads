@@ -12,7 +12,8 @@
     "simulate:one-strategy": "node experiments/one/strategy-simulate.cjs --seeds 800 --seed 20261111",
     "simulate:one-quick": "node experiments/one/quick-simulate.cjs --seeds 750 --seed 20261111",
     "test:power-cards": "node experiments/power-cards/test.cjs && node experiments/power-cards/ui-test.cjs && node experiments/power-cards/print-test.cjs",
-    "simulate:power-cards": "node experiments/power-cards/simulate.cjs --seeds 900 --seed 20261111"
+    "simulate:power-cards": "node experiments/power-cards/simulate.cjs --seeds 900 --seed 20261111",
+    "simulate:power-cards-hidden": "node experiments/power-cards/hidden-info-simulate.cjs --states 60 --worlds 30 --seed 20261112"
   },
   "engines": {
     "node": ">=24"
