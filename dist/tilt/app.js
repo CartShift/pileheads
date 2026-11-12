@@ -5,6 +5,7 @@ const MODE=['plain','joker','match'].includes(query.get('rule'))?query.get('rule
 const KEY='tilt-joker-lab-'+MODE+'-v01';
 let game=null,opponents='bot',botStyle='timing',busy=false,covered=false,epoch=0,botTimer=null;
 let sounds=false,drag=null,suppressClick=false,voice=null;
+let handling='table',tableFocus=false,selectedIndex=null;
 let message='Hold your Joker until the pile is dangerous, or surprise the other player early.';
 
 function seat(){return E.active(game)}
@@ -12,7 +13,7 @@ function done(){return E.finished(game)}
 function focus(){return opponents==='bot'?0:seat()}
 function name(i){return opponents==='bot'?(i===0?'You':'Bot'):'Player '+(i+1)}
 function canAct(){return !busy&&!covered&&!done()&&(opponents==='hotseat'||seat()===0)}
-function persist(){try{localStorage.setItem(KEY,JSON.stringify({game,opponents,botStyle,message,sounds}))}catch(e){console.warn('Save unavailable',e)}}
+function persist(){try{localStorage.setItem(KEY,JSON.stringify({game,opponents,botStyle,message,sounds,handling,tableFocus}))}catch(e){console.warn('Save unavailable',e)}}
 function restore(){
  try{
   const old=JSON.parse(localStorage.getItem(KEY)||'null');
@@ -20,7 +21,7 @@ function restore(){
   game=old.game;opponents=old.opponents==='hotseat'?'hotseat':'bot';
   botStyle=['timing','greedy','hoard','random'].includes(old.botStyle)?old.botStyle:'timing';
   message=typeof old.message==='string'?old.message:message;
-  sounds=old.sounds===true;return true;
+  sounds=old.sounds===true;handling=old.handling==='quick'?'quick':'table';tableFocus=old.tableFocus===true;return true;
  }catch{return false}
 }
 function makeCard(c,attrs='',cls=''){
@@ -56,6 +57,13 @@ function opponentBacks(n){
  const count=Math.min(n,5); // keep a readable far-seat fan even when opponent collects many cards
  return Array.from({length:count},(_,i)=>'<span class="back-card" aria-hidden="true" style="--fan:'+((i-(count-1)/2)*5)+'deg;--lift:'+((i%2)*-2)+'px"></span>').join('');
 }
+function fanStyle(i,count){
+ const offset=i-(count-1)/2;
+ return '--fan-angle:'+(offset*Math.min(5.5,28/Math.max(1,count-1))).toFixed(2)+'deg;--fan-rise:'+Math.round(Math.abs(offset)*2.7)+'px;--layer:'+(i+1);
+}
+function touchFeedback(ms=7){
+ if(typeof navigator!=='undefined'&&typeof navigator.vibrate==='function')try{navigator.vibrate(ms)}catch(_){}
+}
 function render(){
  const turn=seat(),human=focus(),you=game.people[human],other=game.people[1-human],
   top=game.pile.at(-1),pending=game.pending;
@@ -81,9 +89,9 @@ function render(){
  $('condition').textContent=condition[0];$('ruleTip').textContent=condition[1];
  $('pile').className=pending?'pile pending-attack':'pile';
  $('pile').innerHTML=(top?
-   (game.pile.length>2?'<span class="pile-under"></span>':'')+
-   (game.pile.length>1?'<span class="pile-under two"></span>':'')+
-   makeCard(top,'disabled','table-card')+
+   game.pile.slice(-3).map((card,i,layers)=>makeCard(card,
+    'disabled tabindex="-1"'+(i<layers.length-1?' aria-hidden="true"':''),
+    'table-card'+(i<layers.length-1?' table-under under-'+(layers.length-1-i):''))).join('')+
    '<span class="pile-count">'+game.pile.length+'</span>':
    '<div class="empty-pile">PLACE A CARD</div>')+
   (pending?'<span class="joker-signal">JOKER ↯<small>CHALLENGE '+
@@ -103,11 +111,19 @@ function render(){
   name(human).toUpperCase()+' · YOUR HAND':'YOUR HAND · '+you.hand.length;
  const act=canAct(),options=act?E.legal(game,turn):[];
  const playable=new Set(options.filter(x=>x.type==='play'||x.type==='counter').map(x=>x.index));
+ if(!act||selectedIndex!==null&&!playable.has(selectedIndex))selectedIndex=null;
  const showOwn=!covered&&(opponents==='bot'||act);
  $('hand').innerHTML=showOwn?
-  you.hand.map((c,i)=>makeCard(c,'data-index="'+i+'" '+(act&&playable.has(i)?'':'disabled'),
-  act&&playable.has(i)?'playable':'blocked')).join(''):
+  you.hand.map((c,i)=>makeCard(c,
+   'data-index="'+i+'" aria-pressed="'+(selectedIndex===i)+'" style="'+fanStyle(i,you.hand.length)+'" '+(act&&playable.has(i)?'':'disabled'),
+   act&&playable.has(i)?'playable'+(selectedIndex===i?' selected':''):'blocked')).join(''):
   '<p style="font-size:12px;color:#d7e7d8">Private hand hidden during handoff.</p>';
+ $('pileMat').classList?.toggle('ready-to-drop',act&&selectedIndex!==null);
+ $('pileMat').setAttribute?.('tabindex',act&&selectedIndex!==null?'0':'-1');
+ $('pileMat').setAttribute?.('aria-label',act&&selectedIndex!==null?'Place selected card on the pile':'Shared pile, drag cards here');
+ $('focusToggle').textContent=tableFocus?'Exit table focus':'Table focus';
+ $('focusToggle').setAttribute?.('aria-pressed',String(tableFocus));
+ document.body?.classList?.toggle('table-focus',tableFocus);
  const takeOption=options.some(x=>x.type==='takeTop'||x.type==='takeAll');
  $('take').hidden=!act||!takeOption;
  $('takeButton').textContent=pending?'TAKE THE WHOLE PILE ('+game.pile.length+')':'Pick up the top card';
@@ -125,6 +141,13 @@ function render(){
    (!game.pile.length&&you.hand.some(c=>c.kind==='joker')?
     'The pile is empty. A Joker played now is discarded with no attack.':
     'Tap a bright card to play. The Joker always fits, but timing matters.');
+ if(handling==='table'&&act&&playable.size)
+  $('handHint').textContent=selectedIndex===null?
+    'Tap a card to lift it, then tap the pile. Or drag it directly.':
+    'Card lifted. Tap the pile to place it, or tap this card to put it back.';
+ if(handling==='table'&&pending&&act&&playable.size&&selectedIndex===null)
+  $('handHint').textContent='Lift a counter card and place it, or take the pile.';
+ $('handlingMode').value=handling;
  $('done').hidden=!done();
  $('done').innerHTML=done()?'<h2>'+(game.draw?'Draw':name(game.winner)+' wins!')+'</h2>'+
    '<p>'+game.turn+' actions · '+game.log.filter(x=>x.reason==='joker').length+
@@ -132,7 +155,7 @@ function render(){
    '<button type="button" class="primary" data-rematch="1">Play again</button>':'';
 }
 function cover(){
- covered=true;
+ selectedIndex=null;covered=true;
  $('coverTitle').textContent='Pass to '+name(seat());
  $('cover').style.display='flex';render();
 }
@@ -218,6 +241,7 @@ function cardSound(){
  }catch(e){console.debug('Optional card audio unavailable',e)}
 }
 function finish(action,from,pileBefore){
+ selectedIndex=null;
  const c=action.card;
  if(action.reason==='joker')message=name(action.seat)+' played a Joker. The entire pile is now in danger!';
  else if(action.reason==='jokerBurned')message=name(action.seat)+
@@ -272,22 +296,34 @@ function queueBot(){
    finish(E.play(game,1,move),from,pileBefore);
   }
   catch(e){message='Bot could not continue: '+String(e.message);render()}
- },720);
+ },Math.min(1350,550+game.pile.length*30+(game.pending?210:0)));
 }
 function resetGame(seed){
  if(botTimer!==null)clearTimeout(botTimer);
- epoch++;busy=false;covered=false;drag=null;clearGhosts();
+ epoch++;busy=false;covered=false;drag=null;selectedIndex=null;clearGhosts();
  game=E.create({seed,mode:MODE});
  message='Grow the pile, time your Joker, or keep a card that can counter.';
  $('cover').style.display='none';persist();
  if(opponents==='hotseat')cover();else{render();queueBot()}
 }
+function placeSelected(){
+ if(!canAct()||selectedIndex===null)return;
+ const i=selectedIndex,source=$('hand').querySelector?.('[data-index="'+i+'"]')||$('hand');
+ play({type:game.pending?'counter':'play',index:i},source);
+}
+$('pileMat').onclick=placeSelected;
+$('pileMat').onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&selectedIndex!==null){e.preventDefault?.();placeSelected()}};
 $('hand').onclick=e=>{
  if(suppressClick){suppressClick=false;return}
  if(!canAct())return;
  const el=e.target.closest('[data-index]');if(!el||el.disabled)return;
- play({type:game.pending?'counter':'play',index:Number(el.dataset.index)},el);
+ const index=Number(el.dataset.index);
+ if(handling==='table'){
+  selectedIndex=selectedIndex===index?null:index;
+  touchFeedback();render();
+ }else play({type:game.pending?'counter':'play',index},el);
 };
+document.addEventListener?.('keydown',e=>{if(e.key==='Escape'&&selectedIndex!==null){selectedIndex=null;render()}});
 $('takeButton').onclick=()=>{
  const source=$('pile').querySelector?.('.table-card');
  play({type:game.pending?'takeAll':'takeTop'},source);
@@ -301,6 +337,8 @@ $('newGame').onclick=()=>{
  resetGame(n);
 };
 $('soundEnabled').onchange=e=>{sounds=Boolean(e.target.checked);persist()};
+$('handlingMode').onchange=e=>{handling=e.target.value==='quick'?'quick':'table';selectedIndex=null;persist();render()};
+$('focusToggle').onclick=()=>{tableFocus=!tableFocus;persist();render()};
 $('done').onclick=e=>{
  if(!e.target.closest('[data-rematch]'))return;
  const seed=(game.seed+1)>>>0;$('seed').value=String(seed);resetGame(seed);
@@ -317,7 +355,7 @@ hand.addEventListener?.('pointerdown',e=>{
  if(!canAct()||e.button>0)return;
  const el=e.target.closest?.('[data-index]');if(!el||el.disabled)return;
  const r=rectOf(el);if(!r)return;
- drag={index:Number(el.dataset.index),startX:e.clientX,startY:e.clientY,source:el,rect:r,active:false,ghost:null,pointerId:e.pointerId};
+ drag={index:Number(el.dataset.index),startX:e.clientX,startY:e.clientY,gripX:e.clientX-r.left,gripY:e.clientY-r.top,prevX:e.clientX,source:el,rect:r,active:false,ghost:null,pointerId:e.pointerId};
  // Capture the pointer so a finger can travel out of the hand all the way to the center pile.
  try{el.setPointerCapture?.(e.pointerId)}catch(error){console.debug('Pointer capture unavailable',error)}
 });
@@ -335,8 +373,10 @@ hand.addEventListener?.('pointermove',e=>{
  }
  if(!drag.active)return;
  e.preventDefault();const ghost=drag.ghost;
- ghost.style.left=(e.clientX-drag.rect.width/2)+'px';
- ghost.style.top=(e.clientY-drag.rect.height/2)+'px';
+ ghost.style.left=(e.clientX-drag.gripX)+'px';
+ ghost.style.top=(e.clientY-drag.gripY)+'px';
+ ghost.style.transform='rotate('+Math.max(-13,Math.min(13,(e.clientX-drag.prevX)*1.5)).toFixed(1)+'deg) scale(1.05)';
+ drag.prevX=e.clientX;
  const r=rectOf($('pileMat')),inside=r&&e.clientX>=r.left-22&&e.clientX<=r.left+r.width+22&&
    e.clientY>=r.top-22&&e.clientY<=r.top+r.height+22;
  $('pileMat').classList.toggle('drop-active',Boolean(inside));
@@ -353,11 +393,23 @@ function finishDrag(e,cancelled){
  // Suppress the synthetic post-pointerup click; restore normal single-tap action.
  setTimeout(()=>{suppressClick=false},0);
  const from=rectOf(d.ghost)||d.rect;
- d.ghost?.remove();
  const r=rectOf($('pileMat'));
  const hit=!cancelled&&r&&e.clientX>=r.left-22&&e.clientX<=r.left+r.width+22&&
    e.clientY>=r.top-22&&e.clientY<=r.top+r.height+22;
- if(hit&&canAct())play({type:game.pending?'counter':'play',index:d.index},{getBoundingClientRect:()=>from});
+ if(hit&&canAct()){
+  d.ghost?.remove();
+  play({type:game.pending?'counter':'play',index:d.index},{getBoundingClientRect:()=>from});
+ }else{
+  selectedIndex=null;render();
+  if(d.ghost&&typeof d.ghost.animate==='function'&&!isReducedMotion()){
+   const dx=d.rect.left-from.left,dy=d.rect.top-from.top;
+   const m=d.ghost.animate([
+    {transform:d.ghost.style.transform||'rotate(0deg) scale(1.05)',opacity:1},
+    {transform:'translate('+dx+'px,'+dy+'px) rotate(0deg) scale(1)',opacity:.8}
+   ],{duration:210,easing:'ease-out',fill:'forwards'});
+   m.onfinish=()=>d.ghost.remove();m.oncancel=()=>d.ghost.remove();
+  }else d.ghost?.remove();
+ }
 }
 hand.addEventListener?.('pointerup',e=>finishDrag(e,false));
 hand.addEventListener?.('pointercancel',e=>finishDrag(e,true));
@@ -369,5 +421,6 @@ if(reset){
 }
 $('opponents').value=opponents;$('botStyle').value=botStyle;$('seed').value=String(game.seed);
 $('soundEnabled').checked=sounds;
+$('handlingMode').value=handling;
 if(opponents==='hotseat'&&!done())cover();else{render();queueBot()}
 })();

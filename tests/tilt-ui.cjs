@@ -8,7 +8,7 @@ for(const id of [
  'pile','pileMat','condition','ruleTip','message','handTitle','handHint','hand','take','takeButton',
  'takeExplain','done','opponents','botStyle','seed','soundEnabled','newGame','export','cover',
  'coverTitle','reveal','modeTitle','plainLink','jokerLink','matchLink','jokerWarning',
- 'jokerWarningTitle','jokerWarningBody'
+ 'jokerWarningTitle','jokerWarningBody','handlingMode','focusToggle'
 ])assert.match(html,new RegExp('id="'+id+'"'),'Missing '+id);
 let checks=0;
 function check(label,fn){fn();checks++;console.log('PASS '+label)}
@@ -41,16 +41,18 @@ function mount(mode='match',seed=20261111,store=new Map(),fresh=true){
  });
  vm.runInContext(app,ctx,{filename:'app.js'});
  function saved(){return JSON.parse(store.get('tilt-joker-lab-'+mode+'-v01'))}
- function tap(index){
+ function lift(index){
   const card={dataset:{index:String(index)},disabled:false,
    getBoundingClientRect(){return{x:0,y:0,left:0,top:0,width:70,height:100}}};
   el('hand').onclick({target:{closest:s=>s==='[data-index]'?card:null}});
  }
+ function tap(index){lift(index);if(el('handlingMode').value==='table')el('pileMat').onclick()}
+
  function drain(limit=12){
   let n=0;while(timers.length&&n++<limit)timers.shift()();
   assert.ok(n<limit,'Bot loop did not terminate');
  }
- return{el,store,saved,tap,drain,timers};
+ return{el,store,saved,tap,lift,drain,timers};
 }
 function replaceInHand(g,seat,index,predicate){
  const i=g.stock.findIndex(predicate);
@@ -97,6 +99,20 @@ check('First person UI shows a private 4-card hand, opaque opponent backs, and s
  assert.equal(a.el('matchLink').attrs['aria-current'],'page');
  assert.equal(a.el('jokerWarning').hidden,true);
  assert.equal(a.store.has('one-card-one-rule-quick-v01'),false);
+});
+check('Lift, replace, and place do not accidentally commit moves',()=>{
+ const a=mount('match'),before=a.saved().game.turn;
+ const index=E.legal(a.saved().game,0).find(m=>m.type==='play').index;
+ a.lift(index);assert.equal(a.saved().game.turn,before);
+ assert.match(a.el('hand').innerHTML,/selected/);
+ a.lift(index);assert.equal(a.saved().game.turn,before);
+ a.lift(index);a.el('pileMat').onclick();
+ assert.equal(a.saved().game.turn,before+1);
+ const b=mount('match');
+ b.el('handlingMode').onchange({target:{value:'quick'}});
+ assert.equal(b.saved().handling,'quick');
+ b.lift(E.legal(b.saved().game,0).find(m=>m.type==='play').index);
+ assert.equal(b.saved().game.turn,1);
 });
 check('Playing a Joker on an empty pile never creates a pending attack or steals a turn',()=>{
  const g=E.create({seed:891,mode:'match'});

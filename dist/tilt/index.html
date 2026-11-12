@@ -195,6 +195,37 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
 }
 @media(max-width:350px){.table-felt{padding:8px 3px}.stations{grid-template-columns:minmax(49px,1fr) minmax(102px,1.4fr) minmax(49px,1fr)}.station-caption{font-size:8px}.hand .card{width:67px;flex-basis:67px;height:107px}.hand .card .number{font-size:46px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.hand .card.playable:hover{transform:none}}
+
+/* Physical table refinements, preserving the original felt and card branding. */
+.pile .table-card{position:relative;z-index:3}
+.pile .table-under{position:absolute;z-index:1;filter:brightness(.94);pointer-events:none}
+.pile .table-under.under-1{transform:translate(-7px,7px) rotate(-9deg)}
+.pile .table-under.under-2{z-index:0;transform:translate(7px,10px) rotate(8deg);filter:brightness(.89)}
+.pile .pile-count{z-index:5}
+.pile-mat.ready-to-drop{background:#326e5560;box-shadow:inset 0 0 0 2px #f9db9299;cursor:pointer}
+.pile-mat.ready-to-drop::before{content:"PLACE CARD";color:#fff2c7}
+.hand{overflow-x:auto;overflow-y:hidden;align-items:flex-end;gap:0;min-height:176px;padding:28px 14px 18px;scroll-snap-type:none}
+.hand .card{position:relative;flex-shrink:0;margin-left:-13px;z-index:var(--layer,1);transform:translateY(var(--fan-rise,0px)) rotate(var(--fan-angle,0deg));transform-origin:50% 125%;transition:transform .18s cubic-bezier(.2,.8,.2,1),box-shadow .18s ease;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.hand .card:first-child{margin-left:0}
+.hand .card.playable:hover,.hand .card.playable:focus-visible{transform:translateY(-16px) rotate(0deg);z-index:30}
+.hand .card.playable.selected,.hand .card.playable.selected:hover{transform:translateY(-27px) rotate(0deg) scale(1.07);z-index:40;box-shadow:0 6px 0 #b99d6d,0 20px 26px #00150cba,0 0 0 2px #f6d187}
+.hand .card.blocked{opacity:.72;filter:saturate(.55)}
+.hand .card.dragging-original{opacity:.15!important}
+.drag-ghost{transition:none!important;transform-origin:center}
+.focus-toggle{border:1px solid #b4c3ae;border-radius:8px;background:#fdf9ed;color:#294d40;padding:7px 10px;font-size:12px;font-weight:800;min-height:39px}
+.site-actions{display:flex;align-items:center;gap:11px}
+.table-focus> a:first-child,.table-focus .mode-switch,.table-focus .teaser,.table-focus .tool-row,.table-focus .disclaimer{display:none!important}
+.table-focus main{max-width:1200px;min-height:100dvh;padding:8px 10px 12px;display:flex;flex-direction:column}
+.table-focus .table-frame{flex:1;display:flex}
+.table-focus .table-felt{flex:1;display:flex;flex-direction:column;justify-content:space-between}
+@media(max-width:520px){
+ .site-actions{gap:7px}.site-actions a,.focus-toggle{font-size:11px}
+ .focus-toggle{padding:6px 8px}.hand{min-height:149px;padding:27px 9px 13px}
+ .hand .card{margin-left:-11px}
+ .hand .card.playable.selected{transform:translateY(-22px) rotate(0deg) scale(1.06)}
+ .table-focus main{padding:4px 3px 6px}
+}
+@media(prefers-reduced-motion:reduce){.hand .card{transition:none!important}.hand .card.playable.selected{transform:translateY(-12px) rotate(0deg)}}
 </style>
 </head>
 <body>
@@ -202,7 +233,7 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
 <main>
 <header class="site-head">
  <div class="brand"><span class="logo">TILT</span><span id="modeTitle" class="brand-tag">Joker power-card lab</span></div>
- <a href="./print.html">Print the deck</a>
+ <div class="site-actions"><button type="button" id="focusToggle" class="focus-toggle" aria-pressed="false">Table focus</button><a href="./print.html">Print the deck</a></div>
 </header>
 <p class="teaser"><strong>One pile. Two Jokers.</strong> The bigger the pile, the bigger the danger. A sideways Joker always leaves the challenged number visible.</p>
 <nav class="mode-switch" aria-label="Choose special-card rule">
@@ -218,7 +249,7 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
   </div>
   <div class="stations">
    <div class="station"><div class="station-caption">Draw deck</div><div id="deckVisual" class="stack-back"></div><div id="stock" class="station-number">42 left</div></div>
-   <div id="pileMat" class="station pile-mat"><div id="pile" class="pile" aria-label="Shared pile, drop cards here"></div></div>
+   <div id="pileMat" class="station pile-mat" role="button" tabindex="-1" aria-label="Shared pile, drag cards here"><div id="pile" class="pile" aria-label="Shared pile, drop cards here"></div></div>
    <div class="station"><div class="station-caption">Discard</div><div id="discard" class="discard-empty"></div><div id="discardCount" class="station-number">0 cards</div></div>
   </div>
   <div id="jokerWarning" class="joker-warning" role="status" aria-live="polite" hidden>
@@ -233,7 +264,7 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
   <div id="message" class="message" aria-live="polite">Choose a card.</div>
   <div class="player-seat">
    <div id="handTitle" class="hand-label">YOUR HAND</div>
-   <div id="handHint" class="hand-hint">Tap or drag any playable card</div>
+   <div id="handHint" class="hand-hint">Tap a card to lift it, then tap the pile, or drag to play</div>
    <div id="hand" class="hand" aria-label="Your cards, playable cards are enabled"></div>
    <div id="take" class="take-zone" hidden>
     <button id="takeButton" class="take-button">Pick up the top card</button>
@@ -245,6 +276,7 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
 </section>
 <section class="tool-row">
  <details id="howto"><summary>Rules in 30 seconds</summary>
+ <p><strong>At the table:</strong> tap a card to lift it, then tap the center pile to place it. You can also drag straight to the pile. Missed drops return to your hand. Quick handling in settings keeps classic one-tap play.</p>
  <ol>
   <li><strong>Normal play:</strong> follow the visible arrow. ↑ means same number or higher; ↓ means same or lower. Matching numbers clear the pile. If stuck, take only the top card and discard the rest.</li>
   <li><strong>Joker:</strong> on a nonempty pile, play it sideways, leaving the top number visible. The next player must respond or take the <strong>entire pile</strong>, losing their turn. If the pile is empty, discard your Joker without attacking or skipping anyone. The Joker leaves play either way.</li>
@@ -255,6 +287,7 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
  <details><summary>Table settings</summary>
   <div class="settings">
    <label>Opponent<select id="opponents"><option value="bot">Play against the bot</option><option value="hotseat">Two people, one phone</option></select></label>
+   <label>Card handling<select id="handlingMode"><option value="table">Physical: lift and place</option><option value="quick">Quick: one-tap play</option></select></label>
    <label>Bot style<select id="botStyle"><option value="timing">Timing (recommended)</option><option value="greedy">Use Jokers early</option><option value="hoard">Save Jokers</option><option value="random">Random</option></select></label>
    <label class="wide">Replay seed<input id="seed" type="number" min="0" max="4294967295" step="1" value="20261111"></label>
    <label class="sound-option wide"><input id="soundEnabled" type="checkbox"> Soft card sounds (off by default)</label>
