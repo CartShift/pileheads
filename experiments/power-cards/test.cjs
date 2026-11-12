@@ -19,6 +19,32 @@ check('Two one-use Jokers replace two CORE cards, with stable opaque card identi
   assert.equal(g.aside.length,16);assert.equal(P.count(g),48);
  }
 });
+check('Joker on an empty pile is discarded, with NO attack or stolen turn',()=>{
+ for(const mode of P.MODES){
+  const g=P.create({seed:44,mode});
+  put(g,0,0,c=>c.kind==='joker');
+  const joker=g.people[0].hand[0].id,opponentHand=g.people[1].hand.length;
+  const e=P.play(g,0,{type:'play',index:0});
+  assert.equal(e.reason,'jokerBurned');
+  assert.equal(g.pending,null);
+  assert.equal(g.pile.length,0);
+  assert.equal(g.winner,null);
+  assert.equal(P.active(g),1,'The defender gets a normal turn');
+  assert.equal(g.people[1].hand.length,opponentHand);
+  assert.ok(g.ashes.some(c=>c.id===joker),'Joker must be consumed');
+  assert.equal(P.count(g),48);
+ }
+});
+check('Discarding the last Joker on an empty pile ends the game normally',()=>{
+ const g=P.create({seed:47,mode:'match'});
+ put(g,0,0,c=>c.kind==='joker');
+ g.ashes.push(...g.people[0].hand.splice(1));
+ g.ashes.push(...g.stock.splice(0));
+ assert.equal(P.count(g),48);
+ const e=P.play(g,0,{type:'play',index:0});
+ assert.equal(e.reason,'jokerBurned');assert.equal(g.winner,0);
+ assert.equal(g.pending,null);assert.equal(P.count(g),48);
+});
 check('A Joker can be played on any visible pile direction',()=>{
  const g=P.create({seed:12,mode:'match'});
  put(g,0,0,c=>c.kind==='joker');
