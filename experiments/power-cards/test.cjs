@@ -94,6 +94,39 @@ check('Unchanged basic match, ordinary pickup, and directional legality',()=>{
  }));
  assert.equal(P.count(g),48);
 });
+check('A last-card Joker attack does not end the game until the victim responds',()=>{
+ const g=P.create({seed:707,mode:'plain'});
+ put(g,0,0,c=>c.kind==='joker');
+ g.ashes.push(...g.people[0].hand.splice(1));
+ g.ashes.push(...g.stock.splice(0));
+ const rankIndex=g.ashes.findIndex(c=>c.kind!=='joker');
+ g.pile.push(...g.ashes.splice(rankIndex,1));
+ assert.equal(P.count(g),48);
+ const first=P.play(g,0,{type:'play',index:0});
+ assert.equal(first.reason,'joker');assert.equal(g.winner,null);
+ assert.ok(g.pending,'A pending attack must resolve before victory');
+ const attack=P.play(g,1,{type:'takeAll'});
+ assert.equal(attack.taken,1);assert.equal(g.winner,0);
+ assert.equal(g.pending,null);assert.equal(P.count(g),48);
+});
+check('A last-card matching counter can win after reflecting a pending Joker',()=>{
+ const g=P.create({seed:708,mode:'match'});
+ put(g,0,0,c=>c.kind==='joker');
+ put(g,1,0,c=>c.n===5&&c.kind!=='joker');
+ g.ashes.push(...g.people[0].hand.splice(1));
+ g.ashes.push(...g.people[1].hand.splice(1));
+ const rank=g.stock.findIndex(c=>c.n===5&&c.kind!=='joker');
+ assert.ok(rank>=0);
+ g.pile.push(...g.stock.splice(rank,1));
+ g.ashes.push(...g.stock.splice(0));
+ assert.equal(P.count(g),48);
+ P.play(g,0,{type:'play',index:0});
+ assert.equal(g.winner,null);assert.equal(g.pending.targetRank,5);
+ const result=P.play(g,1,{type:'counter',index:0});
+ assert.equal(result.reason,'jokerBlocked');
+ assert.equal(g.winner,1);assert.equal(g.pending,null);
+ assert.equal(P.count(g),48);
+});
 check('Never inspect hidden stock or opponent hand when choosing attacks',()=>{
  const a=P.create({seed:20,mode:'match'}),b=JSON.parse(JSON.stringify(a));
  b.people[1].hand=b.people[1].hand.map(c=>({...c,n:8,arrow:'down',id:-c.id-1}));
