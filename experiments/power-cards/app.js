@@ -178,6 +178,29 @@ function animateMotion(from,action){
   animation.oncancel=()=>ghost.remove();
  }else ghost.remove();
 }
+// A full-pile penalty should look like a stack, not one ordinary card.
+function animatePileSweep(before,action){
+ if(!before?.rect||before.count<1||!['jokerHit','jokerBlocked'].includes(action.reason)||
+   opponents!=='bot'||isReducedMotion()||typeof document.body?.appendChild!=='function')return;
+ const recipient=action.reason==='jokerBlocked'?action.victim:action.seat;
+ const target=recipient===1?$('opponentHand'):$('hand'),to=rectOf(target);
+ if(!to)return;
+ const from=before.rect,ghost=document.createElement('div');
+ ghost.className='flying-card pile-sweep';
+ ghost.innerHTML='<span class="sweep-count">'+action.taken+' CARDS</span>';
+ ghost.style.position='fixed';ghost.style.left=from.left+'px';ghost.style.top=from.top+'px';
+ ghost.style.width='88px';ghost.style.height='120px';ghost.style.pointerEvents='none';
+ document.body.appendChild(ghost);
+ const dx=to.left+to.width/2-from.left-44,dy=to.top+to.height/2-from.top-60;
+ if(typeof ghost.animate==='function'){
+  const motion=ghost.animate([
+   {transform:'translate(0,0) rotate(-5deg) scale(1)',opacity:1},
+   {transform:'translate('+(dx*.6)+'px,'+(dy*.55-18)+'px) rotate(8deg) scale(1.05)',opacity:1},
+   {transform:'translate('+dx+'px,'+dy+'px) rotate(-3deg) scale(.82)',opacity:.9}
+  ],{duration:580,easing:'cubic-bezier(.2,.75,.22,1)',fill:'forwards'});
+  motion.onfinish=()=>ghost.remove();motion.oncancel=()=>ghost.remove();
+ }else ghost.remove();
+}
 function cardSound(){
  // A short synthetic paper tap. Off by default; no autoplay without opt-in.
  if(!sounds||typeof window==='undefined')return;
@@ -194,7 +217,7 @@ function cardSound(){
   source.start();
  }catch(e){console.debug('Optional card audio unavailable',e)}
 }
-function finish(action,from){
+function finish(action,from,pileBefore){
  const c=action.card;
  if(action.reason==='joker')message=name(action.seat)+' played a Joker. The entire pile is now in danger!';
  else if(action.reason==='jokerBurned')message=name(action.seat)+
@@ -209,14 +232,16 @@ function finish(action,from){
  persist();
  if(done()){
   covered=false;$('cover').style.display='none';busy=false;render();
-  animateMotion(from,action);cardSound();return;
+  if(action.reason!=='jokerHit')animateMotion(from,action);
+  animatePileSweep(pileBefore,action);cardSound();return;
  }
  if(opponents==='hotseat'){
   if(seat()!==action.seat)cover();
   else render(); // A successful counter lets this defender immediately lead.
   cardSound();return;
  }
- render();animateMotion(from,action);cardSound();queueBot();
+ render();if(action.reason!=='jokerHit')animateMotion(from,action);
+ animatePileSweep(pileBefore,action);cardSound();queueBot();
  if(action.reason==='match'&&$('pileMat').classList){
   const mat=$('pileMat');mat.classList.remove('match-flash');
   if(typeof mat.offsetWidth==='number')void mat.offsetWidth;
@@ -225,13 +250,13 @@ function finish(action,from){
 }
 function play(move,source){
  if(!canAct())return;
- const from=rectOf(source);
+ const from=rectOf(source),pileBefore={rect:rectOf($('pile')),count:game.pile.length};
  let event;
  try{event=E.play(game,seat(),move)}
  catch(e){message='That move is not allowed: '+e.message;render();return}
  // Once the engine has committed, presentation errors must not masquerade
  // as rejected moves or encourage another tap of an already-played card.
- try{finish(event,from)}
+ try{finish(event,from,pileBefore)}
  catch(e){console.warn('Joker move succeeded but visual feedback failed',e);persist();render()}
 }
 function queueBot(){
@@ -243,8 +268,8 @@ function queueBot(){
   try{
    const move=E.choose(game,1,botStyle);
    const source=['takeTop','takeAll'].includes(move.type)?$('pile').querySelector?.('.table-card'):$('opponentHand').querySelector?.('.back-card:last-child');
-   const from=rectOf(source);
-   finish(E.play(game,1,move),from);
+   const from=rectOf(source),pileBefore={rect:rectOf($('pile')),count:game.pile.length};
+   finish(E.play(game,1,move),from,pileBefore);
   }
   catch(e){message='Bot could not continue: '+String(e.message);render()}
  },720);
