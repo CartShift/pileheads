@@ -95,3 +95,6 @@ body.spark-focus{background:#061f19}
  body.spark-focus .tactile-mode .narration p{font-size:9px}
  body.spark-focus .tactile-mode .playback button{min-height:28px}
 }
+
+/* Preserve actual playing-card proportions on very short landscape displays. */
+@media(orientation:landscape) and (max-height:500px){body.spark-focus .tactile-mode .card-rail{max-width:440px}body.spark-focus .tactile-mode .card-rail .board>.card{max-height:none}}
