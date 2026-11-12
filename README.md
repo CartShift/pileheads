@@ -61,6 +61,21 @@ The surface includes tighter landscape phone styling, reduced-motion support, ex
 - `.openai/hosting.json`: existing ChatGPT Sites project and static directory.
 - `docs/development-history.md`: prior implementation and QA notes.
 
+## TILT Joker Lab inside the advanced simulator
+
+**TILT is now a second game in this repository, with a separate physical-card engine and no changes to SPARK Simple+ rules or saved progress.** In the **Simulate** tab, select **TILT · Joker Lab** to compare three versions of the two-Joker full-pile mechanic. The existing SPARK A/B/C simulator remains one click away.
+
+- **Play the physical first-person table:** \`/tilt/index.html?rule=match\` (recommended), \`?rule=joker\` (Joker reply), \`?rule=plain\` (uncounterable attack).
+- **Print the prototype custom deck:** \`/tilt/print.html\`: 32 CORE cards, including 2 Jokers, plus 16 EXTRA cards not used in this experiment. A normal poker deck will not substitute for the rank-and-arrow cards.
+- **Advanced comparison:** \`dist/tilt-sim-core.js\` runs the actual \`dist/tilt/engine.js\` through the existing \`dist/simulation.worker.js\`, sampling paired seeds and swapping the Timing bot's seat against Greedy, Hoard and Random policies. The reports show attacks, reversals, cards collected, large penalties, neutral Joker discards, actions to finish, and seat-sensitive win rates.
+- **Instant report and reruns:** \`dist/tilt-simulation-results.json\` is the checked-in reproducible starting dataset; clicking Run uses the same off-main-thread Worker. Results can be exported as JSON.
+- **Game UI and local saves:** \`dist/tilt/{index.html,app.js,engine.js,print.html}\`. Separate local save keys per Joker variant; the SPARK localStorage key and online multiplayer rooms are untouched.
+- **Both supported packages:** \`scripts/build.mjs\` includes all TILT assets in the existing Sites/Cloudflare Worker output; \`scripts/build-vercel.mjs\` includes them in the static Vercel solo preview. Neither publish action is automatic from a GitHub commit.
+
+Run \`npm run test:tilt\` for the engine, physical UI, printable deck and shared simulator regression suite. The regular \`npm test\` now includes a small simulator compatibility test alongside the original SPARK and room tests. The game engine's own seeded test covers 2,550 complete matches with exact 48-card conservation.
+
+**Important scope:** This is a working integrated simulator, **not** a proven original game, commercially viable physical product, human skill study or Android device approval. Do not interpret win rates against basic bots as evidence of human enjoyment or a balanced retail deck. There is no online TILT room feature; its 2-player mode is local hotseat only.
+
 ## Validation and limits
 
 `npm test` covers 100 complete games against the imported legacy engine, 90 complete new-mode games, six complete UI-state games, every insertion position, ability use, scoring, row and hand sizes, reloads, export payloads, replay and hidden-information isolation. A three-wave fixture scores ten points.
