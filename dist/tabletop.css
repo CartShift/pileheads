@@ -63,3 +63,7 @@ body.spark-focus{background:#061f19}
 .tactile-mode .play-card{max-width:310px;min-height:37px;font-size:11px;box-shadow:none}
 .tactile-mode .play-card:disabled{opacity:.4;background:transparent;color:#d9cda9;border:1px dashed #ceb78270}
 @media(max-width:540px){.tactile-mode .swap-choices{inset:0 10px}.tactile-mode .swap-choices button{width:27px}.tactile-mode .swap-choices button:after{width:21px;height:19px;font-size:14px;bottom:-7px}}
+
+/* A physical move finishes when the card reaches the table; guided mode retains its confirmation button. */
+.tactile-mode .your-hand .play-card{display:none}
+.tactile-mode .your-hand .watch-reserve{min-height:0}
