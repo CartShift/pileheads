@@ -9,7 +9,7 @@
 - Shuffle the 32 CORE cards with **two Joker faces**, remove 16 EXTRA cards.
 - Deal four face-down-hand cards to each player and place the remaining 24 in a draw stock.
 - Use identical opaque-backed sleeves. Put Joker cards *sideways* beside the pile, leaving the target number and pile size visible.
-- Standard pickup is **one top card, rest discarded**. A **Joker** is different: full pile or valid counter. Refill to four only after playing while the draw stock remains.
+- Standard pickup is **one top card, rest discarded**. A **Joker on a nonempty pile** threatens the whole pile, subject to the selected counter rule. A Joker on an empty pile is discarded with no attack or skip. Refill to four only after playing while the draw stock remains.
 - Use the short rules printed with the prototype. Test ONLY one rule mode per match, not a mix.
 - Never coach people about the "right" Joker timing until after the session.
 
@@ -43,7 +43,7 @@ If you have time for a fourth game, let them choose freely: play one more Joker 
     Did players watch the growing pile with anticipation?
     Were any normal (non-Joker) turns strategic or repetitive?
     Did a full-pile pickup feel funny, tense, frustrating, or unfair?
-    Did the Joker-on-empty-pile skip feel cheap?
+    Did discarding a Joker onto an empty pile without attacking feel clear or wasteful?
     What did the losing player most want to change?
     Would they replay voluntarily? Which specific mode?
     Compared with familiar Shithead: better / similar / worse / unknown
@@ -67,7 +67,7 @@ Ask the two players separately before they discuss their answers.
 - Keeping a Joker is always correct, with no interesting reason to play it earlier.
 - A matching-number counter feels lucky, never earned.
 - Full-pile pickups cause long, unfun recovery stretches.
-- Attack on an empty pile functions as an annoying skip.
+- Discarding a Joker on an empty pile without attacking feels unintuitive or pointless.
 - Two Jokers cause too much downtime in one-on-one games.
 - People can't explain the rank-counter rule despite the previous number being visibly displayed.
 - People consistently prefer familiar Shithead or the earlier ONE prototype.
