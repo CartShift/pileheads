@@ -269,6 +269,6 @@ bind('export-tilt-simulation',()=>{
 bind('export-simulation',()=>{const a=document.createElement('a'),url=URL.createObjectURL(new Blob([JSON.stringify(simResults,null,2)],{type:'application/json'}));a.href=url;a.download='spark-simulation-v05.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000)})}
 function saveSetup(){try{localStorage.setItem('spark-setup-v05',JSON.stringify({mode:selectedMode,strategies:selectedStrategies}))}catch{}}
 
-document.getElementById('language').onclick=()=>{lang=lang==='he'?'en':'he';save();render()};if(load()){plannedSwap=game.draft?.swapPos??null;render()}else start(1);
+document.getElementById('language').onclick=()=>{lang=lang==='he'?'en':'he';save();render()};if(load()){plannedSwap=game.draft?.swapPos??null;render()}else{start(1);if(new URLSearchParams(location.search).get('screen')==='sim'){screen='sim';render()}}
 })();
 </script><script src="online.js"></script></body></html>
