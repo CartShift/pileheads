@@ -84,3 +84,11 @@ The static site is now served by a dependency-free Worker with a D1 `DB` binding
 `npm run dev` is a LOCAL-ONLY preview harness. The `/qa/one/`, `/qa/two/`, `/qa/three/` pages simulate distinct identities for browser QA. These routes, header interpretation and SQLite adapter are never included in the deployed Worker. Production uses only Sites-provided authenticated identity headers. Do not expose the development server as production.
 
 Hosted room creation, persisted lobby after refresh and invite copying were verified through the actual signed-in private site. Browser QA with two simulated local identities completed an entire 16-move B game (final scores 0 / 3), exercising joining, independent hands, Swap, explicit Wild, reconnect and identical final results in both windows. A real second-account hosted game is pending friend access; do not treat local identity simulation as that test.
+
+## Vercel physical solo preview
+
+A separate Vercel deployment can be built from the same repository with `npm run build:vercel`. Its output is `vercel-static/`, which contains only the solo table, replay, simulations and supporting assets. It does **not** bundle `dist/server/` or the Cloudflare Worker code, and it intentionally hides the Friends tab and online code because those rooms depend on ChatGPT Sites authenticated identity headers and the D1 `DB` binding.
+
+Use the repository's `vercel.json` in Vercel with Node.js 24 and the team project's default protection. The original private Sites app remains the place to test actual human rooms until a new secure identity/database backend is designed for Vercel. This separation prevents a misleading or insecure partial multiplayer port.
+
+To validate: `npm test`, `npm run build:vercel`, inspect `vercel-static/index.html`, and check Vercel's protected preview URL on desktop and mobile. Git changes and Vercel deployments do not modify the private Sites URL.
