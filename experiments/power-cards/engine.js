@@ -9,7 +9,8 @@
  *
  * A Joker is played SIDEWAYS next to the pile so no earlier card needs to be
  * remembered; the challenged rank stays visible. No power cards are ever
- * recycled on a pickup or counter.
+ * recycled on a pickup or counter. A Joker on an empty pile is discarded
+ * without attack or skipping another player's turn.
  */
 (function(root){'use strict';
 const VERSION='one-joker-duel-v01',DECK_SIZE=48,HAND=4,MAX_TURNS=240,MODES=['plain','joker','match'];
@@ -77,8 +78,14 @@ function play(g,seat,move){
  if(move.type==='play'){
   const card=who.hand.splice(move.index,1)[0];event.card=card;
   if(card.kind==='joker'){
-   g.pending={card,from:seat,to:1-seat,targetRank:before?.n??null};
-   event.reason='joker';event.challenge=before?.n??null;event.victim=1-seat;
+   if(!g.pile.length){
+    // No pile means no victim or target number. Discard without a skip.
+    // This also lets a player shed their final Joker without deadlocking.
+    g.ashes.push(card);event.reason='jokerBurned';
+   }else{
+    g.pending={card,from:seat,to:1-seat,targetRank:before?.n??null};
+    event.reason='joker';event.challenge=before?.n??null;event.victim=1-seat;
+   }
   }else{
    g.pile.push(card);
    if(before&&before.n===card.n){
