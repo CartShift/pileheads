@@ -211,7 +211,7 @@ app.addEventListener('pointerdown',e=>{
  if(!b||!isTurn()||covered||g.phase!=='play')return;
  touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,dragging:false,el:null};
 });
-app.addEventListener('pointermove',e=>{
+window.addEventListener('pointermove',e=>{
  const d=touchGesture;if(!d||e.pointerType==='mouse')return;
  if(!d.dragging&&Math.hypot(e.clientX-d.x,e.clientY-d.y)>12){
   d.dragging=true;const b=app.querySelector('[data-card="'+d.id+'"]');if(!b)return;
@@ -230,8 +230,8 @@ function endTouch(e){
  suppressTap=true;setTimeout(()=>suppressTap=false,350);
  if(target&&isTurn()&&currentStage()===d.source){selection=[d.id];perform({type:'play',source:d.source,ids:[d.id]})}
 }
-app.addEventListener('pointerup',endTouch);
-app.addEventListener('pointercancel',e=>{const d=touchGesture;touchGesture=null;d?.el?.remove();app.querySelector('[data-play-target]')?.classList.remove('drop-hover')});
+window.addEventListener('pointerup',endTouch);
+window.addEventListener('pointercancel',e=>{const d=touchGesture;touchGesture=null;d?.el?.remove();app.querySelector('[data-play-target]')?.classList.remove('drop-hover')});
 
 
 $('new').addEventListener('click',()=>{if(g&&!confirm('Start a new game and replace the current local save?'))return;g=null;notice='';selection=[];challengeOpen=false;covered=false;render()});
