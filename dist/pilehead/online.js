@@ -9,7 +9,7 @@ const deploymentShare=params.get('_vercel_share');
 let room=params.get('room')?.toUpperCase()||'',session=room?localStorage.getItem(STORE+room):null;
 let data=null,busy=false,polling=false,selection=[],swapCard=null,notice='',networkError='',drag=null;
 let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false;
-const symbols={reset:'↺',ghost:'◇',under:'↓4',skip:'Ⅱ',burn:'✕'};
+const symbols={reset:'↺',ghost:'◇',under:'↓4',skip:'Ⅱ',dump:'⇢'};
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function label(c){return c.kind==='action'?c.action.toUpperCase():String(c.rank)}
 function card(c,opts={}){
@@ -27,7 +27,7 @@ function setMessage(e){const map={
  session_required:'Your saved seat session is missing. Rejoin from your invitation link.',
  not_member:'This browser does not own a seat in this room.',
  invalid_code:'This room link is not valid.',room_not_found:'This room was not found.',
- room_expired:'The room expired after 24 hours.',full:'The room is full.',
+ room_expired:'The room expired after 24 hours.',room_rules_changed:'This room uses an older deck. Create a new game for the updated rules.',full:'The room is full.',
  already_started:'The game already started.',waiting_for_players:'Waiting for everyone to join.',
  stale_revision:'Someone played at the same time. Refreshing the table.',
  rate_limited:'Too many requests from this network. Please try again later.',
@@ -119,7 +119,7 @@ function legalMove(){
 }
 function events(){return data.game.events.slice(-7).reverse().map(e=>{
  const n=safe(displayName(e.seat));let s=e.type==='take'?'picked up '+e.count+' cards':e.type==='blind-fail'?'picked up after a blind flip':
- e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
+ e.action==='dump'?'used DUMP; '+displayName(e.target)+' took '+e.takenCount+' cards':e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
  return '<span class="event">'+n+' '+safe(s)+'</span>';
  }).join('')}
 function lobby(){

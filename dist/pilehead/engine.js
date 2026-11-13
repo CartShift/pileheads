@@ -1,8 +1,8 @@
 /* PILEHEAD · deterministic physical-card engine, separate from SPARK and TILT.
-   Rules v1: 40 numbers (1–10 x4) + 12 independent actions.
+   Rules v1.1: 40 ordinary numbers (1–10 x4) + 12 independent actions (including DUMP).
    All information lives in state; rendering never determines legality. */
 (function(root){'use strict';
-const VERSION='pilehead-1.0.0',DECK_SIZE=52,ACTIONS={reset:3,ghost:3,under:2,skip:2,burn:2};
+const VERSION='pilehead-1.1.0',DECK_SIZE=52,ACTIONS={reset:2,ghost:2,under:2,skip:2,burn:2,dump:2};
 function assert(ok,message){if(!ok)throw new Error(message)}
 function random(g){g.rng=(Math.imul(g.rng,1664525)+1013904223)>>>0;return g.rng/4294967296}
 function shuffle(a,g){for(let i=a.length-1;i>0;i--){let j=Math.floor(random(g)*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -38,7 +38,7 @@ function swap(g,seat,handId,upId){assert(g.phase==='setup','Swaps only during se
  assert(a>=0&&b>=0,'Invalid setup swap');[p.hand[a],p.up[b]]=[p.up[b],p.hand[a]];return g}
 function autoSetup(g,seat){
  const p=g.people[seat];assert(g.phase==='setup','Setup already finished');
- const value=c=>c.kind==='action'?({burn:30,reset:25,ghost:16,skip:12,under:10}[c.action]):c.rank;
+ const value=c=>c.kind==='action'?({dump:30,burn:28,reset:25,ghost:16,skip:12,under:10}[c.action]):c.rank;
  const nine=[...p.hand,...p.up].sort((a,b)=>value(b)-value(a));
  p.up=nine.slice(0,3);p.hand=nine.slice(3);return g;
 }
@@ -47,6 +47,7 @@ function finish(g){for(const p of g.people){if(!p.out&&!p.hand.length&&!p.up.len
  p.out=true;g.finishedOrder.push(p.seat)}}const alive=g.people.filter(p=>!p.out);
  if(alive.length<=1){g.phase='over';g.loser=alive[0]?.seat??null;g.slamOpen=false;return true}return false}
 function isLegal(g,c){if(c.kind==='action')return true;
+ // Number ranks never trigger effects. UNDER is an independent action card.
  if(g.limit?.type==='under')return c.rank<=4;
  if(g.limit?.type==='min')return c.rank>=g.limit.value;
  return true;
@@ -111,13 +112,25 @@ function move(g,seat,choice){
   g.pile.push(...cards);const ev=take(g,seat);ev.type='blind-fail';return ev;
  }
  g.pile.push(...cards);
- const card=cards[0];let burned=false,reason=choice.type==='slam'?'slam':'number';
+ const card=cards[0],dump=choice.type==='play'&&card.kind==='action'&&card.action==='dump';
+ let forcedTarget=null,forcedCount=0;
+ if(dump){
+  // DUMP forces the next active player to take the entire pile, including DUMP.
+  // Unlike BURN, the cards are not removed from play.
+  forcedTarget=next(g,seat);
+  forcedCount=g.pile.length;
+  g.people[forcedTarget].hand.push(...g.pile.splice(0));
+  g.people[forcedTarget].pickups++;
+  g.limit=null;g.slamOpen=false;
+ }
+ let burned=false,reason=choice.type==='slam'?'slam':'number';
  if(choice.type==='slam'){burned=true}
  else if(card.kind==='action'){
   reason=card.action;
   if(card.action==='reset')g.limit=null;
   if(card.action==='under')g.limit={type:'under'};
   if(card.action==='burn')burned=true;
+  // DUMP has already forced the following player to collect the pile.
   // GHOST and SKIP preserve the active numeric/UNDER restriction.
  }else{
   g.limit={type:'min',value:card.rank};
@@ -128,10 +141,10 @@ function move(g,seat,choice){
  if(burned){g.ashes.push(...g.pile.splice(0));g.limit=null;g.slamOpen=false}
  if(s==='hand')while(p.hand.length<3&&g.stock.length)p.hand.push(g.stock.pop());
  g.moves++;const event={type:choice.type,seat,reason,count:cards.length,burned,
-  rank:card.rank??null,action:card.action??null};
+  rank:card.rank??null,action:card.action??null,target:forcedTarget,takenCount:forcedCount};
  g.events.push(event);
  const over=finish(g);
- if(!over)g.turn=burned?(!p.out?seat:next(g,seat)):card.action==='skip'?next(g,next(g,seat)):next(g,seat);
+ if(!over)g.turn=burned||dump?(!p.out?seat:next(g,seat)):card.action==='skip'?next(g,next(g,seat)):next(g,seat);
  invariant(g);return event;
 }
 function sameIds(a,b){return Array.isArray(a)&&a.length===b.length&&a.every((x,i)=>x===b[i])}
@@ -150,7 +163,7 @@ function choose(g,seat,style='greedy'){
    if(style==='saver')v+=c.rank*3;
    return v;
   }
-  const power={ghost:48,under:35,skip:40,reset:20,burn:12}[c.action];
+  const power={ghost:48,under:35,skip:40,reset:20,burn:12,dump:13}[c.action];
   return style==='saver'?power-15:power;
  };
  if(style==='random')return opts[Math.floor(random(g)*opts.length)];

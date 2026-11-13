@@ -72,11 +72,30 @@ async function run(){
  assert.equal(move.status,200);assert.equal(move.data.revision,2);checks++;
  const stale=await request({action:'move',code,revision:1,move:legal},hostToken);
  assert.equal(stale.status,409);checks++;
+
+ // Force a deterministic DUMP action into the active player's hand without changing card ownership.
+ const seeded=rooms.get(code).state,actor=seeded.turn,receiver=(actor+1)%2;
+ const zones=[seeded.stock,seeded.pile,seeded.ashes,...seeded.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const source=zones.find(z=>z.some(c=>c.action==='dump'));assert.ok(source);
+ const ix=source.findIndex(c=>c.action==='dump'),dump=source[ix],prior=seeded.people[actor].hand[0];
+ assert.ok(prior);source[ix]=prior;seeded.people[actor].hand[0]=dump;Engine.invariant(seeded);
+ const receiverBefore=seeded.people[receiver].hand.length,pileBefore=seeded.pile.length;
+ const actorToken=actor===0?hostToken:guestToken;
+ const dumped=await request({action:'move',code,revision:rooms.get(code).revision,
+  move:{type:'play',source:'hand',ids:[dump.id]}},actorToken);
+ assert.equal(dumped.status,200,JSON.stringify(dumped));
+ assert.equal(dumped.data.game.turn,actor);assert.equal(dumped.data.game.pile.length,0);
+ const publicLast=dumped.data.game.events.at(-1);
+ assert.equal(publicLast.action,'dump');
+ assert.equal(publicLast.target,receiver);assert.equal(publicLast.takenCount,pileBefore+1);
+ assert.equal(rooms.get(code).state.people[receiver].hand.length,receiverBefore+pileBefore+1);
+ assert.equal(dumped.data.game.players[receiver].hand,undefined);
+ Engine.invariant(rooms.get(code).state);checks++;
  const other=await request({action:'create',capacity:2,name:'Other'});
  const forbidden=await request({action:'state',code:other.data.code},hostToken);
  assert.equal(forbidden.status,403);checks++;
  const game=rooms.get(code).state;assert.equal(Engine.invariant(game),true);checks++;
- console.log('PASS PILEHEAD online authoritative API: '+checks+' assertions (privacy, auth, turns, CAS, room isolation)');
+ console.log('PASS PILEHEAD online authoritative API: '+checks+' assertions (privacy, DUMP replay, auth, turns, CAS, room isolation)');
 }
 run().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>{
  Module._load=original;if(oldEnv===undefined)delete process.env.PILEHEAD_DATABASE_URL;else process.env.PILEHEAD_DATABASE_URL=oldEnv;

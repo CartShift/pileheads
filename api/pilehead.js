@@ -10,7 +10,9 @@ const secret=()=>crypto.randomBytes(32).toString('base64url');
 function code(x){if(typeof x!=='string'||!/^[A-HJ-NP-Z2-9]{8}$/.test(x.toUpperCase()))fail(400,'invalid_code');return x.toUpperCase()}
 function makeCode(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from(crypto.randomBytes(8),n=>a[n%a.length]).join('')}
 function name(v){const x=typeof v==='string'?v.trim().replace(/[\u0000-\u001f\u007f<>]/g,'').slice(0,24):'';if(!x)fail(400,'name_required');return x}
-async function load(id){const r=await query('SELECT code,capacity,revision,status,state,expires_at FROM pilehead_rooms WHERE code=$1',[id]);if(!r[0])fail(404,'room_not_found');if(new Date(r[0].expires_at)<=new Date())fail(410,'room_expired');return r[0]}
+async function load(id){const r=await query('SELECT code,capacity,revision,status,state,expires_at FROM pilehead_rooms WHERE code=$1',[id]);if(!r[0])fail(404,'room_not_found');if(new Date(r[0].expires_at)<=new Date())fail(410,'room_expired');
+ if(r[0].state?.version!==E.VERSION)fail(409,'room_rules_changed');
+ return r[0]}
 async function quota(req,action,max){const ip=String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'?').split(',')[0].slice(0,100);
  const key=h([action,Math.floor(Date.now()/3600000),ip,process.env.PILEHEAD_DATABASE_URL].join('|'));
  const rows=await query("INSERT INTO pilehead_rate_limits(bucket,hits,expires_at) VALUES ($1,1,now()+interval '2 hours') ON CONFLICT(bucket) DO UPDATE SET hits=pilehead_rate_limits.hits+1 RETURNING hits",[key]);
@@ -19,7 +21,7 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
  pile:g.pile,ashesCount:g.ashes.length,limit:g.limit,slamOpen:g.slamOpen,loser:g.loser,finishedOrder:g.finishedOrder,
  players:g.people.map((p,i)=>({seat:i,out:p.out,up:p.up,handCount:p.hand.length,downCount:p.down.length,pickups:p.pickups,
  ...(i===seat?{hand:p.hand,blindSlots:p.down.map((_,j)=>j)}:{})})),
- events:g.events.slice(-24).map(({type,seat,reason,count,burned,rank,action})=>({type,seat,reason,count,burned,rank,action})),
+ events:g.events.slice(-24).map(({type,seat,reason,count,burned,rank,action,target,takenCount})=>({type,seat,reason,count,burned,rank,action,target,takenCount})),
  legal:g.phase==='play'&&g.turn===seat?E.options(g,seat).map(m=>m.source==='down'?{type:'play',source:'down',index:g.people[seat].down.findIndex(c=>c.id===m.ids[0])}:m):[],
  slam:g.phase==='play'?E.slamOptions(g,seat):[]
 }}

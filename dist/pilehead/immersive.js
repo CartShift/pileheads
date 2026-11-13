@@ -88,7 +88,7 @@ function makeCard(ev,table){
  if(ev.type==='take'||ev.type==='blind-fail')card.classList.add('back');
  const mark=document.createElement('span');mark.className='mark';mark.textContent='PILEHEAD';
  const value=document.createElement('span');value.className='value';
- value.textContent=ev.type==='take'||ev.type==='blind-fail'?'◆':a?({burn:'✕',reset:'↺',skip:'Ⅱ',ghost:'◇',under:'↓4'}[a]||'◇'):
+ value.textContent=ev.type==='take'||ev.type==='blind-fail'?'◆':a?({burn:'✕',dump:'⇢',reset:'↺',skip:'Ⅱ',ghost:'◇',under:'↓4'}[a]||'◇'):
   ev.rank==null?'◆':String(ev.rank);
  const foot=document.createElement('span');foot.className='foot';foot.textContent=a?String(a).toUpperCase():'PILEHEAD';
  card.append(mark,value,foot);return card;
@@ -130,6 +130,7 @@ function celebrate(table,ev,ownSeat){
  if(!ev)return;
  if(ev.burned){table.classList.remove('just-burned');void table.offsetWidth;table.classList.add('just-burned');
   cue(table,ev.reason==='slam'?'SLAM!':'BURN!');snap('burn');setTimeout(()=>table.classList.remove('just-burned'),550)}
+ else if(ev.action==='dump'){cue(table,'DUMP!');snap('pickup')}
  else if(ev.type==='take'||ev.type==='blind-fail'){cue(table,'PICK UP');snap('pickup')}
  else if(ev.type==='play'){snap();if(ev.action==='skip')cue(table,'SKIP!')}
  fly(table,ev,ownSeat)

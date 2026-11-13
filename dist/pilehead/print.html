@@ -14,19 +14,19 @@ header{text-align:center;background:#163e34;color:#f8eccc;padding:18px}header h1
 .card .rank{font:900 87px/1 Georgia,serif}.card .symbol{font:900 78px/1 system-ui}.card .label{font:850 15px/1.3 system-ui;letter-spacing:.13em;margin-top:4mm}
 .card .help{font:650 11px/1.3 system-ui;text-align:center;max-width:42mm;margin-top:3mm}
 .card .bottom{position:absolute;bottom:5mm;right:5mm;font:700 10px system-ui}
-.card.reset{background:#d5e7f2;color:#15527d}.card.ghost{background:#e7d9f4;color:#693d8c}.card.under{background:#f6dba5;color:#855017}.card.skip{background:#dcf0d7;color:#235f3f}.card.burn{background:#f5cbb6;color:#994329}
+.card.reset{background:#d5e7f2;color:#15527d}.card.ghost{background:#e7d9f4;color:#693d8c}.card.under{background:#f6dba5;color:#855017}.card.skip{background:#dcf0d7;color:#235f3f}.card.burn{background:#f5cbb6;color:#994329}.card.dump{background:#f9d0da;color:#8a3050}
 .card.back{background:repeating-linear-gradient(45deg,#163d4a 0 8mm,#245767 8mm 10mm);color:#f1d49f}.card.back:before{border:2px solid #f5e8b5}.card.back .logo{font:900 25px Georgia,serif;transform:rotate(-17deg);text-shadow:1px 2px #123}
 .blank{border:1px dashed #bbb}.hide-backs .back-sheet{display:none}
 @page{size:A4 portrait;margin:8mm}@media print{body{background:white}header,.note{display:none!important}.pages{max-width:none}.sheet{margin:0;padding:0;width:100%;height:280mm;box-shadow:none;page-break-after:always}.sheet-title{font-size:9px;margin-bottom:4mm}.grid{gap:3mm} .sheet:last-child{page-break-after:auto}}
 @media screen and (max-width:820px){.pages{overflow-x:auto;padding:5px}.sheet{transform-origin:top left}.note{margin:10px}}
 </style></head><body>
-<header><h1>PILEHEAD</h1><p>52-card print-and-play prototype · 40 numbers + RESET ×3 · GHOST ×3 · UNDER ×2 · SKIP ×2 · BURN ×2</p><div class="controls">
+<header><h1>PILEHEAD</h1><p>52-card print-and-play prototype · 40 ordinary numbers + RESET ×2 · GHOST ×2 · UNDER ×2 · SKIP ×2 · BURN ×2 · DUMP ×2</p><div class="controls">
 <a class="control" href="index.html">Back to game</a><button onclick="document.body.classList.toggle('hide-backs');this.textContent=document.body.classList.contains('hide-backs')?'Include card backs':'Hide card backs'">Hide card backs</button><button onclick="print()">Print A4 sheets</button></div></header>
 <div class="note"><b>Prototype printing:</b> Print at 100% / actual size, A4 portrait. Fronts have 9 cards per page, with cut lines. Optional backs are on separate sheets; for reliable alignment, print fronts and backs separately or use opaque sleeves and identical standard cards. Test one sheet before printing all 52 cards. The last sheet has two blank positions.</div>
 <div id="pages" class="pages"></div><script src="engine.js"></script><script>
 (function(){
-const E=globalThis.PileheadEngine;const deck=E.deck(),name={reset:'RESET',ghost:'GHOST',under:'UNDER',skip:'SKIP',burn:'BURN'},sym={reset:'↺',ghost:'◇',under:'↓4',skip:'Ⅱ',burn:'✕'},
-help={reset:'Any number can follow',ghost:'Keep the restriction',under:'Next number: 1–4',skip:'Skip next player',burn:'Clear pile. Play again'};
+const E=globalThis.PileheadEngine;const deck=E.deck(),name={reset:'RESET',ghost:'GHOST',under:'UNDER',skip:'SKIP',burn:'BURN',dump:'DUMP'},sym={reset:'↺',ghost:'◇',under:'↓4',skip:'Ⅱ',burn:'✕',dump:'⇢'},
+help={reset:'Any number can follow',ghost:'Keep the restriction',under:'Next number: 1–4',skip:'Skip next player',burn:'Burn pile. Play again',dump:'Next player takes pile. Play again'};
 const face=c=>c.kind==='number'?'<div class="card"><span class="top">PILEHEAD</span><span class="rank">'+c.rank+'</span><span class="bottom">'+c.rank+' · FOUR BURN</span></div>':
 '<div class="card '+c.action+'"><span class="top">PILEHEAD / ACTION</span><span class="symbol">'+sym[c.action]+'</span><span class="label">'+name[c.action]+'</span><span class="help">'+help[c.action]+'</span><span class="bottom">'+name[c.action]+'</span></div>';
 const back='<div class="card back"><span class="logo">PILEHEAD</span></div>',pages=[];

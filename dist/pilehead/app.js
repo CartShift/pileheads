@@ -1,7 +1,7 @@
 /* PILEHEAD physical playtest UI. No SPARK or TILT persistence keys touched. */
 (function(){'use strict';
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
-const E=globalThis.PileheadEngine,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v01';
+const E=globalThis.PileheadEngine,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11';
 let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null;
 function playerName(i){return mode==='bots'?(i===0?'You':'Bot '+i):'Player '+(i+1)}
 function viewSeat(){return mode==='bots'?0:g?.turn??0}
@@ -16,7 +16,7 @@ function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
  }catch{return false}}
 function card(c,{interactive=false,selected=false,back=false,source='',small=false}={}){
  if(back)return '<button type="button" class="card back" '+(interactive?'draggable="true" data-card="'+c.id+'" data-source="'+source+'"':'disabled')+' aria-label="Flip face-down card"><span class="value">◆</span></button>';
- const action=c.kind==='action',rank=action?({reset:'↺',ghost:'◇',under:'↓4',skip:'Ⅱ',burn:'✕'}[c.action]):String(c.rank);
+ const action=c.kind==='action',rank=action?({reset:'↺',ghost:'◇',under:'↓4',skip:'Ⅱ',dump:'⇢'}[c.action]):String(c.rank);
  const name=action?c.action.toUpperCase():String(c.rank);
  return '<button type="button" class="card '+(action?'action-card ':'')+(interactive?'playable ':'')+(selected?'selected':'')+
   '" '+(action?'data-action="'+c.action+'" ':'')+(interactive?'data-card="'+c.id+'" data-source="'+source+'"':'disabled')+
@@ -26,7 +26,7 @@ function card(c,{interactive=false,selected=false,back=false,source='',small=fal
 function rowCards(cards,source,interact=false){return '<div class="card-row '+(source==='hand'?'hand':'')+'">'+
  cards.map(c=>card(c,{interactive:interact,selected:selection.includes(c.id),source})).join('')+
  (!cards.length?'<span style="font-size:12px;color:#a8c4b4">No cards left</span>':'')+'</div>'}
-function mini(c){return '<span class="mini'+(!c?' back':'')+'">'+(c?(c.kind==='number'?c.rank:({burn:'✕',reset:'↺',ghost:'◇',under:'↓',skip:'Ⅱ'}[c.action])):'◆')+'</span>'}
+function mini(c){return '<span class="mini'+(!c?' back':'')+'">'+(c?(c.kind==='number'?c.rank:({dump:'⇢',reset:'↺',ghost:'◇',under:'↓',skip:'Ⅱ'}[c.action])):'◆')+'</span>'}
 function opponents(){return '<div class="opponents">'+g.people.filter(p=>p.seat!==viewSeat()).map(p=>{
  const isCurrent=g.turn===p.seat&&g.phase==='play';
  return '<div class="opponent '+(isCurrent?'current ':'')+(p.out?'finished':'')+'" data-seat="'+p.seat+'"><strong>'+
@@ -51,6 +51,7 @@ function upAndDown(p,allow){return '<div class="zone your-up"><div class="area-l
  }).join('')+'</div></div>'}
 function eventName(e){const who=playerName(e.seat);if(e.type==='take')return who+' picked up '+e.count;
  if(e.type==='blind-fail')return who+' flipped an illegal card and took '+e.count;
+ if(e.action==='dump')return who+' used DUMP: '+playerName(e.target)+' took '+e.takenCount+' cards; '+who+' plays again';
  if(e.reason==='slam')return who+' SLAM! Burned the pile';
  if(e.burned)return who+' burned the pile';
  if(e.action)return who+' used '+e.action.toUpperCase();
