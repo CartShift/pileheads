@@ -10,7 +10,8 @@ function start({mode='chain',players=2,seed=20261113}={}){
  ok(MODES.includes(mode),'Bad mode');ok(players>=2&&players<=4&&Number.isInteger(players),'2-4 players');ok(Number.isInteger(seed)&&seed>=0&&seed<=4294967295,'Bad seed');
  let g={version:1,mode,seed,rng:(seed^0xa95f5fa2)>>>0,stock:[],burn:[],piles:mode==='chain'?[[]]:[[],[]],
  people:Array.from({length:players},(_,seat)=>({seat,hand:[],pickups:0})),current:0,phase:'play',chain:null,pending:null,turn:0,actions:0,winner:null,draw:false,history:[],
- stats:{press:0,counter:0,collision:0,match:0,stops:0,exchanges:0,pickups:0}};
+ stats:{press:0,counter:0,collision:0,match:0,stops:0,exchanges:0,pickups:0,
+ pressOffers:0,pressChosen:0,pressDeclined:0,controlFlips:0,twinLaneOffers:0,collisionOffers:0,collisionDeclined:0}};
  g.stock=shuffle(deck(),g);
  for(let i=0;i<4;i++)for(const p of g.people)p.hand.push(g.stock.pop());
  for(const pile of g.piles)pile.push(g.stock.pop());
@@ -63,6 +64,18 @@ function press(g,seat){
 function play(g,m){
  ok(legal(g).some(a=>a.type===m.type&&Object.keys(a).every(k=>a[k]===m[k])),'Illegal action: '+JSON.stringify(m));
  const seat=g.current,p=g.people[seat],e={seat,type:m.type,effect:'',rank:null,lane:m.lane??null};
+ // Counters are updated when the human/bot actually chooses an option, never by rendering legal moves.
+ for(const name of ['pressOffers','pressChosen','pressDeclined','controlFlips','twinLaneOffers','collisionOffers','collisionDeclined'])g.stats[name]??=0;
+ if(g.mode==='chain'&&g.phase==='extend'&&g.chain.count===1){
+  const hasPress=legal(g).some(x=>x.type==='extend');
+  if(hasPress){g.stats.pressOffers++;if(m.type==='extend')g.stats.pressChosen++;if(m.type==='stop')g.stats.pressDeclined++}
+ }
+ if(g.mode==='twin'&&g.phase==='play'&&m.type==='play'){
+  const choices=legal(g).filter(x=>x.type==='play');
+  if(new Set(choices.map(x=>x.lane)).size===2)g.stats.twinLaneOffers++;
+  const canCollision=choices.some(x=>top(g,1-x.lane)?.n===p.hand[x.index].n);
+  if(canCollision){g.stats.collisionOffers++;if(top(g,1-m.lane)?.n!==p.hand[m.index].n)g.stats.collisionDeclined++}
+ }
  if(g.mode==='chain'){
   const t=top(g),pile=g.piles[0];
   if(m.type==='play'){
@@ -73,7 +86,7 @@ function play(g,m){
    const c=p.hand.splice(m.index,1)[0];e.rank=c.n;pile.push(c);g.chain.count++;g.chain.ranks.push(c.n);
    e.effect='press';if(g.chain.count>=3)press(g,seat);
   }else if(m.type==='stop'){
-   if(g.chain.count===1){t.face=m.arrow;g.stats.stops++;e.effect='control-'+m.arrow;next(g,seat)}
+   if(g.chain.count===1){if(t.arrow!==m.arrow)g.stats.controlFlips++;t.face=m.arrow;g.stats.stops++;e.effect='control-'+m.arrow;next(g,seat)}
    else{e.effect='press-finished';press(g,seat)}
   }else if(m.type==='accept'){
    const challenger=g.pending.by;g.pending=null;e.effect='accepted';
