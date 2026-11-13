@@ -88,6 +88,22 @@ h1{font:700 clamp(23px,3.8vw,34px)/1.1 Georgia,serif;margin:0 0 4px}
 @media(max-width:720px){header{padding-top:15px}.intro{align-items:stretch;flex-direction:column}.mode{width:100%}.felt{padding:11px 7px 15px}.table-shell{border-width:6px;border-radius:23px}.center-layout{grid-template-columns:55px 1fr 55px;gap:1px;min-height:207px}.stock{width:41px;height:64px}.stock:before,.stock:after{width:40px;height:60px}.stock>.back{width:38px;height:54px}.burn{width:42px;height:62px}.piles{gap:6px}.pile-zone{min-width:108px;min-height:163px;padding:6px 1px 15px;border-radius:13px}.stack{height:111px;width:100px}.stack .card{scale:.78}.station{font-size:8px}.card{width:76px;height:109px}.card .rank{font-size:52px}.card .arrow{font-size:24px}.card .footer{font-size:7px}.hand{min-height:144px;padding:20px 5px 10px}.hand .card{margin-left:-15px}.felt-top{min-height:94px}.opponents{gap:4px}.opponent{min-width:65px;font-size:9px}.table-meta,.table-note{font-size:9px}.rules-grid{grid-template-columns:1fr}.messagebar{gap:6px}}
 @media(max-width:390px){.pile-zone{min-width:93px}.stack{width:90px}.center-layout{grid-template-columns:44px 1fr 44px}.piles{gap:3px}.opponent .backs .back{width:30px;height:45px}.hand .card{margin-left:-20px}}
 .focus .intro,.focus header,.focus .config,.focus .rules{display:none}.focus .wrap{max-width:1350px;padding-top:12px}.focus .table-shell{border-width:6px}
+.diary{margin-top:18px;background:#fffcf4;border:1px solid #d8cfba;border-radius:15px;box-shadow:0 2px 8px #463b2710}
+.diary summary{cursor:pointer;padding:15px 18px;font-weight:900;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.diary summary span{font-weight:650;color:var(--muted);font-size:12px}
+.diary-inner{border-top:1px solid #e8e1d3;padding:14px 18px 18px}
+.diary h2{font:800 18px Georgia,serif;margin:2px 0 4px}
+.diary p{margin:0 0 12px;color:#526b5f;font-size:12px;line-height:1.5}
+.diary-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
+.field{display:grid;gap:6px}.field.wide{grid-column:1/-1}.field label{font-size:11px;color:#506b5e;font-weight:800;letter-spacing:.04em}
+.field select,.field textarea{border:1px solid #bebcad;border-radius:9px;padding:10px;color:var(--ink);background:white;width:100%;font:13px/1.5 system-ui,sans-serif}
+.field textarea{min-height:86px;resize:vertical}
+.diary-buttons{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.diary-buttons button{background:var(--deep);color:#fff7e6;border:0;border-radius:10px;padding:10px 12px;font-weight:800}
+.diary-buttons button.secondary{background:#ece9de;color:var(--ink);border:1px solid #d2c9b8}
+.diary-buttons button:disabled{opacity:.45}
+.insight{margin-top:12px;border-radius:9px;background:#ebeadd;padding:10px 12px;font-size:12px;color:#37574b;line-height:1.5}
+@media(max-width:550px){.diary-fields{grid-template-columns:1fr}.field.wide{grid-column:auto}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}html{scroll-behavior:auto}}
 </style>
 </head>
@@ -111,6 +127,20 @@ h1{font:700 clamp(23px,3.8vw,34px)/1.1 Georgia,serif;margin:0 0 4px}
 <div class="you"><div class="you-label" id="seatName">YOUR HAND</div><div class="hand-note" id="handNote">Tap a card to lift it, then tap a pile.</div><div class="hand" id="hand" aria-label="Current player's cards"></div></div>
 </div></section>
 <div class="messagebar"><div><strong id="lastAction">Ready for the first play.</strong><small id="roundInfo">Experimental prototype, not final rules.</small></div><button id="focus" class="soft-button" type="button" aria-pressed="false">Table focus</button></div>
+<section class="diary" aria-label="Optional playtest diary"><details id="diaryDetails">
+<summary>Playtest notebook <span id="recordCount">0 completed games · stored on this device</span></summary>
+<div class="diary-inner">
+<h2>What happened at the table?</h2>
+<p>Record the moments and decisions that matter. Only completed-game summaries are saved, not private hands. Bot games and human games remain clearly separated. Nothing is sent to a server.</p>
+<div class="diary-fields">
+<div class="field"><label for="recordSelect">Completed game</label><select id="recordSelect"><option value="">No completed games yet</option></select></div>
+<div class="field"><label for="replayAnswer">What happened after the game?</label>
+<select id="replayAnswer"><option value="not-recorded">Not recorded</option><option value="requested-unprompted">Players requested another round unprompted</option><option value="requested-after-question">Players agreed after being asked</option><option value="declined">Players declined another round</option><option value="unsure">Unsure / not observed</option></select></div>
+<div class="field wide"><label for="playtestNotes">Moments, confusing rules, tactical decisions (optional)</label><textarea id="playtestNotes" rows="3" maxlength="3000" placeholder="What was the cleverest move? Did anyone hesitate? Which rule caused a disagreement?"></textarea></div>
+</div>
+<div class="diary-buttons"><button id="savePlaytest" type="button">Save these notes</button><button id="exportPlaytests" class="secondary" type="button">Export observations (JSON)</button><button id="clearPlaytests" class="secondary" type="button">Clear local records</button></div>
+<div id="insight" class="insight" role="status">Complete a game to see measured choices here. Human feedback is collected separately from bot behavior.</div>
+</div></details></section>
 <section class="rules" id="rules"><h2>Rules on one table</h2><div class="rules-grid"><article><h3 id="ruleTitle">CONTROL / CHAIN</h3><ol id="ruleList"></ol><p id="ruleCaveat"></p></article><article><h3>What we're looking for</h3><p>Can you make a clever move, predict a response and choose when to take a risk? Does another game feel irresistible? We want real human reactions, not just high bot scores.</p><p>Print 48 cards using the link above. The up/down arrow governs the next card: ↑ means equal or higher, ↓ means equal or lower. A matching rank clears the pile.</p><p><strong>Prototype notice:</strong> These two mechanics are deliberately isolated. Balance, originality and retail appeal have not been proven.</p></article></div></section>
 </div>
 <div class="overlay" id="privacy" hidden><div class="overlay-box"><span class="wordmark">TILT.</span><h2 id="privacyTitle">Pass the table</h2><p>Keep the next player's hand hidden until they're ready.</p><button id="reveal" type="button">Reveal my hand</button></div></div>
