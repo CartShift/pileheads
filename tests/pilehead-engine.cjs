@@ -90,6 +90,60 @@ test('numeric groups cannot mix ranks, take forbidden when legal',()=>{
   assert.throws(()=>E.move(g,0,{type:'play',source:'hand',ids}));
  E.invariant(g);
 });
+
+test('all ten numbered ranks are ordinary including 10 and not unlimited escape cards',()=>{
+ const a=E.deck();assert.equal(a.filter(c=>c.kind==='number').length,40);
+ assert.deepEqual(E.ACTIONS,{reset:2,ghost:2,under:2,skip:2,burn:2,dump:2});
+ const g=opened(),ten=inject(g,0,'hand',c=>c.kind==='number'&&c.rank===10);
+ g.limit={type:'min',value:9};
+ const before=g.ashes.length;
+ const event=E.move(g,0,{type:'play',source:'hand',ids:[ten.id]});
+ assert.equal(event.burned,false);assert.equal(event.reason,'number');
+ assert.equal(g.ashes.length,before);assert.equal(g.turn,1);
+ assert.equal(g.limit.value,10);assert.equal(E.topRun(g).rank,10);
+ g.limit={type:'under'};
+ assert.equal(E.isLegal(g,{kind:'number',rank:10}),false);
+ assert.equal(E.isLegal(g,{kind:'number',rank:4}),true);
+ E.invariant(g);
+});
+test('BURN is an independent special, removes the entire pile and immediately replays',()=>{
+ for(const players of [2,3,5]){
+  const g=opened(players,71),burn=inject(g,0,'hand',c=>c.action==='burn');
+  const cards=[extract(g,c=>c.rank===7),extract(g,c=>c.rank===8)];
+  g.pile.push(...cards);g.limit={type:'min',value:8};
+  const prevAsh=g.ashes.length;
+  const ev=E.move(g,0,{type:'play',source:'hand',ids:[burn.id]});
+  assert.equal(ev.burned,true);assert.equal(ev.reason,'burn');
+  assert.equal(g.pile.length,0);assert.equal(g.ashes.length,prevAsh+3);
+  assert.equal(g.limit,null);assert.equal(g.turn,0);E.invariant(g);
+ }
+});
+test('DUMP makes the next active player take all cards, then grants the actor another turn',()=>{
+ for(const players of [2,3,5]){
+  const g=opened(players,93),dump=inject(g,0,'hand',c=>c.action==='dump');
+  g.pile.push(extract(g,c=>c.kind==='number'&&c.rank===8),extract(g,c=>c.kind==='number'&&c.rank===9));
+  g.limit={type:'min',value:9};g.slamOpen=true;
+  const before=g.people[1].hand.length,ashes=g.ashes.length;
+  const ev=E.move(g,0,{type:'play',source:'hand',ids:[dump.id]});
+  assert.equal(ev.action,'dump');assert.equal(ev.target,1);assert.equal(ev.takenCount,3);
+  assert.equal(ev.burned,false);assert.equal(g.people[1].hand.length,before+3);
+  assert.ok(g.people[1].hand.some(c=>c.id===dump.id));
+  assert.equal(g.ashes.length,ashes);assert.equal(g.pile.length,0);
+  assert.equal(g.limit,null);assert.equal(g.slamOpen,false);
+  assert.equal(g.turn,0);E.invariant(g);
+ }
+});
+test('SLAM on a run of tens still burns and grants the interrupter the next turn',()=>{
+ const g=opened(3,89),four=Array.from({length:4},()=>extract(g,c=>c.kind==='number'&&c.rank===10));
+ g.pile.push(...four.slice(0,3));
+ const prior=g.people[2].hand.pop();if(prior)g.stock.push(prior);g.people[2].hand.push(four[3]);
+ g.limit={type:'min',value:10};g.slamOpen=true;g.turn=0;
+ const slam=E.slamOptions(g,2)[0];assert.ok(slam);
+ const ev=E.move(g,2,slam);
+ assert.equal(ev.burned,true);assert.equal(ev.reason,'slam');
+ assert.equal(g.ashes.length,4);assert.equal(g.pile.length,0);assert.equal(g.turn,2);
+ E.invariant(g);
+});
 test('seeded bots conserve every card across whole games for 2–5 players',()=>{
  for(let players=2;players<=5;players++)for(let seed=1;seed<=16;seed++){
   const g=E.create({players,seed});g.people.forEach(p=>E.autoSetup(g,p.seat));E.start(g);
