@@ -62,7 +62,7 @@ test('twin pile collision clears both piles and discards a bonus card',()=>{
 test('all production TILT paths stay isolated from this experimental engine',()=>{
  const engine=fs.readFileSync(path.join(__dirname,'../dist/tilt-lab/engine.js'),'utf8');
  assert.doesNotMatch(engine,/localStorage|spark-simple-v04|tilt-joker-lab/);
- const html=fs.readFileSync(path.join(__dirname,'../dist/tilt-lab/index.html'),'utf8');
+ const html=fs.readFileSync(path.join(__dirname,'../dist/tilt-lab/archive.html'),'utf8');
  const app=fs.readFileSync(path.join(__dirname,'../dist/tilt-lab/app.js'),'utf8');
  for(const match of app.matchAll(/\$\('([A-Za-z0-9_-]+)'\)/g))
   assert.ok(html.includes('id="'+match[1]+'"'),'Missing DOM id '+match[1]);
@@ -124,7 +124,7 @@ test('physical print layout keeps ranks readable on 180 degree rotation and pres
  assert.match(print,/rank lower/);
  assert.match(print,/rotate\(180deg\)/);
  assert.match(print,/kept UPRIGHT/);
- const html=fs.readFileSync(path.join(__dirname,'../dist/tilt-lab/index.html'),'utf8');
+ const html=fs.readFileSync(path.join(__dirname,'../dist/tilt-lab/archive.html'),'utf8');
  const app=fs.readFileSync(path.join(__dirname,'../dist/tilt-lab/app.js'),'utf8');
  assert.match(html,/card\.pressed/);assert.doesNotMatch(html,/card\.sideways/);
  assert.match(app,/card\(c,pressed\?'pressed'/);
