@@ -12,7 +12,7 @@ function load(storage){
 }
 function write(storage,data){storage.setItem(KEY,JSON.stringify({version:1,records:data.records.slice(-LIMIT)}))}
 function snapshot(g){
- const k=['press','counter','collision','match','stops','exchanges','pickups','pressOffers','pressChosen',
+ const k=['plays','clears','offers','extra','bounces','trades','accepted','press','counter','collision','match','stops','exchanges','pickups','pressOffers','pressChosen',
  'pressDeclined','controlFlips','twinLaneOffers','collisionOffers','collisionDeclined'];
  const result={};
  for(const name of k)result[name]=Number.isFinite(g.stats[name])?g.stats[name]:0;
