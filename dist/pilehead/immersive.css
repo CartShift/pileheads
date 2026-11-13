@@ -766,3 +766,36 @@ body.pilehead-playing .table .card-row.hand::-webkit-scrollbar-track{background:
   outline:3px solid #f8ca7d;outline-offset:3px;
  }
 }
+
+
+/* Held card backs are what a seated player sees across a real table.
+   The exposed on-table cards remain in a separate row below. */
+body.pilehead-playing .table .held-cards{
+ display:flex;
+ align-items:flex-end;justify-content:center;
+ width:100%;min-height:34px;height:34px;
+ padding:3px 2px 0;
+ margin:4px auto 0;
+ filter:drop-shadow(0 4px 4px #031b15b5);
+}
+body.pilehead-playing .table .held-back{
+ position:relative;flex:0 0 auto;
+ width:23px;height:33px;
+ display:block;
+ margin-left:-11px;
+ border:1px solid #ddc8a3;border-radius:3px;
+ transform-origin:50% 92%;
+ transform:rotate(var(--hold-angle,0deg));
+ background:
+  radial-gradient(circle at center,#eed39385 0 1px,transparent 2px),
+  repeating-linear-gradient(40deg,#0b2937 0 5px,#20505e 5px 8px);
+ box-shadow:0 2px 0 #08303d,0 4px 7px #00160eae;
+}
+body.pilehead-playing .table .held-back:first-child{margin-left:0}
+body.pilehead-playing .table .opponent.current .held-back{box-shadow:0 2px 0 #08303d,0 4px 10px #ddb37748}
+body.pilehead-playing .table .opponent.finished .held-cards{opacity:.35}
+@media(max-width:700px){
+ body.pilehead-playing .table .held-cards{height:26px;min-height:26px;margin:2px auto 0}
+ body.pilehead-playing .table .held-back{width:17px;height:25px;margin-left:-8px;border-radius:2px}
+ body.pilehead-playing .table .mini-cards{margin:1px 0 0}
+}
