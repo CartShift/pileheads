@@ -799,3 +799,22 @@ body.pilehead-playing .table .opponent.finished .held-cards{opacity:.35}
  body.pilehead-playing .table .held-back{width:17px;height:25px;margin-left:-8px;border-radius:2px}
  body.pilehead-playing .table .mini-cards{margin:1px 0 0}
 }
+
+
+/* The game engine rerenders after every turn. Do NOT replay deal animations on
+   already visible cards; only animate when first entering the physical scene. */
+body.pilehead-playing .table .card-row:not(.hand) .card:not(.back){
+ animation:none;
+}
+@keyframes pilehead-first-deal {
+ from{opacity:0;filter:blur(3px);transform:translateY(-13px) scale(.94)}
+ to{opacity:1;filter:blur(0);transform:translateY(0) scale(1)}
+}
+body.pilehead-playing .table.scene-entering .zone.your-up .card:not(.back){
+ animation:pilehead-first-deal 320ms cubic-bezier(.18,.73,.29,1) both;
+}
+body.pilehead-playing .table.scene-entering .zone.your-up .card:nth-child(2){animation-delay:65ms}
+body.pilehead-playing .table.scene-entering .zone.your-up .card:nth-child(3){animation-delay:120ms}
+@media(prefers-reduced-motion:reduce){
+ body.pilehead-playing .table.scene-entering .zone.your-up .card:not(.back){animation:none}
+}
