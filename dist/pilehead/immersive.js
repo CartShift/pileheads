@@ -91,7 +91,7 @@ appRoot?.addEventListener('click',e=>{
  e.stopPropagation();
  const row=$('.hand-area .card-row.hand');if(!row)return;
  row.scrollBy({left:Number(b.dataset.handScroll)*Math.max(140,row.clientWidth*.62),
-  behavior:motion.matches?'instant':'smooth'});
+  behavior:motion.matches?'auto':'smooth'});
 },true);
 window.addEventListener('resize',()=>{const table=$('#app .table');if(table)fan(table)});
 function decor(table){
