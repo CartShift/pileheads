@@ -9,7 +9,7 @@ function one(seed,players){
  const g=E.create({seed,players});g.people.forEach(p=>E.autoSetup(g,p.seat));E.start(g);
  let steps=0;while(g.phase==='play'&&steps++<1200){
   const slam=E.autoSlam(g,'greedy');
-  if(!slam)E.move(g,g.turn,E.choose(g,g.turn,POLICIES[g.turn%POLICIES.length]));
+  if(!slam)E.move(g,g.turn,E.choose(g,g.turn,POLICIES[(g.turn+seed)%POLICIES.length]));
  }
  E.invariant(g);
  const by=(fn)=>g.events.filter(fn).length;
@@ -33,7 +33,7 @@ function runSimulation({games=120,players=4,seed=20261113}={}){
    seat,losses:completed.filter(r=>r.loser===seat).length,
    pct:completed.length?round(100*completed.filter(r=>r.loser===seat).length/completed.length):0}));
  return{game:'pilehead',version:E.VERSION,conditions:{seed,games,players,maxActions:1200,
-   botPolicies:POLICIES,autoSlam:'immediate, perfect detection',
+   botPolicies:POLICIES,policyAssignment:'rotated by seed to reduce seat/strategy confounding',autoSlam:'immediate, perfect detection',
    note:'Diagnostic simulation only. Bot selection is heuristic; human timing, strategy and fun were NOT evaluated.'},
   summary:{games,completed:completed.length,completionPct:pct(completed.length),
    capped:games-completed.length,
