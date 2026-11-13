@@ -9,7 +9,7 @@ const deploymentShare=params.get('_vercel_share');
 let room=params.get('room')?.toUpperCase()||'',session=room?localStorage.getItem(STORE+room):null;
 let data=null,busy=false,polling=false,selection=[],swapCard=null,notice='',networkError='',drag=null;
 let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false;
-const symbols={reset:'↺',ghost:'◇',under:'≤7',skip:'Ⅱ',joker:'✦'};
+const symbols={reset:'↺',ghost:'◇',under:'↓4',skip:'Ⅱ',dump:'⇢'};
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function label(c){return c.kind==='action'?c.action.toUpperCase():String(c.rank)}
 function card(c,opts={}){
@@ -17,7 +17,7 @@ function card(c,opts={}){
   ' aria-label="Flip one face-down card"><span class="value">◆</span></button>';
  const a=c.kind==='action';
  return '<button class="card '+(a?'action-card ':'')+(opts.can?'playable ':'')+(opts.selected?'selected':'')+
-  '" '+(a?'data-action="'+c.action+'" ':c.rank===10?'data-rank="10" ':'')+(opts.can?'data-card="'+c.id+'" data-source="'+opts.source+'" draggable="true"':'disabled')+
+  '" '+(a?'data-action="'+c.action+'" ':'')+(opts.can?'data-card="'+c.id+'" data-source="'+opts.source+'" draggable="true"':'disabled')+
   ' aria-label="'+safe(a?c.action+' action':'Number '+c.rank)+'" aria-pressed="'+Boolean(opts.selected)+'">'+
   '<span class="mark">PILEHEAD</span><span class="value">'+(a?symbols[c.action]:c.rank)+'</span><span class="foot">'+safe(label(c))+'</span></button>';
 }
@@ -83,7 +83,7 @@ function statusTitle(){
  if(g.phase==='over')return displayName(g.loser)+' is the PILEHEAD!';
  return active()?'Your turn · place a card':displayName(g.turn)+' is playing · watch for SLAM';
 }
-function numberPolicy(){const l=data.game.limit;return l?.type==='under'?'NEXT: 7 OR LOWER':l?.type==='min'?'NEXT: '+l.value+' or higher':'ANY NUMBER'}
+function numberPolicy(){const l=data.game.limit;return l?.type==='under'?'NEXT: 1–4':l?.type==='min'?'NEXT: '+l.value+' or higher':'ANY NUMBER'}
 function opponentCards(){const g=data.game;
  return '<div class="opponents">'+g.players.filter(p=>p.seat!==data.me).map(p=>'<div data-seat="'+p.seat+'" class="opponent '+
   (g.turn===p.seat&&g.phase==='play'?'current ':'')+(p.out?'finished':'')+'"><strong>'+safe(displayName(p.seat))+
@@ -119,7 +119,7 @@ function legalMove(){
 }
 function events(){return data.game.events.slice(-7).reverse().map(e=>{
  const n=safe(displayName(e.seat));let s=e.type==='take'?'picked up '+e.count+' cards':e.type==='blind-fail'?'picked up after a blind flip':
- e.action==='joker'?'played JOKER! '+displayName(e.target)+' took '+e.takenCount+' cards':e.reason==='ten'?'played 10 and burned the pile':e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
+ e.action==='dump'?'used DUMP; '+displayName(e.target)+' took '+e.takenCount+' cards':e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
  return '<span class="event">'+n+' '+safe(s)+'</span>';
  }).join('')}
 function lobby(){
