@@ -94,7 +94,7 @@ function makeCard(ev,table){
  card.append(mark,value,foot);return card;
 }
 function fly(table,ev,ownSeat){
- if(motion.matches||!table)return;
+ if(motion.matches||!table||typeof Element==='undefined'||typeof Element.prototype.animate!=='function')return;
  const target=$('[data-play-target] .pile-card',table);if(!target)return;
  const mine=ev.seat===ownSeat,isPickup=ev.type==='take'||ev.type==='blind-fail';
  const source=mine?$('.hand-area .card-row.hand',table):
