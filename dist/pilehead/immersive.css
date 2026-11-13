@@ -731,3 +731,38 @@ body.pilehead-playing .table .card-row.hand::-webkit-scrollbar-track{background:
  body.pilehead-playing .toolbar .slam{transition:none!important;animation:none!important}
  .pilehead-cue{animation:none!important}
 }
+
+
+/* The camera belongs to the player, not to a navigation header.
+   Keep the menu out of the felt on small screens, without hiding navigation from keyboards. */
+.table-menu-toggle{display:none}
+@media(max-width:700px){
+ body.pilehead-playing .top{position:relative;min-height:44px;justify-content:space-between}
+ body.pilehead-playing .top .links{
+  position:absolute;right:5px;top:calc(100% - 2px);
+  width:min(260px,calc(100vw - 20px));
+  display:none;flex-direction:column;align-items:stretch;gap:7px;
+  z-index:120;background:#241e19f9;border:1px solid #d1b67e8c;
+  border-radius:14px;padding:11px;
+  box-shadow:0 16px 37px #000c;
+  backdrop-filter:blur(12px);
+ }
+ body.pilehead-playing .top .links.is-open{display:flex}
+ body.pilehead-playing .top .links a,
+ body.pilehead-playing .top .links button{
+  display:flex;justify-content:space-between;align-items:center;
+  min-height:42px;width:100%;text-align:left;
+  font-size:13px;padding:8px 13px;
+  border-radius:9px;
+ }
+ body.pilehead-playing .table-menu-toggle{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:38px;padding:8px 12px;
+  border:1px solid #e1c28a90;border-radius:10px;
+  background:#362a20;color:#f1e0bf;
+  font-size:12px;font-weight:850;
+ }
+ body.pilehead-playing .table-menu-toggle:focus-visible{
+  outline:3px solid #f8ca7d;outline-offset:3px;
+ }
+}
