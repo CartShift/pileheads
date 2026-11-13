@@ -217,3 +217,11 @@
 @media (prefers-reduced-motion:reduce){
  .ph-card .ph-plate *{animation:none!important;transition:none!important}
 }
+
+/* Public opponent miniatures share the deck colors but remain legible at 20px. */
+.mini.ph-mini{position:relative;overflow:hidden;isolation:isolate;border-radius:4px}
+.mini.ph-mini-back{background:#103e3a;color:#f0d9a5}
+.mini.ph-mini-back .ph-back-title{font-size:20cqw}
+.mini.ph-mini-back .ph-back-crown{top:15%}
+.mini.ph-mini-back .ph-back-stack{bottom:12%}
+.mini.ph-mini-action{font-family:system-ui,Arial,sans-serif}
