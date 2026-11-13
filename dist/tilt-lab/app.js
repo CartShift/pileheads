@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const E=window.TiltMechanics;
+const E=window.TiltMechanics,P=window.TiltPlaytest;
 const $=id=>document.getElementById(id);
 const modeButtons=['chain','twin'];
 const rules={
@@ -28,22 +28,28 @@ const rules={
  }
 };
 let mode='chain',g=null,selected=null,playAs='bot',botScheduled=false,privacy=false,focused=false;
+let runId='',startedAt=null,selectedRecordId=null,diaryDisplayedId=null;
 const key=m=>'tilt-mechanics-lab-'+m+'-v1';
 function storageGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function storageSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
-function keep(){storageSet(key(mode),JSON.stringify({game:g,playAs}));}
+function newRunId(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10)}
+function keep(){storageSet(key(mode),JSON.stringify({game:g,playAs,runId,startedAt}));}
 function makeGame(){let seed=Number($('seed').value);if(!Number.isInteger(seed)||seed<0||seed>4294967295)seed=20261113;
  const players=Number($('playerCount').value)||2;
  playAs=$('seats').value;g=E.start({mode,players,seed});
+ runId=newRunId();startedAt=Date.now();
  selected=null;privacy=playAs==='hotseat';$('seed').value=String(seed);keep();render();}
 function loadMode(next){
  mode=next;selected=null;privacy=false;
  const saved=storageGet(key(mode));
  if(saved){try{const data=JSON.parse(saved);E.check(data.game);if(data.game.mode!==mode)throw Error('Wrong mode');
-  g=data.game;playAs=data.playAs==='hotseat'?'hotseat':'bot';$('playerCount').value=String(g.people.length);
+  g=data.game;playAs=data.playAs==='hotseat'?'hotseat':'bot';
+  runId=typeof data.runId==='string'&&data.runId?data.runId:newRunId();startedAt=Number.isFinite(data.startedAt)?data.startedAt:null;
+  $('playerCount').value=String(g.people.length);
   $('seats').value=playAs;$('seed').value=String(g.seed);privacy=playAs==='hotseat'&&g.winner===null&&!g.draw;
  }catch(e){makeGame();return}}
  else{makeGame();return}
+ if((g.winner!==null||g.draw)&&P){const rec=P.record(localStorage,{game:g,runId,playAs,startedAt});if(rec)selectedRecordId=rec.id}
  render();
 }
 function card(c,classes='',extra=''){
@@ -65,7 +71,9 @@ function commit(move){
  const before=g.current;
  let event;
  try{event=E.play(g,move)}catch(err){$('hint').textContent='That card cannot be played there.';return}
- clearSelected();keep();describe(event);if(playAs==='hotseat'&&g.current!==before&&g.winner===null&&!g.draw)privacy=true;render();
+ clearSelected();keep();describe(event);
+ if(P&&(g.winner!==null||g.draw)){const rec=P.record(localStorage,{game:g,runId,playAs,startedAt});if(rec)selectedRecordId=rec.id}
+ if(playAs==='hotseat'&&g.current!==before&&g.winner===null&&!g.draw)privacy=true;render();
 }
 function describe(ev){
  const label='Player '+(ev.seat+1);
@@ -101,7 +109,7 @@ function pileMarkup(p,lane){
 function drawHand(){
  const hiddenBot=playAs==='bot'&&g.current!==0&&g.winner===null&&!g.draw;
  const h=g.people[g.current].hand,legal=E.legal(g);
- if(hiddenBot){$('hand').innerHTML=backs(h.length);return}
+ if(hiddenBot||privacy){$('hand').innerHTML=backs(h.length);return}
  const cards=h.map((c,i)=>{
   const allowed=legal.some(a=>a.index===i&&['play','extend','counter','exchange','burnBonus'].includes(a.type));
   const degrees=(i-(h.length-1)/2)*Math.max(-4,-1.3);
@@ -170,8 +178,55 @@ function render(){
  const rule=rules[mode];$('ruleTitle').textContent=rule.title;
  $('ruleList').innerHTML=rule.points.map(p=>'<li>'+p+'</li>').join('');
  $('ruleCaveat').textContent=rule.caveat;
+ updateDiary();
  if(!privacy)scheduleBot();
 }
+function updateDiary(){
+ if(!P)return;
+ const data=P.load(localStorage),items=data.records.slice().reverse();
+ $('recordCount').textContent=items.length+' completed games · stored on this device';
+ const choice=$('recordSelect');
+ if(selectedRecordId&&!items.some(x=>x.id===selectedRecordId))selectedRecordId=null;
+ if(!selectedRecordId&&items.length)selectedRecordId=items[0].id;
+ choice.innerHTML=items.length?items.map(x=>{
+  const id=x.id.replace(/[^A-Za-z0-9_-]/g,'');
+  const label=(x.mode==='chain'?'CONTROL / CHAIN':'TWIN PILES')+' · '+x.players+'p · '+(x.sessionType==='human-hotseat'?'humans':'with bots')+' · '+x.turns+' turns';
+  return '<option value="'+id+'">'+label+'</option>'
+ }).join(''):'<option value="">No completed games yet</option>';
+ if(selectedRecordId)choice.value=selectedRecordId;
+ const current=items.find(x=>x.id===selectedRecordId)||null;
+ $('savePlaytest').disabled=!current;
+ $('exportPlaytests').disabled=!items.length;
+ $('clearPlaytests').disabled=!items.length;
+ if(diaryDisplayedId!==selectedRecordId){
+  $('replayAnswer').value=current?current.replay:'not-recorded';
+  $('playtestNotes').value=current?current.notes:'';
+  diaryDisplayedId=selectedRecordId;
+ }
+ if(!current){
+  $('insight').textContent='Complete a game to start a local scorecard. Bot games are not human playtests.';
+  return;
+ }
+ const st=current.stats||{},bot=current.sessionType!=='human-hotseat';
+ const details=current.mode==='chain'?
+  'Risk choices: '+(st.pressChosen||0)+' presses / '+(st.pressOffers||0)+' opportunities. Safe stops instead: '+(st.pressDeclined||0)+'.':
+  'Collisions: '+(st.collision||0)+'. When available: '+(st.collisionOffers||0)+' times. Deliberately declined: '+(st.collisionDeclined||0)+'.';
+ $('insight').textContent=details+' '+(bot?'This game includes bots; do not count its replay reaction as human market evidence.':'Human pass-and-play: record observed discussion and spontaneous rematches separately.')+
+  ' Wall-clock time can include pauses.';
+}
+function saveDiaryNotes(){
+ if(!P||!selectedRecordId)return;
+ const record=P.updateNotes(localStorage,selectedRecordId,{replay:$('replayAnswer').value,notes:$('playtestNotes').value});
+ if(record)$('insight').textContent='Notes saved locally for '+record.mode+' ('+record.players+' players).';
+}
+function downloadObservations(){
+ if(!P)return;
+ const json=P.exportData(localStorage),blob=new Blob([json],{type:'application/json;charset=utf-8'});
+ const url=URL.createObjectURL(blob),anchor=document.createElement('a');
+ anchor.href=url;anchor.download='tilt-playtests-'+new Date().toISOString().slice(0,10)+'.json';
+ document.body.appendChild(anchor);anchor.click();anchor.remove();URL.revokeObjectURL(url);
+}
+
 function scheduleBot(){
  if(botScheduled||playAs!=='bot'||g.current===0||g.winner!==null||g.draw)return;
  botScheduled=true;
@@ -212,7 +267,7 @@ $('actions').addEventListener('click',event=>{
  if(move)commit(move);
 });
 modeButtons.forEach(m=>$('tab-'+m).addEventListener('click',()=>{if(m!==mode)loadMode(m)}));
-$('new').addEventListener('click',()=>{if(g&&g.actions&&!confirm('Replace the current '+rules[mode].title+' game?'))return;makeGame()});
+$('new').addEventListener('click',()=>{if(g&&g.actions&&g.winner===null&&!g.draw&&!confirm('Replace the current '+rules[mode].title+' game?'))return;makeGame()});
 $('seats').addEventListener('change',()=>{playAs=$('seats').value;privacy=playAs==='hotseat'&&g.winner===null&&!g.draw;keep();render()});
 $('focus').addEventListener('click',()=>{
  focused=!focused;document.body.classList.toggle('focus',focused);
@@ -220,5 +275,14 @@ $('focus').addEventListener('click',()=>{
 });
 $('reveal').addEventListener('click',()=>{privacy=false;render()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&selected!==null){selected=null;render()}});
+$('recordSelect').addEventListener('change',()=>{
+ selectedRecordId=$('recordSelect').value;diaryDisplayedId=null;updateDiary();
+});
+$('savePlaytest').addEventListener('click',saveDiaryNotes);
+$('exportPlaytests').addEventListener('click',downloadObservations);
+$('clearPlaytests').addEventListener('click',()=>{
+ if(!P||!confirm('Delete all TILT playtest records saved on this device? This cannot be undone.'))return;
+ P.clear(localStorage);selectedRecordId=null;diaryDisplayedId=null;updateDiary();
+});
 loadMode('chain');
 })();
