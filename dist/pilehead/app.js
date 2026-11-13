@@ -1,7 +1,7 @@
 /* PILEHEAD physical playtest UI. No SPARK or TILT persistence keys touched. */
 (function(){'use strict';
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
-const E=globalThis.PileheadEngine,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v01';
+const E=globalThis.PileheadEngine,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11';
 let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null;
 function playerName(i){return mode==='bots'?(i===0?'You':'Bot '+i):'Player '+(i+1)}
 function viewSeat(){return mode==='bots'?0:g?.turn??0}
