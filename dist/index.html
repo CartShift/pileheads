@@ -175,8 +175,10 @@ function render(){if(typeof document.querySelector!=='function'){renderBase();re
 if(typeof document.addEventListener==='function')document.addEventListener('visibilitychange',()=>{if(document.hidden){stopClock();playbackPaused=true;activeAnimations.forEach(a=>{if(a.playState==='running')a.pause()})}else render()});
 
 let selectedMode='B',selectedSeed='',plannedSwap=null,selectedStrategies=['greedy','lookahead'],simResults=null,simBusy=false,simError='',simFetchStarted=false;
-let simSuite=new URLSearchParams(location.search).get('suite')==='tilt'?'tilt':'spark';
+const requestedSimSuite=new URLSearchParams(location.search).get('suite');
+let simSuite=['tilt','pilehead'].includes(requestedSimSuite)?requestedSimSuite:'spark';
 let tiltResults=null,tiltBusy=false,tiltError='',tiltFetchStarted=false;
+let pileheadResults=null,pileheadBusy=false,pileheadError='',pileheadFetchStarted=false,pileheadPlayers=4,pileheadGames=100;
 try{const prefs=JSON.parse(localStorage.getItem('spark-setup-v05')||'null');if(prefs){if(SparkEngine.MODES[prefs.mode])selectedMode=prefs.mode;if(Array.isArray(prefs.strategies)&&prefs.strategies.every(s=>['random','greedy','lookahead'].includes(s)))selectedStrategies=prefs.strategies}}catch{}
 function rowN(){return replay?.rowSize||game?.rowSize||7}
 function rulesLabel(){return replay?.rules||game?.rules||ruleVersion}
@@ -240,15 +242,84 @@ function tiltSimulationView(){
  '<button id="export-tilt-simulation">'+t('ייצא דוח TILT כ־JSON','Export TILT simulation JSON')+'</button></section>';
  return html;
 }
+function pileheadSimulationView(){
+ if(!pileheadFetchStarted&&typeof fetch==='function'){
+  pileheadFetchStarted=true;
+  fetch('pilehead-simulation-results.json').then(r=>{if(!r.ok)throw Error('Baseline unavailable');return r.json()})
+   .then(result=>{if(!pileheadResults)pileheadResults=result;if(screen==='sim'&&simSuite==='pilehead')render()})
+   .catch(e=>{pileheadError=e.message;if(screen==='sim'&&simSuite==='pilehead')render()});
+ }
+ const r=pileheadResults,m=r?.summary;
+ let h='<section class="sheet" id="pilehead-simulator">'+
+  '<span class="eyebrow">'+t('מעבדת משחק קלפים פיזי','PHYSICAL CARD GAME LAB')+'</span>'+
+  '<h1>PILEHEAD · '+t('סימולציות ואיזון','Simulation & balance')+'</h1>'+
+  '<p>'+t('משחק אחד עם 52 קלפים: 40 מספרים, 12 פעולות, 3 שכבות והתפרצות SLAM מחוץ לתור.',
+   'One 52-card game: 40 numbers, 12 actions, three card layers and out-of-turn SLAM burns.')+'</p>'+
+  '<p><a href="pilehead/index.html" style="display:inline-block;padding:12px 16px;border:1px solid #d6c18c;border-radius:11px;background:#285c43;color:#fff0cf;text-decoration:none;font-weight:900">'+
+  t('פתח שולחן PILEHEAD','Play PILEHEAD on the physical table')+'</a> '+
+  '<a href="pilehead/print.html" style="display:inline-block;padding:11px;color:#eed198">'+
+  t('הדפס חפיסה (52 קלפים)','Print physical deck (52 cards)')+'</a></p>'+
+  '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:14px 0">'+
+  '<label>'+t('שחקנים','Players')+' <select id="pilehead-players">'+[2,3,4,5].map(n=>'<option value="'+n+'" '+(n===pileheadPlayers?'selected':'')+'>'+n+'</option>').join('')+'</select></label>'+
+  '<label>'+t('משחקי בוטים','Bot games')+' <select id="pilehead-games">'+[20,50,100,200].map(n=>'<option value="'+n+'" '+(n===pileheadGames?'selected':'')+'>'+n+'</option>').join('')+'</select></label></div>'+
+  '<button id="run-pilehead-simulation" class="primary full" '+(pileheadBusy?'disabled':'')+'>'+
+   (pileheadBusy?t('מריץ סימולציות…','Running simulations…'):t('הרץ בדיקת PILEHEAD חדשה','Run PILEHEAD simulation'))+'</button>';
+ if(pileheadError)h+='<p class="notice">'+escape(pileheadError)+'</p>';
+ if(!r)return h+'<p class="muted">'+t('אין עדיין דוח זמין. אפשר להריץ בדיקה חדשה.','No report loaded. Run a new batch.')+'</p></section>';
+ h+='<p class="small">'+r.conditions.games+' '+t('משחקים','games')+' · '+r.conditions.players+
+  ' '+t('שחקנים','players')+' · seed '+r.conditions.seed+'</p>'+
+  '<table class="compare"><tbody>'+
+  [[''+t('הושלמו','Completed'),m.completed+'/'+m.games],
+   [t('משחקים שהגיעו למגבלת תורות','Action-capped games'),m.capped],
+   [t('חציון מהלכים','Median actions'),m.medianActions??'—'],
+   [t('אחוזון 90 של מהלכים','90th percentile actions'),m.p90Actions??'—'],
+   [t('לקיחות ערימה / משחק','Pickups / game'),m.meanPickups],
+   ['SLAM / '+t('משחק','game'),m.meanSlams],
+   [t('שריפות רביעייה בתור','Four-of-a-kind burns on turn'),m.meanFourBurns],
+   [t('סך כל השריפות / משחק','All burns / game'),m.meanTotalBurns],
+   [t('כישלונות קלף סמוי / משחק','Blind flip failures / game'),m.meanBlindFailures]
+  ].map(([k,v])=>'<tr><th>'+k+'</th><td>'+v+'</td></tr>').join('')+'</tbody></table>'+
+  '<p class="small">'+t('אחוז מפסידים לפי מקום ישיבה','Loss rate by seat')+': '+
+   m.loserBySeat.map(x=>'#'+(x.seat+1)+': '+x.pct+'%').join(' · ')+'</p>'+
+  '<details><summary>'+t('מגבלות המדידה','Simulation limitations')+'</summary><p>'+
+   escape(r.conditions.note)+'</p><p>'+t('הבוטים מגיבים מיד ל־SLAM, בלי פספוסים אנושיים. אין להסיק מכאן שהמשחק כיפי יותר משיטהד.',
+   'Bots react to every available SLAM instantly. This does not establish that the game is more fun than Shithead.')+'</p></details>'+
+  '<button id="export-pilehead-simulation">'+t('ייצא דוח JSON','Export JSON report')+'</button></section>';
+ return h;
+}
 function simulationView(){
  const tabs='<div class="sheet" role="group" aria-label="Choose simulation game" style="display:flex;gap:8px;padding:8px;margin-bottom:10px">'+
-  ['spark','tilt'].map(id=>'<button type="button" data-sim-suite="'+id+'" aria-pressed="'+(simSuite===id)+
+  ['spark','tilt','pilehead'].map(id=>'<button type="button" data-sim-suite="'+id+'" aria-pressed="'+(simSuite===id)+
    '" class="'+(simSuite===id?'primary':'')+'" style="flex:1">'+
-   (id==='spark'?'SPARK Simple+':'TILT · Joker Lab')+'</button>').join('')+'</div>';
- return tabs+(simSuite==='tilt'?tiltSimulationView():sparkSimulationView());
+   (id==='spark'?'SPARK Simple+':id==='tilt'?'TILT · Joker Lab':'PILEHEAD')+'</button>').join('')+'</div>';
+ return tabs+(simSuite==='pilehead'?pileheadSimulationView():simSuite==='tilt'?tiltSimulationView():sparkSimulationView());
 }
 function bindExtendedControls(){const bind=(id,fn)=>{const el=document.getElementById(id);if(el)el.onclick=fn};
-for(const el of document.querySelectorAll('[data-sim-suite]'))el.onclick=()=>{simSuite=el.dataset.simSuite;render()};for(const el of document.querySelectorAll('[data-mode]'))el.onclick=()=>{selectedMode=el.dataset.mode;saveSetup();render()};for(const el of document.querySelectorAll('[data-strategy]'))el.onchange=()=>{selectedStrategies[+el.dataset.strategy]=el.value;saveSetup()};const seedInput=document.getElementById('game-seed');if(seedInput)seedInput.oninput=()=>{const n=Number(seedInput.value);selectedSeed=seedInput.value!==''&&Number.isInteger(n)&&n>=0&&n<=4294967295?seedInput.value:''};bind('cancel-swap',()=>{plannedSwap=null;slot=null;choice={kind:'hand',index:0,color:game.players[0].hand[0]};delete game.draft;save();render()});bind('run-simulation',()=>{if(simBusy)return;simBusy=true;simError='';render();const worker=new Worker('simulation.worker.js');worker.onmessage=e=>{simBusy=false;if(e.data.ok)simResults=e.data.result;else simError=e.data.error;worker.terminate();if(screen==='sim')render()};worker.onerror=()=>{simBusy=false;simError=t('לא ניתן להריץ סימולציה. הדוח הקיים נשאר זמין.','Simulation could not run. The existing report is still available.');worker.terminate();if(screen==='sim')render()};worker.postMessage({gamesPerMode:30,seed:Math.floor(Date.now()/1000)>>>0})});bind('run-tilt-simulation',()=>{
+for(const el of document.querySelectorAll('[data-sim-suite]'))el.onclick=()=>{simSuite=el.dataset.simSuite;render()};for(const el of document.querySelectorAll('[data-mode]'))el.onclick=()=>{selectedMode=el.dataset.mode;saveSetup();render()};for(const el of document.querySelectorAll('[data-strategy]'))el.onchange=()=>{selectedStrategies[+el.dataset.strategy]=el.value;saveSetup()};const seedInput=document.getElementById('game-seed');if(seedInput)seedInput.oninput=()=>{const n=Number(seedInput.value);selectedSeed=seedInput.value!==''&&Number.isInteger(n)&&n>=0&&n<=4294967295?seedInput.value:''};bind('cancel-swap',()=>{plannedSwap=null;slot=null;choice={kind:'hand',index:0,color:game.players[0].hand[0]};delete game.draft;save();render()});bind('run-simulation',()=>{if(simBusy)return;simBusy=true;simError='';render();const worker=new Worker('simulation.worker.js');worker.onmessage=e=>{simBusy=false;if(e.data.ok)simResults=e.data.result;else simError=e.data.error;worker.terminate();if(screen==='sim')render()};worker.onerror=()=>{simBusy=false;simError=t('לא ניתן להריץ סימולציה. הדוח הקיים נשאר זמין.','Simulation could not run. The existing report is still available.');worker.terminate();if(screen==='sim')render()};worker.postMessage({gamesPerMode:30,seed:Math.floor(Date.now()/1000)>>>0})});
+for(const select of document.querySelectorAll('#pilehead-players,#pilehead-games'))select.onchange=()=>{
+ if(select.id==='pilehead-players')pileheadPlayers=Number(select.value);
+ else pileheadGames=Number(select.value);
+};
+bind('run-pilehead-simulation',()=>{
+ if(pileheadBusy)return;
+ pileheadBusy=true;pileheadError='';render();
+ const worker=new Worker('simulation.worker.js');
+ worker.onmessage=e=>{
+  pileheadBusy=false;
+  if(e.data.ok&&e.data.suite==='pilehead')pileheadResults=e.data.result;
+  else pileheadError=e.data.error||'Unexpected PILEHEAD simulation result';
+  worker.terminate();if(screen==='sim'&&simSuite==='pilehead')render();
+ };
+ worker.onerror=()=>{pileheadBusy=false;pileheadError='PILEHEAD simulation failed';worker.terminate();
+  if(screen==='sim'&&simSuite==='pilehead')render()};
+ worker.postMessage({suite:'pilehead',games:pileheadGames,players:pileheadPlayers,seed:Math.floor(Date.now()/1000)>>>0});
+});
+bind('export-pilehead-simulation',()=>{
+ if(!pileheadResults)return;
+ const a=document.createElement('a'),url=URL.createObjectURL(new Blob([JSON.stringify(pileheadResults,null,2)],{type:'application/json'}));
+ a.href=url;a.download='pilehead-simulation.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);
+});
+bind('run-tilt-simulation',()=>{
  if(tiltBusy)return;tiltBusy=true;tiltError='';render();
  const worker=new Worker('simulation.worker.js');
  worker.onmessage=e=>{tiltBusy=false;
