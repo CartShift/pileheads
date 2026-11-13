@@ -208,7 +208,7 @@
 .ph-card.ph-action .ph-illustration{transform:translateZ(0)}
 /* Artwork stays recognizable in the small layered face-up cards. */
 @container (max-width:75px){
- .ph-action-title{top:18%;font-size:14cqw}
+ .ph-action-title{top:18%;font-size:clamp(9px,15cqw,12px);letter-spacing:-.06em}
  .ph-action-art{top:37%;height:50%;left:3%;right:3%}
  .ph-action-rule{display:none}
  .ph-action-index{right:6%;top:5%;font-size:15cqw}
