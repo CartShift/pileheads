@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Vercel runs the physical solo playtest without exposing Sites/D1-only rooms.
+// Vercel hosts PILEHEAD rooms through /api/pilehead with a dedicated Neon database;
+// SPARK's Sites/D1-only rooms remain excluded.
 // This does not alter the original ChatGPT Sites / Cloudflare Worker bundle.
 const source=path.resolve('dist');
 const target=path.resolve('vercel-static');
@@ -13,7 +14,7 @@ fs.mkdirSync(path.join(target,'tilt'),{recursive:true});
 for(const name of ['index.html','engine.js','app.js','print.html'])
   fs.copyFileSync(path.join(source,'tilt',name),path.join(target,'tilt',name));
 fs.mkdirSync(path.join(target,'pilehead'),{recursive:true});
-for(const name of ['index.html','engine.js','app.js','print.html'])
+for(const name of ['index.html','engine.js','app.js','online.js','print.html'])
  fs.copyFileSync(path.join(source,'pilehead',name),path.join(target,'pilehead',name));
 let html=fs.readFileSync(path.join(source,'index.html'),'utf8');
 const removals=[
@@ -27,4 +28,4 @@ for(const [from,to] of removals){
   html=html.replace(from,to);
 }
 fs.writeFileSync(path.join(target,'index.html'),html);
-console.log('Built Vercel solo playtest (no ChatGPT-auth/D1 rooms or server bundle).');
+console.log('Built Vercel playtest with PILEHEAD online client (API deployed separately by Vercel Functions).');
