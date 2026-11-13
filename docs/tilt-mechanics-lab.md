@@ -1,8 +1,8 @@
 # TILT Mechanics Lab: printable A/B game-design experiment
 
 Status: **playable experimental branch, not validated retail rules**.
-Preview: https://spark-exchange-g33ei67ee-cart-shift.vercel.app/
-Print 48-card deck and rules: https://spark-exchange-g33ei67ee-cart-shift.vercel.app/print.html
+Preview: https://spark-exchange-q8xf57gm3-cart-shift.vercel.app/
+Print 48-card deck and rules: https://spark-exchange-q8xf57gm3-cart-shift.vercel.app/print.html
 
 ## Product question
 
