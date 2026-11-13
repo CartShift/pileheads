@@ -6,8 +6,8 @@ const artCode=read('dist/pilehead/deck-art.js'),css=read('dist/pilehead/deck-art
 const index=read('dist/pilehead/index.html'),gallery=read('dist/pilehead/gallery.html'),print=read('dist/pilehead/print.html');
 const local=read('dist/pilehead/app.js'),online=read('dist/pilehead/online.js'),fx=read('dist/pilehead/immersive.js');
 const sites=read('scripts/build.mjs'),vercel=read('scripts/build-vercel.mjs');
-const sandbox={globalThis:{}};new vm.Script(artCode,{filename:'deck-art.js'}).runInNewContext(sandbox);
-const A=sandbox.globalThis.PileheadCardArt;
+const sandbox={};new vm.Script(artCode,{filename:'deck-art.js'}).runInNewContext(sandbox);
+const A=sandbox.PileheadCardArt;
 let count=0;function check(label,fn){fn();count++;console.log('PASS '+label)}
 check('deck art exports all expected functions',()=>{
  for(const k of ['face','back','mini','rules','glyph'])assert.ok(A[k],k);
