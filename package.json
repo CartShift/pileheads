@@ -13,7 +13,7 @@
     "test:pilehead-online": "node tests/pilehead-online.cjs"
   },
   "engines": {
-    "node": ">=24"
+    "node": "24.x"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.0"
