@@ -15,11 +15,11 @@ nav small{max-width:570px;color:#586f64}
 .card:before{content:"";position:absolute;inset:2mm;border:1.4mm solid #d3c7af;border-radius:3mm}
 .corner{position:absolute;top:5mm;left:6mm;font:900 12pt system-ui;letter-spacing:.03em}
 .corner.bottom{top:auto;left:auto;right:6mm;bottom:5mm;transform:rotate(180deg)}
-.rank{font:900 72pt/.9 Georgia,serif;position:relative}
-.arrow{position:relative;font:900 44pt/1 system-ui}
-.card.up .arrow{color:var(--red)}.card.down .arrow{color:var(--blue)}
-.card.down .corner{color:var(--blue)}.card.up .corner{color:var(--red)}
-.brand{position:absolute;bottom:11mm;font:bold 7pt system-ui;letter-spacing:.17em;opacity:.55}
+.rank-pair{position:relative;height:67mm;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:1mm 0}
+.rank{font:900 47pt/.95 Georgia,serif;position:relative;color:var(--ink)}
+.rank.lower{transform:rotate(180deg)}
+.arrow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font:900 39pt/1 system-ui;color:var(--ink)}
+.brand{position:absolute;right:6mm;top:7mm;font:bold 6pt system-ui;letter-spacing:.09em;opacity:.55}
 .instructions{width:210mm;min-height:297mm;padding:16mm;margin:16px auto;background:white;page-break-after:auto;break-after:auto}
 .instructions h1{font:900 28pt Georgia,serif}.instructions h2{font:900 18pt Georgia,serif;margin:7mm 0 2mm}
 .instructions p,.instructions li{font-size:10.3pt;line-height:1.44}.instructions ul{margin:2mm 0 5mm;padding-left:6mm}
@@ -35,7 +35,7 @@ nav small{max-width:570px;color:#586f64}
 </style>
 </head>
 <body>
-<nav><h1>TILT. <small>PRINT DECK</small></h1><small>48 physical cards: ranks 1–8, arrows ↑ and ↓, three of each combination. Print at actual size on A4, cut at dashed outlines and put in opaque-backed sleeves. No Joker cards.</small><button onclick="window.print()">Print 7 A4 pages</button><a href="index.html">← Return to lab</a></nav>
+<nav><h1>TILT. <small>PRINT DECK</small></h1><small>48 physical cards: ranks 1–8, arrows ↑ and ↓, three of each combination. Print at actual size on A4, cut at dashed outlines and put in opaque-backed sleeves. Ranks are printed twice so they remain readable after 180° rotation. No Joker cards.</small><button onclick="window.print()">Print 7 A4 pages</button><a href="index.html">← Return to lab</a></nav>
 <main id="pages"></main>
 <script>
 (function(){
@@ -49,7 +49,7 @@ nav small{max-width:570px;color:#586f64}
    const card=document.createElement('div');card.className='card '+c.direction;
    const arrow=c.direction==='up'?'↑':'↓';
    card.innerHTML='<span class="corner">'+c.n+' '+arrow+'</span>'+
-    '<span class="rank">'+c.n+'</span><span class="arrow">'+arrow+'</span>'+
+    '<span class="rank-pair"><span class="rank upper">'+c.n+'</span><span class="arrow">'+arrow+'</span><span class="rank lower">'+c.n+'</span></span>'+
     '<span class="corner bottom">'+c.n+' '+arrow+'</span><span class="brand">TILT · '+String(c.id+1).padStart(2,'0')+'</span>';
    section.appendChild(card)
   });pages.appendChild(section);
@@ -60,8 +60,8 @@ nav small{max-width:570px;color:#586f64}
  '<div class="columns"><div><h2>01 · CONTROL / CHAIN</h2><ul>'+
  '<li>Start one face-up card on the pile. Follow its arrow: ↑ requires equal/higher; ↓ requires equal/lower.</li>'+
  '<li>Matching the number clears the pile and ends your turn.</li>'+
- '<li>After a legal non-match, STOP: rotate your final card to choose ↑ or ↓ for the next player. OR PRESS: add one or two more legal cards sideways, with each number different from the preceding number.</li>'+
- '<li>After PRESS, the next player can counter with one card matching any sideways rank. Counter card goes out; challenger takes the last 2 or 3 pile cards, the rest is discarded. Counter uses the next player’s turn. Or accept and play normally.</li>'+
+ '<li>After a legal non-match, STOP: rotate the card 180° if needed to choose ↑ or ↓ for the next player. OR PRESS: add one or two more legal cards shifted 1 cm right, kept UPRIGHT with the arrow readable. Each must change number.</li>'+
+ '<li>After PRESS, the next player can counter with one card matching any shifted rank. Counter card goes out; challenger takes the last 2 or 3 pile cards, the rest is discarded. Counter uses the next player’s turn. Or accept and play normally.</li>'+
  '<li>If no legal card, exchange pile top for any card in hand; discard surrendered card.</li>'+
  '</ul></div><div><h2>02 · TWIN PILES</h2><ul>'+
  '<li>Start two face-up piles with one card each. Play one card to either pile according to its visible arrow.</li>'+
