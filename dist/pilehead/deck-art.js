@@ -102,8 +102,14 @@ function back(){
 }
 function mini(c){
  if(!c)return '<span class="mini back ph-mini ph-mini-back" aria-hidden="true">'+back()+'</span>';
- if(c.kind==='number')return '<span class="mini ph-mini ph-mini-number">'+Number(c.rank)+'</span>';
- return '<span class="mini ph-mini ph-mini-action" data-action="'+c.action+'" title="'+c.action.toUpperCase()+'">'+actionIcon(c.action)+'</span>';
+ if(c.kind==='number'){
+  const n=Number(c.rank);
+  if(!Number.isInteger(n)||n<1||n>10)throw Error('invalid miniature number');
+  return '<span class="mini ph-mini ph-mini-number">'+n+'</span>';
+ }
+ const action=String(c.action||'');
+ if(!Object.prototype.hasOwnProperty.call(illustrations,action))throw Error('invalid miniature action');
+ return '<span class="mini ph-mini ph-mini-action" data-action="'+action+'" title="'+action.toUpperCase()+'">'+actionIcon(action)+'</span>';
 }
 root.PileheadCardArt=Object.freeze({face,back,mini,art,rules,glyph});
 })(typeof window!=='undefined'?window:globalThis);
