@@ -1,7 +1,7 @@
 /* PILEHEAD physical playtest UI. No SPARK or TILT persistence keys touched. */
 (function(){'use strict';
 const E=globalThis.PileheadEngine,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v01';
-let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,timer=null,notice='',lastMove=null;
+let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null;
 function playerName(i){return mode==='bots'?(i===0?'You':'Bot '+i):'Player '+(i+1)}
 function viewSeat(){return mode==='bots'?0:g?.turn??0}
 function getPlayer(){return g.people[viewSeat()]}
@@ -11,7 +11,7 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify({g,mode,seats,setupS
 function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
  if(!x||x.g?.version!==E.VERSION||!['bots','hotseat'].includes(x.mode))return false;
  E.invariant(x.g);g=x.g;mode=x.mode;seats=x.seats;setupSeat=x.setupSeat??0;
- covered=mode==='hotseat'&&g.phase!=='over';notice=x.notice||'';lastMove=x.lastMove||null;return true;
+ covered=mode==='hotseat'&&g.phase!=='over';challengeOpen=false;notice=x.notice||'';lastMove=x.lastMove||null;return true;
  }catch{return false}}
 function card(c,{interactive=false,selected=false,back=false,source='',small=false}={}){
  if(back)return '<button type="button" class="card back" '+(interactive?'data-card="'+c.id+'" data-source="'+source+'"':'disabled')+' aria-label="Flip face-down card"><span class="value">◆</span></button>';
@@ -81,13 +81,21 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  '<button class="action primary" data-do="play" '+(!selection.length||!turn?'disabled':'')+'>Play selected</button>'+
  '<button class="action secondary" data-do="take" '+(!turn||!pick?'disabled':'')+'>Take pile</button>'+
  '<button class="action slam" data-do="slam" '+(!slams.length?'disabled':'')+'>SLAM!'+(slams.length&&top.rank!==null?' ×'+top.rank:'')+'</button>')+
+ (mode==='hotseat'&&g.phase==='play'&&g.slamOpen?'<button class="action secondary" data-do="challenge">Other player SLAM</button>':'')+
  '<button class="action secondary" data-do="export">Export QA state</button></div>'+
  '<div class="message" role="status" aria-live="polite">'+(notice||'Select matching cards to play together. Watch for four of a kind!')+'</div>'+
  '<div class="meta"><span>Moves <strong>'+g.moves+'</strong></span><span>Draw stock <strong>'+g.stock.length+'</strong></span>'+
  '<span>Burned <strong>'+g.ashes.length+'</strong></span><span>Pickups <strong>'+g.people.reduce((n,x)=>n+x.pickups,0)+'</strong></span></div>'+
  '<div class="event-list" aria-label="Recent moves">'+g.events.slice(-8).reverse().map(e=>'<span class="event">'+eventName(e)+'</span>').join('')+'</div>';
 }
-function overlay(){if(!covered||!g||mode!=='hotseat')return'';
+function overlay(){
+ if(challengeOpen&&g?.phase==='play'){
+ return '<div class="overlay"><div class="panel"><div class="eyebrow">OUT-OF-TURN INTERRUPT</div><h2>SLAM!</h2>'+
+ '<p>Choose the player who is placing the missing matching card(s). The game checks legality without showing anyone\'s private hand.</p>'+
+ g.people.filter(p=>!p.out).map(p=>'<button class="action secondary" data-do="hot-slam" data-seat="'+p.seat+'">'+playerName(p.seat)+'</button>').join('')+
+ '<button class="action" data-do="cancel-challenge">Cancel</button></div></div>';
+ }
+ if(!covered||!g||mode!=='hotseat')return'';
  const isSetup=g.phase==='setup',name=playerName(isSetup?setupSeat:g.turn);
  return '<div class="overlay"><div class="panel"><div class="eyebrow">PASS THE DEVICE</div><h2>'+name+'</h2>'+
  '<p>Only this player should reveal their cards. Other players can call SLAM while the screen is covered.</p>'+
@@ -108,8 +116,8 @@ function queueBot(){if(timer!==null){clearTimeout(timer);timer=null}
  }catch(e){notice='Bot error: '+e.message;render()}
  },canSlam?780:600);
 }
-function startGame(){g=E.create({players:seats,seed:Date.now()>>>0});setupSeat=0;selection=[];swapFrom=null;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
-function afterMove(ev){lastMove=ev;selection=[];notice=eventName(ev);
+function startGame(){g=E.create({players:seats,seed:Date.now()>>>0});setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
+function afterMove(ev){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
  if(mode==='hotseat'&&g.phase!=='over')covered=true;
  render()}
 function perform(choice,seat=viewSeat()){try{const ev=E.move(g,seat,choice);afterMove(ev)}catch(e){notice=e.message;render()}}
@@ -142,6 +150,8 @@ function execute(action,button){
   render();return;
  }
  if(action==='reveal'){covered=false;render();return}
+ if(action==='challenge'){challengeOpen=true;render();return}
+ if(action==='cancel-challenge'){challengeOpen=false;render();return}
  if(action==='play'){
   if(!selection.length)return;
   perform({type:'play',source:currentStage(),ids:selection.slice()});return;
@@ -149,13 +159,13 @@ function execute(action,button){
  if(action==='take'){perform({type:'take'});return}
  if(action==='slam'){const choice=E.slamOptions(g,viewSeat())[0];if(choice)perform(choice);return}
  if(action==='hot-slam'){const seat=Number(button.dataset.seat);const choice=E.slamOptions(g,seat)[0];
-  if(choice)perform(choice,seat);else{notice='No valid four-of-a-kind for '+playerName(seat);render()}return;
+  if(choice)perform(choice,seat);else{challengeOpen=false;notice='No valid four-of-a-kind for '+playerName(seat);render()}return;
  }
  if(action==='export'&&g){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify(g,null,2)],{type:'application/json'}));a.href=u;a.download='pilehead-state-seed-'+g.seed+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1200)}
 }
 app.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
  if(b.dataset.card){handleCard(Number(b.dataset.card),b.dataset.source);return}
  if(b.dataset.do)execute(b.dataset.do,b)});
-$('new').addEventListener('click',()=>{if(g&&!confirm('Start a new game and replace the current local save?'))return;g=null;notice='';selection=[];covered=false;render()});
+$('new').addEventListener('click',()=>{if(g&&!confirm('Start a new game and replace the current local save?'))return;g=null;notice='';selection=[];challengeOpen=false;covered=false;render()});
 restore();render();
 })();
