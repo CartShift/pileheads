@@ -42,17 +42,17 @@ async function join(req,b){await quota(req,'join',60);const id=code(b.code),nick
  if(!rows.length)fail(409,'full');return {...await view(r,Number(rows[0].seat)),session:t}}
 async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!==r.revision)fail(409,'stale_revision');
  const g=structuredClone(r.state);
- if(b.action==='swap'){if(g.phase!=='setup')fail(409,'already_started');if(!Number.isInteger(b.handId)||!Number.isInteger(b.upId))fail(400,'bad_swap');E.swap(g,seat,b.handId,b.upId)}
+ if(b.action==='swap'){if(g.phase!=='setup')fail(409,'already_started');if(!Number.isInteger(b.handId)||!Number.isInteger(b.upId))fail(400,'bad_swap');try{E.swap(g,seat,b.handId,b.upId)}catch{fail(400,'illegal_swap')}}
  else if(b.action==='start'){if(seat!==0)fail(403,'host_only');if(g.phase!=='setup')fail(409,'already_started');
   const m=await query('SELECT seat FROM pilehead_members WHERE code=$1 ORDER BY seat',[r.code]);
   if(m.length!==r.capacity||m.some((p,i)=>p.seat!==i))fail(409,'waiting_for_players');E.start(g)}
  else if(b.action==='move'){if(g.phase!=='play')fail(409,'not_started');const m=b.move;
   if(!m||typeof m!=='object'||Array.isArray(m))fail(400,'bad_move');
-  if(m.type==='take')E.move(g,seat,{type:'take'});
+  if(m.type==='take'){try{E.move(g,seat,{type:'take'})}catch{fail(400,'illegal_move')}}
   else if(m.type==='slam'||m.type==='play'){const source=E.stage(g,seat);if(m.source!==source)fail(400,'wrong_layer');let ids;
    if(source==='down'){if(m.type==='slam'||!Number.isInteger(m.index)||m.index<0||m.index>=g.people[seat].down.length)fail(400,'bad_blind_slot');ids=[g.people[seat].down[m.index].id]}
    else{if(!Array.isArray(m.ids)||m.ids.length<1||m.ids.length>4||!m.ids.every(Number.isInteger))fail(400,'bad_cards');ids=m.ids}
-   E.move(g,seat,{type:m.type,source,ids})}else fail(400,'bad_move')}
+   try{E.move(g,seat,{type:m.type,source,ids})}catch{fail(400,'illegal_move')}}else fail(400,'bad_move')}
  else fail(400,'unknown_action');
  E.invariant(g);const status=g.phase==='over'?'finished':g.phase==='play'?'playing':'lobby';
  const rows=await query('UPDATE pilehead_rooms SET state=$1::jsonb,status=$2,revision=revision+1,updated_at=now() WHERE code=$3 AND revision=$4 AND expires_at>now() RETURNING code,capacity,revision,status,state,expires_at',[JSON.stringify(g),status,r.code,r.revision]);
