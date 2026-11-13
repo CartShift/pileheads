@@ -16,17 +16,17 @@ function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
  }catch{return false}}
 function card(c,{interactive=false,selected=false,back=false,source='',small=false}={}){
  if(back)return '<button type="button" class="card back" '+(interactive?'draggable="true" data-card="'+c.id+'" data-source="'+source+'"':'disabled')+' aria-label="Flip face-down card"><span class="value">◆</span></button>';
- const action=c.kind==='action',rank=action?({reset:'↺',ghost:'◇',under:'↓4',skip:'Ⅱ',burn:'✕'}[c.action]):String(c.rank);
+ const action=c.kind==='action',rank=action?({reset:'↺',ghost:'◇',under:'≤7',skip:'Ⅱ',joker:'✦'}[c.action]):String(c.rank);
  const name=action?c.action.toUpperCase():String(c.rank);
  return '<button type="button" class="card '+(action?'action-card ':'')+(interactive?'playable ':'')+(selected?'selected':'')+
-  '" '+(action?'data-action="'+c.action+'" ':'')+(interactive?'data-card="'+c.id+'" data-source="'+source+'"':'disabled')+
+  '" '+(action?'data-action="'+c.action+'" ':c.rank===10?'data-rank="10" ':'')+(interactive?'data-card="'+c.id+'" data-source="'+source+'"':'disabled')+
   ' aria-label="'+(action?name+' action':'Number '+c.rank)+'" aria-pressed="'+Boolean(selected)+'">'+
   '<span class="mark">PILEHEAD</span><span class="value">'+rank+'</span><span class="foot">'+name+'</span></button>';
 }
 function rowCards(cards,source,interact=false){return '<div class="card-row '+(source==='hand'?'hand':'')+'">'+
  cards.map(c=>card(c,{interactive:interact,selected:selection.includes(c.id),source})).join('')+
  (!cards.length?'<span style="font-size:12px;color:#a8c4b4">No cards left</span>':'')+'</div>'}
-function mini(c){return '<span class="mini'+(!c?' back':'')+'">'+(c?(c.kind==='number'?c.rank:({burn:'✕',reset:'↺',ghost:'◇',under:'↓',skip:'Ⅱ'}[c.action])):'◆')+'</span>'}
+function mini(c){return '<span class="mini'+(!c?' back':'')+'">'+(c?(c.kind==='number'?c.rank:({joker:'✦',reset:'↺',ghost:'◇',under:'↓',skip:'Ⅱ'}[c.action])):'◆')+'</span>'}
 function opponents(){return '<div class="opponents">'+g.people.filter(p=>p.seat!==viewSeat()).map(p=>{
  const isCurrent=g.turn===p.seat&&g.phase==='play';
  return '<div class="opponent '+(isCurrent?'current ':'')+(p.out?'finished':'')+'" data-seat="'+p.seat+'"><strong>'+
@@ -39,7 +39,7 @@ function pile(){const top=E.topRun(g),a=g.pile.slice(-4);return '<div class="tab
  '<div class="pile-card">'+(a.length?a.map((c,i)=>'<div class="card-wrap" style="--offset:'+((i-(a.length-1)/2)*8)+
  'px;--angle:'+((i-(a.length-1)/2)*5)+'deg">'+card(c)+'</div>').join(''):'<div class="placeholder">CLEAR</div>')+
  '</div><div class="stack-count">'+g.pile.length+' cards'+(top.count>=2?' · '+top.count+' × '+top.rank:'')+'</div>'+
- '<div class="stack-count">'+(g.limit?.type==='under'?'NEXT: 1–4':g.limit?.type==='min'?'NEXT: '+g.limit.value+' or higher':'ANY NUMBER')+'</div>'+
+ '<div class="stack-count">'+(g.limit?.type==='under'?'NEXT: 7 OR LOWER':g.limit?.type==='min'?'NEXT: '+g.limit.value+' or higher':'ANY NUMBER')+'</div>'+
  '</div><div class="stack"><div class="stack-label">BURNED</div><div class="pile-card"><div class="placeholder">✕</div></div>'+
  '<div class="stack-count">'+g.ashes.length+' removed</div></div></div>'}
 function upAndDown(p,allow){return '<div class="zone your-up"><div class="area-label"><span>FACE UP · '+p.up.length+'</span><span>BLIND · '+p.down.length+'</span></div>'+
@@ -51,6 +51,8 @@ function upAndDown(p,allow){return '<div class="zone your-up"><div class="area-l
  }).join('')+'</div></div>'}
 function eventName(e){const who=playerName(e.seat);if(e.type==='take')return who+' picked up '+e.count;
  if(e.type==='blind-fail')return who+' flipped an illegal card and took '+e.count;
+ if(e.action==='joker')return who+' played JOKER! '+playerName(e.target)+' took '+e.takenCount+' cards';
+ if(e.reason==='ten')return who+' played 10 — burned the pile and goes again';
  if(e.reason==='slam')return who+' SLAM! Burned the pile';
  if(e.burned)return who+' burned the pile';
  if(e.action)return who+' used '+e.action.toUpperCase();
