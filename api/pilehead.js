@@ -60,7 +60,10 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
  const rows=await query('UPDATE pilehead_rooms SET state=$1::jsonb,status=$2,revision=revision+1,updated_at=now() WHERE code=$3 AND revision=$4 AND expires_at>now() RETURNING code,capacity,revision,status,state,expires_at',[JSON.stringify(g),status,r.code,r.revision]);
  if(!rows.length)fail(409,'stale_revision');return view(rows[0],seat)}
 module.exports=async function handler(req,res){const send=(status,data)=>{res.status(status);res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');return res.json(data)};
- try{if(req.method!=='POST')return send(405,{ok:false,error:'method_not_allowed'});
+ try{if(req.method==='GET'&&req.query?.health==='1'){
+  const rows=await query('SELECT 1 AS ready');return send(200,{ok:rows[0]?.ready===1,service:'pilehead-rooms'});
+ }
+ if(req.method!=='POST')return send(405,{ok:false,error:'method_not_allowed'});
   if(req.headers.origin){let origin;try{origin=new URL(req.headers.origin).host}catch{fail(403,'bad_origin')}
    if(origin!==String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim())fail(403,'bad_origin')}
   if(Number(req.headers['content-length']||0)>4096)fail(413,'too_large');
