@@ -437,6 +437,7 @@ body.pilehead-playing .table .card[data-action="ghost"]{background:radial-gradie
 body.pilehead-playing .table .card[data-action="under"]{background:radial-gradient(ellipse,#fcf3d9,#f0d49f);color:#805026}
 body.pilehead-playing .table .card[data-action="skip"]{background:radial-gradient(ellipse,#eff8ea,#cee8c6);color:#376348}
 body.pilehead-playing .table .card[data-action="burn"]{background:radial-gradient(ellipse,#fff0e2,#eebc9f);color:#9f4a35}
+body.pilehead-playing .table .card[data-action="dump"]{background:radial-gradient(ellipse,#ffeef3,#f2c5d7);color:#883453}
 body.pilehead-playing .table .card.back{
   border:2px solid #d7c9ad;
   color:#f4d9a3;
