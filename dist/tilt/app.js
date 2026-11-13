@@ -94,8 +94,8 @@ function render(){
     'table-card'+(i<layers.length-1?' table-under under-'+(layers.length-1-i):''))).join('')+
    '<span class="pile-count">'+game.pile.length+'</span>':
    '<div class="empty-pile">PLACE A CARD</div>')+
-  (pending?'<span class="joker-signal">JOKER ↯<small>CHALLENGE '+
-    (pending.targetRank??'?')+'</small></span>':'');
+  (pending?makeCard(pending.card,'disabled tabindex="-1" aria-hidden="true"','table-card sideways-joker')+
+    '<span class="joker-signal">CHALLENGE<small>'+ (pending.targetRank??'?')+'</small></span>':'');
  $('jokerWarning').hidden=!pending;
  if(pending){
   $('jokerWarningTitle').textContent=MODE==='match'?
@@ -170,6 +170,7 @@ function clearGhosts(){
  if(typeof document.querySelectorAll!=='function')return;
  for(const el of document.querySelectorAll('.flying-card,.drag-ghost'))el.remove();
  $('pileMat').classList?.remove('drop-active');
+ $('pileMat').classList?.remove('arrival-pending');
 }
 function animateMotion(from,action){
  if(!from||isReducedMotion()||typeof document.body?.appendChild!=='function')return;
@@ -179,8 +180,11 @@ function animateMotion(from,action){
  const target=collecting?(opponents==='bot'&&action.seat===1?$('opponentHand'):$('hand')):
    (['match','jokerBurned','jokerBlocked'].includes(action.reason)?$('discard'):$('pile'));
  const to=rectOf(target);if(!to)return;
+ const landingOnPile=target===$('pile')&&['joker','play'].includes(action.reason||'play');
+ const clearLanding=()=>{if(landingOnPile)$('pileMat').classList?.remove('arrival-pending')};
  const card=action.card||(collecting?game.people[action.seat].hand.at(-1):null);
  if(!card)return;
+ if(landingOnPile)$('pileMat').classList?.add('arrival-pending');
  const ghost=document.createElement('div');
  ghost.className='flying-card';
  ghost.innerHTML=makeCard(card,'disabled');
@@ -197,9 +201,9 @@ function animateMotion(from,action){
    {transform:'translate('+(dx*.55)+'px,'+(dy*.60-29)+'px) rotate(5deg) scale(1.06)',opacity:1,offset:.6},
    {transform:'translate('+dx+'px,'+dy+'px) rotate(-3deg) scale(.89)',opacity:.95,offset:1}
   ],{duration,easing:'cubic-bezier(.2,.75,.22,1)',fill:'forwards'});
-  animation.onfinish=()=>ghost.remove();
-  animation.oncancel=()=>ghost.remove();
- }else ghost.remove();
+  animation.onfinish=()=>{ghost.remove();clearLanding()};
+  animation.oncancel=()=>{ghost.remove();clearLanding()};
+ }else{ghost.remove();clearLanding()}
 }
 // A full-pile penalty should look like a stack, not one ordinary card.
 function animatePileSweep(before,action){
@@ -223,6 +227,29 @@ function animatePileSweep(before,action){
   ],{duration:580,easing:'cubic-bezier(.2,.75,.22,1)',fill:'forwards'});
   motion.onfinish=()=>ghost.remove();motion.oncancel=()=>ghost.remove();
  }else ghost.remove();
+}
+// Physical refill uses identical opaque backs to preserve hidden information.
+function animateRefill(action,beforeStock){
+ const count=Math.max(0,(beforeStock||0)-game.stock.length);
+ if(!count||opponents!=='bot'||isReducedMotion()||typeof document.body?.appendChild!=='function')return;
+ const from=rectOf($('deckVisual')),to=rectOf(action.seat===1?$('opponentHand'):$('hand'));
+ if(!from||!to)return;
+ const activeEpoch=epoch;
+ for(let i=0;i<Math.min(4,count);i++)setTimeout(()=>{
+  if(activeEpoch!==epoch)return;
+  const ghost=document.createElement('div');
+  ghost.className='flying-card back-card';
+  ghost.style.position='fixed';ghost.style.left=(from.left+from.width/2-24)+'px';
+  ghost.style.top=(from.top+from.height/2-34)+'px';
+  ghost.style.pointerEvents='none';document.body.appendChild(ghost);
+  const dx=to.left+to.width/2-from.left-from.width/2,dy=to.top+to.height/2-from.top-from.height/2;
+  if(typeof ghost.animate==='function'){
+   const m=ghost.animate([{transform:'translate(0,0) rotate(-8deg)',opacity:1},
+    {transform:'translate('+dx+'px,'+dy+'px) rotate(4deg) scale(.92)',opacity:.92}],
+    {duration:300,easing:'cubic-bezier(.2,.8,.2,1)',fill:'forwards'});
+   m.onfinish=()=>ghost.remove();m.oncancel=()=>ghost.remove();
+  }else ghost.remove();
+ },185+i*80);
 }
 function cardSound(){
  // A short synthetic paper tap. Off by default; no autoplay without opt-in.
@@ -257,7 +284,7 @@ function finish(action,from,pileBefore){
  if(done()){
   covered=false;$('cover').style.display='none';busy=false;render();
   if(action.reason!=='jokerHit')animateMotion(from,action);
-  animatePileSweep(pileBefore,action);cardSound();return;
+  animatePileSweep(pileBefore,action);animateRefill(action,pileBefore?.stock);cardSound();return;
  }
  if(opponents==='hotseat'){
   if(seat()!==action.seat)cover();
@@ -265,7 +292,7 @@ function finish(action,from,pileBefore){
   cardSound();return;
  }
  render();if(action.reason!=='jokerHit')animateMotion(from,action);
- animatePileSweep(pileBefore,action);cardSound();queueBot();
+ animatePileSweep(pileBefore,action);animateRefill(action,pileBefore?.stock);cardSound();queueBot();
  if(action.reason==='match'&&$('pileMat').classList){
   const mat=$('pileMat');mat.classList.remove('match-flash');
   if(typeof mat.offsetWidth==='number')void mat.offsetWidth;
@@ -274,7 +301,7 @@ function finish(action,from,pileBefore){
 }
 function play(move,source){
  if(!canAct())return;
- const from=rectOf(source),pileBefore={rect:rectOf($('pile')),count:game.pile.length};
+ const from=rectOf(source),pileBefore={rect:rectOf($('pile')),count:game.pile.length,stock:game.stock.length};
  let event;
  try{event=E.play(game,seat(),move)}
  catch(e){message='That move is not allowed: '+e.message;render();return}
@@ -292,7 +319,7 @@ function queueBot(){
   try{
    const move=E.choose(game,1,botStyle);
    const source=['takeTop','takeAll'].includes(move.type)?$('pile').querySelector?.('.table-card'):$('opponentHand').querySelector?.('.back-card:last-child');
-   const from=rectOf(source),pileBefore={rect:rectOf($('pile')),count:game.pile.length};
+   const from=rectOf(source),pileBefore={rect:rectOf($('pile')),count:game.pile.length,stock:game.stock.length};
    finish(E.play(game,1,move),from,pileBefore);
   }
   catch(e){message='Bot could not continue: '+String(e.message);render()}

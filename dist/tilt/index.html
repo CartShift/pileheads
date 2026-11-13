@@ -226,6 +226,17 @@ main{max-width:860px;margin:0 auto;padding:12px clamp(8px,2vw,22px) 35px}
  .table-focus main{padding:4px 3px 6px}
 }
 @media(prefers-reduced-motion:reduce){.hand .card{transition:none!important}.hand .card.playable.selected{transform:translateY(-12px) rotate(0deg)}}
+
+/* The sideways Joker is a real, face-up physical card beside the exposed rank. */
+.pile .sideways-joker{position:absolute;z-index:4;transform:translate(34px,-20px) rotate(90deg) scale(.66);transform-origin:center;pointer-events:none;box-shadow:0 9px 17px #0017109a}
+.pile .joker-signal{right:auto;left:-14px;top:-17px;width:64px;height:40px;transform:rotate(-8deg);font-size:9px;line-height:1.05}
+.pile .joker-signal small{font-size:19px;line-height:1}
+.pile-mat.arrival-pending .pile>.table-card:not(.table-under){opacity:0}
+@media(max-width:520px){
+ .pile .sideways-joker{transform:translate(25px,-20px) rotate(90deg) scale(.58)}
+ .pile .joker-signal{left:-6px;top:-12px;width:52px;height:34px;font-size:8px}
+ .pile .joker-signal small{font-size:16px}
+}
 </style>
 </head>
 <body>

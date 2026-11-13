@@ -134,7 +134,8 @@ check('Incoming Joker leaves the target rank visible and offers a matching-card 
  assert.equal(a.saved().game.pending.targetRank,5);
  assert.equal(a.el('jokerWarning').hidden,false);
  assert.match(a.el('condition').textContent,/MATCH 5/);
- assert.match(a.el('pile').innerHTML,/CHALLENGE 5/);
+ assert.match(a.el('pile').innerHTML,/CHALLENGE<small>5/);
+ assert.match(a.el('pile').innerHTML,/sideways-joker/);
  assert.equal(a.el('pile').className,'pile pending-attack');
  assert.match(a.el('pile').innerHTML,/class="number">5/);
  assert.match(a.el('hand').innerHTML,/data-index="0"/);
