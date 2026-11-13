@@ -1022,3 +1022,19 @@ body.pilehead-playing .table .hand-area .pilehead-hand-hint{
  body.pilehead-playing .table .card-row.hand .card.selected{animation:none!important}
  body.pilehead-playing .table .hand-scroll-arrow{transition:none!important}
 }
+
+
+/* Lifting two matching cards looks like a small physical stack. */
+body.pilehead-playing .card-ghost{overflow:visible!important;z-index:999!important}
+body.pilehead-playing .card-ghost .drag-count{
+ position:absolute;z-index:99;right:-9px;top:-14px;
+ display:inline-flex;align-items:center;justify-content:center;
+ min-width:54px;min-height:30px;
+ padding:4px 7px;border-radius:999px;
+ border:2px solid #f7db9e;
+ background:#133b30;color:#fff0c5;
+ box-shadow:0 5px 13px #00160fa8;
+ font:900 12px/1 system-ui,sans-serif;
+ white-space:nowrap;
+ transform:rotate(6deg);
+}
