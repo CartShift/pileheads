@@ -88,7 +88,7 @@ function opponentCards(){const g=data.game;
  return '<div class="opponents">'+g.players.filter(p=>p.seat!==data.me).map(p=>'<div data-seat="'+p.seat+'" class="opponent '+
   (g.turn===p.seat&&g.phase==='play'?'current ':'')+(p.out?'finished':'')+'"><strong>'+safe(displayName(p.seat))+
   (g.turn===p.seat&&g.phase==='play'?' · TURN':'')+(p.out?' · OUT':'')+'</strong><small>'+p.handCount+
-  ' in hand · '+p.up.length+' up · '+p.downCount+' blind</small><div class="mini-cards">'+
+  ' in hand · '+p.up.length+' up · '+p.downCount+' blind</small><div class="held-cards" aria-label="Opponent holds '+p.handCount+' private cards">'+Array.from({length:Math.min(p.handCount,8)},(_,i)=>'<span class="held-back" aria-hidden="true" style="--hold-angle:'+((i-(Math.min(p.handCount,8)-1)/2)*5)+'deg"></span>').join('')+'</div><div class="mini-cards">'+
   p.up.map(c=>'<span class="mini">'+safe(c.kind==='action'?symbols[c.action]:c.rank)+'</span>').join('')+
   Array.from({length:p.downCount},()=>'<span class="mini back">◆</span>').join('')+'</div></div>').join('')+'</div>';
 }
