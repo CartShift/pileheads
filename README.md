@@ -107,3 +107,9 @@ A separate Vercel deployment can be built from the same repository with `npm run
 Use the repository's `vercel.json` in Vercel with Node.js 24 and the team project's default protection. The original private Sites app remains the place to test actual human rooms until a new secure identity/database backend is designed for Vercel. This separation prevents a misleading or insecure partial multiplayer port.
 
 To validate: `npm test`, `npm run build:vercel`, inspect `vercel-static/index.html`, and check Vercel's protected preview URL on desktop and mobile. Git changes and Vercel deployments do not modify the private Sites URL.
+
+## TILT Mechanics Lab — two printable experiments
+
+A separate, **non-production** print-and-play design test lives in `dist/tilt-lab/`. [Play preview](https://spark-exchange-g33ei67ee-cart-shift.vercel.app/) and [print the deck](https://spark-exchange-g33ei67ee-cart-shift.vercel.app/print.html). It compares **CONTROL / CHAIN** (safe arrow control versus risky multi-card press) and **TWIN PILES** (two directional piles that collide). Both run 2–4 seats with bot or local hotseat and independent saves, using the same 48 numbered arrow cards.
+
+Design rules, limitations, observed simulation evidence and a blinded human playtest protocol: `docs/tilt-mechanics-lab.md`. Offline regression: `node tests/tilt-mechanics-lab.cjs`. This experiment does not change existing SPARK or TILT mechanics; this URL is a preview, not an automatic production update.
