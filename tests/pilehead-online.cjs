@@ -46,7 +46,7 @@ async function run(){
  assert.equal(host.data.me,0);assert.equal(host.data.game.phase,'setup');checks++;
  const unauth=await request({action:'state',code});assert.equal(unauth.status,401);checks++;
  const early=await request({action:'start',code,revision:0},hostToken);
- assert.equal(early.status,409);checks++;
+ assert.equal(early.status,409,JSON.stringify(early));checks++;
  const guest=await request({action:'join',code,name:'Guest'});
  assert.equal(guest.status,201);assert.equal(guest.data.me,1);checks++;
  const guestToken=guest.data.session;
