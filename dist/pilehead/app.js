@@ -29,9 +29,9 @@ function rowCards(cards,source,interact=false){return '<div class="card-row '+(s
 function mini(c){return '<span class="mini'+(!c?' back':'')+'">'+(c?(c.kind==='number'?c.rank:({burn:'✕',reset:'↺',ghost:'◇',under:'↓',skip:'Ⅱ'}[c.action])):'◆')+'</span>'}
 function opponents(){return '<div class="opponents">'+g.people.filter(p=>p.seat!==viewSeat()).map(p=>{
  const isCurrent=g.turn===p.seat&&g.phase==='play';
- return '<div class="opponent '+(isCurrent?'current ':'')+(p.out?'finished':'')+'"><strong>'+
+ return '<div class="opponent '+(isCurrent?'current ':'')+(p.out?'finished':'')+'" data-seat="'+p.seat+'"><strong>'+
  playerName(p.seat)+(isCurrent?' · TURN':'')+(p.out?' · OUT':'')+'</strong><small>'+p.hand.length+
- ' in hand · '+p.up.length+' up · '+p.down.length+' blind</small><div class="mini-cards">'+
+ ' in hand · '+p.up.length+' up · '+p.down.length+' blind</small><div class="held-cards" aria-label="Opponent holds '+p.hand.length+' private cards">'+Array.from({length:Math.min(p.hand.length,8)},(_,i)=>'<span class="held-back" aria-hidden="true" style="--hold-angle:'+((i-(Math.min(p.hand.length,8)-1)/2)*5)+'deg"></span>').join('')+'</div><div class="mini-cards">'+
  p.up.map(mini).join('')+p.down.slice(0,3).map(()=>mini(null)).join('')+'</div></div>'}).join('')+'</div>'}
 function pile(){const top=E.topRun(g),a=g.pile.slice(-4);return '<div class="table-center"><div class="stack">'+
  '<div class="stack-label">DRAW</div><div class="pile-card">'+(g.stock.length?'<div class="card back" style="pointer-events:none"><span class="value">◆</span></div>':'<div class="placeholder">EMPTY</div>')+'</div>'+
@@ -105,7 +105,14 @@ function overlay(){
  g.people.filter(p=>!p.out).map(p=>'<button class="action secondary" data-do="hot-slam" data-seat="'+p.seat+'">'+playerName(p.seat)+'</button>').join(''):'')+
  '</div></div>';
 }
-function render(){app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay();save();queueBot()}
+function render(){
+ app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay();
+ window.PileheadTableFX?.sync({identity:g?g.seed+':'+g.moves:null,
+  event:g?.events?.[g.events.length-1]||null,
+  ownSeat:g?viewSeat():0,active:g?isTurn()&&!covered:false,
+  selected:selection.length,moveNo:g?.moves||0,online:false});
+ save();queueBot();
+}
 function celebrate(ev){
  if(!ev?.burned)return;
  const table=app.querySelector('.table');if(!table)return;
@@ -124,14 +131,14 @@ function queueBot(){if(timer!==null){clearTimeout(timer);timer=null}
  timer=setTimeout(()=>{timer=null;if(!g||g.phase!=='play')return;
  try{let ev=E.autoSlam(g,'greedy',0);
   if(!ev&&g.turn!==0)ev=E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));
-  if(ev){lastMove=ev;notice=eventName(ev);selection=[];render();celebrate(ev)}
+  if(ev){lastMove=ev;notice=eventName(ev);selection=[];render()}
  }catch(e){notice='Bot error: '+e.message;render()}
  },canSlam?780:600);
 }
 function startGame(){g=E.create({players:seats,seed:Date.now()>>>0});setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
 function afterMove(ev){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
  if(mode==='hotseat'&&g.phase!=='over')covered=true;
- render();celebrate(ev)}
+ render()}
 function perform(choice,seat=viewSeat()){try{const ev=E.move(g,seat,choice);afterMove(ev)}catch(e){notice=e.message;render()}}
 function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat(),p=g.people[seat];
  if(g.phase==='setup'){
@@ -209,12 +216,17 @@ app.addEventListener('pointerdown',e=>{
  if(e.pointerType==='mouse')return;
  const b=e.target.closest('button[data-card]');
  if(!b||!isTurn()||covered||g.phase!=='play')return;
- touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,dragging:false,el:null};
+ touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,dragging:false,scrolling:false,el:null,row:b.closest('.card-row.hand'),startScroll:b.closest('.card-row.hand')?.scrollLeft||0};
 });
 window.addEventListener('pointermove',e=>{
  const d=touchGesture;if(!d||e.pointerType==='mouse')return;
- if(!d.dragging&&Math.hypot(e.clientX-d.x,e.clientY-d.y)>12){
-  d.dragging=true;const b=app.querySelector('[data-card="'+d.id+'"]');if(!b)return;
+ const dx=e.clientX-d.x,dy=e.clientY-d.y;
+ if(!d.dragging&&!d.scrolling&&Math.hypot(dx,dy)>12){
+  if(d.row&&d.row.scrollWidth>d.row.clientWidth+2&&Math.abs(dx)>Math.abs(dy)*1.35)d.scrolling=true;
+  else d.dragging=true;
+ }
+ if(d.scrolling){e.preventDefault();d.row.scrollLeft=d.startScroll-dx;return}
+ if(d.dragging&&!d.el){const b=app.querySelector('[data-card="'+d.id+'"]');if(!b)return;
   d.el=b.cloneNode(true);d.el.classList.add('card-ghost');document.body.appendChild(d.el);
   if(!selection.includes(d.id))selection=[d.id];
  }
@@ -226,9 +238,12 @@ function endTouch(e){
  const d=touchGesture;if(!d)return;touchGesture=null;
  const target=d.dragging?document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-play-target]'):null;
  d.el?.remove();app.querySelector('[data-play-target]')?.classList.remove('drop-hover');
- if(!d.dragging)return;
+ if(!d.dragging&&!d.scrolling)return;
  suppressTap=true;setTimeout(()=>suppressTap=false,350);
- if(target&&isTurn()&&currentStage()===d.source){selection=[d.id];perform({type:'play',source:d.source,ids:[d.id]})}
+ if(d.scrolling)return;
+ if(target&&isTurn()&&currentStage()===d.source){
+  if(!selection.includes(d.id))selection=[d.id];
+  perform({type:'play',source:d.source,ids:selection.slice()})}
 }
 window.addEventListener('pointerup',endTouch);
 window.addEventListener('pointercancel',e=>{const d=touchGesture;touchGesture=null;d?.el?.remove();app.querySelector('[data-play-target]')?.classList.remove('drop-hover')});

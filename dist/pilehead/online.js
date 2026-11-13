@@ -85,10 +85,10 @@ function statusTitle(){
 }
 function numberPolicy(){const l=data.game.limit;return l?.type==='under'?'NEXT: 1–4':l?.type==='min'?'NEXT: '+l.value+' or higher':'ANY NUMBER'}
 function opponentCards(){const g=data.game;
- return '<div class="opponents">'+g.players.filter(p=>p.seat!==data.me).map(p=>'<div class="opponent '+
+ return '<div class="opponents">'+g.players.filter(p=>p.seat!==data.me).map(p=>'<div data-seat="'+p.seat+'" class="opponent '+
   (g.turn===p.seat&&g.phase==='play'?'current ':'')+(p.out?'finished':'')+'"><strong>'+safe(displayName(p.seat))+
   (g.turn===p.seat&&g.phase==='play'?' · TURN':'')+(p.out?' · OUT':'')+'</strong><small>'+p.handCount+
-  ' in hand · '+p.up.length+' up · '+p.downCount+' blind</small><div class="mini-cards">'+
+  ' in hand · '+p.up.length+' up · '+p.downCount+' blind</small><div class="held-cards" aria-label="Opponent holds '+p.handCount+' private cards">'+Array.from({length:Math.min(p.handCount,8)},(_,i)=>'<span class="held-back" aria-hidden="true" style="--hold-angle:'+((i-(Math.min(p.handCount,8)-1)/2)*5)+'deg"></span>').join('')+'</div><div class="mini-cards">'+
   p.up.map(c=>'<span class="mini">'+safe(c.kind==='action'?symbols[c.action]:c.rank)+'</span>').join('')+
   Array.from({length:p.downCount},()=>'<span class="mini back">◆</span>').join('')+'</div></div>').join('')+'</div>';
 }
@@ -170,6 +170,10 @@ function render(){
   ((notice||networkError)&&data?.game.phase==='setup'?'<div class="message" role="status">'+safe(notice||networkError)+'</div>':'')+
   (networkError?'<p class="online-error" role="alert">'+safe(networkError)+'</p>':'')+
   '</div>';
+ window.PileheadTableFX?.sync({identity:data?room+':'+data.game.moves:null,
+  event:data?.game.events?.[data.game.events.length-1]||null,
+  ownSeat:data?.me||0,active:data?active():false,
+  selected:selection.length,moveNo:data?.game.moves||0,online:true});
 }
 async function command(action,more={}){
  if(!data)return;
@@ -234,12 +238,17 @@ root.addEventListener('click',e=>{if(ignoreNextClick){e.preventDefault();e.stopI
 root.addEventListener('pointerdown',e=>{
  if(e.pointerType==='mouse'||!active()||busy||data.game.phase!=='play')return;
  const b=e.target.closest('[data-card]');if(!b)return;
- touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,moving:false,ghost:null};
+ touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,moving:false,scrolling:false,ghost:null,row:b.closest('.card-row.hand'),startScroll:b.closest('.card-row.hand')?.scrollLeft||0};
 });
 window.addEventListener('pointermove',e=>{
  const t=touchGesture;if(!t||e.pointerType==='mouse')return;
- if(!t.moving&&Math.hypot(e.clientX-t.x,e.clientY-t.y)>12){
-  t.moving=true;const b=root.querySelector('[data-card="'+t.id+'"]');
+ const dx=e.clientX-t.x,dy=e.clientY-t.y;
+ if(!t.moving&&!t.scrolling&&Math.hypot(dx,dy)>12){
+  if(t.row&&t.row.scrollWidth>t.row.clientWidth+2&&Math.abs(dx)>Math.abs(dy)*1.35)t.scrolling=true;
+  else t.moving=true;
+ }
+ if(t.scrolling){e.preventDefault();t.row.scrollLeft=t.startScroll-dx;return}
+ if(t.moving&&!t.ghost){const b=root.querySelector('[data-card="'+t.id+'"]');
   if(!b)return;t.ghost=b.cloneNode(true);t.ghost.classList.add('card-ghost');document.body.appendChild(t.ghost);
   if(!selection.includes(t.id))selection=[t.id];
  }
@@ -253,9 +262,11 @@ window.addEventListener('pointerup',e=>{
  const t=touchGesture;if(!t)return;touchGesture=null;
  const zone=t.moving?document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-play-target]'):null;
  t.ghost?.remove();root.querySelector('[data-play-target]')?.classList.remove('drop-hover');
- if(!t.moving)return;
+ if(!t.moving&&!t.scrolling)return;
  ignoreNextClick=true;setTimeout(()=>ignoreNextClick=false,350);
- if(zone&&active()&&stageNow()===t.source){selection=[t.id];play()}
+ if(t.scrolling)return;
+ if(zone&&active()&&stageNow()===t.source){
+  if(!selection.includes(t.id))selection=[t.id];play()}
 });
 window.addEventListener('pointercancel',()=>{
  touchGesture?.ghost?.remove();touchGesture=null;root.querySelector('[data-play-target]')?.classList.remove('drop-hover');
