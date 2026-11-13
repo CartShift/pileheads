@@ -5,6 +5,7 @@ const Engine=require('../dist/pilehead/engine.js');
 const rooms=new Map(),members=new Map(),buckets=new Map();
 function conflict(){const e=Error('unique key');e.code='23505';throw e}
 async function query(sql,args=[]){
+ if(sql==='SELECT 1 AS ready')return [{ready:1}];
  if(sql.startsWith('INSERT INTO pilehead_rate_limits')){const n=(buckets.get(args[0])||0)+1;buckets.set(args[0],n);return [{hits:n}]}
  if(sql.startsWith('INSERT INTO pilehead_rooms')){if(rooms.has(args[0]))conflict();
   const r={code:args[0],capacity:args[1],status:'lobby',state:JSON.parse(args[2]),revision:0,expires_at:new Date(Date.now()+86400000)};
@@ -33,14 +34,16 @@ const original=Module._load;Module._load=function(spec,...args){
 const oldEnv=process.env.PILEHEAD_DATABASE_URL;
 process.env.PILEHEAD_DATABASE_URL='postgresql://mock:password@neon.invalid/playtest';
 const handler=require('../api/pilehead.js');
-async function request(body,session,headers={}){
- const req={method:'POST',headers:{host:'example.com',origin:'https://example.com','content-type':'application/json',
+async function request(body,session,headers={},method='POST',queryParams={}){
+ const req={method,query:queryParams,headers:{host:'example.com',origin:'https://example.com','content-type':'application/json',
   ...(session?{authorization:'Bearer '+session}:{}),...headers},body,socket:{remoteAddress:'127.0.0.1'}};
  const res={statusCode:200,status(n){this.statusCode=n;return this},setHeader(){return this},json(v){return {status:this.statusCode,data:v}}};
  return handler(req,res);
 }
 async function run(){
  let checks=0;
+ const health=await request(null,null,{},'GET',{health:'1});
+ assert.equal(health.status,200);assert.equal(health.data.ok,true);checks++;
  const host=await request({action:'create',capacity:2,name:'Host'});
  assert.equal(host.status,201);const {code,session:hostToken}=host.data;assert.match(code,/^[A-HJ-NP-Z2-9]{8}$/);
  assert.equal(host.data.me,0);assert.equal(host.data.game.phase,'setup');checks++;
