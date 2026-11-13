@@ -110,6 +110,6 @@ To validate: `npm test`, `npm run build:vercel`, inspect `vercel-static/index.ht
 
 ## TILT Mechanics Lab — two printable experiments
 
-A separate, **non-production** print-and-play design test lives in `dist/tilt-lab/`. [Play preview](https://spark-exchange-g33ei67ee-cart-shift.vercel.app/) and [print the deck](https://spark-exchange-g33ei67ee-cart-shift.vercel.app/print.html). It compares **CONTROL / CHAIN** (safe arrow control versus risky multi-card press) and **TWIN PILES** (two directional piles that collide). Both run 2–4 seats with bot or local hotseat and independent saves, using the same 48 numbered arrow cards.
+A separate, **non-production** print-and-play design test lives in `dist/tilt-lab/`. [Play preview](https://spark-exchange-q8xf57gm3-cart-shift.vercel.app/) and [print the deck](https://spark-exchange-q8xf57gm3-cart-shift.vercel.app/print.html). It compares **CONTROL / CHAIN** (safe arrow control versus risky multi-card press) and **TWIN PILES** (two directional piles that collide). Both run 2–4 seats with bot or local hotseat and independent saves, using the same 48 numbered arrow cards.
 
 Design rules, limitations, observed simulation evidence and a blinded human playtest protocol: `docs/tilt-mechanics-lab.md`. Offline regression: `node tests/tilt-mechanics-lab.cjs`. This experiment does not change existing SPARK or TILT mechanics; this URL is a preview, not an automatic production update.
