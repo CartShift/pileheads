@@ -85,7 +85,7 @@ function statusTitle(){
 }
 function numberPolicy(){const l=data.game.limit;return l?.type==='under'?'NEXT: 1–4':l?.type==='min'?'NEXT: '+l.value+' or higher':'ANY NUMBER'}
 function opponentCards(){const g=data.game;
- return '<div class="opponents">'+g.players.filter(p=>p.seat!==data.me).map(p=>'<div class="opponent '+
+ return '<div class="opponents">'+g.players.filter(p=>p.seat!==data.me).map(p=>'<div data-seat="'+p.seat+'" class="opponent '+
   (g.turn===p.seat&&g.phase==='play'?'current ':'')+(p.out?'finished':'')+'"><strong>'+safe(displayName(p.seat))+
   (g.turn===p.seat&&g.phase==='play'?' · TURN':'')+(p.out?' · OUT':'')+'</strong><small>'+p.handCount+
   ' in hand · '+p.up.length+' up · '+p.downCount+' blind</small><div class="mini-cards">'+
@@ -170,6 +170,10 @@ function render(){
   ((notice||networkError)&&data?.game.phase==='setup'?'<div class="message" role="status">'+safe(notice||networkError)+'</div>':'')+
   (networkError?'<p class="online-error" role="alert">'+safe(networkError)+'</p>':'')+
   '</div>';
+ window.PileheadTableFX?.sync({identity:data?room+':'+data.game.moves:null,
+  event:data?.game.events?.[data.game.events.length-1]||null,
+  ownSeat:data?.me||0,active:data?active():false,
+  selected:selection.length,moveNo:data?.game.moves||0,online:true});
 }
 async function command(action,more={}){
  if(!data)return;
