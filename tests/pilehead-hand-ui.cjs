@@ -1,0 +1,61 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const root=path.join(__dirname,'..'),read=x=>fs.readFileSync(path.join(root,x),'utf8');
+const fx=read('dist/pilehead/immersive.js'),css=read('dist/pilehead/immersive.css'),
+ local=read('dist/pilehead/app.js'),online=read('dist/pilehead/online.js');
+let checks=0;const check=(n,fn)=>{fn();checks++;console.log('PASS '+n)};
+const env={
+ window:{addEventListener(){}},document:{querySelector(){return null}},
+ matchMedia(){return{matches:false}},localStorage:{getItem(){return null}},
+ console:{error(){},warn(){}},setTimeout(){},clearTimeout(){}
+};
+new vm.Script(fx).runInNewContext(env);
+const layout=env.window.PileheadTableFX.handLayout;
+check('fan measures cards and fits 8 on a narrow phone without horizontal page movement',()=>{
+ const x=layout(8,320,72,true);assert.equal(x.fits,true);
+ assert.ok(x.span<=296,'8 cards should fit within the 296px usable rail');
+ assert.ok(x.overlap<0,'cards form a real overlapping fan');
+});
+check('a pickup of 20 cards scrolls independently instead of becoming unreadably narrow',()=>{
+ const x=layout(20,320,72,true);assert.equal(x.fits,false);
+ assert.ok(x.span>296);assert.ok(x.overlap<=-30);
+});
+check('tablet and desktop keep larger card faces while arranging groups',()=>{
+ assert.equal(layout(6,720,106,false).fits,true);
+ assert.ok(layout(15,720,106,false).span>=106);
+});
+check('all tabletop rows and action rails explicitly constrain grid min-content width',()=>{
+ assert.match(css,/grid-template-columns:minmax\(0,1fr\)/);
+ assert.match(css,/body\.pilehead-playing \.table\{[\s\S]*?min-width:0/);
+ assert.match(css,/body\.pilehead-playing \.table \.hand-area\{[\s\S]*?max-width:100%/);
+ assert.match(css,/overflow-x:auto/);assert.match(css,/overflow-x:clip/);
+ assert.match(css,/grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+});
+check('large hand rail has scroll arrows and scroll position survives card rerenders',()=>{
+ assert.match(fx,/data-hand-scroll/);assert.match(fx,/handScroll=row\.scrollLeft/);
+ assert.match(fx,/row\.scrollLeft=handScroll/);
+ assert.match(fx,/\.scrollBy\(/);
+ assert.match(css,/\.hand-scroll-arrow/);
+});
+check('multi-special selection works locally and in online rooms, including card drag',()=>{
+ for(const code of [local,online]){
+  assert.match(code,/function sameFace\(/);
+  assert.match(code,/selection\.push\(/);
+  assert.match(code,/sameFace\(/);
+  assert.match(code,/className='drag-count'/);
+  assert.doesNotThrow(()=>new vm.Script(code));
+ }
+});
+check('QA controls are folded away without taking tabletop toolbar width',()=>{
+ assert.match(local,/<details class="playtest-tools">/);
+ assert.match(local,/data-do="export"/);
+ assert.match(css,/\.playtest-tools/);
+});
+check('physical feedback stays accessible and respects reduced motion',()=>{
+ assert.match(css,/\.card-row\.hand \.card\.selected/);
+ assert.match(css,/prefers-reduced-motion:reduce/);
+ assert.match(fx,/aria-label/);
+ assert.match(local,/aria-pressed/);
+ assert.match(online,/aria-pressed/);
+});
+console.log('PILEHEAD hand UI: '+checks+' groups passed');

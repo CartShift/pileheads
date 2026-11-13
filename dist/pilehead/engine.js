@@ -1,8 +1,8 @@
 /* PILEHEAD · deterministic physical-card engine, separate from SPARK and TILT.
-   Rules v1.1: 40 ordinary numbers (1–10 x4) + 12 independent actions (including DUMP).
+   Rules v1.2: 40 ordinary numbers (1–10 x4) + 12 independent actions; identical action cards may be played together.
    All information lives in state; rendering never determines legality. */
 (function(root){'use strict';
-const VERSION='pilehead-1.1.0',DECK_SIZE=52,ACTIONS={reset:2,ghost:2,under:2,skip:2,burn:2,dump:2};
+const VERSION='pilehead-1.2.0',DECK_SIZE=52,ACTIONS={reset:2,ghost:2,under:2,skip:2,burn:2,dump:2};
 function assert(ok,message){if(!ok)throw new Error(message)}
 function random(g){g.rng=(Math.imul(g.rng,1664525)+1013904223)>>>0;return g.rng/4294967296}
 function shuffle(a,g){for(let i=a.length-1;i>0;i--){let j=Math.floor(random(g)*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -55,10 +55,19 @@ function isLegal(g,c){if(c.kind==='action')return true;
 function options(g,seat){if(g.phase!=='play'||g.turn!==seat)return[];
  const p=g.people[seat],s=stage(g,seat);if(s==='down')return p.down.map(c=>({type:'play',ids:[c.id],source:'down'}));
  const cards=p[s],legal=cards.filter(c=>isLegal(g,c)),opts=[];
- for(const c of legal){if(c.kind==='action'){opts.push({type:'play',source:s,ids:[c.id]});continue}
- const same=cards.filter(x=>x.kind==='number'&&x.rank===c.rank);
- if(same[0].id!==c.id)continue;
- for(let n=1;n<=same.length;n++)opts.push({type:'play',source:s,ids:same.slice(0,n).map(x=>x.id)});
+ // Every subset is legal, not only the first copy of a rank or action.
+ // In particular, the second identical action card must be playable alone.
+ const seen=new Set();
+ for(const c of legal){
+  const key=c.kind==='number'?'n'+c.rank:'a'+c.action;
+  if(seen.has(key))continue;seen.add(key);
+  const same=legal.filter(x=>x.kind===c.kind&&
+    (c.kind==='number'?x.rank===c.rank:x.action===c.action));
+  // A physical deck has at most four copies of a number and two of an action.
+  for(let mask=1;mask<(1<<same.length);mask++){
+   const ids=same.filter((_,i)=>mask&(1<<i)).map(x=>x.id);
+   opts.push({type:'play',source:s,ids});
+  }
  }
  if(!opts.length&&g.pile.length)opts.push({type:'take'});
  return opts;
@@ -103,7 +112,9 @@ function move(g,seat,choice){
   if(s==='down')assert(ids.length===1,'One blind card at a time');
   else{
    assert(cards.every(c=>isLegal(g,c)),'Card is not playable');
-   assert(cards.length===1||cards.every(c=>c.kind==='number'&&c.rank===cards[0].rank),'Only matching numbers together');
+   assert(cards.length===1||cards.every(c=>c.kind===cards[0].kind&&
+    (c.kind==='number'?c.rank===cards[0].rank:c.action===cards[0].action)),
+    'Only identical numbers or identical actions together');
   }
  }
  p[s]=p[s].filter(c=>!ids.includes(c.id));
@@ -164,7 +175,9 @@ function choose(g,seat,style='greedy'){
    return v;
   }
   const power={ghost:48,under:35,skip:40,reset:20,burn:12,dump:13}[c.action];
-  return style==='saver'?power-15:power;
+  // Two identical special cards are one action, resolving once; playing a
+  // pair helps empty the hand but does not multiply SKIP/DUMP/BURN effects.
+  return (style==='saver'?power-15:power)+(o.ids.length-1)*9;
  };
  if(style==='random')return opts[Math.floor(random(g)*opts.length)];
  return opts.slice().sort((a,b)=>score(b)-score(a))[0];

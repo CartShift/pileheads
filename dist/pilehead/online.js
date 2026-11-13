@@ -13,6 +13,8 @@ let data=null,busy=false,polling=false,selection=[],swapCard=null,notice='',netw
 let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false;
 const A=globalThis.PileheadCardArt;const symbols=A.glyph;
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
+ (a.kind==='number'?a.rank===b.rank:a.action===b.action)}
 function label(c){return c.kind==='action'?c.action.toUpperCase():String(c.rank)}
 function card(c,opts={}){
  if(opts.back)return '<button type="button" class="card back ph-card ph-back'+(opts.can?' playable':'')+'" '+
@@ -120,7 +122,7 @@ function legalMove(){
 }
 function events(){return data.game.events.slice(-7).reverse().map(e=>{
  const n=safe(displayName(e.seat));let s=e.type==='take'?'picked up '+e.count+' cards':e.type==='blind-fail'?'picked up after a blind flip':
- e.action==='dump'?'used DUMP; '+displayName(e.target)+' took '+e.takenCount+' cards':e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
+ e.action==='dump'?'used DUMP; '+displayName(e.target)+' took '+e.takenCount+' cards':e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
  return '<span class="event">'+n+' '+safe(s)+'</span>';
  }).join('')}
 function lobby(){
@@ -146,10 +148,10 @@ function playView(){
   '<div class="hand-area"><div class="area-label"><span>YOUR HAND</span><span>'+p.handCount+' cards</span></div>'+
   '<div class="card-row hand">'+(p.hand?.length?p.hand.map(c=>card(c,{can:can&&source==='hand',source:'hand',selected:selection.includes(c.id)})).join(''):
   '<span style="font-size:12px;color:#b8cfba">No cards in hand</span>')+'</div></div></section>'+
-  '<div class="toolbar"><button class="action primary" data-do="play" '+(!legal||busy?'disabled':'')+'>Place cards</button>'+
+  '<div class="toolbar"><button class="action primary" data-do="play" '+(!legal||busy?'disabled':'')+'>Place '+(selection.length?selection.length+' card'+(selection.length>1?'s':''):'cards')+'</button>'+
   '<button class="action secondary" data-do="take" '+(!can||!g.legal.some(x=>x.type==='take')||busy?'disabled':'')+'>Take pile</button>'+
   '<button class="action slam" data-do="slam" '+(!canSlam||busy?'disabled':'')+'>SLAM!'+(canSlam?' Ready':'')+'</button></div>'+
-  '<div class="message" role="status" aria-live="polite">'+safe(notice||'Select matching cards, then tap the pile or Place cards.')+'</div>'+
+  '<div class="message" role="status" aria-live="polite">'+safe(notice||'Choose matching numbers or identical actions, then place them on the pile.')+'</div>'+
   '<div class="meta"><span>Move '+g.moves+'</span><span>Draw '+g.stockCount+'</span><span>Ashes '+g.ashesCount+'</span><span>Synced · rev '+data.revision+'</span></div>'+
   '<div class="event-list">'+events()+'</div>';
 }
@@ -194,9 +196,10 @@ async function selectCard(c){
  if(selection.includes(c.id))selection=selection.filter(x=>x!==c.id);
  else{
   const previous=selection.map(id=>my.find(x=>x.id===id)).filter(Boolean);
-  if(previous.length&&(!previous.every(x=>x.kind==='number'&&card.kind==='number'&&x.rank===card.rank)))selection=[];
+  if(previous.length&&!previous.every(x=>sameFace(x,card)))selection=[];
   selection.push(c.id);
  }
+ if(selection.includes(c.id)){try{navigator.vibrate?.(8)}catch{}}
  render();
 }
 root.addEventListener('click',async e=>{
@@ -251,7 +254,14 @@ window.addEventListener('pointermove',e=>{
  if(t.scrolling){e.preventDefault();t.row.scrollLeft=t.startScroll-dx;return}
  if(t.moving&&!t.ghost){const b=root.querySelector('[data-card="'+t.id+'"]');
   if(!b)return;t.ghost=b.cloneNode(true);t.ghost.classList.add('card-ghost');document.body.appendChild(t.ghost);
-  if(!selection.includes(t.id))selection=[t.id];
+  if(!selection.includes(t.id)){
+   const cards=current()[t.source],picked=cards?.find(c=>c.id===t.id);
+   const group=selection.map(id=>cards?.find(c=>c.id===id)).filter(Boolean);
+   if(!picked||!group.length||!group.every(c=>sameFace(c,picked)))selection=[t.id];
+   else selection.push(t.id);
+  }
+  if(selection.length>1){const badge=document.createElement('span');
+   badge.className='drag-count';badge.textContent=selection.length+' cards';t.ghost.appendChild(badge)}
  }
  if(t.moving&&t.ghost){
   e.preventDefault();t.ghost.style.left=e.clientX+'px';t.ghost.style.top=e.clientY+'px';
