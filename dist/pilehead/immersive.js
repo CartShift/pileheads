@@ -3,7 +3,7 @@
 const STORE='pilehead-table-sound-v1';
 const motion=typeof matchMedia==='function'?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
 const $=(sel,el=document)=>el.querySelector(sel);
-let last=null,seen=false,ctx=null,sound=false,btn=null,menuButton=null;
+let last=null,seen=false,ctx=null,sound=false,btn=null,menuButton=null,handScroll=0;
 try{sound=localStorage.getItem(STORE)==='on'}catch{}
 function controls(){
  const nav=$('.top .links');if(!nav)return;
@@ -39,18 +39,61 @@ function controls(){
 function updateButton(){if(btn){btn.setAttribute('aria-pressed',String(sound));btn.innerHTML='<span class="sound-led" aria-hidden="true"></span> '+(sound?'Sound on':'Sound off')}}
 function fan(table){
  const row=$('.hand-area .card-row.hand',table);if(!row)return;
- const cards=Array.from(row.querySelectorAll(':scope > .card')),n=cards.length,center=(n-1)/2;
- const mobile=matchMedia('(max-width:700px)').matches,step=n<=4?5.2:n<=7?3.3:n<=12?2:1.1;
- const overlap=n<=3?(mobile?-8:-13):n<=6?(mobile?-11:-16):n<=10?(mobile?-17:-24):(mobile?-27:-34);
+ const cards=Array.from(row.querySelectorAll(':scope > .card'));
+ const n=cards.length,center=(n-1)/2,mobile=matchMedia('(max-width:700px)').matches;
+ // Measure the *actual available width*, not the viewport. A fitted hand needs
+ // no page-level horizontal scrolling; a large pickup remains swipeable inside
+ // its own rail, with readable card indices even when partly overlapped.
+ const width=cards[0]?.offsetWidth||0,budget=Math.max(0,row.clientWidth-24);
+ const maxStep=mobile?54:80,minStep=mobile?28:38;
+ const step=n<=1?width:Math.min(maxStep,Math.max(minStep,(budget-width)/(n-1)));
+ const overlap=Math.min(0,Math.round(step-width));
+ const spread=Math.min(mobile?12:15,n<=4?6.5:n<=8?3.6:2.1);
  cards.forEach((card,i)=>{
   const r=i-center,ratio=center?Math.abs(r)/center:0;
-  card.style.setProperty('--fan-angle',Math.max(-14,Math.min(14,r*step)).toFixed(1)+'deg');
-  card.style.setProperty('--fan-rise',Math.round(ratio*ratio*(mobile?5:9))+'px');
+  card.style.setProperty('--fan-angle',Math.max(-13,Math.min(13,r*spread)).toFixed(1)+'deg');
+  card.style.setProperty('--fan-rise',Math.round(ratio*ratio*(mobile?6:10))+'px');
   card.style.setProperty('--fan-z',String(Math.max(1,Math.round(n-Math.abs(r)))));
-  card.style.setProperty('--card-overlap',overlap+'px')
+  card.style.setProperty('--card-overlap',overlap+'px');
  });
- if(n>8)row.setAttribute('aria-label',n+' cards. Scroll horizontally for the rest.');
+ row.scrollLeft=handScroll;
+ // An independent scrollbar for a picked-up hand, rather than an oversized
+ // flex child that pushes the entire felt table off the viewport.
+ const overflow=row.scrollWidth>row.clientWidth+4;
+ const area=row.closest('.hand-area');
+ if(area){
+  area.classList.toggle('hand-overflow',overflow);
+  area.querySelectorAll('[data-hand-scroll]').forEach(x=>x.remove());
+  if(overflow){
+   const prev=document.createElement('button'),next=document.createElement('button');
+   for(const [button,dir,arrow,title] of [[prev,-1,'‹','Earlier cards'],[next,1,'›','Later cards']]){
+    button.type='button';button.className='hand-scroll-arrow';
+    button.dataset.handScroll=String(dir);button.setAttribute('aria-label',title);
+    button.textContent=arrow;area.appendChild(button);
+   }
+   row.setAttribute('aria-label',n+' cards. Swipe horizontally or use the arrow buttons to see all cards.');
+   const selected=cards.find(c=>c.classList.contains('selected'));
+   if(selected){
+    const x=selected.offsetLeft,left=row.scrollLeft,right=left+row.clientWidth;
+    if(x<left+10||x+width>right-10)
+     row.scrollLeft=Math.max(0,x-(row.clientWidth-width)/2);
+   }
+  }else row.setAttribute('aria-label',n+' cards in your hand');
+  handScroll=row.scrollLeft;
+ }
 }
+const appRoot=$('#app');
+appRoot?.addEventListener('scroll',e=>{
+ if(e.target?.classList?.contains('hand'))handScroll=e.target.scrollLeft;
+},true);
+appRoot?.addEventListener('click',e=>{
+ const b=e.target.closest('button[data-hand-scroll]');if(!b)return;
+ e.stopPropagation();
+ const row=$('.hand-area .card-row.hand');if(!row)return;
+ row.scrollBy({left:Number(b.dataset.handScroll)*Math.max(140,row.clientWidth*.62),
+  behavior:motion.matches?'instant':'smooth'});
+},true);
+window.addEventListener('resize',()=>{const table=$('#app .table');if(table)fan(table)});
 function decor(table){
  const p=$('.opponents',table);if(!p)return;
  const seats=Array.from(p.querySelectorAll(':scope > .opponent'));
@@ -61,7 +104,7 @@ function hint(table,active,selected,moveNo){
  const area=$('.hand-area',table);if(!area)return;let h=$('.pilehead-hand-hint',area);
  if(!active||!area.querySelector('.card.playable')||moveNo>5){h?.remove();return}
  if(!h){h=document.createElement('span');h.className='pilehead-hand-hint';area.appendChild(h)}
- h.textContent=selected?'Tap the pile to place your cards':'Drag to pile · or tap a card'
+ h.textContent=selected?'Tap the pile to place your cards':'Drag onto the pile · tap matching cards to group'
 }
 function snap(type='play'){
  if(!sound||motion.matches)return;
