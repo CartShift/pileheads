@@ -15,7 +15,7 @@ async function query(sql,args=[]){
   if(seat===undefined)return [];current.push({seat,display_name:name,token_hash:token});members.set(code,current);
   return [{seat}]
  }
- if(sql.startsWith('INSERT INTO pilehead_members')){const [code,seat,name,token]=args;const current=members.get(code)||[];
+ if(sql.startsWith('INSERT INTO pilehead_members')){const [code,name,token]=args,seat=0;const current=members.get(code)||[];
   if(current.some(x=>x.seat===seat))conflict();current.push({seat,display_name:name,token_hash:token});members.set(code,current);return []}
  if(sql.startsWith('SELECT code,capacity'))return rooms.has(args[0])?[structuredClone(rooms.get(args[0]))]:[];
  if(sql.startsWith('SELECT seat,display_name'))return (members.get(args[0])||[]).map(m=>({seat:m.seat,display_name:m.display_name}));
