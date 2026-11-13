@@ -83,7 +83,7 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  '<div class="hand-area"><div class="area-label"><span>'+playerName(viewer)+' · HAND</span><span>'+p.hand.length+' cards</span></div>'+
  rowCards(p.hand,'hand',selectable&&stage==='hand')+'</div></section>'+
  '<div class="toolbar">'+(g.phase==='over'?'<button class="action primary" data-do="new">Play again</button>':
- '<button class="action primary" data-do="play" '+(!selection.length||!turn?'disabled':'')+'>Play selected</button>'+
+ '<button class="action primary" data-do="play" '+(!selection.length||!turn?'disabled':'')+'>Place '+(selection.length?selection.length+' card'+(selection.length>1?'s':''):'cards')+'</button>'+
  '<button class="action secondary" data-do="take" '+(!turn||!pick?'disabled':'')+'>Take pile</button>'+
  '<button class="action slam" data-do="slam" '+(!slams.length?'disabled':'')+'>SLAM!'+(slams.length&&top.rank!==null?' ×'+top.rank:'')+'</button>')+
  (mode==='hotseat'&&g.phase==='play'&&g.slamOpen?'<button class="action secondary" data-do="challenge">Other player SLAM</button>':'')+
@@ -161,6 +161,7 @@ function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat()
   if(prior.length&&!prior.every(c=>sameFace(c,picked)))selection=[];
   selection.push(id);
  }
+ if(selection.includes(id)){try{navigator.vibrate?.(8)}catch{}}
  notice='';render();
 }
 function execute(action,button){
