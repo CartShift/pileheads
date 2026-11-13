@@ -12,14 +12,14 @@ Do **not** interpret the quality of the web UI, a winning bot strategy, or zero 
 
 ## Implementation isolation
 
-All gameplay in this experiment is under \`dist/tilt-lab/\`, with \`engine.js\` exported as \`TiltMechanics\`. The standalone mode switch offers two genuinely separate state machines sharing physical cards, bot turns, local pass-and-play and persistence. The experiments do NOT change \`dist/tilt/engine.js\`, SPARK rules, production hosting, or existing saves. The new local keys are \`tilt-mechanics-lab-chain-v1\` and \`tilt-mechanics-lab-twin-v1\`. The earlier physical UI PR #21 remains independent.
+All gameplay in this experiment is under `dist/tilt-lab/`, with `engine.js` exported as `TiltMechanics`. The standalone mode switch offers two genuinely separate state machines sharing physical cards, bot turns, local pass-and-play and persistence. The experiments do NOT change `dist/tilt/engine.js`, SPARK rules, production hosting, or existing saves. The new local keys are `tilt-mechanics-lab-chain-v1` and `tilt-mechanics-lab-twin-v1`. The earlier physical UI PR #21 remains independent.
 
 Source files:
-- \`index.html\`: physical-table presentation and responsive screen
-- \`app.js\`: human lift/place, opponent hands, turn handoff, browser-local saves
-- \`engine.js\`: deterministic state machine, legal moves, bots, seeded simulation and 48-card conservation
-- \`print.html\`: six A4 sheets for the 48 cards plus one A4 rules sheet
-- \`tests/tilt-mechanics-lab.cjs\`: offline regression suite, manual invocation; no new CI workflows
+- `index.html`: physical-table presentation and responsive screen
+- `app.js`: human lift/place, opponent hands, turn handoff, browser-local saves
+- `engine.js`: deterministic state machine, legal moves, bots, seeded simulation and 48-card conservation
+- `print.html`: six A4 sheets for the 48 cards plus one A4 rules sheet
+- `tests/tilt-mechanics-lab.cjs`: offline regression suite, manual invocation; no new CI workflows
 
 ## Shared printed pack
 
@@ -80,7 +80,7 @@ For each group:
 5. Follow up individually: "What was your smartest move?", "What made you feel lucky/unlucky?", "What frustrated you?", "Would you buy it?" Avoid leading questions.
 
 ### Spreadsheet-compatible scorecard columns
-\`group_id,players,mode,order,teach_seconds,game_minutes,rounds,spontaneous_rematch,requested_same_variant,hard_decisions_count,tension_moments,confusing_rules,dominant_action_notes,would_buy_without_price_prompt,verbatim_quote\`
+`group_id,players,mode,order,teach_seconds,game_minutes,rounds,spontaneous_rematch,requested_same_variant,hard_decisions_count,tension_moments,confusing_rules,dominant_action_notes,would_buy_without_price_prompt,verbatim_quote`
 
 ### Release gates
 - Explain in approximately 60 seconds with no off-table memory burden.
