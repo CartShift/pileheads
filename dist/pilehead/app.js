@@ -14,7 +14,7 @@ function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
  covered=mode==='hotseat'&&g.phase!=='over';challengeOpen=false;notice=x.notice||'';lastMove=x.lastMove||null;return true;
  }catch{return false}}
 function card(c,{interactive=false,selected=false,back=false,source='',small=false}={}){
- if(back)return '<button type="button" class="card back" '+(interactive?'data-card="'+c.id+'" data-source="'+source+'"':'disabled')+' aria-label="Flip face-down card"><span class="value">◆</span></button>';
+ if(back)return '<button type="button" class="card back" '+(interactive?'draggable="true" data-card="'+c.id+'" data-source="'+source+'"':'disabled')+' aria-label="Flip face-down card"><span class="value">◆</span></button>';
  const action=c.kind==='action',rank=action?({reset:'↺',ghost:'◇',under:'↓4',skip:'Ⅱ',burn:'✕'}[c.action]):String(c.rank);
  const name=action?c.action.toUpperCase():String(c.rank);
  return '<button type="button" class="card '+(action?'action-card ':'')+(interactive?'playable ':'')+(selected?'selected':'')+
@@ -34,7 +34,7 @@ function opponents(){return '<div class="opponents">'+g.people.filter(p=>p.seat!
  p.up.map(mini).join('')+p.down.slice(0,3).map(()=>mini(null)).join('')+'</div></div>'}).join('')+'</div>'}
 function pile(){const top=E.topRun(g),a=g.pile.slice(-4);return '<div class="table-center"><div class="stack">'+
  '<div class="stack-label">DRAW</div><div class="pile-card">'+(g.stock.length?'<div class="card back" style="pointer-events:none"><span class="value">◆</span></div>':'<div class="placeholder">EMPTY</div>')+'</div>'+
- '<div class="stack-count">'+g.stock.length+' cards</div></div><div class="stack"><div class="stack-label">THE PILE</div>'+
+ '<div class="stack-count">'+g.stock.length+' cards</div></div><div class="stack" data-play-target="pile" role="button" tabindex="0" aria-label="Play selected cards on the pile"><div class="stack-label">THE PILE</div>'+
  '<div class="pile-card">'+(a.length?a.map((c,i)=>'<div class="card-wrap" style="--offset:'+((i-(a.length-1)/2)*8)+
  'px;--angle:'+((i-(a.length-1)/2)*5)+'deg">'+card(c)+'</div>').join(''):'<div class="placeholder">CLEAR</div>')+
  '</div><div class="stack-count">'+g.pile.length+' cards'+(top.count>=2?' · '+top.count+' × '+top.rank:'')+'</div>'+
@@ -163,9 +163,32 @@ function execute(action,button){
  }
  if(action==='export'&&g){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify(g,null,2)],{type:'application/json'}));a.href=u;a.download='pilehead-state-seed-'+g.seed+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1200)}
 }
-app.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
- if(b.dataset.card){handleCard(Number(b.dataset.card),b.dataset.source);return}
- if(b.dataset.do)execute(b.dataset.do,b)});
+app.addEventListener('click',e=>{
+ const b=e.target.closest('button');
+ if(b?.dataset.card){handleCard(Number(b.dataset.card),b.dataset.source);return}
+ if(b?.dataset.do){execute(b.dataset.do,b);return}
+ if(e.target.closest('[data-play-target]')&&selection.length&&isTurn())perform({type:'play',source:currentStage(),ids:selection.slice()});
+});
+app.addEventListener('keydown',e=>{
+ if(e.target.closest('[data-play-target]')&&(e.key==='Enter'||e.key===' ')&&selection.length&&isTurn()){
+  e.preventDefault();perform({type:'play',source:currentStage(),ids:selection.slice()});
+ }
+});
+let dragCard=null;
+app.addEventListener('dragstart',e=>{
+ const b=e.target.closest('[data-card]');if(!b||!isTurn()||covered||g.phase!=='play')return;
+ dragCard={id:Number(b.dataset.card),source:b.dataset.source};
+ if(!selection.includes(dragCard.id))selection=[dragCard.id];
+ if(e.dataTransfer){e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(dragCard.id))}
+});
+app.addEventListener('dragover',e=>{if(dragCard&&e.target.closest('[data-play-target]'))e.preventDefault()});
+app.addEventListener('drop',e=>{
+ if(!dragCard||!e.target.closest('[data-play-target]'))return;
+ e.preventDefault();const move=dragCard;dragCard=null;
+ if(isTurn()&&currentStage()===move.source)perform({type:'play',source:move.source,ids:selection.slice()});
+});
+app.addEventListener('dragend',()=>{dragCard=null});
+
 $('new').addEventListener('click',()=>{if(g&&!confirm('Start a new game and replace the current local save?'))return;g=null;notice='';selection=[];challengeOpen=false;covered=false;render()});
 restore();render();
 })();
