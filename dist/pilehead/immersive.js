@@ -101,16 +101,25 @@ function fly(table,ev,ownSeat){
   $('.opponent[data-seat="'+ev.seat+'"] .held-cards',table)||$('.opponent[data-seat="'+ev.seat+'"] .mini-cards',table)||$('.opponents',table);
  const from=(source||table).getBoundingClientRect(),to=target.getBoundingClientRect();
  const start=isPickup?to:from,dest=isPickup?from:to;
- const piece=makeCard(ev,table);piece.classList.add('pilehead-physical-fx');
- piece.style.left=(dest.left+dest.width/2-46)+'px';piece.style.top=(dest.top+dest.height/2-66)+'px';
- piece.style.width='92px';piece.style.height='132px';document.body.appendChild(piece);
  const x=start.left+start.width/2-(dest.left+dest.width/2),y=start.top+start.height/2-(dest.top+dest.height/2);
- const anim=piece.animate([
-  {transform:'translate('+x+'px,'+y+'px) rotate(-15deg) scale(.77)',opacity:.8},
-  {transform:'translate('+(x*.25)+'px,'+(y*.26)+'px) rotate(3deg) scale(1.13)',opacity:1,offset:.73},
-  {transform:'translate(0,0) rotate(0deg) scale(1)',opacity:ev.burned?0:1}
- ],{duration:isPickup?460:390,easing:'cubic-bezier(.2,.74,.28,1)',fill:'forwards'});
- anim.onfinish=()=>piece.remove();anim.oncancel=()=>piece.remove();setTimeout(()=>piece.remove(),950)
+ // Show an actual small stack when multiple equal cards land, or the pile is picked up.
+ const count=Math.max(1,Math.min(isPickup?3:4,Number(ev.count)||1));
+ for(let i=0;i<count;i++){
+  const piece=makeCard(ev,table);piece.classList.add('pilehead-physical-fx');
+  piece.style.left=(dest.left+dest.width/2-46+i*4)+'px';
+  piece.style.top=(dest.top+dest.height/2-66-i*3)+'px';
+  piece.style.width='92px';piece.style.height='132px';
+  piece.style.zIndex=String(110+i);
+  document.body.appendChild(piece);
+  const drift=i*7;
+  const anim=piece.animate([
+   {transform:'translate('+(x-drift)+'px,'+(y+drift)+'px) rotate('+(-16+i*3)+'deg) scale(.78)',opacity:.83},
+   {transform:'translate('+(x*.22)+'px,'+(y*.25)+'px) rotate(3deg) scale(1.12)',opacity:1,offset:.72},
+   {transform:'translate(0,0) rotate('+((i-(count-1)/2)*4)+'deg) scale(1)',opacity:ev.burned?0:1}
+  ],{duration:isPickup?460:390,delay:i*45,easing:'cubic-bezier(.2,.74,.28,1)',fill:'forwards'});
+  anim.onfinish=()=>piece.remove();anim.oncancel=()=>piece.remove();
+  setTimeout(()=>piece.remove(),1100);
+ }
 }
 function cue(table,text){
  if(!table||motion.matches)return;
@@ -134,7 +143,7 @@ function sync({event=null,identity=null,ownSeat=0,active=false,selected=0,moveNo
  decor(table);fan(table);hint(table,active,selected,moveNo);
  table.classList.toggle('is-active-turn',Boolean(active));
  table.querySelector('[data-play-target]')?.classList.toggle('is-armed',Boolean(selected));
- if(!seen){seen=true;last=identity;return}
+ if(!seen){seen=true;last=identity;table.classList.add('scene-entering');setTimeout(()=>table.classList.remove('scene-entering'),480);return}
  if(identity!==null&&last!==identity){last=identity;if(event)celebrate(table,event,ownSeat)}
 }
 root.PileheadTableFX={sync};
