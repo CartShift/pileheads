@@ -3,10 +3,28 @@
 const STORE='pilehead-table-sound-v1';
 const motion=typeof matchMedia==='function'?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
 const $=(sel,el=document)=>el.querySelector(sel);
-let last=null,seen=false,ctx=null,sound=false,btn=null;
+let last=null,seen=false,ctx=null,sound=false,btn=null,menuButton=null;
 try{sound=localStorage.getItem(STORE)==='on'}catch{}
 function controls(){
  const nav=$('.top .links');if(!nav)return;
+ if(!menuButton){
+  nav.id='pilehead-top-links';
+  menuButton=document.createElement('button');menuButton.type='button';
+  menuButton.className='table-menu-toggle';menuButton.textContent='☰ Menu';
+  menuButton.setAttribute('aria-controls','pilehead-top-links');
+  menuButton.setAttribute('aria-expanded','false');
+  const close=()=>{nav.classList.remove('is-open');menuButton.setAttribute('aria-expanded','false')};
+  menuButton.addEventListener('click',()=>{
+   const open=nav.classList.toggle('is-open');
+   menuButton.setAttribute('aria-expanded',String(open))
+  });
+  nav.parentElement.insertBefore(menuButton,nav);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
+  document.addEventListener('click',e=>{
+   if(!nav.contains(e.target)&&!menuButton.contains(e.target))close()
+  });
+  nav.addEventListener('click',e=>{if(e.target.closest('a,[data-fx-sound],button'))close()});
+ }
  if(!btn){btn=document.createElement('button');btn.type='button';btn.className='sound-toggle';
   btn.title='Optional original card sounds, muted by default';
   btn.addEventListener('click',()=>{sound=!sound;try{localStorage.setItem(STORE,sound?'on':'off')}catch{};updateButton();snap()});
