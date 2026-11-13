@@ -8,8 +8,8 @@ const rules={
   title:'CONTROL / CHAIN',
   points:[
    'Play a card on the pile. The visible arrow says whether the next number must be equal/higher (↑) or equal/lower (↓). Matching numbers clear the pile.',
-   'After a normal card, STOP: rotate it to choose the next direction, ↑ or ↓. Or PRESS: add one or two more legal cards sideways, with a different rank from the preceding card.',
-   'The next player may counter a press with any card matching a sideways number. That card is discarded; the challenger takes the last 2 or 3 pile cards. The rest of that pile is discarded. The counter uses the defender’s turn.',
+   'After a normal card, STOP: rotate it to choose the next direction, ↑ or ↓. Or PRESS: add one or two more legal cards shifted sideways but kept upright, with a different rank from the preceding card.',
+   'The next player may counter a press with any card matching a shifted number. That card is discarded; the challenger takes the last 2 or 3 pile cards. The rest of that pile is discarded. The counter uses the defender’s turn.',
    'If they accept, play continues from the final sideways card. If you cannot play, exchange the pile’s top card with a card in your hand; the surrendered card is discarded.',
    'Refill to 4 at the end of your turn, while cards remain. Once the stock is empty, the first player to empty their hand wins. A final press must survive its counter window.'
   ],
@@ -104,10 +104,12 @@ function pileMarkup(p,lane){
  let stack='';
  for(let i=0;i<topCards.length;i++){
   const c=topCards[i],absIndex=i+offset;
-  const sideways=mode==='chain'&&g.piles[0]===p&&(
+  const pressed=mode==='chain'&&g.piles[0]===p&&(
    (g.pending&&absIndex>=p.length-g.pending.count+1)||
    (g.chain&&absIndex>=p.length-g.chain.count+1));
-  stack+='<div style="position:absolute;inset:0;display:grid;place-items:center;--x:'+((i-1)*4)+'px;--y:'+((2-i)*4)+'px;--rotation:'+((i-1)*4)+'deg">'+card(c,sideways?'sideways':'')+'</div>';
+  const pressCount=g.pending?.count||g.chain?.count||0;
+  const slip=pressed?Math.max(0,absIndex-(p.length-pressCount))*16:0;
+  stack+='<div style="position:absolute;inset:0;display:grid;place-items:center;--x:'+((i-1)*4+slip)+'px;--y:'+((2-i)*4)+'px;--rotation:'+((i-1)*4)+'deg">'+card(c,pressed?'pressed':'')+'</div>';
  }
  const empty='<div class="empty-pile">PLAY<br>HERE</div>';
  return '<button type="button" class="pile-zone'+(action||pickup?' can-drop':'')+'" data-lane="'+lane+'" aria-label="'+(mode==='chain'?'Shared pile':'Pile '+(lane+1))+' with '+p.length+' cards">'+
@@ -143,7 +145,7 @@ function setPrompt(){
  else if(botTurn){title='Player '+(seat+1)+' is thinking…';hint='Watching the opponent’s real cards is disabled.'}
  else if(mode==='chain'&&g.phase==='extend'){
   if(g.chain.count===1){
-   title='Stop safely, or press your luck?';hint='STOP lets you control the next arrow. PRESS puts another legal card sideways and risks a counter.';
+   title='Stop safely, or press your luck?';hint='STOP lets you control the next arrow. PRESS adds another legal card offset to the right and risks a counter.';
    acts=actionButton('stop-up','STOP · choose ↑')+actionButton('stop-down','STOP · choose ↓')+
     '<span class="sr-only">Or select another card and tap the central pile to press.</span>';
   }else{
@@ -151,7 +153,7 @@ function setPrompt(){
    acts=actionButton('stop','CHALLENGE NOW');
   }
  }else if(mode==='chain'&&g.phase==='counter'){
-  title='Counter the chain?';hint='Match the rank of a sideways card to make the challenger take '+g.pending.count+' cards. Otherwise accept and play.';
+  title='Counter the chain?';hint='Match the rank of a shifted card to make the challenger take '+g.pending.count+' cards. Otherwise accept and play.';
   acts=actionButton('accept','ACCEPT & PLAY',true);
   if(legal.some(m=>m.type==='counter'))acts+=actionButton('counter','COUNTER WITH SELECTED CARD');
  }else if(mode==='twin'&&g.phase==='bonus'){
