@@ -88,7 +88,11 @@ Run \`npm run test:tilt\` for the engine, physical UI, printable deck and shared
 - **Regression tests:** \`npm run test:pilehead\`. The default \`npm test\` also executes the PILEHEAD tests. Assets are copied to the existing Sites Worker and Vercel static preview builds.
 - **Canonical design and edge cases:** \`docs/pilehead-design.md\`.
 
-**Limits:** This is a playtest build, not a retail-ready or human-validated game. Bot policies are heuristics; slam timing is idealized in simulation, and local pass-and-play on one device is not simultaneous human SLAM play. There are no networked PILEHEAD rooms. The existing SPARK Friends backend is intentionally NOT reused, since its game authority and identity assumptions are SPARK-specific. Git commits do not automatically publish the private Sites game.
+**Online rooms (Vercel only):** \`/pilehead/index.html?online=1\` creates a 2–5 player friend room and \`?room=CODE\` joins by invite. The \`api/pilehead.js\` backend runs the authoritative PILEHEAD engine on a dedicated Neon database, checks every move, stores individual player session-token hashes, and returns private hands only to their owner. Each game has revision-based concurrent-move protection and reconnects after refresh. The interface uses the same physical tabletop, with card dragging, a fanned hand and burn/SLAM effects.
+
+**Activation gate:** Vercel project \`spark-card-game\` requires encrypted environment variable \`PILEHEAD_DATABASE_URL\` for preview and production. The integration could not set it because Vercel denied environment writes (403). The online mode must NOT be described as operational until the value is configured and a two-device room is verified. See \`docs/pilehead-online.md\` for safe activation and test steps. \`npm run test:pilehead-online\` runs backend isolation tests.
+
+**Limits:** This is a playtest build, not a retail-ready or human-validated game. The online client currently uses polling, not WebSockets, so SLAM speed is subject to network latency. The existing SPARK Friends backend is intentionally untouched, since its authorization model is specific to ChatGPT Sites. Git commits do not automatically publish the private Sites game.
 
 ## Validation and limits
 
