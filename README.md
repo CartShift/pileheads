@@ -1,5 +1,7 @@
 # SPARK Simple+
 
+> **Latest TILT playtest (13 Nov 2026):** Human feedback rejected Twin Piles as unfun and found CONTROL / CHAIN confusing. The latest **ONE MORE** experiment strips the game down to one central pile, one optional extra card, and a same-number bounce. [Play ONE MORE](https://spark-exchange-l87gdq1rk-cart-shift.vercel.app/) · [Print the 48-card prototype](https://spark-exchange-l87gdq1rk-cart-shift.vercel.app/one-more-print.html) · [Design notes](docs/tilt-one-more.md). Previous A/B rules remain archived. This is **not** a proven retail game.
+
 Mobile-first Hebrew/English card-game playtesting prototype, hosted privately on ChatGPT Sites. Vanilla HTML, CSS and JavaScript, served by a dependency-free Cloudflare Worker with persistent D1 human rooms.
 
 **Private playable site:** https://spark-simple-plus-yotam.yotamonf.chatgpt.site
@@ -108,8 +110,8 @@ Use the repository's `vercel.json` in Vercel with Node.js 24 and the team projec
 
 To validate: `npm test`, `npm run build:vercel`, inspect `vercel-static/index.html`, and check Vercel's protected preview URL on desktop and mobile. Git changes and Vercel deployments do not modify the private Sites URL.
 
-## TILT Mechanics Lab — two printable experiments
+## Archived TILT Mechanics Lab — two earlier experiments
 
-A separate, **non-production** print-and-play design test lives in `dist/tilt-lab/`. [Play preview](https://spark-exchange-q8xf57gm3-cart-shift.vercel.app/) and [print the deck](https://spark-exchange-q8xf57gm3-cart-shift.vercel.app/print.html). It compares **CONTROL / CHAIN** (safe arrow control versus risky multi-card press) and **TWIN PILES** (two directional piles that collide). Both run 2–4 seats with bot or local hotseat and independent saves, using the same 48 numbered arrow cards.
+The earlier **non-production** print-and-play A/B test is preserved at `dist/tilt-lab/archive.html`. [Archived preview](https://spark-exchange-l87gdq1rk-cart-shift.vercel.app/archive.html) and [archived rules](https://spark-exchange-l87gdq1rk-cart-shift.vercel.app/print.html). The primary preview now runs **ONE MORE** after negative human feedback. It compares **CONTROL / CHAIN** (safe arrow control versus risky multi-card press) and **TWIN PILES** (two directional piles that collide). Both run 2–4 seats with bot or local hotseat and independent saves, using the same 48 numbered arrow cards.
 
 Design rules, limitations, observed simulation evidence and a blinded human playtest protocol: `docs/tilt-mechanics-lab.md`. Offline regression: `node tests/tilt-mechanics-lab.cjs`. This experiment does not change existing SPARK or TILT mechanics; this URL is a preview, not an automatic production update.
