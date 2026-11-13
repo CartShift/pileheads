@@ -50,14 +50,14 @@ test('SKIP jumps to player after next, and in two seats grants extra turn',()=>{
 });
 test('playing matching numbers together can burn four in a row',()=>{
  const g=opened(),four=Array.from({length:4},()=>extract(g,c=>c.rank===6));
- g.pile.push(four[0]);for(const c of four.slice(1)){const old=g.people[0].hand.pop();g.stock.push(old);g.people[0].hand.push(c)}
+ g.pile.push(four[0]);g.stock.push(...g.people[0].hand.splice(0));g.people[0].hand.push(...four.slice(1));
  const out=E.move(g,0,{type:'play',source:'hand',ids:four.slice(1).map(c=>c.id)});
  assert.equal(out.reason,'four');assert.equal(g.pile.length,0);assert.equal(g.ashes.length,4);
  assert.equal(g.turn,0);E.invariant(g);
 });
 test('out-of-turn SLAM burns a public top run with matching private cards',()=>{
  const g=opened(),four=Array.from({length:4},()=>extract(g,c=>c.rank===5));
- g.pile.push(...four.slice(0,3));const old=g.people[1].hand.pop();g.stock.push(old);g.people[1].hand.push(four[3]);
+ g.pile.push(...four.slice(0,3));const old=g.people[1].hand.pop();if(old)g.stock.push(old);g.people[1].hand.push(four[3]);
  g.slamOpen=true;g.turn=0;
  const slam=E.slamOptions(g,1)[0];assert.ok(slam);
  const event=E.move(g,1,slam);assert.equal(event.reason,'slam');
