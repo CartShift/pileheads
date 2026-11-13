@@ -1,5 +1,6 @@
 /* PILEHEAD physical playtest UI. No SPARK or TILT persistence keys touched. */
 (function(){'use strict';
+if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
 const E=globalThis.PileheadEngine,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v01';
 let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null;
 function playerName(i){return mode==='bots'?(i===0?'You':'Bot '+i):'Player '+(i+1)}
@@ -58,7 +59,7 @@ function setupView(){if(!g)return '<section class="setup panel"><div class="eyeb
  '<h2>Welcome to PILEHEAD</h2><p>A standalone Shithead-inspired card game with independent action cards, three layers and out-of-turn SLAM burns. The physical rules are identical for humans and bots.</p>'+
  '<div class="fields"><label>Players<select id="seat-count">'+[2,3,4,5].map(n=>'<option value="'+n+'" '+(seats===n?'selected':'')+'>'+n+' players</option>').join('')+'</select></label>'+
  '<label>Play against<select id="game-mode"><option value="bots" '+(mode==='bots'?'selected':'')+'>Computer opponents</option><option value="hotseat" '+(mode==='hotseat'?'selected':'')+'>Local pass-and-play</option></select></label></div>'+
- '<button class="action primary" data-do="create">Deal cards</button></section>';
+ '<div class="toolbar"><button class="action primary" data-do="create">Deal cards</button><a class="action secondary" href="?online=1">Play with friends online</a></div></section>';
  const p=g.people[setupSeat],had=swapFrom!==null;
  return '<section class="setup panel"><div class="eyebrow">Before the first turn · '+playerName(setupSeat)+'</div><h2>Choose your face-up cards</h2>'+
  '<p>Tap a card in your hand, then a face-up card to swap them. Face-up cards become playable after your draw deck and hand are gone. Three blind cards stay hidden.</p>'+
@@ -105,6 +106,17 @@ function overlay(){
  '</div></div>';
 }
 function render(){app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay();save();queueBot()}
+function celebrate(ev){
+ if(!ev?.burned)return;
+ const table=app.querySelector('.table');if(!table)return;
+ table.classList.add('just-burned');
+ try{if(navigator.vibrate)navigator.vibrate(ev.reason==='slam'?[25,30,45]:20)}catch{}
+ if(ev.reason==='slam'){
+  const text=document.createElement('div');text.className='slam-banner';text.textContent='SLAM!';
+  table.appendChild(text);setTimeout(()=>text.remove(),850);
+ }
+ setTimeout(()=>table.classList.remove('just-burned'),550);
+}
 function queueBot(){if(timer!==null){clearTimeout(timer);timer=null}
  if(!g||g.phase!=='play'||mode!=='bots')return;
  const canSlam=g.people.some(p=>p.seat!==0&&E.slamOptions(g,p.seat).length);
@@ -112,14 +124,14 @@ function queueBot(){if(timer!==null){clearTimeout(timer);timer=null}
  timer=setTimeout(()=>{timer=null;if(!g||g.phase!=='play')return;
  try{let ev=E.autoSlam(g,'greedy',0);
   if(!ev&&g.turn!==0)ev=E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));
-  if(ev){lastMove=ev;notice=eventName(ev);selection=[];render()}
+  if(ev){lastMove=ev;notice=eventName(ev);selection=[];render();celebrate(ev)}
  }catch(e){notice='Bot error: '+e.message;render()}
  },canSlam?780:600);
 }
 function startGame(){g=E.create({players:seats,seed:Date.now()>>>0});setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
 function afterMove(ev){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
  if(mode==='hotseat'&&g.phase!=='over')covered=true;
- render()}
+ render();celebrate(ev)}
 function perform(choice,seat=viewSeat()){try{const ev=E.move(g,seat,choice);afterMove(ev)}catch(e){notice=e.message;render()}}
 function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat(),p=g.people[seat];
  if(g.phase==='setup'){
@@ -188,6 +200,39 @@ app.addEventListener('drop',e=>{
  if(isTurn()&&currentStage()===move.source)perform({type:'play',source:move.source,ids:selection.slice()});
 });
 app.addEventListener('dragend',()=>{dragCard=null});
+
+/* Touch and pen: physically drag a lifted card onto the centre pile.
+   Desktop HTML Drag and Drop remains available; a tap still selects cards. */
+let touchGesture=null,suppressTap=false;
+app.addEventListener('click',e=>{if(suppressTap){e.preventDefault();e.stopImmediatePropagation();suppressTap=false}},true);
+app.addEventListener('pointerdown',e=>{
+ if(e.pointerType==='mouse')return;
+ const b=e.target.closest('button[data-card]');
+ if(!b||!isTurn()||covered||g.phase!=='play')return;
+ touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,dragging:false,el:null};
+});
+app.addEventListener('pointermove',e=>{
+ const d=touchGesture;if(!d||e.pointerType==='mouse')return;
+ if(!d.dragging&&Math.hypot(e.clientX-d.x,e.clientY-d.y)>12){
+  d.dragging=true;const b=app.querySelector('[data-card="'+d.id+'"]');if(!b)return;
+  d.el=b.cloneNode(true);d.el.classList.add('card-ghost');document.body.appendChild(d.el);
+  if(!selection.includes(d.id))selection=[d.id];
+ }
+ if(d.dragging&&d.el){e.preventDefault();d.el.style.left=e.clientX+'px';d.el.style.top=e.clientY+'px';
+  const to=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-play-target]');
+  app.querySelector('[data-play-target]')?.classList.toggle('drop-hover',!!to);}
+},{passive:false});
+function endTouch(e){
+ const d=touchGesture;if(!d)return;touchGesture=null;
+ const target=d.dragging?document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-play-target]'):null;
+ d.el?.remove();app.querySelector('[data-play-target]')?.classList.remove('drop-hover');
+ if(!d.dragging)return;
+ suppressTap=true;setTimeout(()=>suppressTap=false,350);
+ if(target&&isTurn()&&currentStage()===d.source){selection=[d.id];perform({type:'play',source:d.source,ids:[d.id]})}
+}
+app.addEventListener('pointerup',endTouch);
+app.addEventListener('pointercancel',e=>{const d=touchGesture;touchGesture=null;d?.el?.remove();app.querySelector('[data-play-target]')?.classList.remove('drop-hover')});
+
 
 $('new').addEventListener('click',()=>{if(g&&!confirm('Start a new game and replace the current local save?'))return;g=null;notice='';selection=[];challengeOpen=false;covered=false;render()});
 restore();render();
