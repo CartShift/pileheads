@@ -120,7 +120,7 @@ function legalMove(){
 }
 function events(){return data.game.events.slice(-7).reverse().map(e=>{
  const n=safe(displayName(e.seat));let s=e.type==='take'?'picked up '+e.count+' cards':e.type==='blind-fail'?'picked up after a blind flip':
- e.action==='dump'?'used DUMP; '+displayName(e.target)+' took '+e.takenCount+' cards':e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
+ e.action==='dump'?'used DUMP; '+displayName(e.target)+' took '+e.takenCount+' cards':e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
  return '<span class="event">'+n+' '+safe(s)+'</span>';
  }).join('')}
 function lobby(){
@@ -149,7 +149,7 @@ function playView(){
   '<div class="toolbar"><button class="action primary" data-do="play" '+(!legal||busy?'disabled':'')+'>Place cards</button>'+
   '<button class="action secondary" data-do="take" '+(!can||!g.legal.some(x=>x.type==='take')||busy?'disabled':'')+'>Take pile</button>'+
   '<button class="action slam" data-do="slam" '+(!canSlam||busy?'disabled':'')+'>SLAM!'+(canSlam?' Ready':'')+'</button></div>'+
-  '<div class="message" role="status" aria-live="polite">'+safe(notice||'Select matching cards, then tap the pile or Place cards.')+'</div>'+
+  '<div class="message" role="status" aria-live="polite">'+safe(notice||'Choose matching numbers or identical actions, then place them on the pile.')+'</div>'+
   '<div class="meta"><span>Move '+g.moves+'</span><span>Draw '+g.stockCount+'</span><span>Ashes '+g.ashesCount+'</span><span>Synced · rev '+data.revision+'</span></div>'+
   '<div class="event-list">'+events()+'</div>';
 }
@@ -194,7 +194,8 @@ async function selectCard(c){
  if(selection.includes(c.id))selection=selection.filter(x=>x!==c.id);
  else{
   const previous=selection.map(id=>my.find(x=>x.id===id)).filter(Boolean);
-  if(previous.length&&(!previous.every(x=>x.kind==='number'&&card.kind==='number'&&x.rank===card.rank)))selection=[];
+  if(previous.length&&!previous.every(x=>x.kind===card.kind&&
+   (card.kind==='number'?x.rank===card.rank:x.action===card.action)))selection=[];
   selection.push(c.id);
  }
  render();
