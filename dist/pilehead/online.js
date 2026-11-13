@@ -236,7 +236,7 @@ root.addEventListener('pointerdown',e=>{
  const b=e.target.closest('[data-card]');if(!b)return;
  touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,moving:false,ghost:null};
 });
-root.addEventListener('pointermove',e=>{
+window.addEventListener('pointermove',e=>{
  const t=touchGesture;if(!t||e.pointerType==='mouse')return;
  if(!t.moving&&Math.hypot(e.clientX-t.x,e.clientY-t.y)>12){
   t.moving=true;const b=root.querySelector('[data-card="'+t.id+'"]');
@@ -249,7 +249,7 @@ root.addEventListener('pointermove',e=>{
   root.querySelector('[data-play-target]')?.classList.toggle('drop-hover',!!zone);
  }
 },{passive:false});
-root.addEventListener('pointerup',e=>{
+window.addEventListener('pointerup',e=>{
  const t=touchGesture;if(!t)return;touchGesture=null;
  const zone=t.moving?document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-play-target]'):null;
  t.ghost?.remove();root.querySelector('[data-play-target]')?.classList.remove('drop-hover');
@@ -257,7 +257,7 @@ root.addEventListener('pointerup',e=>{
  ignoreNextClick=true;setTimeout(()=>ignoreNextClick=false,350);
  if(zone&&active()&&stageNow()===t.source){selection=[t.id];play()}
 });
-root.addEventListener('pointercancel',()=>{
+window.addEventListener('pointercancel',()=>{
  touchGesture?.ghost?.remove();touchGesture=null;root.querySelector('[data-play-target]')?.classList.remove('drop-hover');
 });
 
