@@ -26,7 +26,7 @@ h1{font:700 clamp(23px,3.8vw,34px)/1.1 Georgia,serif;margin:0 0 4px}
 .config{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 2px 13px;font-size:12px}
 .config-group{display:flex;align-items:center;gap:9px;flex-wrap:wrap}.config label{color:var(--muted);font-weight:700}
 .config select,.config input{color:var(--ink);background:#fffaf0;border:1px solid #c9c5b5;border-radius:9px;padding:7px}
-.config select{min-height:36px}.config input{width:92px}
+.config select{min-height:36px}.config .shuffle-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--ink);font-size:11px;white-space:nowrap}.config .shuffle-toggle input{width:auto;accent-color:var(--deep);height:16px;width:16px}.config input{width:92px}
 .soft-button{border:1px solid #b7c2b7;background:#fffaf0;color:var(--ink);border-radius:10px;padding:8px 12px;font-weight:800}
 .table-shell{border:10px solid var(--wood);border-radius:32px;box-shadow:0 8px 0 #513a2d,0 25px 45px #59452c26;overflow:hidden}
 .felt{position:relative;isolation:isolate;overflow:hidden;border-radius:21px;color:#f8f2df;padding:14px 20px 24px;
@@ -114,7 +114,7 @@ h1{font:700 clamp(23px,3.8vw,34px)/1.1 Georgia,serif;margin:0 0 4px}
 <nav class="mode" aria-label="Game experiment"><button id="tab-chain" type="button" aria-pressed="true">01 · CONTROL / CHAIN</button><button id="tab-twin" type="button" aria-pressed="false">02 · TWIN PILES</button></nav></section>
 <div class="config"><div class="config-group"><label for="playerCount">Players</label><select id="playerCount"><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
 <label for="seats">Play as</label><select id="seats"><option value="bot">You vs bots</option><option value="hotseat">Pass & play</option></select>
-<label for="seed">Seed</label><input id="seed" type="number" min="0" max="4294967295" value="20261113" inputmode="numeric"></div>
+<label for="seed">Seed</label><input id="seed" type="number" min="0" max="4294967295" value="20261113" inputmode="numeric"><label class="shuffle-toggle" for="shuffleSeed"><input id="shuffleSeed" type="checkbox" checked> Shuffle on new game</label></div>
 <div class="config-group"><button id="new" class="soft-button" type="button">New game</button><a href="print.html" class="soft-button">Print the deck</a></div></div>
 <section class="table-shell" aria-label="Card table"><div class="felt">
 <div class="felt-top"><div class="table-meta"><strong id="turn">TURN 1</strong><span id="currentSeat">Your move</span></div><div class="opponents" id="opponents"></div><div class="table-note"><b id="modeLabel">CONTROL / CHAIN</b><br><span id="phaseLabel">Choose a card</span></div></div>
