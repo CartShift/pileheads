@@ -98,7 +98,7 @@ function fly(table,ev,ownSeat){
  const target=$('[data-play-target] .pile-card',table);if(!target)return;
  const mine=ev.seat===ownSeat,isPickup=ev.type==='take'||ev.type==='blind-fail';
  const source=mine?$('.hand-area .card-row.hand',table):
-  $('.opponent[data-seat="'+ev.seat+'"] .mini-cards',table)||$('.opponents',table);
+  $('.opponent[data-seat="'+ev.seat+'"] .held-cards',table)||$('.opponent[data-seat="'+ev.seat+'"] .mini-cards',table)||$('.opponents',table);
  const from=(source||table).getBoundingClientRect(),to=target.getBoundingClientRect();
  const start=isPickup?to:from,dest=isPickup?from:to;
  const piece=makeCard(ev,table);piece.classList.add('pilehead-physical-fx');
