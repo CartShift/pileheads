@@ -84,4 +84,50 @@ test('multi-seat AI games terminate with card conservation and no illegal moves'
  assert.ok(draws<total*.05,'Too many stalled games');
  assert.ok(press>0&&collision>0);
 });
+test('record choice opportunities at decision time, not every render',()=>{
+ let chainDecline=false,chainPress=false,declinedCollision=false;
+ for(let seed=1;seed<1500;seed++){
+  const g=E.start({mode:'chain',seed});
+  const first=E.legal(g).filter(m=>m.type==='play'&&g.people[0].hand[m.index].n!==E.top(g).n);
+  for(const move of first){
+   const clone=JSON.parse(JSON.stringify(g));E.play(clone,move);
+   const press=E.legal(clone).find(x=>x.type==='extend');
+   if(!press)continue;
+   const before=clone.stats.pressOffers;
+   E.legal(clone);E.legal(clone);
+   assert.equal(clone.stats.pressOffers,before,'Queries must never increment observations');
+   const stopped=JSON.parse(JSON.stringify(clone));
+   E.play(stopped,{type:'stop',arrow:'up'});
+   assert.equal(stopped.stats.pressOffers,1);assert.equal(stopped.stats.pressDeclined,1);
+   assert.equal(stopped.stats.pressChosen,0);chainDecline=true;
+   E.play(clone,press);
+   assert.equal(clone.stats.pressOffers,1);assert.equal(clone.stats.pressChosen,1);
+   assert.equal(clone.stats.pressDeclined,0);chainPress=true;break;
+  }
+  if(chainDecline&&chainPress)break;
+ }
+ assert.ok(chainDecline&&chainPress);
+ for(let seed=1;seed<3000;seed++){
+  const g=E.start({mode:'twin',seed});
+  const moves=E.legal(g).filter(m=>m.type==='play');
+  const collision=moves.filter(m=>E.top(g,1-m.lane).n===g.people[0].hand[m.index].n);
+  const other=moves.find(m=>E.top(g,1-m.lane).n!==g.people[0].hand[m.index].n);
+  if(!collision.length||!other)continue;
+  E.play(g,other);assert.equal(g.stats.collisionOffers,1);
+  assert.equal(g.stats.collisionDeclined,1);assert.equal(g.stats.collision,0);
+  E.check(g);declinedCollision=true;break;
+ }
+ assert.ok(declinedCollision);
+});
+test('physical print layout keeps ranks readable on 180 degree rotation and press cards upright',()=>{
+ const print=fs.readFileSync(path.join(__dirname,'../dist/tilt-lab/print.html'),'utf8');
+ assert.match(print,/class=\\"rank lower\\"/);
+ assert.match(print,/rotate\(180deg\)/);
+ assert.match(print,/kept UPRIGHT/);
+ const html=fs.readFileSync(path.join(__dirname,'../dist/tilt-lab/index.html'),'utf8');
+ const app=fs.readFileSync(path.join(__dirname,'../dist/tilt-lab/app.js'),'utf8');
+ assert.match(html,/card\.pressed/);assert.doesNotMatch(html,/card\.sideways/);
+ assert.match(app,/card\(c,pressed\?'pressed'/);
+ assert.match(html,/id="shuffleSeed"/);
+});
 console.log(JSON.stringify({pass:true,checks}));
