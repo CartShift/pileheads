@@ -238,12 +238,17 @@ root.addEventListener('click',e=>{if(ignoreNextClick){e.preventDefault();e.stopI
 root.addEventListener('pointerdown',e=>{
  if(e.pointerType==='mouse'||!active()||busy||data.game.phase!=='play')return;
  const b=e.target.closest('[data-card]');if(!b)return;
- touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,moving:false,ghost:null};
+ touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,moving:false,scrolling:false,ghost:null,row:b.closest('.card-row.hand'),startScroll:b.closest('.card-row.hand')?.scrollLeft||0};
 });
 window.addEventListener('pointermove',e=>{
  const t=touchGesture;if(!t||e.pointerType==='mouse')return;
- if(!t.moving&&Math.hypot(e.clientX-t.x,e.clientY-t.y)>12){
-  t.moving=true;const b=root.querySelector('[data-card="'+t.id+'"]');
+ const dx=e.clientX-t.x,dy=e.clientY-t.y;
+ if(!t.moving&&!t.scrolling&&Math.hypot(dx,dy)>12){
+  if(t.row&&t.row.scrollWidth>t.row.clientWidth+2&&Math.abs(dx)>Math.abs(dy)*1.35)t.scrolling=true;
+  else t.moving=true;
+ }
+ if(t.scrolling){e.preventDefault();t.row.scrollLeft=t.startScroll-dx;return}
+ if(t.moving&&!t.ghost){const b=root.querySelector('[data-card="'+t.id+'"]');
   if(!b)return;t.ghost=b.cloneNode(true);t.ghost.classList.add('card-ghost');document.body.appendChild(t.ghost);
   if(!selection.includes(t.id))selection=[t.id];
  }
@@ -257,9 +262,11 @@ window.addEventListener('pointerup',e=>{
  const t=touchGesture;if(!t)return;touchGesture=null;
  const zone=t.moving?document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-play-target]'):null;
  t.ghost?.remove();root.querySelector('[data-play-target]')?.classList.remove('drop-hover');
- if(!t.moving)return;
+ if(!t.moving&&!t.scrolling)return;
  ignoreNextClick=true;setTimeout(()=>ignoreNextClick=false,350);
- if(zone&&active()&&stageNow()===t.source){selection=[t.id];play()}
+ if(t.scrolling)return;
+ if(zone&&active()&&stageNow()===t.source){
+  if(!selection.includes(t.id))selection=[t.id];play()}
 });
 window.addEventListener('pointercancel',()=>{
  touchGesture?.ghost?.remove();touchGesture=null;root.querySelector('[data-play-target]')?.classList.remove('drop-hover');
