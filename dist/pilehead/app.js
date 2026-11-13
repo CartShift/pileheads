@@ -14,7 +14,7 @@ function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
  covered=mode==='hotseat'&&g.phase!=='over';notice=x.notice||'';lastMove=x.lastMove||null;return true;
  }catch{return false}}
 function card(c,{interactive=false,selected=false,back=false,source='',small=false}={}){
- if(back)return '<button type="button" class="card back" disabled aria-label="Face-down card"><span class="value">◆</span></button>';
+ if(back)return '<button type="button" class="card back" '+(interactive?'data-card="'+c.id+'" data-source="'+source+'"':'disabled')+' aria-label="Flip face-down card"><span class="value">◆</span></button>';
  const action=c.kind==='action',rank=action?({reset:'↺',ghost:'◇',under:'↓4',skip:'Ⅱ',burn:'✕'}[c.action]):String(c.rank);
  const name=action?c.action.toUpperCase():String(c.rank);
  return '<button type="button" class="card '+(action?'action-card ':'')+(interactive?'playable ':'')+(selected?'selected':'')+
@@ -46,7 +46,7 @@ function upAndDown(p,allow){return '<div class="zone your-up"><div class="area-l
   const u=p.up[i],d=p.down[i],canUp=allow&&currentStage()==='up',canDown=allow&&currentStage()==='down';
   if(u)return '<div class="up-pair">'+(d?'<div class="card back"><span class="value">◆</span></div>':'')+
    card(u,{interactive:canUp,selected:selection.includes(u.id),source:'up'})+'</div>';
-  return d?card(d,{back:!canDown,interactive:canDown,source:'down'}):'';
+  return d?card(d,{back:true,interactive:canDown,source:'down'}):'';
  }).join('')+'</div></div>'}
 function eventName(e){const who=playerName(e.seat);if(e.type==='take')return who+' picked up '+e.count;
  if(e.type==='blind-fail')return who+' flipped an illegal card and took '+e.count;
