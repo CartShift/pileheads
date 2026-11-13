@@ -29,7 +29,7 @@ function rowCards(cards,source,interact=false){return '<div class="card-row '+(s
 function mini(c){return '<span class="mini'+(!c?' back':'')+'">'+(c?(c.kind==='number'?c.rank:({burn:'✕',reset:'↺',ghost:'◇',under:'↓',skip:'Ⅱ'}[c.action])):'◆')+'</span>'}
 function opponents(){return '<div class="opponents">'+g.people.filter(p=>p.seat!==viewSeat()).map(p=>{
  const isCurrent=g.turn===p.seat&&g.phase==='play';
- return '<div class="opponent '+(isCurrent?'current ':'')+(p.out?'finished':'')+'"><strong>'+
+ return '<div class="opponent '+(isCurrent?'current ':'')+(p.out?'finished':'')+'" data-seat="'+p.seat+'"><strong>'+
  playerName(p.seat)+(isCurrent?' · TURN':'')+(p.out?' · OUT':'')+'</strong><small>'+p.hand.length+
  ' in hand · '+p.up.length+' up · '+p.down.length+' blind</small><div class="mini-cards">'+
  p.up.map(mini).join('')+p.down.slice(0,3).map(()=>mini(null)).join('')+'</div></div>'}).join('')+'</div>'}
@@ -105,7 +105,14 @@ function overlay(){
  g.people.filter(p=>!p.out).map(p=>'<button class="action secondary" data-do="hot-slam" data-seat="'+p.seat+'">'+playerName(p.seat)+'</button>').join(''):'')+
  '</div></div>';
 }
-function render(){app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay();save();queueBot()}
+function render(){
+ app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay();
+ window.PileheadTableFX?.sync({identity:g?g.seed+':'+g.moves:null,
+  event:g?.events?.[g.events.length-1]||null,
+  ownSeat:g?viewSeat():0,active:g?isTurn()&&!covered:false,
+  selected:selection.length,moveNo:g?.moves||0,online:false});
+ save();queueBot();
+}
 function celebrate(ev){
  if(!ev?.burned)return;
  const table=app.querySelector('.table');if(!table)return;
@@ -124,14 +131,14 @@ function queueBot(){if(timer!==null){clearTimeout(timer);timer=null}
  timer=setTimeout(()=>{timer=null;if(!g||g.phase!=='play')return;
  try{let ev=E.autoSlam(g,'greedy',0);
   if(!ev&&g.turn!==0)ev=E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));
-  if(ev){lastMove=ev;notice=eventName(ev);selection=[];render();celebrate(ev)}
+  if(ev){lastMove=ev;notice=eventName(ev);selection=[];render()}
  }catch(e){notice='Bot error: '+e.message;render()}
  },canSlam?780:600);
 }
 function startGame(){g=E.create({players:seats,seed:Date.now()>>>0});setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
 function afterMove(ev){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
  if(mode==='hotseat'&&g.phase!=='over')covered=true;
- render();celebrate(ev)}
+ render()}
 function perform(choice,seat=viewSeat()){try{const ev=E.move(g,seat,choice);afterMove(ev)}catch(e){notice=e.message;render()}}
 function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat(),p=g.people[seat];
  if(g.phase==='setup'){
