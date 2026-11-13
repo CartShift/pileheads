@@ -21,7 +21,7 @@ const rules={
    'Two piles begin with one face-up card each. Every turn, choose either pile for a legal play using that pile’s visible ↑ or ↓ arrow.',
    'Matching the top number of your chosen pile clears that pile.',
    'COLLISION: match the number on top of the other pile. Both piles are discarded, and you may discard one extra card from your hand for free.',
-   'If neither pile accepts any card, choose one pile: pick up only its top card, and discard everything remaining in that pile.',
+   'If neither pile accepts any card, choose a card from your hand and a pile. Trade your card for its top card. Your surrendered card and the rest of that pile are discarded.',
    'Refill to 4 at the end of each turn, while cards remain. Once the stock is empty, the first player to empty their hand wins.'
   ],
   caveat:'Design test: Does choosing between lanes create interesting positioning, or merely obvious collisions?'
@@ -58,7 +58,7 @@ function getSelectedMove(lane){
  if(selected===null)return null;
  const actions=E.legal(g);const t=g.phase==='extend'?'extend':g.phase==='counter'?'counter':g.phase==='bonus'?'burnBonus':'play';
  return actions.find(m=>m.type===t&&m.index===selected&&(m.lane===undefined||m.lane===lane))||
-  actions.find(m=>m.type==='exchange'&&m.index===selected)||null;
+  actions.find(m=>m.type==='exchange'&&m.index===selected&&(m.lane===undefined||m.lane===lane))||null;
 }
 function commit(move){
  if(!move)return;
@@ -141,8 +141,8 @@ function setPrompt(){
   acts=actionButton('bonus','DISCARD SELECTED CARD');
   if(legal.some(x=>x.type==='skipBonus'))acts=actionButton('skipBonus','CONTINUE');
  }else if(legal.every(m=>['exchange','pickup'].includes(m.type))){
-  title=mode==='chain'?'No legal card: exchange':'No legal card: choose a pile';
-  hint=mode==='chain'?'Select the card you want to discard, then tap the central pile. You take its top card.':'Tap one pile to collect its top card; the rest of that pile is discarded.';
+  title='No legal card: exchange';
+  hint=mode==='chain'?'Select a card to surrender, then tap the central pile to trade it for the top card.':'Select a card to surrender, then tap either pile to trade. This burns a card and prevents endless loops.';
  }else{
   title=mode==='chain'?'Choose a card to place':'Choose a card and a lane';
   hint=mode==='chain'?'Play a legal card on the pile, then choose whether to stop or extend.':'Each pile has its own arrow. A rank matching the OTHER pile clears both.';
