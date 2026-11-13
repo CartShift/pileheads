@@ -76,6 +76,20 @@ Run \`npm run test:tilt\` for the engine, physical UI, printable deck and shared
 
 **Important scope:** This is a working integrated simulator, **not** a proven original game, commercially viable physical product, human skill study or Android device approval. Do not interpret win rates against basic bots as evidence of human enjoyment or a balanced retail deck. There is no online TILT room feature; its 2-player mode is local hotseat only.
 
+
+## PILEHEAD · standalone physical-card prototype
+
+**PILEHEAD lives in this same repository and simulator.** It is a separate game engine, not a modification of SPARK or TILT, and uses its own local save key. Select **Simulate → PILEHEAD** on the main site or open \`/pilehead/index.html\` directly.
+
+- **Playable physical table:** \`dist/pilehead/index.html\` + \`app.js\`, with 2–5 seats, bot and local pass-and-play, opening hand/face-up exchange, three card layers, responsive physical card controls, and local resume.
+- **Core rules:** \`dist/pilehead/engine.js\`: 40 numbered cards (1–10 ×4); 12 independent action cards (RESET ×3, GHOST ×3, UNDER ×2, SKIP ×2, BURN ×2). Numbers go equal-or-higher; action cards ignore the numeric threshold. UNDER forces the next number to be 1–4. Out-of-turn SLAM completes four equal consecutive numbers and burns the pile.
+- **Simulator:** \`dist/pilehead-sim-core.js\`, loaded by the **existing** \`dist/simulation.worker.js\`. Change the number of seats and games in the Simulate tab. A deterministic 120-game four-seat bot baseline is included in \`dist/pilehead-simulation-results.json\`.
+- **Print physical cards:** \`/pilehead/print.html\` for A4 fronts and optional matching backs. Print one test sheet first, or use card sleeves to avoid duplex registration problems.
+- **Regression tests:** \`npm run test:pilehead\`. The default \`npm test\` also executes the PILEHEAD tests. Assets are copied to the existing Sites Worker and Vercel static preview builds.
+- **Canonical design and edge cases:** \`docs/pilehead-design.md\`.
+
+**Limits:** This is a playtest build, not a retail-ready or human-validated game. Bot policies are heuristics; slam timing is idealized in simulation, and local pass-and-play on one device is not simultaneous human SLAM play. There are no networked PILEHEAD rooms. The existing SPARK Friends backend is intentionally NOT reused, since its game authority and identity assumptions are SPARK-specific. Git commits do not automatically publish the private Sites game.
+
 ## Validation and limits
 
 `npm test` covers 100 complete games against the imported legacy engine, 90 complete new-mode games, six complete UI-state games, every insertion position, ability use, scoring, row and hand sizes, reloads, export payloads, replay and hidden-information isolation. A three-wave fixture scores ten points.

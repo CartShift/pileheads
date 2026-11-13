@@ -1,0 +1,198 @@
+{
+  "game": "pilehead",
+  "version": "pilehead-1.0.0",
+  "conditions": {
+    "seed": 20261113,
+    "games": 120,
+    "players": 4,
+    "maxActions": 1200,
+    "botPolicies": [
+      "greedy",
+      "saver",
+      "random"
+    ],
+    "policyAssignment": "rotated by seed to reduce seat/strategy confounding",
+    "autoSlam": "immediate, perfect detection",
+    "note": "Diagnostic simulation only. Bot selection is heuristic; human timing, strategy and fun were NOT evaluated."
+  },
+  "summary": {
+    "games": 120,
+    "completed": 120,
+    "completionPct": 100,
+    "capped": 0,
+    "meanActions": 142.57,
+    "medianActions": 130,
+    "p90Actions": 197,
+    "meanPickups": 20.08,
+    "meanSlams": 3.12,
+    "meanFourBurns": 0.32,
+    "meanTotalBurns": 5.23,
+    "meanBlindFailures": 3.32,
+    "meanActionsPlayed": 35.09,
+    "meanRemainingStock": 0,
+    "loserBySeat": [
+      {
+        "seat": 0,
+        "losses": 37,
+        "pct": 30.83
+      },
+      {
+        "seat": 1,
+        "losses": 34,
+        "pct": 28.33
+      },
+      {
+        "seat": 2,
+        "losses": 29,
+        "pct": 24.17
+      },
+      {
+        "seat": 3,
+        "losses": 20,
+        "pct": 16.67
+      }
+    ]
+  },
+  "sample": [
+    {
+      "seed": 20261113,
+      "completed": true,
+      "actions": 122,
+      "loser": 3,
+      "pickups": 13,
+      "slams": 0,
+      "fours": 2,
+      "burns": 4,
+      "blindFailures": 3,
+      "actionsPlayed": 38,
+      "recoveredCards": 13,
+      "remainingStock": 0
+    },
+    {
+      "seed": 20262890,
+      "completed": true,
+      "actions": 118,
+      "loser": 3,
+      "pickups": 18,
+      "slams": 6,
+      "fours": 0,
+      "burns": 7,
+      "blindFailures": 2,
+      "actionsPlayed": 20,
+      "recoveredCards": 18,
+      "remainingStock": 0
+    },
+    {
+      "seed": 20264667,
+      "completed": true,
+      "actions": 117,
+      "loser": 2,
+      "pickups": 13,
+      "slams": 3,
+      "fours": 1,
+      "burns": 6,
+      "blindFailures": 3,
+      "actionsPlayed": 31,
+      "recoveredCards": 13,
+      "remainingStock": 0
+    },
+    {
+      "seed": 20266444,
+      "completed": true,
+      "actions": 309,
+      "loser": 1,
+      "pickups": 40,
+      "slams": 2,
+      "fours": 1,
+      "burns": 5,
+      "blindFailures": 4,
+      "actionsPlayed": 101,
+      "recoveredCards": 40,
+      "remainingStock": 0
+    },
+    {
+      "seed": 20268221,
+      "completed": true,
+      "actions": 133,
+      "loser": 0,
+      "pickups": 15,
+      "slams": 0,
+      "fours": 0,
+      "burns": 2,
+      "blindFailures": 4,
+      "actionsPlayed": 40,
+      "recoveredCards": 15,
+      "remainingStock": 0
+    },
+    {
+      "seed": 20269998,
+      "completed": true,
+      "actions": 112,
+      "loser": 1,
+      "pickups": 11,
+      "slams": 3,
+      "fours": 1,
+      "burns": 6,
+      "blindFailures": 1,
+      "actionsPlayed": 31,
+      "recoveredCards": 11,
+      "remainingStock": 0
+    },
+    {
+      "seed": 20271775,
+      "completed": true,
+      "actions": 197,
+      "loser": 0,
+      "pickups": 23,
+      "slams": 5,
+      "fours": 0,
+      "burns": 7,
+      "blindFailures": 3,
+      "actionsPlayed": 76,
+      "recoveredCards": 23,
+      "remainingStock": 0
+    },
+    {
+      "seed": 20273552,
+      "completed": true,
+      "actions": 266,
+      "loser": 0,
+      "pickups": 43,
+      "slams": 4,
+      "fours": 0,
+      "burns": 6,
+      "blindFailures": 7,
+      "actionsPlayed": 63,
+      "recoveredCards": 43,
+      "remainingStock": 0
+    },
+    {
+      "seed": 20275329,
+      "completed": true,
+      "actions": 151,
+      "loser": 2,
+      "pickups": 20,
+      "slams": 2,
+      "fours": 0,
+      "burns": 4,
+      "blindFailures": 5,
+      "actionsPlayed": 36,
+      "recoveredCards": 20,
+      "remainingStock": 0
+    },
+    {
+      "seed": 20277106,
+      "completed": true,
+      "actions": 149,
+      "loser": 1,
+      "pickups": 25,
+      "slams": 3,
+      "fours": 0,
+      "burns": 5,
+      "blindFailures": 4,
+      "actionsPlayed": 25,
+      "recoveredCards": 25,
+      "remainingStock": 0
+    }
+  ]
+}

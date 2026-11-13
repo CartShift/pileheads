@@ -1,0 +1,38 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PILEHEAD · Printable Physical Deck (52 cards)</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#ece9df;color:#23372e;font:14px/1.5 system-ui,Arial,sans-serif}
+header{text-align:center;background:#163e34;color:#f8eccc;padding:18px}header h1{font:900 32px Georgia,serif;margin:0}header p{margin:7px auto;max-width:770px}
+.controls{display:flex;justify-content:center;gap:9px;flex-wrap:wrap;margin:11px}button,a.control{font:800 13px system-ui;cursor:pointer;background:#f2cb92;color:#233b32;border:0;border-radius:9px;text-decoration:none;padding:10px 15px}button:focus-visible,a:focus-visible{outline:3px solid #c37542}
+.note{max-width:790px;margin:15px auto;padding:12px 16px;background:white;border:1px solid #b9b6a8;border-radius:9px}
+.pages{margin:auto;max-width:210mm}.sheet{width:188mm;height:273mm;padding:7mm;margin:9mm auto;page-break-after:always;break-after:page;background:white;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 2px 17px #0002}
+.sheet-title{font:850 10px system-ui;letter-spacing:.12em;text-transform:uppercase;text-align:center;margin:0 0 4mm}
+.grid{display:grid;grid-template-columns:repeat(3,57mm);grid-template-rows:repeat(3,82mm);gap:3mm}
+.card{position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;width:57mm;height:82mm;border:1px dashed #888;border-radius:1.5mm;background:#f7edd5;color:#1e3834;overflow:hidden;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.card:before{content:"";position:absolute;inset:3mm;border:1px solid #88998b;border-radius:1mm;pointer-events:none}
+.card .top{position:absolute;top:5mm;left:5mm;font:900 12px system-ui;letter-spacing:.14em}
+.card .rank{font:900 87px/1 Georgia,serif}.card .symbol{font:900 78px/1 system-ui}.card .label{font:850 15px/1.3 system-ui;letter-spacing:.13em;margin-top:4mm}
+.card .help{font:650 11px/1.3 system-ui;text-align:center;max-width:42mm;margin-top:3mm}
+.card .bottom{position:absolute;bottom:5mm;right:5mm;font:700 10px system-ui}
+.card.reset{background:#d5e7f2;color:#15527d}.card.ghost{background:#e7d9f4;color:#693d8c}.card.under{background:#f6dba5;color:#855017}.card.skip{background:#dcf0d7;color:#235f3f}.card.burn{background:#f5cbb6;color:#994329}
+.card.back{background:repeating-linear-gradient(45deg,#163d4a 0 8mm,#245767 8mm 10mm);color:#f1d49f}.card.back:before{border:2px solid #f5e8b5}.card.back .logo{font:900 25px Georgia,serif;transform:rotate(-17deg);text-shadow:1px 2px #123}
+.blank{border:1px dashed #bbb}.hide-backs .back-sheet{display:none}
+@page{size:A4 portrait;margin:8mm}@media print{body{background:white}header,.note{display:none!important}.pages{max-width:none}.sheet{margin:0;padding:0;width:100%;height:280mm;box-shadow:none;page-break-after:always}.sheet-title{font-size:9px;margin-bottom:4mm}.grid{gap:3mm} .sheet:last-child{page-break-after:auto}}
+@media screen and (max-width:820px){.pages{overflow-x:auto;padding:5px}.sheet{transform-origin:top left}.note{margin:10px}}
+</style></head><body>
+<header><h1>PILEHEAD</h1><p>52-card print-and-play prototype · 40 numbers + RESET ×3 · GHOST ×3 · UNDER ×2 · SKIP ×2 · BURN ×2</p><div class="controls">
+<a class="control" href="index.html">Back to game</a><button onclick="document.body.classList.toggle('hide-backs');this.textContent=document.body.classList.contains('hide-backs')?'Include card backs':'Hide card backs'">Hide card backs</button><button onclick="print()">Print A4 sheets</button></div></header>
+<div class="note"><b>Prototype printing:</b> Print at 100% / actual size, A4 portrait. Fronts have 9 cards per page, with cut lines. Optional backs are on separate sheets; for reliable alignment, print fronts and backs separately or use opaque sleeves and identical standard cards. Test one sheet before printing all 52 cards. The last sheet has two blank positions.</div>
+<div id="pages" class="pages"></div><script src="engine.js"></script><script>
+(function(){
+const E=globalThis.PileheadEngine;const deck=E.deck(),name={reset:'RESET',ghost:'GHOST',under:'UNDER',skip:'SKIP',burn:'BURN'},sym={reset:'↺',ghost:'◇',under:'↓4',skip:'Ⅱ',burn:'✕'},
+help={reset:'Any number can follow',ghost:'Keep the restriction',under:'Next number: 1–4',skip:'Skip next player',burn:'Clear pile. Play again'};
+const face=c=>c.kind==='number'?'<div class="card"><span class="top">PILEHEAD</span><span class="rank">'+c.rank+'</span><span class="bottom">'+c.rank+' · FOUR BURN</span></div>':
+'<div class="card '+c.action+'"><span class="top">PILEHEAD / ACTION</span><span class="symbol">'+sym[c.action]+'</span><span class="label">'+name[c.action]+'</span><span class="help">'+help[c.action]+'</span><span class="bottom">'+name[c.action]+'</span></div>';
+const back='<div class="card back"><span class="logo">PILEHEAD</span></div>',pages=[];
+for(let start=0;start<deck.length;start+=9){let front=[],backs=[];
+for(let i=0;i<9;i++){front.push(deck[start+i]?face(deck[start+i]):'<div class="card blank"></div>');backs.push(deck[start+i]?back:'<div class="card blank"></div>')}
+pages.push('<section class="sheet"><div class="sheet-title">PILEHEAD · FRONT SHEET '+(pages.length+1)+'</div><div class="grid">'+front.join('')+'</div></section>');
+pages.push('<section class="sheet back-sheet"><div class="sheet-title">PILEHEAD · BACK SHEET '+(pages.length/2+1)+'</div><div class="grid">'+backs.join('')+'</div></section>');
+}document.getElementById('pages').innerHTML=pages.join('');
+})();</script></body></html>
