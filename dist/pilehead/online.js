@@ -27,7 +27,7 @@ function setMessage(e){const map={
  session_required:'Your saved seat session is missing. Rejoin from your invitation link.',
  not_member:'This browser does not own a seat in this room.',
  invalid_code:'This room link is not valid.',room_not_found:'This room was not found.',
- room_expired:'The room expired after 24 hours.',full:'The room is full.',
+ room_expired:'The room expired after 24 hours.',room_rules_changed:'This room uses an older deck. Create a new game for the updated rules.',full:'The room is full.',
  already_started:'The game already started.',waiting_for_players:'Waiting for everyone to join.',
  stale_revision:'Someone played at the same time. Refreshing the table.',
  rate_limited:'Too many requests from this network. Please try again later.',
