@@ -31,7 +31,7 @@ function opponents(){return '<div class="opponents">'+g.people.filter(p=>p.seat!
  const isCurrent=g.turn===p.seat&&g.phase==='play';
  return '<div class="opponent '+(isCurrent?'current ':'')+(p.out?'finished':'')+'" data-seat="'+p.seat+'"><strong>'+
  playerName(p.seat)+(isCurrent?' · TURN':'')+(p.out?' · OUT':'')+'</strong><small>'+p.hand.length+
- ' in hand · '+p.up.length+' up · '+p.down.length+' blind</small><div class="mini-cards">'+
+ ' in hand · '+p.up.length+' up · '+p.down.length+' blind</small><div class="held-cards" aria-label="Opponent holds '+p.hand.length+' private cards">'+Array.from({length:Math.min(p.hand.length,8)},(_,i)=>'<span class="held-back" aria-hidden="true" style="--hold-angle:'+((i-(Math.min(p.hand.length,8)-1)/2)*5)+'deg"></span>').join('')+'</div><div class="mini-cards">'+
  p.up.map(mini).join('')+p.down.slice(0,3).map(()=>mini(null)).join('')+'</div></div>'}).join('')+'</div>'}
 function pile(){const top=E.topRun(g),a=g.pile.slice(-4);return '<div class="table-center"><div class="stack">'+
  '<div class="stack-label">DRAW</div><div class="pile-card">'+(g.stock.length?'<div class="card back" style="pointer-events:none"><span class="value">◆</span></div>':'<div class="placeholder">EMPTY</div>')+'</div>'+
