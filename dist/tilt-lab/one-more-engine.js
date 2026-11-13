@@ -18,7 +18,8 @@ function start({players=2,seed=20261113,firstSeat=0}={}){
   turn:0,actions:0,phase:'play',pending:null,winner:null,draw:false,
   stats:{plays:0,clears:0,offers:0,extra:0,stops:0,bounces:0,trades:0,accepted:0},history:[]};
  g.stock=shuffle(deck(),g);for(let i=0;i<4;i++)for(const person of g.people)person.hand.push(g.stock.pop());
- g.pile.push(g.stock.pop());check(g);return g;
+ // The first player leads with any card onto an EMPTY pile: no awkward blocked opening.
+ check(g);return g;
 }
 function count(g){return g.stock.length+g.pile.length+g.burn.length+g.people.reduce((n,p)=>n+p.hand.length,0)}
 function check(g){
