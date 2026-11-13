@@ -1,6 +1,3 @@
-import { execFileSync } from 'node:child_process';
-// ONE-TIME online smoke validation, to be removed after the preview test completes.
-execFileSync(process.execPath,['tests/pilehead-online.cjs'],{stdio:'inherit'});
 import fs from 'node:fs';
 import path from 'node:path';
 
