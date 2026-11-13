@@ -80,18 +80,18 @@ function snap(type='play'){
 function makeCard(ev,table){
  const visible=$('[data-play-target] .pile-card .card-wrap:last-child .card',table);
  if(visible&&!ev.burned&&ev.type!=='take'&&ev.type!=='blind-fail'){
-  const clone=visible.cloneNode(true);clone.removeAttribute('disabled');clone.classList.remove('playable','selected');return clone
+  const clone=visible.cloneNode(true);clone.removeAttribute('disabled');
+  clone.classList.remove('playable','selected');return clone;
  }
- const card=document.createElement('div');card.className='card';
- const a=ev.action||null;
- if(a){card.classList.add('action-card');card.dataset.action=a}
- if(ev.type==='take'||ev.type==='blind-fail')card.classList.add('back');
- const mark=document.createElement('span');mark.className='mark';mark.textContent='PILEHEAD';
- const value=document.createElement('span');value.className='value';
- value.textContent=ev.type==='take'||ev.type==='blind-fail'?'◆':a?({burn:'✕',dump:'⇢',reset:'↺',skip:'Ⅱ',ghost:'◇',under:'↓4'}[a]||'◇'):
-  ev.rank==null?'◆':String(ev.rank);
- const foot=document.createElement('span');foot.className='foot';foot.textContent=a?String(a).toUpperCase():'PILEHEAD';
- card.append(mark,value,foot);return card;
+ const A=globalThis.PileheadCardArt,card=document.createElement('div');
+ const hidden=ev.type==='take'||ev.type==='blind-fail';
+ const action=ev.action&&A?.rules[ev.action]?ev.action:null;
+ const rank=Number(ev.rank);
+ const numbered=!hidden&&!action&&Number.isInteger(rank)&&rank>=1&&rank<=10;
+ card.className='card ph-card '+(hidden?'back ph-back':action?'ph-action action-card':'ph-number');
+ if(action)card.dataset.action=action;
+ card.innerHTML=hidden||!action&&!numbered?A.back():A.face(action?{kind:'action',action}:{kind:'number',rank});
+ return card;
 }
 function fly(table,ev,ownSeat){
  if(motion.matches||!table||typeof Element==='undefined'||typeof Element.prototype.animate!=='function')return;
