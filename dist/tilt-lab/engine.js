@@ -51,7 +51,7 @@ function legal(g){
   h.forEach((c,i)=>o.push({type:'burnBonus',index:i}));if(!h.length)o.push({type:'skipBonus'});
  }else if(g.phase==='play'){
   h.forEach((c,i)=>g.piles.forEach((_,lane)=>{if(can(top(g,lane),c))o.push({type:'play',index:i,lane})}));
-  if(!o.length)g.piles.forEach((p,lane)=>{if(p.length)o.push({type:'pickup',lane})});
+  if(!o.length)g.piles.forEach((p,lane)=>{if(p.length)h.forEach((c,index)=>o.push({type:'exchange',lane,index}))});
  }
  return o;
 }
@@ -98,9 +98,9 @@ function play(g,m){
  }else if(m.type==='burnBonus'){
    const c=p.hand.splice(m.index,1)[0];e.rank=c.n;g.burn.push(c);e.effect='bonus';next(g,seat);
  }else if(m.type==='skipBonus'){e.effect='skip-bonus';next(g,seat)}
- else if(m.type==='pickup'){
-   const pile=g.piles[m.lane],c=pile.pop();delete c.face;p.hand.push(c);burn(g,m.lane);
-   p.pickups++;g.stats.pickups++;e.effect='pickup';next(g,seat);
+ else if(m.type==='exchange'){
+   const pile=g.piles[m.lane],outgoing=p.hand.splice(m.index,1)[0],incoming=pile.pop();delete incoming.face;
+   p.hand.push(incoming);g.burn.push(outgoing);burn(g,m.lane);g.stats.exchanges++;e.effect='exchange';next(g,seat);
  }
  g.actions++;if(g.actions>=MAX*2&&g.winner===null){g.draw=true;g.phase='done'}
  g.history.push(e);check(g);return e;
@@ -131,7 +131,7 @@ function bot(g,style='mixed'){
    return value(b)-value(a);
   })[0];
  }
- if(opts[0].type==='pickup')return opts.sort((a,b)=>g.piles[a.lane].length-g.piles[b.lane].length)[0];
+ if(opts[0].type==='exchange')return opts.sort((a,b)=>g.piles[b.lane].length-g.piles[a.lane].length||hand[b.index].n-hand[a.index].n)[0];
  const value=x=>{
   const c=hand[x.index],other=top(g,1-x.lane),own=top(g,x.lane);
   return (other&&other.n===c.n?12:0)+(own&&own.n===c.n?2:0)+((c.arrow==='up'?c.n-1:8-c.n)*.30);
