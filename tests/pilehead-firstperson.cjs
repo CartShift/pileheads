@@ -54,6 +54,21 @@ check('both game modes reuse same scene and preserve existing game logic',()=>{
  assert.match(solo,/E\.move/);
  assert.match(online,/api\/pilehead/);
 });
+check('opponents have physical hidden hands without leaking card identities',()=>{
+ assert.match(solo,/held-cards/);assert.match(online,/held-cards/);
+ assert.match(online,/Math\.min\(p\.handCount,8\)/);
+ assert.match(css,/\.held-back/);
+});
+check('mobile menu has keyboard and toggle semantics',()=>{
+ assert.match(fx,/aria-expanded/);assert.match(fx,/pilehead-top-links/);
+ assert.match(css,/\.top \.links\.is-open/);
+});
+check('large hands can scroll separately from drag-to-pile',()=>{
+ for(const src of [solo,online]){
+  assert.match(src,/\.scrollWidth>.*\.clientWidth/);
+  assert.match(src,/scrollLeft=.*startScroll/);
+ }
+});
 check('production and Sites builds contain both scene assets',()=>{
  for(const src of [vercel,sites]){
   assert.match(src,/immersive\.css/);
