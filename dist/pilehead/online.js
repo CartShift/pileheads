@@ -13,6 +13,8 @@ let data=null,busy=false,polling=false,selection=[],swapCard=null,notice='',netw
 let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false;
 const A=globalThis.PileheadCardArt;const symbols=A.glyph;
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
+ (a.kind==='number'?a.rank===b.rank:a.action===b.action)}
 function label(c){return c.kind==='action'?c.action.toUpperCase():String(c.rank)}
 function card(c,opts={}){
  if(opts.back)return '<button type="button" class="card back ph-card ph-back'+(opts.can?' playable':'')+'" '+
@@ -194,8 +196,7 @@ async function selectCard(c){
  if(selection.includes(c.id))selection=selection.filter(x=>x!==c.id);
  else{
   const previous=selection.map(id=>my.find(x=>x.id===id)).filter(Boolean);
-  if(previous.length&&!previous.every(x=>x.kind===card.kind&&
-   (card.kind==='number'?x.rank===card.rank:x.action===card.action)))selection=[];
+  if(previous.length&&!previous.every(x=>sameFace(x,card)))selection=[];
   selection.push(c.id);
  }
  render();
@@ -252,7 +253,14 @@ window.addEventListener('pointermove',e=>{
  if(t.scrolling){e.preventDefault();t.row.scrollLeft=t.startScroll-dx;return}
  if(t.moving&&!t.ghost){const b=root.querySelector('[data-card="'+t.id+'"]');
   if(!b)return;t.ghost=b.cloneNode(true);t.ghost.classList.add('card-ghost');document.body.appendChild(t.ghost);
-  if(!selection.includes(t.id))selection=[t.id];
+  if(!selection.includes(t.id)){
+   const cards=current()[t.source],picked=cards?.find(c=>c.id===t.id);
+   const group=selection.map(id=>cards?.find(c=>c.id===id)).filter(Boolean);
+   if(!picked||!group.length||!group.every(c=>sameFace(c,picked)))selection=[t.id];
+   else selection.push(t.id);
+  }
+  if(selection.length>1){const badge=document.createElement('span');
+   badge.className='drag-count';badge.textContent=selection.length+' cards';t.ghost.appendChild(badge)}
  }
  if(t.moving&&t.ghost){
   e.preventDefault();t.ghost.style.left=e.clientX+'px';t.ghost.style.top=e.clientY+'px';
