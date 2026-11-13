@@ -216,12 +216,17 @@ app.addEventListener('pointerdown',e=>{
  if(e.pointerType==='mouse')return;
  const b=e.target.closest('button[data-card]');
  if(!b||!isTurn()||covered||g.phase!=='play')return;
- touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,dragging:false,el:null};
+ touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,dragging:false,scrolling:false,el:null,row:b.closest('.card-row.hand'),startScroll:b.closest('.card-row.hand')?.scrollLeft||0};
 });
 window.addEventListener('pointermove',e=>{
  const d=touchGesture;if(!d||e.pointerType==='mouse')return;
- if(!d.dragging&&Math.hypot(e.clientX-d.x,e.clientY-d.y)>12){
-  d.dragging=true;const b=app.querySelector('[data-card="'+d.id+'"]');if(!b)return;
+ const dx=e.clientX-d.x,dy=e.clientY-d.y;
+ if(!d.dragging&&!d.scrolling&&Math.hypot(dx,dy)>12){
+  if(d.row&&d.row.scrollWidth>d.row.clientWidth+2&&Math.abs(dx)>Math.abs(dy)*1.35)d.scrolling=true;
+  else d.dragging=true;
+ }
+ if(d.scrolling){e.preventDefault();d.row.scrollLeft=d.startScroll-dx;return}
+ if(d.dragging&&!d.el){const b=app.querySelector('[data-card="'+d.id+'"]');if(!b)return;
   d.el=b.cloneNode(true);d.el.classList.add('card-ghost');document.body.appendChild(d.el);
   if(!selection.includes(d.id))selection=[d.id];
  }
@@ -233,9 +238,12 @@ function endTouch(e){
  const d=touchGesture;if(!d)return;touchGesture=null;
  const target=d.dragging?document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-play-target]'):null;
  d.el?.remove();app.querySelector('[data-play-target]')?.classList.remove('drop-hover');
- if(!d.dragging)return;
+ if(!d.dragging&&!d.scrolling)return;
  suppressTap=true;setTimeout(()=>suppressTap=false,350);
- if(target&&isTurn()&&currentStage()===d.source){selection=[d.id];perform({type:'play',source:d.source,ids:[d.id]})}
+ if(d.scrolling)return;
+ if(target&&isTurn()&&currentStage()===d.source){
+  if(!selection.includes(d.id))selection=[d.id];
+  perform({type:'play',source:d.source,ids:selection.slice()})}
 }
 window.addEventListener('pointerup',endTouch);
 window.addEventListener('pointercancel',e=>{const d=touchGesture;touchGesture=null;d?.el?.remove();app.querySelector('[data-play-target]')?.classList.remove('drop-hover')});
