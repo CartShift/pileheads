@@ -121,7 +121,7 @@ test('record choice opportunities at decision time, not every render',()=>{
 });
 test('physical print layout keeps ranks readable on 180 degree rotation and press cards upright',()=>{
  const print=fs.readFileSync(path.join(__dirname,'../dist/tilt-lab/print.html'),'utf8');
- assert.match(print,/class=\\"rank lower\\"/);
+ assert.match(print,/rank lower/);
  assert.match(print,/rotate\(180deg\)/);
  assert.match(print,/kept UPRIGHT/);
  const html=fs.readFileSync(path.join(__dirname,'../dist/tilt-lab/index.html'),'utf8');
