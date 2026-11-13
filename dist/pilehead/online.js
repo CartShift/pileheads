@@ -5,6 +5,7 @@ if(!params.has('room')&&!params.has('online'))return;
 const root=document.getElementById('app');
 const $=id=>document.getElementById(id);
 const STORE='pilehead-online-session-',NAME='pilehead-online-name';
+const deploymentShare=params.get('_vercel_share');
 let room=params.get('room')?.toUpperCase()||'',session=room?localStorage.getItem(STORE+room):null;
 let data=null,busy=false,polling=false,selection=[],swapCard=null,notice='',networkError='',drag=null;
 let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false;
@@ -39,12 +40,12 @@ async function api(payload,auth=session){
  if(!res.ok)throw Error(json.error||'server_error');
  return json;
 }
-function invite(){return location.origin+location.pathname+'?room='+encodeURIComponent(room)}
+function invite(){return location.origin+location.pathname+'?room='+encodeURIComponent(room)+(deploymentShare?'&_vercel_share='+encodeURIComponent(deploymentShare):'')}
 function storeName(value){try{localStorage.setItem(NAME,value)}catch{}}
 function updateState(next){
  if(!next||!next.ok)return;
  if(next.session){session=next.session;localStorage.setItem(STORE+next.code,session)}
- if(room!==next.code){room=next.code;history.replaceState(null,'',location.pathname+'?room='+encodeURIComponent(room))}
+ if(room!==next.code){room=next.code;history.replaceState(null,'',location.pathname+'?room='+encodeURIComponent(room)+(deploymentShare?'&_vercel_share='+encodeURIComponent(deploymentShare):''))}
  if(data&&next.revision!==data.revision){selection=[];swapCard=null}
  data=next;lastRevision=data.revision;networkError='';render();
 }
