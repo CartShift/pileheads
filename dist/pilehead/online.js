@@ -148,7 +148,7 @@ function playView(){
   '<div class="hand-area"><div class="area-label"><span>YOUR HAND</span><span>'+p.handCount+' cards</span></div>'+
   '<div class="card-row hand">'+(p.hand?.length?p.hand.map(c=>card(c,{can:can&&source==='hand',source:'hand',selected:selection.includes(c.id)})).join(''):
   '<span style="font-size:12px;color:#b8cfba">No cards in hand</span>')+'</div></div></section>'+
-  '<div class="toolbar"><button class="action primary" data-do="play" '+(!legal||busy?'disabled':'')+'>Place cards</button>'+
+  '<div class="toolbar"><button class="action primary" data-do="play" '+(!legal||busy?'disabled':'')+'>Place '+(selection.length?selection.length+' card'+(selection.length>1?'s':''):'cards')+'</button>'+
   '<button class="action secondary" data-do="take" '+(!can||!g.legal.some(x=>x.type==='take')||busy?'disabled':'')+'>Take pile</button>'+
   '<button class="action slam" data-do="slam" '+(!canSlam||busy?'disabled':'')+'>SLAM!'+(canSlam?' Ready':'')+'</button></div>'+
   '<div class="message" role="status" aria-live="polite">'+safe(notice||'Choose matching numbers or identical actions, then place them on the pile.')+'</div>'+
@@ -199,6 +199,7 @@ async function selectCard(c){
   if(previous.length&&!previous.every(x=>sameFace(x,card)))selection=[];
   selection.push(c.id);
  }
+ if(selection.includes(c.id)){try{navigator.vibrate?.(8)}catch{}}
  render();
 }
 root.addEventListener('click',async e=>{
