@@ -3,6 +3,8 @@
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
 const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11';
 let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null;
+function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
+ (a.kind==='number'?a.rank===b.rank:a.action===b.action)}
 function playerName(i){return mode==='bots'?(i===0?'You':'Bot '+i):'Player '+(i+1)}
 function viewSeat(){return mode==='bots'?0:g?.turn??0}
 function getPlayer(){return g.people[viewSeat()]}
@@ -156,8 +158,7 @@ function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat()
  if(!E.isLegal(g,picked)){notice='Not playable with the current restriction';render();return}
  if(selection.includes(id))selection=selection.filter(x=>x!==id);
  else{const prior=selection.map(i=>arr.find(c=>c.id===i)).filter(Boolean);
-  if(prior.length&&!prior.every(c=>c.kind===picked.kind&&
-   (picked.kind==='number'?c.rank===picked.rank:c.action===picked.action)))selection=[];
+  if(prior.length&&!prior.every(c=>sameFace(c,picked)))selection=[];
   selection.push(id);
  }
  notice='';render();
@@ -231,7 +232,14 @@ window.addEventListener('pointermove',e=>{
  if(d.scrolling){e.preventDefault();d.row.scrollLeft=d.startScroll-dx;return}
  if(d.dragging&&!d.el){const b=app.querySelector('[data-card="'+d.id+'"]');if(!b)return;
   d.el=b.cloneNode(true);d.el.classList.add('card-ghost');document.body.appendChild(d.el);
-  if(!selection.includes(d.id))selection=[d.id];
+  if(!selection.includes(d.id)){
+   const cards=getPlayer()[d.source],picked=cards.find(c=>c.id===d.id);
+   const group=selection.map(id=>cards.find(c=>c.id===id)).filter(Boolean);
+   if(!picked||!group.length||!group.every(c=>sameFace(c,picked)))selection=[d.id];
+   else selection.push(d.id);
+  }
+  if(selection.length>1){const badge=document.createElement('span');
+   badge.className='drag-count';badge.textContent=selection.length+' cards';d.el.appendChild(badge)}
  }
  if(d.dragging&&d.el){e.preventDefault();d.el.style.left=e.clientX+'px';d.el.style.top=e.clientY+'px';
   const to=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-play-target]');
