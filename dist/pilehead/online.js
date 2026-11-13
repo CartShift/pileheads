@@ -226,6 +226,40 @@ root.addEventListener('dragstart',e=>{
 root.addEventListener('dragover',e=>{if(drag&&e.target.closest('[data-play-target]'))e.preventDefault()});
 root.addEventListener('drop',e=>{if(!drag||!e.target.closest('[data-play-target]'))return;e.preventDefault();drag=null;play()});
 root.addEventListener('dragend',()=>drag=null);
+
+/* Physical gesture support on phones: lift a card, drag it, release on pile. */
+let touchGesture=null,ignoreNextClick=false;
+root.addEventListener('click',e=>{if(ignoreNextClick){e.preventDefault();e.stopImmediatePropagation();ignoreNextClick=false}},true);
+root.addEventListener('pointerdown',e=>{
+ if(e.pointerType==='mouse'||!active()||busy||data.game.phase!=='play')return;
+ const b=e.target.closest('[data-card]');if(!b)return;
+ touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,moving:false,ghost:null};
+});
+root.addEventListener('pointermove',e=>{
+ const t=touchGesture;if(!t||e.pointerType==='mouse')return;
+ if(!t.moving&&Math.hypot(e.clientX-t.x,e.clientY-t.y)>12){
+  t.moving=true;const b=root.querySelector('[data-card="'+t.id+'"]');
+  if(!b)return;t.ghost=b.cloneNode(true);t.ghost.classList.add('card-ghost');document.body.appendChild(t.ghost);
+  if(!selection.includes(t.id))selection=[t.id];
+ }
+ if(t.moving&&t.ghost){
+  e.preventDefault();t.ghost.style.left=e.clientX+'px';t.ghost.style.top=e.clientY+'px';
+  const zone=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-play-target]');
+  root.querySelector('[data-play-target]')?.classList.toggle('drop-hover',!!zone);
+ }
+},{passive:false});
+root.addEventListener('pointerup',e=>{
+ const t=touchGesture;if(!t)return;touchGesture=null;
+ const zone=t.moving?document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-play-target]'):null;
+ t.ghost?.remove();root.querySelector('[data-play-target]')?.classList.remove('drop-hover');
+ if(!t.moving)return;
+ ignoreNextClick=true;setTimeout(()=>ignoreNextClick=false,350);
+ if(zone&&active()&&stageNow()===t.source){selection=[t.id];play()}
+});
+root.addEventListener('pointercancel',()=>{
+ touchGesture?.ghost?.remove();touchGesture=null;root.querySelector('[data-play-target]')?.classList.remove('drop-hover');
+});
+
 function startPolling(){
  if(pollTimer)return;pollTimer=setInterval(()=>{
   if(document.visibilityState!=='hidden'&&!busy&&session&&data)refresh(true);
