@@ -11,17 +11,16 @@ const safeSessionSave=(key,value)=>{try{localStorage.setItem(key,value)}catch{}}
 let room=params.get('room')?.toUpperCase()||'',session=room?safeSessionRead(STORE+room):null;
 let data=null,busy=false,polling=false,selection=[],swapCard=null,notice='',networkError='',drag=null;
 let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false;
-const symbols={reset:'↺',ghost:'◇',under:'↓4',skip:'Ⅱ',dump:'⇢'};
+const A=globalThis.PileheadCardArt;const symbols=A.glyph;
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function label(c){return c.kind==='action'?c.action.toUpperCase():String(c.rank)}
 function card(c,opts={}){
- if(opts.back)return '<button class="card back'+(opts.can?' playable':'')+'" '+(opts.can?'data-blind="'+opts.index+'"':'disabled')+
-  ' aria-label="Flip one face-down card"><span class="value">◆</span></button>';
- const a=c.kind==='action';
- return '<button class="card '+(a?'action-card ':'')+(opts.can?'playable ':'')+(opts.selected?'selected':'')+
-  '" '+(a?'data-action="'+c.action+'" ':'')+(opts.can?'data-card="'+c.id+'" data-source="'+opts.source+'" draggable="true"':'disabled')+
-  ' aria-label="'+safe(a?c.action+' action':'Number '+c.rank)+'" aria-pressed="'+Boolean(opts.selected)+'">'+
-  '<span class="mark">PILEHEAD</span><span class="value">'+(a?symbols[c.action]:c.rank)+'</span><span class="foot">'+safe(label(c))+'</span></button>';
+ if(opts.back)return '<button type="button" class="card back ph-card ph-back'+(opts.can?' playable':'')+'" '+
+  (opts.can?'data-blind="'+opts.index+'"':'disabled')+' aria-label="Flip one face-down card">'+A.back()+'</button>';
+ const action=c.kind==='action';
+ return '<button type="button" class="card ph-card '+(action?'ph-action action-card ':'ph-number ')+(opts.can?'playable ':'')+(opts.selected?'selected':'')+
+  '" '+(action?'data-action="'+c.action+'" ':'')+(opts.can?'data-card="'+c.id+'" data-source="'+opts.source+'" draggable="true"':'disabled')+
+  ' aria-label="'+safe(action?c.action.toUpperCase()+' action: '+A.rules[c.action]:'Number '+c.rank)+'" aria-pressed="'+Boolean(opts.selected)+'">'+A.face(c)+'</button>';
 }
 function setMessage(e){const map={
  online_not_configured:'Online games need the room database connection to be configured on Vercel.',
@@ -91,12 +90,12 @@ function opponentCards(){const g=data.game;
   (g.turn===p.seat&&g.phase==='play'?'current ':'')+(p.out?'finished':'')+'"><strong>'+safe(displayName(p.seat))+
   (g.turn===p.seat&&g.phase==='play'?' · TURN':'')+(p.out?' · OUT':'')+'</strong><small>'+p.handCount+
   ' in hand · '+p.up.length+' up · '+p.downCount+' blind</small><div class="held-cards" aria-label="Opponent holds '+p.handCount+' private cards">'+Array.from({length:Math.min(p.handCount,8)},(_,i)=>'<span class="held-back" aria-hidden="true" style="--hold-angle:'+((i-(Math.min(p.handCount,8)-1)/2)*5)+'deg"></span>').join('')+'</div><div class="mini-cards">'+
-  p.up.map(c=>'<span class="mini">'+safe(c.kind==='action'?symbols[c.action]:c.rank)+'</span>').join('')+
-  Array.from({length:p.downCount},()=>'<span class="mini back">◆</span>').join('')+'</div></div>').join('')+'</div>';
+  p.up.map(c=>A.mini(c)).join('')+
+  Array.from({length:p.downCount},()=>A.mini(null)).join('')+'</div></div>').join('')+'</div>';
 }
 function stack(){const g=data.game,a=g.pile.slice(-4);
  return '<div class="table-center"><div class="stack"><div class="stack-label">DRAW</div><div class="pile-card">'+
-  (g.stockCount?'<div class="card back" style="pointer-events:none"><span class="value">◆</span></div>':'<div class="placeholder">EMPTY</div>')+
+  (g.stockCount?'<div class="card back ph-card ph-back" style="pointer-events:none">'+A.back()+'</div>':'<div class="placeholder">EMPTY</div>')+
   '</div><div class="stack-count">'+g.stockCount+' cards</div></div><div class="stack play-drop" data-play-target="pile" role="button" tabindex="0" aria-label="Play selected cards on the pile">'+
   '<div class="stack-label">THE PILE</div><div class="pile-card">'+
   (a.length?a.map((c,i)=>'<div class="card-wrap" style="--offset:'+((i-(a.length-1)/2)*8)+'px;--angle:'+((i-(a.length-1)/2)*5)+'deg">'+card(c)+'</div>').join(''):'<div class="placeholder">CLEAR</div>')+
