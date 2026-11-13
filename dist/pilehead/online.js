@@ -6,7 +6,9 @@ const root=document.getElementById('app');
 const $=id=>document.getElementById(id);
 const STORE='pilehead-online-session-',NAME='pilehead-online-name';
 const deploymentShare=params.get('_vercel_share');
-let room=params.get('room')?.toUpperCase()||'',session=room?localStorage.getItem(STORE+room):null;
+const safeSessionRead=key=>{try{return localStorage.getItem(key)}catch{return null}};
+const safeSessionSave=(key,value)=>{try{localStorage.setItem(key,value)}catch{}};
+let room=params.get('room')?.toUpperCase()||'',session=room?safeSessionRead(STORE+room):null;
 let data=null,busy=false,polling=false,selection=[],swapCard=null,notice='',networkError='',drag=null;
 let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false;
 const symbols={reset:'↺',ghost:'◇',under:'↓4',skip:'Ⅱ',dump:'⇢'};
@@ -44,7 +46,7 @@ function invite(){return location.origin+location.pathname+'?room='+encodeURICom
 function storeName(value){try{localStorage.setItem(NAME,value)}catch{}}
 function updateState(next){
  if(!next||!next.ok)return;
- if(next.session){session=next.session;localStorage.setItem(STORE+next.code,session)}
+ if(next.session){session=next.session;safeSessionSave(STORE+next.code,session)}
  if(room!==next.code){room=next.code;history.replaceState(null,'',location.pathname+'?room='+encodeURIComponent(room)+(deploymentShare?'&_vercel_share='+encodeURIComponent(deploymentShare):''))}
  if(data&&next.revision!==data.revision){selection=[];swapCard=null}
  data=next;lastRevision=data.revision;networkError='';render();
@@ -153,7 +155,7 @@ function playView(){
   '<div class="event-list">'+events()+'</div>';
 }
 function welcome(){
- const nick=safe(localStorage.getItem(NAME)||'');
+ const nick=safe(safeSessionRead(NAME)||'');
  if(room)return '<section class="setup panel"><div class="eyebrow">PILEHEAD · INVITED TABLE</div><h2>Take your seat</h2>'+
   '<p>Room <strong>'+safe(room)+'</strong>. Only your own hand will be visible. No account required.</p>'+
   '<label>Your name<input id="online-name" maxlength="24" autocomplete="nickname" value="'+nick+'" placeholder="Player name"></label>'+
@@ -161,7 +163,7 @@ function welcome(){
  return '<section class="setup panel"><div class="eyebrow">PILEHEAD · REAL PLAYERS</div><h2>A real table, wherever your friends are.</h2>'+
   '<p>Create a private room, send the link, and play together. Everyone gets their own secret hand. SLAM works even during someone else’s turn.</p>'+
   '<div class="fields"><label>Your name<input id="online-name" maxlength="24" autocomplete="nickname" value="'+nick+'" placeholder="Player name"></label>'+
-  '<label>Seats<select id="online-seats">'+[2,3,4,5].map(n=>'<option value="'+n+'" '+(n===4?'selected':'')+'>'+n+' players</option>').join('')+'</select></label></div>'+
+  '<label>Seats<select id="online-seats">'+[2,3,4,5].map(n=>'<option value="'+n+'" '+(n===2?'selected':'')+'>'+n+' players</option>').join('')+'</select></label></div>'+
   '<button class="action primary" data-do="create">Create online room</button>'+
   '<p class="small">Rooms last for 24 hours. No sign-in required; keep this browser to retain your seat.</p></section>';
 }
@@ -206,7 +208,7 @@ root.addEventListener('click',async e=>{
  if(action==='create'||action==='join'){
   const nick=$('online-name')?.value?.trim();if(!nick){notice='Enter your name to join.';render();return}
   storeName(nick);notice='';
-  const opts=action==='create'?{capacity:Number($('online-seats')?.value||4),name:nick}:{code:room,name:nick};
+  const opts=action==='create'?{capacity:Number($('online-seats')?.value||2),name:nick}:{code:room,name:nick};
   await doAction({action,...opts});return;
  }
  if(action==='start')await command('start');
