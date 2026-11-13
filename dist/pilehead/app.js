@@ -10,7 +10,9 @@ function currentStage(){return E.stage(g,viewSeat())}
 function isTurn(){return g.phase==='play'&&g.turn===viewSeat()}
 function save(){try{localStorage.setItem(KEY,JSON.stringify({g,mode,seats,setupSeat,covered,notice,lastMove}))}catch(e){console.warn('Save unavailable',e)}}
 function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
- if(!x||x.g?.version!==E.VERSION||!['bots','hotseat'].includes(x.mode))return false;
+ if(!x||!['pilehead-1.1.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
+ // Same state schema and physical deck; migrate saved games without wiping the hand.
+ x.g.version=E.VERSION;
  E.invariant(x.g);g=x.g;mode=x.mode;seats=x.seats;setupSeat=x.setupSeat??0;
  covered=mode==='hotseat'&&g.phase!=='over';challengeOpen=false;notice=x.notice||'';lastMove=x.lastMove||null;return true;
  }catch{return false}}
@@ -53,7 +55,7 @@ function eventName(e){const who=playerName(e.seat);if(e.type==='take')return who
  if(e.action==='dump')return who+' used DUMP: '+playerName(e.target)+' took '+e.takenCount+' cards; '+who+' plays again';
  if(e.reason==='slam')return who+' SLAM! Burned the pile';
  if(e.burned)return who+' burned the pile';
- if(e.action)return who+' used '+e.action.toUpperCase();
+ if(e.action)return who+' played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase();
  return who+' played '+e.count+' × '+e.rank}
 function setupView(){if(!g)return '<section class="setup panel"><div class="eyebrow">One deck. One pile. Last player loses.</div>'+
  '<h2>Welcome to PILEHEAD</h2><p>A standalone Shithead-inspired card game with independent action cards, three layers and out-of-turn SLAM burns. The physical rules are identical for humans and bots.</p>'+
@@ -83,8 +85,8 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  '<button class="action secondary" data-do="take" '+(!turn||!pick?'disabled':'')+'>Take pile</button>'+
  '<button class="action slam" data-do="slam" '+(!slams.length?'disabled':'')+'>SLAM!'+(slams.length&&top.rank!==null?' ×'+top.rank:'')+'</button>')+
  (mode==='hotseat'&&g.phase==='play'&&g.slamOpen?'<button class="action secondary" data-do="challenge">Other player SLAM</button>':'')+
- '<button class="action secondary" data-do="export">Export QA state</button></div>'+
- '<div class="message" role="status" aria-live="polite">'+(notice||'Select matching cards to play together. Watch for four of a kind!')+'</div>'+
+ '</div><details class="playtest-tools"><summary>Playtest tools</summary><button class="action secondary" data-do="export">Export QA state</button></details>'+
+ '<div class="message" role="status" aria-live="polite">'+(notice||'Tap matching numbers or identical special cards to play together. Drag onto the pile.')+'</div>'+
  '<div class="meta"><span>Moves <strong>'+g.moves+'</strong></span><span>Draw stock <strong>'+g.stock.length+'</strong></span>'+
  '<span>Burned <strong>'+g.ashes.length+'</strong></span><span>Pickups <strong>'+g.people.reduce((n,x)=>n+x.pickups,0)+'</strong></span></div>'+
  '<div class="event-list" aria-label="Recent moves">'+g.events.slice(-8).reverse().map(e=>'<span class="event">'+eventName(e)+'</span>').join('')+'</div>';
@@ -154,7 +156,8 @@ function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat()
  if(!E.isLegal(g,picked)){notice='Not playable with the current restriction';render();return}
  if(selection.includes(id))selection=selection.filter(x=>x!==id);
  else{const prior=selection.map(i=>arr.find(c=>c.id===i)).filter(Boolean);
-  if(prior.length&&(!prior.every(c=>c.kind==='number'&&picked.kind==='number'&&c.rank===picked.rank)))selection=[];
+  if(prior.length&&!prior.every(c=>c.kind===picked.kind&&
+   (picked.kind==='number'?c.rank===picked.rank:c.action===picked.action)))selection=[];
   selection.push(id);
  }
  notice='';render();
