@@ -1,7 +1,7 @@
 /* PILEHEAD physical playtest UI. No SPARK or TILT persistence keys touched. */
 (function(){'use strict';
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
-const E=globalThis.PileheadEngine,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11';
+const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11';
 let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null;
 function playerName(i){return mode==='bots'?(i===0?'You':'Bot '+i):'Player '+(i+1)}
 function viewSeat(){return mode==='bots'?0:g?.turn??0}
@@ -15,18 +15,17 @@ function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
  covered=mode==='hotseat'&&g.phase!=='over';challengeOpen=false;notice=x.notice||'';lastMove=x.lastMove||null;return true;
  }catch{return false}}
 function card(c,{interactive=false,selected=false,back=false,source='',small=false}={}){
- if(back)return '<button type="button" class="card back" '+(interactive?'draggable="true" data-card="'+c.id+'" data-source="'+source+'"':'disabled')+' aria-label="Flip face-down card"><span class="value">◆</span></button>';
- const action=c.kind==='action',rank=action?({reset:'↺',ghost:'◇',under:'↓4',skip:'Ⅱ',dump:'⇢'}[c.action]):String(c.rank);
- const name=action?c.action.toUpperCase():String(c.rank);
- return '<button type="button" class="card '+(action?'action-card ':'')+(interactive?'playable ':'')+(selected?'selected':'')+
-  '" '+(action?'data-action="'+c.action+'" ':'')+(interactive?'data-card="'+c.id+'" data-source="'+source+'"':'disabled')+
-  ' aria-label="'+(action?name+' action':'Number '+c.rank)+'" aria-pressed="'+Boolean(selected)+'">'+
-  '<span class="mark">PILEHEAD</span><span class="value">'+rank+'</span><span class="foot">'+name+'</span></button>';
+ if(back)return '<button type="button" class="card back ph-card ph-back" '+(interactive?'draggable="true" data-card="'+c.id+'" data-source="'+source+'"':'disabled')+
+  ' aria-label="Flip face-down card">'+A.back()+'</button>';
+ const action=c.kind==='action',name=action?c.action.toUpperCase():String(c.rank);
+ return '<button type="button" class="card ph-card '+(action?'ph-action action-card ':'ph-number ')+(interactive?'playable ':'')+(selected?'selected':'')+
+  '" '+(action?'data-action="'+c.action+'" ':'')+(interactive?'draggable="true" data-card="'+c.id+'" data-source="'+source+'"':'disabled')+
+  ' aria-label="'+(action?name+' action: '+A.rules[c.action]:'Number '+c.rank)+'" aria-pressed="'+Boolean(selected)+'">'+A.face(c)+'</button>';
 }
 function rowCards(cards,source,interact=false){return '<div class="card-row '+(source==='hand'?'hand':'')+'">'+
  cards.map(c=>card(c,{interactive:interact,selected:selection.includes(c.id),source})).join('')+
  (!cards.length?'<span style="font-size:12px;color:#a8c4b4">No cards left</span>':'')+'</div>'}
-function mini(c){return '<span class="mini'+(!c?' back':'')+'">'+(c?(c.kind==='number'?c.rank:({dump:'⇢',reset:'↺',ghost:'◇',under:'↓',skip:'Ⅱ'}[c.action])):'◆')+'</span>'}
+function mini(c){return A.mini(c)}
 function opponents(){return '<div class="opponents">'+g.people.filter(p=>p.seat!==viewSeat()).map(p=>{
  const isCurrent=g.turn===p.seat&&g.phase==='play';
  return '<div class="opponent '+(isCurrent?'current ':'')+(p.out?'finished':'')+'" data-seat="'+p.seat+'"><strong>'+
@@ -34,7 +33,7 @@ function opponents(){return '<div class="opponents">'+g.people.filter(p=>p.seat!
  ' in hand · '+p.up.length+' up · '+p.down.length+' blind</small><div class="held-cards" aria-label="Opponent holds '+p.hand.length+' private cards">'+Array.from({length:Math.min(p.hand.length,8)},(_,i)=>'<span class="held-back" aria-hidden="true" style="--hold-angle:'+((i-(Math.min(p.hand.length,8)-1)/2)*5)+'deg"></span>').join('')+'</div><div class="mini-cards">'+
  p.up.map(mini).join('')+p.down.slice(0,3).map(()=>mini(null)).join('')+'</div></div>'}).join('')+'</div>'}
 function pile(){const top=E.topRun(g),a=g.pile.slice(-4);return '<div class="table-center"><div class="stack">'+
- '<div class="stack-label">DRAW</div><div class="pile-card">'+(g.stock.length?'<div class="card back" style="pointer-events:none"><span class="value">◆</span></div>':'<div class="placeholder">EMPTY</div>')+'</div>'+
+ '<div class="stack-label">DRAW</div><div class="pile-card">'+(g.stock.length?'<div class="card back ph-card ph-back" style="pointer-events:none">'+A.back()+'</div>':'<div class="placeholder">EMPTY</div>')+'</div>'+
  '<div class="stack-count">'+g.stock.length+' cards</div></div><div class="stack" data-play-target="pile" role="button" tabindex="0" aria-label="Play selected cards on the pile"><div class="stack-label">THE PILE</div>'+
  '<div class="pile-card">'+(a.length?a.map((c,i)=>'<div class="card-wrap" style="--offset:'+((i-(a.length-1)/2)*8)+
  'px;--angle:'+((i-(a.length-1)/2)*5)+'deg">'+card(c)+'</div>').join(''):'<div class="placeholder">CLEAR</div>')+
@@ -45,7 +44,7 @@ function pile(){const top=E.topRun(g),a=g.pile.slice(-4);return '<div class="tab
 function upAndDown(p,allow){return '<div class="zone your-up"><div class="area-label"><span>FACE UP · '+p.up.length+'</span><span>BLIND · '+p.down.length+'</span></div>'+
  '<div class="card-row">'+Array.from({length:Math.max(p.up.length,p.down.length)},(_,i)=>{
   const u=p.up[i],d=p.down[i],canUp=allow&&currentStage()==='up',canDown=allow&&currentStage()==='down';
-  if(u)return '<div class="up-pair">'+(d?'<div class="card back"><span class="value">◆</span></div>':'')+
+  if(u)return '<div class="up-pair">'+(d?'<div class="card back ph-card ph-back">'+A.back()+'</div>':'')+
    card(u,{interactive:canUp,selected:selection.includes(u.id),source:'up'})+'</div>';
   return d?card(d,{back:true,interactive:canDown,source:'down'}):'';
  }).join('')+'</div></div>'}
