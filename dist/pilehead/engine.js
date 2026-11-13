@@ -143,6 +143,9 @@ function choose(g,seat,style='greedy'){
   const c=p[o.source].find(x=>x.id===o.ids[0]);
   if(c.kind==='number'){
    let v=70-c.rank*2+o.ids.length*6;
+   // Avoid deterministic hand/pile ping-pong loops without looking at opponents' hidden cards.
+   const recent=g.events.slice(-24).filter(e=>e.seat===seat&&e.reason==='number'&&e.rank===c.rank).length;
+   v-=recent*16;
    if(g.pile.length&&topRun(g).rank===c.rank&&topRun(g).count+o.ids.length>=4)v+=100;
    if(style==='saver')v+=c.rank*3;
    return v;
