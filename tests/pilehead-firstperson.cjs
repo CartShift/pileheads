@@ -18,7 +18,7 @@ let checks=0;
 function check(name,fn){fn();checks++;console.log('PASS '+name)}
 check('new style and FX scripts load before both renderers',()=>{
  assert.match(html,/href="immersive\.css"/);
- assert.match(html,/<script src="engine\.js"><\/script><script src="immersive\.js"><\/script><script src="app\.js"><\/script><script src="online\.js"><\/script>/);
+ assert.match(html,/<script src="engine\.js"><\/script><script src="deck-art\.js"><\/script><script src="immersive\.js"><\/script><script src="app\.js"><\/script><script src="online\.js"><\/script>/);
 });
 check('first-person seat layout and physical rendering rules are present',()=>{
  assert.match(css,/body\.pilehead-playing \.table\s*\{[^}]*display:grid/s);
