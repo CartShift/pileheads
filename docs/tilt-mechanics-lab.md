@@ -16,10 +16,12 @@ All gameplay in this experiment is under `dist/tilt-lab/`, with `engine.js` expo
 
 Source files:
 - `index.html`: physical-table presentation and responsive screen
-- `app.js`: human lift/place, opponent hands, turn handoff, browser-local saves
+- `app.js`: human lift/place, opponent hands, private turn handoff, random new shuffles, browser-local saves and research notebook controls
+- `playtest.js`: aggregated completed-game observations with explicit human/bot labels and optional feedback; no private-card storage
 - `engine.js`: deterministic state machine, legal moves, bots, seeded simulation and 48-card conservation
 - `print.html`: six A4 sheets for the 48 cards plus one A4 rules sheet
-- `tests/tilt-mechanics-lab.cjs`: offline regression suite, manual invocation; no new CI workflows
+- `tests/tilt-mechanics-lab.cjs`: offline mechanics regression suite, manual invocation; no new CI workflows
+- `tests/tilt-playtest.cjs`: playtest privacy, export, notes and duplicate prevention tests
 
 ## Shared printed pack
 
@@ -31,9 +33,9 @@ Exactly 48 numbered cards: ranks 1–8, three copies each of ↑ and ↓ at ever
 
 - Lay one legal card upright. On a match with the previous top, burn the whole pile and finish your turn.
 - Otherwise choose:
-  - **CONTROL:** stop and choose the direction (↑ / ↓) for the card you just played, physically rotating that card if needed. The number is unchanged.
-  - **CHAIN:** add one or two more cards, laid sideways, each of which must be legal relative to the previous arrow and must change rank from the preceding card. You may stop after adding the first sideways card. You cannot rotate the final arrow once you pressed.
-- The next player gets a single counter window before normal play. A counter uses one card matching the rank of *any* sideways card; the counter card burns; the challenger takes the top two or three cards from the pile, according to the length of the chain; all earlier cards in that pile burn. The counter consumes the responder's turn. If declined or unavailable, the responder continues with a normal turn from the last sideways card.
+  - **CONTROL:** stop and choose the direction (↑ / ↓) for the card you just played, physically rotating that card by 180° if needed. The rank is printed twice in opposite orientations, so it remains readable.
+  - **CHAIN:** add one or two more cards, shifted right about 1cm **without rotating them**. Every arrow remains vertical/readable, each card must be legal relative to the previous arrow and must change rank from the preceding card. You may stop after adding the first sideways card. You cannot rotate the final arrow once you pressed.
+- The next player gets a single counter window before normal play. A counter uses one card matching the rank of *any* shifted card; the counter card burns; the challenger takes the top two or three cards from the pile, according to the length of the chain; all earlier cards in that pile burn. The counter consumes the responder's turn. If declined or unavailable, the responder continues with a normal turn from the last sideways card.
 - A player with no legal card exchanges a chosen card from hand for the pile top; their surrendered hand card burns. This guarantees eventual card removal.
 - Crucial win rule: a player ending on their final card with a chain must survive the next player's response before being awarded the win.
 
@@ -67,6 +69,28 @@ Deterministic heuristic bots exercise legal actions, not human choice quality. *
 These statistics include staged engine actions and are **not playtime estimates**. Both bot policies and design choices can significantly change the numbers. No fair-skill or preference study has been performed.
 
 Notably, the very first TWIN PILES version's pickup mechanic had 25/1,200 time-limit draws in the 3-player test. The forced exchange-and-burn revision eliminated all observed stalls in the subsequent 9,000 runs. Do not revert this without a replacement that guarantees progress.
+
+### The real decision measurement
+
+The engine now counts **choice opportunities at the moment of action**, separately from automatic dramatic effects:
+
+- `pressOffers`, `pressChosen`, `pressDeclined`: when CHAIN had a legal opportunity to extend after the first card, was it taken or deliberately declined?
+- `controlFlips`: in CHAIN, how often did a safe STOP change the printed direction?
+- `twinLaneOffers`: when could the player legally use either pile?
+- `collisionOffers`, `collisionDeclined`: when was a collision actually available and did the player avoid it?
+
+A 1,000-game-per-size diagnostic with the original greedy collision bot chose collision **100% of the times a collision was legal** across 2, 3 and 4 players. This is a warning, not proof of a dominated choice: heuristic bots optimize for immediate clearing and a free discard, not human foresight. Human playtests must observe whether TWIN has any genuine trade-off.
+
+### Local playtest diary and replay controls
+
+The collapsed `Playtest notebook` on the lab page saves **one observation per completed game**, labeled `human-hotseat` or `mixed-human-bots`. Optional post-game notes and replay observations are self-reported; users can export them as JSON or clear them locally. The export contains aggregate counters and feedback only, never hands, stock order, per-card play logs or other private faces. Nothing is uploaded to the server. The default **New game** shuffle changes the seed; manually editing a seed disables shuffling so the deal can be reproduced. The last finished game has a one-click Play Again action.
+
+```
+node tests/tilt-mechanics-lab.cjs
+node tests/tilt-playtest.cjs
+```
+
+Both offline suites passed in a Node-compatible JavaScript harness on this branch (9 mechanics checks including 3,600 completed games, and 5 observation checks); no additional CI was initiated. Browser hardware/touch validation remains outstanding.
 
 ## Blind human test protocol (5+ independent tables)
 
