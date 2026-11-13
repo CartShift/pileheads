@@ -14,7 +14,8 @@
     "test:pilehead-ui": "node tests/pilehead-firstperson.cjs",
     "test:pilehead-art": "node tests/pilehead-deck-art.cjs",
     "test:pilehead-groups": "node tests/pilehead-matching-actions.cjs",
-    "test:pilehead-hand": "node tests/pilehead-hand-ui.cjs"
+    "test:pilehead-hand": "node tests/pilehead-hand-ui.cjs",
+    "test:pilehead-release": "node scripts/pilehead-release-smoke.mjs"
   },
   "engines": {
     "node": "24.x"
