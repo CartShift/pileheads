@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TILT ONE MORE · Print-and-play deck (48 cards)</title>
+<style>
+:root{--ink:#183b32;--red:#ad4b39;--blue:#247795;--edge:#bcad8e}
+*{box-sizing:border-box}body{margin:0;background:#e6e1d8;color:var(--ink);font-family:system-ui,sans-serif}
+nav{padding:18px 24px;display:flex;gap:20px;align-items:center;flex-wrap:wrap;background:#fffbf2}
+nav h1{margin:0;font:900 28px Georgia,serif}nav a{color:var(--ink)}
+nav button{border:0;background:#164d3e;color:white;font-weight:850;padding:12px 18px;border-radius:10px;cursor:pointer}
+nav small{max-width:570px;color:#586f64}
+.sheet{width:210mm;height:297mm;padding:9mm;display:grid;grid-template-columns:repeat(3,61mm);grid-template-rows:repeat(3,86mm);column-gap:4mm;row-gap:5mm;
+ margin:16px auto;background:#fff;page-break-after:always;break-after:page;box-shadow:0 5px 22px #15150d20}
+.card{width:61mm;height:86mm;border:1px dashed #999;position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;
+ padding:5mm;background:#fffdf5;color:var(--ink)}
+.card:before{content:"";position:absolute;inset:2mm;border:1.4mm solid #d3c7af;border-radius:3mm}
+.corner{position:absolute;top:5mm;left:6mm;font:900 12pt system-ui;letter-spacing:.03em}
+.corner.bottom{top:auto;left:auto;right:6mm;bottom:5mm;transform:rotate(180deg)}
+.rank-pair{position:relative;height:67mm;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:1mm 0}
+.rank{font:900 47pt/.95 Georgia,serif;position:relative;color:var(--ink)}
+.rank.lower{transform:rotate(180deg)}
+.arrow{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font:900 39pt/1 system-ui;color:var(--ink)}
+.brand{position:absolute;right:6mm;top:7mm;font:bold 6pt system-ui;letter-spacing:.09em;opacity:.55}
+.instructions{width:210mm;min-height:297mm;padding:16mm;margin:16px auto;background:white;page-break-after:auto;break-after:auto}
+.instructions h1{font:900 28pt Georgia,serif}.instructions h2{font:900 18pt Georgia,serif;margin:7mm 0 2mm}
+.instructions p,.instructions li{font-size:10.3pt;line-height:1.44}.instructions ul{margin:2mm 0 5mm;padding-left:6mm}
+.instructions .intro{background:#f0ebe0;padding:5mm;border-radius:2mm}
+.instructions .columns{display:grid;grid-template-columns:1fr 1fr;gap:9mm}
+@media print{
+ @page{size:A4;margin:0}
+ body{background:white;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ nav{display:none}.sheet,.instructions{margin:0;box-shadow:none}
+ .sheet{page-break-inside:avoid;break-inside:avoid}
+}
+@media screen and (max-width:850px){.sheet,.instructions{transform-origin:top left;max-width:100%;overflow:auto;transform:scale(.6);margin-bottom:-110mm}nav{position:sticky;top:0;z-index:1}.instructions{margin-bottom:-100mm}}
+</style>
+</head>
+<body>
+<nav><h1>TILT. <small>PRINT DECK</small></h1><small>48 physical cards: ranks 1–8, arrows ↑ and ↓, three of each combination. Print at actual size on A4, cut at dashed outlines and put in opaque-backed sleeves. Ranks printed at both ends. One central pile, no manual rotation. No Joker cards.</small><button onclick="window.print()">Print 7 A4 pages</button><a href="index.html">← Return to lab</a></nav>
+<main id="pages"></main>
+<script>
+(function(){
+ const pages=document.getElementById('pages');
+ const cards=[];let id=0;
+ for(let n=1;n<=8;n++)for(let direction of ['up','down'])for(let copy=0;copy<3;copy++)
+  cards.push({n,direction,id:id++});
+ for(let page=0;page<6;page++){
+  const section=document.createElement('section');section.className='sheet';
+  cards.slice(page*9,page*9+9).forEach(c=>{
+   const card=document.createElement('div');card.className='card '+c.direction;
+   const arrow=c.direction==='up'?'↑':'↓';
+   card.innerHTML='<span class="corner">'+c.n+' '+arrow+'</span>'+
+    '<span class="rank-pair"><span class="rank upper">'+c.n+'</span><span class="arrow">'+arrow+'</span><span class="rank lower">'+c.n+'</span></span>'+
+    '<span class="corner bottom">'+c.n+' '+arrow+'</span><span class="brand">TILT · '+String(c.id+1).padStart(2,'0')+'</span>';
+   section.appendChild(card)
+  });pages.appendChild(section);
+ }
+ const instructions=document.createElement('section');instructions.className='instructions';
+ instructions.innerHTML='<h1>TILT. ONE MORE</h1>'+
+ '<p class="intro"><strong>Experimental print-and-play.</strong> One simple experimental game: play a card, then choose whether to risk exactly ONE MORE. Players: 2–4. Deal 4 cards to each player. Remaining cards form the draw stack. Refill your hand to 4 after your turn while the stack lasts. When it is empty, the first player to empty their hand wins. A final ONE MORE bonus must survive the next player's chance to bounce.</p>'+
+ '<div class="columns"><div><h2>ONE MORE IN 3 STEPS</h2><ul>'+
+ '<li>Start one face-up card on the pile. Follow its arrow: ↑ requires equal/higher; ↓ requires equal/lower.</li>'+
+ '<li>Matching the number clears the pile and ends your turn.</li>'+
+ '<li>After a legal non-match, either STOP and end your turn, or play ONE MORE legal card with a different number. Shift the extra card slightly to the right so it remains visible.</li>'+
+ '<li>On their turn, the next player may BOUNCE the extra card by playing a card with exactly the same number (either arrow). The whole pile returns to the attacker. The bounce card goes out, and the bouncing player’s turn ends. Otherwise, they play normally.</li>'+
+ '<li>If you cannot legally play and cannot bounce, trade any card in your hand for the pile’s top card. Your surrendered card leaves the game.</li>'+
+ '</ul></div><div><h2>THE PHYSICAL CARDS</h2><ul>'+
+ '<li>Use only ONE pile. The arrow on the top card is the rule for the next card, not a rule about which card you currently hold.</li>'+
+ '<li>A card of the same number as the previous top clears the entire pile. No ONE MORE bonus after a clear.</li>'+
+ '<li>You do NOT change arrow directions manually and you do NOT make three-card chains.</li>'+
+ '<li>No Joker cards, no score counter, no second pile, no memory of previous turns.</li>'+
+ '<li>Refill to four cards at the end of your turn while the stock remains. After the stock runs out, the first person to play their last card wins, provided any ONE MORE bounce has been resolved.</li>'+
+ '</ul></div></div>'+
+ '<p><strong>Playtest questions:</strong> Did ONE MORE make you want to play again? Was it obvious when to bounce? Which rules still caused hesitation? Never describe the game as retail-ready based on simulation data alone.</p>';
+ pages.appendChild(instructions);
+})();
+</script>
+</body></html>
