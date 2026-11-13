@@ -37,6 +37,13 @@ function controls(){
   }catch{}});nav.appendChild(f)}
 }
 function updateButton(){if(btn){btn.setAttribute('aria-pressed',String(sound));btn.innerHTML='<span class="sound-led" aria-hidden="true"></span> '+(sound?'Sound on':'Sound off')}}
+function handLayout(n,rowWidth,cardWidth,mobile){
+ const budget=Math.max(0,rowWidth-24),maxStep=mobile?54:80,minStep=mobile?28:38;
+ const step=n<=1?cardWidth:Math.min(maxStep,Math.max(minStep,(budget-cardWidth)/(n-1)));
+ const overlap=Math.min(0,Math.round(step-cardWidth));
+ return{overlap,span:n?cardWidth+(n-1)*(cardWidth+overlap):0,
+  fits:!n||cardWidth+(n-1)*(cardWidth+overlap)<=budget+2};
+}
 function fan(table){
  const row=$('.hand-area .card-row.hand',table);if(!row)return;
  const cards=Array.from(row.querySelectorAll(':scope > .card'));
@@ -44,10 +51,7 @@ function fan(table){
  // Measure the *actual available width*, not the viewport. A fitted hand needs
  // no page-level horizontal scrolling; a large pickup remains swipeable inside
  // its own rail, with readable card indices even when partly overlapped.
- const width=cards[0]?.offsetWidth||0,budget=Math.max(0,row.clientWidth-24);
- const maxStep=mobile?54:80,minStep=mobile?28:38;
- const step=n<=1?width:Math.min(maxStep,Math.max(minStep,(budget-width)/(n-1)));
- const overlap=Math.min(0,Math.round(step-width));
+ const width=cards[0]?.offsetWidth||0,{overlap}=handLayout(n,row.clientWidth,width,mobile);
  const spread=Math.min(mobile?12:15,n<=4?6.5:n<=8?3.6:2.1);
  cards.forEach((card,i)=>{
   const r=i-center,ratio=center?Math.abs(r)/center:0;
@@ -190,5 +194,5 @@ function sync({event=null,identity=null,ownSeat=0,active=false,selected=0,moveNo
  if(!seen){seen=true;last=identity;table.classList.add('scene-entering');setTimeout(()=>table.classList.remove('scene-entering'),480);return}
  if(identity!==null&&last!==identity){last=identity;if(event)celebrate(table,event,ownSeat)}
 }
-root.PileheadTableFX={sync};
+root.PileheadTableFX={sync,handLayout};
 })(typeof window!=='undefined'?window:globalThis);
