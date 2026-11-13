@@ -11,6 +11,9 @@ async function query(sql,args=[]){
   const r={code:args[0],capacity:args[1],status:'lobby',state:JSON.parse(args[2]),revision:0,expires_at:new Date(Date.now()+86400000)};
   rooms.set(r.code,r);return []}
  if(sql.startsWith('INSERT INTO pilehead_members')&&sql.includes('SELECT')){
+  // Regression: Neon/Postgres must resolve both references to room-code parameter $1 as the same type.
+  assert.equal((sql.match(/\$1::varchar\(8\)/g)||[]).length,2,'join SQL must cast both room-code references');
+  assert.match(sql,/ON CONFLICT \(code,seat\) DO NOTHING/,'simultaneous join should be conflict-safe');
   const [code,name,token,capacity]=args;const current=members.get(code)||[];
   const seat=Array.from({length:capacity},(_,i)=>i).find(i=>!current.some(m=>m.seat===i));
   if(seat===undefined)return [];current.push({seat,display_name:name,token_hash:token});members.set(code,current);

@@ -40,7 +40,7 @@ async function create(req,b){await quota(req,'create',15);const cap=Number(b.cap
  fail(503,'room_create_failed')}
 async function join(req,b){await quota(req,'join',60);const id=code(b.code),nick=name(b.name),t=secret(),r=await load(id);
  if(r.status!=='lobby')fail(409,'already_started');
- const rows=await query('INSERT INTO pilehead_members(code,seat,display_name,token_hash) SELECT $1,x,$2,$3 FROM generate_series(0,$4::integer-1) x WHERE NOT EXISTS(SELECT 1 FROM pilehead_members m WHERE m.code=$1 AND m.seat=x) ORDER BY x LIMIT 1 RETURNING seat',[id,nick,h(t),r.capacity]);
+ const rows=await query('INSERT INTO pilehead_members(code,seat,display_name,token_hash) SELECT $1::varchar(8),x,$2,$3 FROM generate_series(0,$4::integer-1) x WHERE NOT EXISTS(SELECT 1 FROM pilehead_members m WHERE m.code=$1::varchar(8) AND m.seat=x) ORDER BY x LIMIT 1 ON CONFLICT (code,seat) DO NOTHING RETURNING seat',[id,nick,h(t),r.capacity]);
  if(!rows.length)fail(409,'full');return {...await view(r,Number(rows[0].seat)),session:t}}
 async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!==r.revision)fail(409,'stale_revision');
  const g=structuredClone(r.state);
