@@ -1,0 +1,1 @@
+module.exports=async(req,res)=>{try{const r=await fetch('https://br-super-shape-ba08c6xl-pgtest.compute.c-8.eu-central-1.aws.neon.tech/');const body=(await r.text()).slice(0,500);return res.status(200).json({status:r.status,body})}catch(e){return res.status(200).json({error:String(e.message).slice(0,150)})}}
