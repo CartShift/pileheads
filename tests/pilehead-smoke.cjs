@@ -10,7 +10,7 @@ assert.match(html,/prefers-reduced-motion/);assert.match(html,/href="\.\.\/index
 assert.match(app,/data-card=.*data-source/);assert.match(app,/if\(back\)return/);
 assert.match(app,/Flip face-down card/);assert.match(app,/back:true,interactive:canDown/);
 assert.match(app,/E\.slamOptions/);assert.match(app,/E\.invariant/);
-assert.match(app,/pilehead-playtest-v01/);
+assert.match(app,/pilehead-playtest-v11/);
 assert.match(print,/PILEHEAD/);assert.match(print,/deck=E\.deck\(\)/);
 assert.match(hub,/PILEHEAD ·/);assert.match(hub,/pileheadSimulationView/);
 assert.match(worker,/pilehead\/engine\.js/);assert.match(worker,/PileheadSim\.runSimulation/);
