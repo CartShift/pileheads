@@ -28,16 +28,23 @@ const rules={
  }
 };
 let mode='chain',g=null,selected=null,playAs='bot',botScheduled=false,privacy=false,focused=false;
-let runId='',startedAt=null,selectedRecordId=null,diaryDisplayedId=null;
+let runId='',startedAt=null,selectedRecordId=null,diaryDisplayedId=null,hadBotMoves=false;
 const key=m=>'tilt-mechanics-lab-'+m+'-v1';
 function storageGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function storageSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 function newRunId(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10)}
-function keep(){storageSet(key(mode),JSON.stringify({game:g,playAs,runId,startedAt}));}
-function makeGame(){let seed=Number($('seed').value);if(!Number.isInteger(seed)||seed<0||seed>4294967295)seed=20261113;
+function keep(){storageSet(key(mode),JSON.stringify({game:g,playAs,runId,startedAt,hadBotMoves}));}
+function freshSeed(){
+ if(window.crypto&&typeof window.crypto.getRandomValues==='function'){
+  const bytes=new Uint32Array(1);window.crypto.getRandomValues(bytes);return bytes[0]
+ }
+ return Math.floor(Math.random()*4294967296);
+}
+function makeGame(){let seed=$('shuffleSeed').checked?freshSeed():Number($('seed').value);
+ if(!Number.isInteger(seed)||seed<0||seed>4294967295)seed=20261113;
  const players=Number($('playerCount').value)||2;
  playAs=$('seats').value;g=E.start({mode,players,seed});
- runId=newRunId();startedAt=Date.now();
+ runId=newRunId();startedAt=Date.now();hadBotMoves=false;
  selected=null;privacy=playAs==='hotseat';$('seed').value=String(seed);keep();render();}
 function loadMode(next){
  mode=next;selected=null;privacy=false;
@@ -45,11 +52,12 @@ function loadMode(next){
  if(saved){try{const data=JSON.parse(saved);E.check(data.game);if(data.game.mode!==mode)throw Error('Wrong mode');
   g=data.game;playAs=data.playAs==='hotseat'?'hotseat':'bot';
   runId=typeof data.runId==='string'&&data.runId?data.runId:newRunId();startedAt=Number.isFinite(data.startedAt)?data.startedAt:null;
+  hadBotMoves=Boolean(data.hadBotMoves);
   $('playerCount').value=String(g.people.length);
   $('seats').value=playAs;$('seed').value=String(g.seed);privacy=playAs==='hotseat'&&g.winner===null&&!g.draw;
  }catch(e){makeGame();return}}
  else{makeGame();return}
- if((g.winner!==null||g.draw)&&P){const rec=P.record(localStorage,{game:g,runId,playAs,startedAt});if(rec)selectedRecordId=rec.id}
+ if((g.winner!==null||g.draw)&&P){const rec=P.record(localStorage,{game:g,runId,playAs:hadBotMoves?'bot':playAs,startedAt});if(rec)selectedRecordId=rec.id}
  render();
 }
 function card(c,classes='',extra=''){
@@ -72,7 +80,7 @@ function commit(move){
  let event;
  try{event=E.play(g,move)}catch(err){$('hint').textContent='That card cannot be played there.';return}
  clearSelected();keep();describe(event);
- if(P&&(g.winner!==null||g.draw)){const rec=P.record(localStorage,{game:g,runId,playAs,startedAt});if(rec)selectedRecordId=rec.id}
+ if(P&&(g.winner!==null||g.draw)){const rec=P.record(localStorage,{game:g,runId,playAs:hadBotMoves?'bot':playAs,startedAt});if(rec)selectedRecordId=rec.id}
  if(playAs==='hotseat'&&g.current!==before&&g.winner===null&&!g.draw)privacy=true;render();
 }
 function describe(ev){
@@ -128,8 +136,10 @@ function actionButton(type,label,secondary=false,other=''){
 function setPrompt(){
  const legal=E.legal(g),seat=g.current,botTurn=playAs==='bot'&&seat!==0;
  let title='',hint='',acts='';
- if(g.winner!==null){title='Player '+(g.winner+1)+' wins';hint='The stock is empty and their hand is empty. Start another game to compare a new strategy.'}
- else if(g.draw){title='Time limit reached';hint='The prototype exceeded its safety limit. Try a different seed.'}
+ if(g.winner!==null){title='Player '+(g.winner+1)+' wins';hint='The stock is empty and their hand is empty. Compare the other experiment or play another shuffled game.';
+  acts=actionButton('replay','PLAY AGAIN · NEW SHUFFLE') }
+ else if(g.draw){title='Time limit reached';hint='The prototype exceeded its safety limit. Try a different seed.';
+  acts=actionButton('replay','RETRY WITH NEW SHUFFLE') }
  else if(botTurn){title='Player '+(seat+1)+' is thinking…';hint='Watching the opponent’s real cards is disabled.'}
  else if(mode==='chain'&&g.phase==='extend'){
   if(g.chain.count===1){
@@ -230,8 +240,13 @@ function downloadObservations(){
 function scheduleBot(){
  if(botScheduled||playAs!=='bot'||g.current===0||g.winner!==null||g.draw)return;
  botScheduled=true;
+ const expectedId=runId,expectedGame=g,expectedMode=mode;
  setTimeout(()=>{
-  botScheduled=false;if(playAs!=='bot'||g.current===0||g.winner!==null||g.draw)return;
+  botScheduled=false;
+  // Never let a delayed bot action land in a restarted game or another mechanic.
+  if(expectedId!==runId||expectedGame!==g||expectedMode!==mode){scheduleBot();return}
+  if(playAs!=='bot'||g.current===0||g.winner!==null||g.draw)return;
+  hadBotMoves=true;
   const next=E.bot(g,g.current%3===0?'careful':g.current%2===0?'bold':'mixed');
   commit(next);
  },g.phase==='extend'?260:520);
@@ -259,6 +274,7 @@ $('actions').addEventListener('click',event=>{
  if(type==='stop')move={type:'stop'};
  if(type==='accept')move={type:'accept'};
  if(type==='skipBonus')move={type:'skipBonus'};
+ if(type==='replay'){makeGame();return}
  if(type==='counter'||type==='bonus'){
   const a=getSelectedMove(0);
   if(a&&(type==='counter'?a.type==='counter':a.type==='burnBonus'))move=a;
@@ -268,6 +284,7 @@ $('actions').addEventListener('click',event=>{
 });
 modeButtons.forEach(m=>$('tab-'+m).addEventListener('click',()=>{if(m!==mode)loadMode(m)}));
 $('new').addEventListener('click',()=>{if(g&&g.actions&&g.winner===null&&!g.draw&&!confirm('Replace the current '+rules[mode].title+' game?'))return;makeGame()});
+$('seed').addEventListener('change',()=>{$('shuffleSeed').checked=false});
 $('seats').addEventListener('change',()=>{playAs=$('seats').value;privacy=playAs==='hotseat'&&g.winner===null&&!g.draw;keep();render()});
 $('focus').addEventListener('click',()=>{
  focused=!focused;document.body.classList.toggle('focus',focused);
