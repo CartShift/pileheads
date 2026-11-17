@@ -10,7 +10,7 @@ const safeSessionRead=key=>{try{return localStorage.getItem(key)}catch{return nu
 const safeSessionSave=(key,value)=>{try{localStorage.setItem(key,value)}catch{}};
 let room=params.get('room')?.toUpperCase()||'',session=room?safeSessionRead(STORE+room):null;
 let data=null,busy=false,polling=false,selection=[],swapCard=null,notice='',networkError='',drag=null;
-let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false,sortMode='dealt',endDismissed=false,botTickAt=0;
+let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false,sortMode='dealt',endDismissed=false,botTickAt=0,lastChangeAt=0;
 const A=globalThis.PileheadCardArt;const symbols=A.glyph;
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
@@ -61,6 +61,7 @@ function updateState(next){
  if(!next||!next.ok)return;
  if(next.session){session=next.session;safeSessionSave(STORE+next.code,session)}
  if(room!==next.code){room=next.code;history.replaceState(null,'',location.pathname+'?room='+encodeURIComponent(room)+(deploymentShare?'&_vercel_share='+encodeURIComponent(deploymentShare):''))}
+ if(!data||next.revision!==data.revision)lastChangeAt=Date.now();
  if(data&&next.revision!==data.revision){selection=[];swapCard=null}
  if(data&&next.game?.round!==data.game?.round){endDismissed=false;sortMode='dealt';selection=[];swapCard=null}
  data=next;lastRevision=data.revision;networkError='';render();
@@ -123,8 +124,13 @@ function stack(){const g=data.game,a=g.pile.slice(-4);
   '</div></div><div class="stack"><div class="stack-label">BURNED</div><div class="pile-card"><div class="placeholder">✕</div></div>'+
   '<div class="stack-count">'+g.ashesCount+' removed</div></div></div>';
 }
+function bridgeAvailable(){
+ const p=current(),g=data?.game;
+ return active()&&g.stockCount===0&&p.handCount===1&&p.hand?.[0]?.kind==='number'&&
+  p.up.some(c=>c.kind==='number'&&c.rank===p.hand[0].rank);
+}
 function upDown(){
- const p=current(),stage=stageNow(),upCan=stage==='up'&&active(),blindCan=stage==='down'&&active();
+ const p=current(),stage=stageNow(),upCan=(stage==='up'&&active())||bridgeAvailable(),blindCan=stage==='down'&&active();
  return '<div class="zone your-up"><div class="area-label"><span>FACE UP · '+p.up.length+'</span><span>BLIND · '+p.downCount+'</span></div><div class="card-row">'+
   Array.from({length:Math.max(p.up.length,p.downCount)},(_,i)=>{
    const up=p.up[i],down=i<p.downCount;
@@ -141,8 +147,30 @@ function legalMove(){
   Array.isArray(o.ids)&&o.ids.length===selection.length&&o.ids.every(id=>selection.includes(id)));
  return exact?{type:'play',source,ids:selection.slice()}:null;
 }
+const effectInfo={
+ reset:'RESET lifts the number restriction. Any number can follow.',
+ ghost:'GHOST keeps the previous number restriction in force.',
+ under:'UNDER forces the next number to be 1 through 4.',
+ skip:'SKIP makes the next player miss a turn.',
+ burn:'BURN destroys the entire pile and gives the same player another turn.',
+ dump:'DUMP burns itself and forces the next player to collect the existing pile.'
+};
+function lastEffect(){
+ const e=data?.game?.events?.at(-1);if(!e)return '';
+ let message=e.type==='followup'?'SNAP · '+displayName(e.seat)+' immediately threw a matching drawn '+e.rank+'.':
+ e.reason==='four'||e.reason==='slam'?'FOUR OF A KIND · The entire pile burns.':
+ e.action?effectInfo[e.action]:
+ e.type==='take'||e.type==='blind-fail'?'PICKUP · The pile moves into '+displayName(e.seat)+'’s hand.':
+ e.burned?'BURN · The pile is removed from the table.':
+ 'PLAY · '+displayName(e.seat)+' placed '+e.count+' card'+(e.count===1?'':'s')+'.';
+ if(!message)return '';
+ return '<div class="pilehead-effect-note" role="status" aria-live="polite"><span class="effect-label">'+
+  safe(e.action?e.action.toUpperCase():e.type==='followup'?'SNAP':e.burned?'BURN':'LAST MOVE')+
+  '</span><span>'+safe(message)+'</span></div>';
+}
 function events(){return data.game.events.slice(-7).reverse().map(e=>{
  const n=safe(displayName(e.seat));let s=e.type==='take'?'picked up '+e.count+' cards':e.type==='blind-fail'?'picked up after a blind flip':
+ e.type==='followup'?'SNAP! threw the freshly drawn matching '+e.rank:
  e.action==='dump'?'burned DUMP; '+displayName(e.target)+' took '+e.takenCount+' pile cards':e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
  return '<span class="event">'+n+' '+safe(s)+'</span>';
  }).join('')}
@@ -171,7 +199,8 @@ function tableHUD(){
  return '<div class="pilehead-table-hud '+(active()?'is-my-turn':'')+'" role="status">'+
  '<span class="hud-status"><i class="hud-dot" aria-hidden="true"></i>'+safe(who)+'</span>'+
  '<span class="hud-meta"><span>ROUND '+(g.round||1)+'</span><span>'+layerText+'</span><span>'+g.pile.length+' IN PILE</span>'+
- (g.slam?.length?'<span>SLAM READY</span>':'')+'</span></div>';
+ (g.slam?.length?'<span>SLAM READY</span>':'')+
+ (g.followup?.length?'<span class="hud-snap">SNAP '+g.followup[0].ids.length+' MATCHING CARD'+(g.followup[0].ids.length>1?'S':'')+'</span>':'')+'</span></div>';
 }
 function playView(){
  const p=current(),g=data.game,can=active(),source=stageNow(),legal=legalMove(),canSlam=g.slam?.length>0;
@@ -184,7 +213,10 @@ function playView(){
   '<span style="font-size:12px;color:#b8cfba">No cards in hand</span>')+'</div></div></section>'+
   '<div class="toolbar"><button class="action primary" data-do="play" '+(!legal||busy?'disabled':'')+'>'+(legal&&p.hand?.some(c=>selection.includes(c.id)&&c.action==='burn')?'BURN PILE · '+selection.length:'Place '+(selection.length?selection.length+' card'+(selection.length>1?'s':''):'cards'))+'</button>'+
   '<button class="action secondary" data-do="take" '+(!can||!g.legal.some(x=>x.type==='take')||busy?'disabled':'')+'>Take pile</button>'+
-  '<button class="action slam" data-do="slam" '+(!canSlam||busy?'disabled':'')+'>SLAM!'+(canSlam?' ×'+g.slam[0].ids.length+' NOW':'')+'</button></div>'+
+  '<button class="action slam" data-do="slam" '+(!canSlam||busy?'disabled':'')+'>SLAM!'+(canSlam?' ×'+g.slam[0].ids.length+' NOW':'')+'</button>'+
+ '<button class="action snap" data-do="snap" '+(!g.followup?.length||busy?'disabled':'')+'>SNAP!'+(g.followup?.length?' Throw matching draw':'')+'</button></div>'+
+ (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP: Your last hand card can be played together with the matching face-up cards. Tap either one to select the group.</p>':'')+
+ lastEffect()+
   '<div class="message" role="status" aria-live="polite">'+safe(notice||(selection.length>1?'You have '+selection.length+' matching cards selected. Tap individual cards to remove them, or play all.':'Tap once for all matching cards, tap one to remove it. SLAM interrupts when ready.'))+'</div>'+
   '<div class="meta"><span>Move '+g.moves+'</span><span>Draw '+g.stockCount+'</span><span>Ashes '+g.ashesCount+'</span><span>Synced · rev '+data.revision+'</span></div>'+
   '<div class="event-list">'+events()+'</div>';
@@ -237,9 +269,10 @@ async function selectCard(c){
   const handId=c.source==='hand'?c.id:swapCard.id,upId=c.source==='up'?c.id:swapCard.id;
   swapCard=null;await command('swap',{handId,upId});return;
  }
- if(!active()||c.source!==stageNow())return;
+ const bridge=bridgeAvailable()&&stageNow()==='hand'&&['up','hand'].includes(c.source);
+ if(!active()||(c.source!==stageNow()&&!bridge))return;
  const my=current()[c.source],card=my?.find(x=>x.id===c.id);if(!card)return;
- selectMatching(my,c.id);
+ selectMatching(bridge?[...current().hand,...current().up]:my,c.id);
  if(selection.includes(c.id)){try{navigator.vibrate?.(8)}catch{}}
  render();
 }
@@ -264,6 +297,7 @@ root.addEventListener('click',async e=>{
  if(action==='play')await play();
  if(action==='take')await command('move',{move:{type:'take'}});
  if(action==='slam'){const m=data?.game.slam?.[0];if(m)await command('move',{move:m})}
+ if(action==='snap'){const m=data?.game.followup?.[0];if(m)await command('move',{move:m})}
  if(action==='copy'){try{await navigator.clipboard.writeText(invite());notice='Invite link copied.'}catch{notice='Copy this link: '+invite()}render()}
  if(action==='share'){try{if(navigator.share)await navigator.share({title:'PILEHEAD',url:invite(),text:'Join my PILEHEAD card game'});else await navigator.clipboard.writeText(invite())}catch{}}
 });
@@ -340,7 +374,9 @@ function startPolling(){
   await refresh(true);
   if(busy||polling||!data||data.game.phase!=='play')return;
   const bots=data.game.botSeats||[];
-  if(bots.includes(data.game.turn)&&Date.now()-botTickAt>=1250){
+  // Allow a brief physical reaction window for a freshly drawn matching card.
+  if(data.game.followup?.length&&Date.now()-lastChangeAt<4700)return;
+  if((bots.includes(data.game.turn)||data.game.botFollowupReady)&&Date.now()-botTickAt>=1250){
    botTickAt=Date.now();
    await command('advance');
   }
