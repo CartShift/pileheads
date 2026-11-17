@@ -10,11 +10,23 @@ const safeSessionRead=key=>{try{return localStorage.getItem(key)}catch{return nu
 const safeSessionSave=(key,value)=>{try{localStorage.setItem(key,value)}catch{}};
 let room=params.get('room')?.toUpperCase()||'',session=room?safeSessionRead(STORE+room):null;
 let data=null,busy=false,polling=false,selection=[],swapCard=null,notice='',networkError='',drag=null;
-let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false;
+let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false,sortMode='dealt';
 const A=globalThis.PileheadCardArt;const symbols=A.glyph;
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
  (a.kind==='number'?a.rank===b.rank:a.action===b.action)}
+function orderedHand(cards){
+ const out=cards.slice();if(sortMode==='dealt')return out;
+ const rank=c=>c.kind==='number'?c.rank:11+['reset','ghost','under','skip','burn','dump'].indexOf(c.action);
+ return out.sort((a,b)=>(sortMode==='asc'?1:-1)*(rank(a)-rank(b))||a.id-b.id);
+}
+function selectMatching(cards,id){
+ const picked=cards.find(c=>c.id===id);if(!picked)return;
+ if(selection.includes(id)){selection=selection.filter(x=>x!==id);return}
+ const prior=selection.map(x=>cards.find(c=>c.id===x)).filter(Boolean);
+ selection=prior.length&&prior.every(c=>sameFace(c,picked))?[...selection,id]:
+  cards.filter(c=>sameFace(c,picked)).map(c=>c.id);
+}
 function label(c){return c.kind==='action'?c.action.toUpperCase():String(c.rank)}
 function card(c,opts={}){
  if(opts.back)return '<button type="button" class="card back ph-card ph-back'+(opts.can?' playable':'')+'" '+
@@ -30,7 +42,7 @@ function setMessage(e){const map={
  session_required:'Your saved seat session is missing. Rejoin from your invitation link.',
  not_member:'This browser does not own a seat in this room.',
  invalid_code:'This room link is not valid.',room_not_found:'This room was not found.',
- room_expired:'The room expired after 24 hours.',room_rules_changed:'This room uses an older deck. Create a new game for the updated rules.',full:'The room is full.',
+ room_expired:'The room expired after 24 hours.',room_rules_changed:'This room uses an older deck. Create a new game for the updated rules.',unready_to_swap:'Choose Change cards first.',bad_ready:'Invalid ready status.',full:'The room is full.',
  already_started:'The game already started.',waiting_for_players:'Waiting for everyone to join.',
  stale_revision:'Someone played at the same time. Refreshing the table.',
  rate_limited:'Too many requests from this network. Please try again later.',
@@ -106,11 +118,14 @@ function stack(){const g=data.game,a=g.pile.slice(-4);
   '<div class="stack-count">'+g.ashesCount+' removed</div></div></div>';
 }
 function upDown(){
- const p=current(),l=data.game.phase==='setup',play=data.game.phase==='play',stage=play?stageNow():null;
- const upCan=l||stage==='up',blindCan=stage==='down'&&active();
+ const p=current(),stage=stageNow(),upCan=stage==='up'&&active(),blindCan=stage==='down'&&active();
  return '<div class="zone your-up"><div class="area-label"><span>FACE UP · '+p.up.length+'</span><span>BLIND · '+p.downCount+'</span></div><div class="card-row">'+
-  p.up.map(c=>card(c,{can:upCan&&(l||active()),source:'up',selected:selection.includes(c.id)})).join('')+
-  Array.from({length:p.downCount},(_,i)=>card(null,{back:true,can:blindCan,index:i})).join('')+'</div></div>';
+  Array.from({length:Math.max(p.up.length,p.downCount)},(_,i)=>{
+   const up=p.up[i],down=i<p.downCount;
+   if(up)return '<div class="up-pair">'+(down?'<div class="card back ph-card ph-back" aria-hidden="true">'+A.back()+'</div>':'')+
+    card(up,{can:upCan,source:'up',selected:selection.includes(up.id)})+'</div>';
+   return down?card(null,{back:true,can:blindCan,index:i}):'';
+  }).join('')+'</div></div>';
 }
 function stageNow(){const p=current(),g=data.game;return p.handCount||g.stockCount?'hand':p.up.length?'up':p.downCount?'down':'out'}
 function legalMove(){
@@ -122,22 +137,25 @@ function legalMove(){
 }
 function events(){return data.game.events.slice(-7).reverse().map(e=>{
  const n=safe(displayName(e.seat));let s=e.type==='take'?'picked up '+e.count+' cards':e.type==='blind-fail'?'picked up after a blind flip':
- e.action==='dump'?'used DUMP; '+displayName(e.target)+' took '+e.takenCount+' cards':e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
+ e.action==='dump'?'burned DUMP; '+displayName(e.target)+' took '+e.takenCount+' pile cards':e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
  return '<span class="event">'+n+' '+safe(s)+'</span>';
  }).join('')}
 function lobby(){
- const joined=data.members.length,me=current();
+ const joined=data.members.length,me=current(),ready=data.game.setupReady||[];
+ const myReady=!!ready[data.me],allReady=joined===data.capacity&&Array.from({length:data.capacity},(_,i)=>ready[i]).every(Boolean);
  return '<section class="setup panel online-lobby"><div class="eyebrow">PRIVATE ONLINE ROOM · '+safe(room)+'</div>'+
   '<h2>Invite your friends to the table</h2><p>Share the room link. Every participant receives a private hand and can reconnect after refreshing.</p>'+
   '<div class="online-code">'+safe(room)+'</div><div class="toolbar"><button class="action primary" data-do="copy">Copy invite link</button>'+
   '<button class="action secondary" data-do="share">Share</button></div>'+
   '<div class="lobby-seats">'+Array.from({length:data.capacity},(_,i)=>'<div class="lobby-seat '+(i<joined?'filled':'')+'">'+
-  '<span>Seat '+(i+1)+'</span><strong>'+safe(displayName(i))+'</strong></div>').join('')+'</div>'+
-  '<p class="small">While waiting, choose your three face-up cards. Tap a hand card, then a face-up card to exchange them.</p>'+
-  '<div class="area-label"><span>FACE-UP CARDS</span></div><div class="card-row">'+me.up.map(c=>card(c,{can:true,source:'up',selected:swapCard?.id===c.id})).join('')+'</div>'+
-  '<div class="area-label"><span>YOUR HAND</span></div><div class="card-row hand">'+me.hand.map(c=>card(c,{can:true,source:'hand',selected:swapCard?.id===c.id})).join('')+'</div>'+
-  (data.host?'<button class="action primary" data-do="start" '+(joined!==data.capacity||busy?'disabled':'')+'>Start game · '+joined+'/'+data.capacity+' ready</button>':
-   '<p class="small">Waiting for the host to start the game…</p>')+'</section>';
+  '<span>Seat '+(i+1)+'</span><strong>'+safe(displayName(i))+'</strong><small>'+(i<joined?(ready[i]?'Ready':'Choosing cards'):'Waiting')+'</small></div>').join('')+'</div>'+
+  '<div class="setup-choice-guide"><strong>Step 1 · Choose your three face-up cards</strong><span>Tap a card in your hand, then tap the face-up card you want to replace. The host cannot start until everyone confirms.</span></div>'+
+  '<div class="area-label"><span>FACE-UP CARDS</span></div><div class="card-row">'+me.up.map(c=>card(c,{can:!myReady,source:'up',selected:swapCard?.id===c.id})).join('')+'</div>'+
+  '<div class="area-label"><span>YOUR HAND</span></div><div class="card-row hand">'+me.hand.map(c=>card(c,{can:!myReady,source:'hand',selected:swapCard?.id===c.id})).join('')+'</div>'+
+  '<div class="setup-ready-controls"><button class="action '+(myReady?'secondary':'primary')+'" data-do="ready" '+(busy?'disabled':'')+'>'+
+  (myReady?'Change cards':'Step 2 · I’m ready')+'</button>'+
+  (data.host?'<button class="action primary" data-do="start" '+(!allReady||busy?'disabled':'')+'>Start game · '+ready.filter(Boolean).length+'/'+data.capacity+' ready</button>':
+  '<span class="small">'+(myReady?'Waiting for the host to start…':'Confirm your cards when ready')+'</span>')+'</div></section>';
 }
 function playView(){
  const p=current(),g=data.game,can=active(),source=stageNow(),legal=legalMove(),canSlam=g.slam?.length>0;
@@ -145,13 +163,13 @@ function playView(){
   '<div class="online-room-tools"><span><span class="online-pulse"></span> Room '+safe(room)+'</span>'+
   '<button class="action secondary" data-do="copy">Copy invitation</button><span>Seat '+(data.me+1)+': '+safe(displayName(data.me))+'</span></div>'+
   '<section class="table" aria-label="Live physical PILEHEAD table">'+opponentCards()+stack()+upDown()+
-  '<div class="hand-area"><div class="area-label"><span>YOUR HAND</span><span>'+p.handCount+' cards</span></div>'+
-  '<div class="card-row hand">'+(p.hand?.length?p.hand.map(c=>card(c,{can:can&&source==='hand',source:'hand',selected:selection.includes(c.id)})).join(''):
+  '<div class="hand-area"><div class="area-label"><span>YOUR HAND · '+p.handCount+' cards</span><button type="button" class="hand-sort-button" data-do="sort" title="Change card order">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></div>'+
+  '<div class="card-row hand">'+(p.hand?.length?orderedHand(p.hand).map(c=>card(c,{can:can&&source==='hand',source:'hand',selected:selection.includes(c.id)})).join(''):
   '<span style="font-size:12px;color:#b8cfba">No cards in hand</span>')+'</div></div></section>'+
   '<div class="toolbar"><button class="action primary" data-do="play" '+(!legal||busy?'disabled':'')+'>Place '+(selection.length?selection.length+' card'+(selection.length>1?'s':''):'cards')+'</button>'+
   '<button class="action secondary" data-do="take" '+(!can||!g.legal.some(x=>x.type==='take')||busy?'disabled':'')+'>Take pile</button>'+
-  '<button class="action slam" data-do="slam" '+(!canSlam||busy?'disabled':'')+'>SLAM!'+(canSlam?' Ready':'')+'</button></div>'+
-  '<div class="message" role="status" aria-live="polite">'+safe(notice||'Choose matching numbers or identical actions, then place them on the pile.')+'</div>'+
+  '<button class="action slam" data-do="slam" '+(!canSlam||busy?'disabled':'')+'>SLAM!'+(canSlam?' ×'+g.slam[0].ids.length+' NOW':'')+'</button></div>'+
+  '<div class="message" role="status" aria-live="polite">'+safe(notice||'Tap once for all matching cards, tap one to remove it. SLAM interrupts when ready.')+'</div>'+
   '<div class="meta"><span>Move '+g.moves+'</span><span>Draw '+g.stockCount+'</span><span>Ashes '+g.ashesCount+'</span><span>Synced · rev '+data.revision+'</span></div>'+
   '<div class="event-list">'+events()+'</div>';
 }
@@ -186,6 +204,7 @@ async function play(){const m=legalMove();if(m)await command('move',{move:m});el
 async function selectCard(c){
  if(!data)return;
  if(data.game.phase==='setup'){
+  if(data.game.setupReady?.[data.me])return;
   if(!swapCard){swapCard=c;selection=[];render();return}
   if(swapCard.source===c.source){swapCard=c;render();return}
   const handId=c.source==='hand'?c.id:swapCard.id,upId=c.source==='up'?c.id:swapCard.id;
@@ -193,12 +212,7 @@ async function selectCard(c){
  }
  if(!active()||c.source!==stageNow())return;
  const my=current()[c.source],card=my?.find(x=>x.id===c.id);if(!card)return;
- if(selection.includes(c.id))selection=selection.filter(x=>x!==c.id);
- else{
-  const previous=selection.map(id=>my.find(x=>x.id===id)).filter(Boolean);
-  if(previous.length&&!previous.every(x=>sameFace(x,card)))selection=[];
-  selection.push(c.id);
- }
+ selectMatching(my,c.id);
  if(selection.includes(c.id)){try{navigator.vibrate?.(8)}catch{}}
  render();
 }
@@ -213,7 +227,9 @@ root.addEventListener('click',async e=>{
   const opts=action==='create'?{capacity:Number($('online-seats')?.value||2),name:nick}:{code:room,name:nick};
   await doAction({action,...opts});return;
  }
+ if(action==='ready'){swapCard=null;await command('ready',{ready:!data?.game.setupReady?.[data.me]});}
  if(action==='start')await command('start');
+ if(action==='sort'){sortMode=sortMode==='dealt'?'asc':sortMode==='asc'?'desc':'dealt';selection=[];window.PileheadTableFX?.resetHandScroll?.();render();}
  if(action==='play')await play();
  if(action==='take')await command('move',{move:{type:'take'}});
  if(action==='slam'){const m=data?.game.slam?.[0];if(m)await command('move',{move:m})}
@@ -229,7 +245,7 @@ root.addEventListener('keydown',e=>{
 root.addEventListener('dragstart',e=>{
  const b=e.target.closest('[data-card]');if(!b||!active())return;
  drag={id:Number(b.dataset.card),source:b.dataset.source};
- if(!selection.includes(drag.id))selection=[drag.id];
+ if(!selection.includes(drag.id))selectMatching(current()[drag.source]||[],drag.id);
  if(e.dataTransfer){e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(drag.id))}
 });
 root.addEventListener('dragover',e=>{if(drag&&e.target.closest('[data-play-target]'))e.preventDefault()});
@@ -254,12 +270,7 @@ window.addEventListener('pointermove',e=>{
  if(t.scrolling){e.preventDefault();t.row.scrollLeft=t.startScroll-dx;return}
  if(t.moving&&!t.ghost){const b=root.querySelector('[data-card="'+t.id+'"]');
   if(!b)return;t.ghost=b.cloneNode(true);t.ghost.classList.add('card-ghost');document.body.appendChild(t.ghost);
-  if(!selection.includes(t.id)){
-   const cards=current()[t.source],picked=cards?.find(c=>c.id===t.id);
-   const group=selection.map(id=>cards?.find(c=>c.id===id)).filter(Boolean);
-   if(!picked||!group.length||!group.every(c=>sameFace(c,picked)))selection=[t.id];
-   else selection.push(t.id);
-  }
+  if(!selection.includes(t.id))selectMatching(current()[t.source]||[],t.id);
   if(selection.length>1){const badge=document.createElement('span');
    badge.className='drag-count';badge.textContent=selection.length+' cards';t.ghost.appendChild(badge)}
  }
@@ -277,7 +288,7 @@ window.addEventListener('pointerup',e=>{
  ignoreNextClick=true;setTimeout(()=>ignoreNextClick=false,350);
  if(t.scrolling)return;
  if(zone&&active()&&stageNow()===t.source){
-  if(!selection.includes(t.id))selection=[t.id];play()}
+  if(!selection.includes(t.id))selectMatching(current()[t.source]||[],t.id);play()}
 });
 window.addEventListener('pointercancel',()=>{
  touchGesture?.ghost?.remove();touchGesture=null;root.querySelector('[data-play-target]')?.classList.remove('drop-hover');
