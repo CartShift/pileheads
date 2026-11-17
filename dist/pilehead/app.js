@@ -17,7 +17,7 @@ function selectMatching(cards,id){
  selection=prev.length&&prev.every(c=>sameFace(c,picked))?[...selection,id]:cards.filter(c=>sameFace(c,picked)).map(c=>c.id);
 }
 function playerName(i){return mode==='bots'?(i===0?'You':'Bot '+i):'Player '+(i+1)}
-function viewSeat(){return mode==='bots'?0:g?.turn??0}
+function viewSeat(){return mode==='bots'?0:g?.followUp?.seat??g?.turn??0}
 function getPlayer(){return g.people[viewSeat()]}
 function currentStage(){return E.stage(g,viewSeat())}
 function isTurn(){return g.phase==='play'&&g.turn===viewSeat()}
@@ -56,15 +56,42 @@ function pile(){const top=E.topRun(g),a=g.pile.slice(-4);return '<div class="tab
  '<div class="stack-count">'+(g.limit?.type==='under'?'NEXT: 1–4':g.limit?.type==='min'?'NEXT: '+g.limit.value+' or higher':'ANY NUMBER')+'</div>'+
  '</div><div class="stack"><div class="stack-label">BURNED</div><div class="pile-card"><div class="placeholder">✕</div></div>'+
  '<div class="stack-count">'+g.ashes.length+' removed</div></div></div>'}
+function bridgeAvailable(){
+ if(!g||g.phase!=='play'||!isTurn())return false;
+ const p=getPlayer();
+ return g.stock.length===0&&p.hand.length===1&&p.hand[0].kind==='number'&&
+  p.up.some(c=>c.kind==='number'&&c.rank===p.hand[0].rank);
+}
 function upAndDown(p,allow){return '<div class="zone your-up"><div class="area-label"><span>FACE UP · '+p.up.length+'</span><span>BLIND · '+p.down.length+'</span></div>'+
  '<div class="card-row">'+Array.from({length:Math.max(p.up.length,p.down.length)},(_,i)=>{
-  const u=p.up[i],d=p.down[i],canUp=allow&&currentStage()==='up',canDown=allow&&currentStage()==='down';
+  const u=p.up[i],d=p.down[i],canUp=allow&&(currentStage()==='up'||bridgeAvailable()),canDown=allow&&currentStage()==='down';
   if(u)return '<div class="up-pair">'+(d?'<div class="card back ph-card ph-back">'+A.back()+'</div>':'')+
    card(u,{interactive:canUp,selected:selection.includes(u.id),source:'up'})+'</div>';
   return d?card(d,{back:true,interactive:canDown,source:'down'}):'';
  }).join('')+'</div></div>'}
+const effectInfo={
+ reset:'RESET removed the number restriction. Any number can follow.',
+ ghost:'GHOST keeps the same number restriction.',
+ under:'UNDER means the next number must be 1 through 4.',
+ skip:'SKIP makes the next player miss a turn.',
+ burn:'BURN removes the pile and gives another turn.',
+ dump:'DUMP burns itself; the next player collects the existing pile.'
+};
+function lastEffect(){
+ const e=g?.events?.at(-1);if(!e)return '';
+ const message=e.type==='followup'?'SNAP · '+playerName(e.seat)+' instantly played the matching card they just drew.':
+ e.reason==='four'||e.reason==='slam'?'FOUR OF A KIND · The pile burns and the player acts again.':
+ e.action?effectInfo[e.action]:
+ e.type==='take'||e.type==='blind-fail'?'PICKUP · The pile goes into '+playerName(e.seat)+'’s hand.':
+ e.burned?'BURN · The pile has been removed from play.':
+ 'PLAY · '+playerName(e.seat)+' placed '+e.count+' card'+(e.count===1?'':'s')+'.';
+ return '<div class="pilehead-effect-note" role="status" aria-live="polite"><span class="effect-label">'+
+  (e.action?e.action.toUpperCase():e.type==='followup'?'SNAP':e.burned?'BURN':'LAST MOVE')+
+  '</span><span>'+message+'</span></div>';
+}
 function eventName(e){const who=playerName(e.seat);if(e.type==='take')return who+' picked up '+e.count;
  if(e.type==='blind-fail')return who+' flipped an illegal card and took '+e.count;
+ if(e.type==='followup')return who+' snapped the just-drawn '+e.rank+' onto the pile';
  if(e.action==='dump')return who+' burned DUMP: '+playerName(e.target)+' took '+e.takenCount+' pile cards; '+who+' plays again';
  if(e.reason==='slam')return who+' SLAM! Burned the pile';
  if(e.burned)return who+' burned the pile';
@@ -90,10 +117,11 @@ function tableHUD(){
  return '<div class="pilehead-table-hud '+(isTurn()?'is-my-turn':'')+'" role="status">'+
  '<span class="hud-status"><i class="hud-dot" aria-hidden="true"></i>'+who+'</span>'+
  '<span class="hud-meta"><span>'+layerText+'</span><span>'+g.pile.length+' IN PILE</span>'+
- (E.slamOptions(g,viewer).length?'<span>SLAM READY</span>':'')+'</span></div>';
+ (E.slamOptions(g,viewer).length?'<span>SLAM READY</span>':'')+
+ (E.followUpOptions(g,viewer).length?'<span class="hud-snap">SNAP READY · MATCHING DRAW</span>':'')+'</span></div>';
 }
 function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotseat'||viewer===0,turn=isTurn(),stage=currentStage();
- const selectable=turn&&g.phase==='play'&&!covered,slams=E.slamOptions(g,viewer),legal=E.options(g,viewer),pick=legal.some(o=>o.type==='take');
+ const selectable=turn&&g.phase==='play'&&!covered,slams=E.slamOptions(g,viewer),snap=E.followUpOptions(g,viewer),legal=E.options(g,viewer),pick=legal.some(o=>o.type==='take');
  const top=E.topRun(g),summary=g.phase==='over'?'Game over. '+playerName(g.loser)+' is the PILEHEAD.':
   turn?'Your turn · '+(stage==='down'?'Flip one blind card':stage==='up'?'Play from your face-up row':'Choose cards from your hand'):
   playerName(g.turn)+' is playing · watch for a SLAM!';
@@ -105,9 +133,12 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  '<div class="toolbar">'+(g.phase==='over'?'<button class="action primary" data-do="new">Play again</button>':
  '<button class="action primary" data-do="play" '+(!selection.length||!turn?'disabled':'')+'>'+(selection.some(id=>p.hand.some(c=>c.id===id&&c.action==='burn'))?'BURN PILE · '+selection.length:'Place '+(selection.length?selection.length+' card'+(selection.length>1?'s':''):'cards'))+'</button>'+
  '<button class="action secondary" data-do="take" '+(!turn||!pick?'disabled':'')+'>Take pile</button>'+
- '<button class="action slam" data-do="slam" '+(!slams.length?'disabled':'')+'>SLAM!'+(slams.length?' ×'+slams[0].ids.length+' NOW':'')+'</button>')+
+ '<button class="action slam" data-do="slam" '+(!slams.length?'disabled':'')+'>SLAM!'+(slams.length?' ×'+slams[0].ids.length+' NOW':'')+'</button>'+
+ '<button class="action snap" data-do="snap" '+(!snap.length?'disabled':'')+'>SNAP!'+(snap.length?' Throw matching draw':'')+'</button>')+
  (mode==='hotseat'&&g.phase==='play'&&g.slamOpen?'<button class="action secondary" data-do="challenge">Other player SLAM</button>':'')+
- '</div><details class="playtest-tools"><summary>Playtest tools</summary><button class="action secondary" data-do="export">Export QA state</button></details>'+
+ '</div>'+(snap.length?'<div class="pilehead-snap-choice">You just drew the same number you played. Throw it immediately, or <button class="action secondary" data-do="pass-snap">Let the next player go</button>.</div>':'')+
+ (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP · The final card in your hand can be played together with matching exposed cards. Tap either to select the group.</p>':'')+
+ lastEffect()+'<details class="playtest-tools"><summary>Playtest tools</summary><button class="action secondary" data-do="export">Export QA state</button></details>'+
  '<div class="message" role="status" aria-live="polite">'+(notice||(selection.length>1?'You have '+selection.length+' matching cards selected. Remove any card with a tap or place all.':'Tap once for all matching cards, tap one to remove it. SLAM interrupts when ready.'))+'</div>'+
  '<div class="meta"><span>Moves <strong>'+g.moves+'</strong></span><span>Draw stock <strong>'+g.stock.length+'</strong></span>'+
  '<span>Burned <strong>'+g.ashes.length+'</strong></span><span>Pickups <strong>'+g.people.reduce((n,x)=>n+x.pickups,0)+'</strong></span></div>'+
@@ -159,17 +190,18 @@ function celebrate(ev){
 function queueBot(){if(timer!==null){clearTimeout(timer);timer=null}
  if(!g||g.phase!=='play'||mode!=='bots')return;
  const canSlam=g.people.some(p=>p.seat!==0&&E.slamOptions(g,p.seat).length);
- if(g.turn===0&&!canSlam)return;
+ const botSnap=g.followUp&&g.followUp.seat!==0&&E.followUpOptions(g,g.followUp.seat).length;
+ if(g.turn===0&&!canSlam&&!botSnap)return;
  timer=setTimeout(()=>{timer=null;if(!g||g.phase!=='play')return;
- try{let ev=E.autoSlam(g,'greedy',0);
+ try{let ev=botSnap?E.move(g,g.followUp.seat,E.followUpOptions(g,g.followUp.seat)[0]):E.autoSlam(g,'greedy',0);
   if(!ev&&g.turn!==0)ev=E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));
   if(ev){lastMove=ev;notice=eventName(ev);selection=[];render()}
  }catch(e){notice='Bot error: '+e.message;render()}
- },canSlam?780:600);
+ },g.followUp?.seat===0?4800:canSlam?780:600);
 }
 function startGame(){endDismissed=false;g=E.create({players:seats,seed:Date.now()>>>0});setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
 function afterMove(ev){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
- if(mode==='hotseat'&&g.phase!=='over')covered=true;
+ if(mode==='hotseat'&&g.phase!=='over')covered=g.followUp?.seat!==ev.seat;
  render()}
 function perform(choice,seat=viewSeat()){try{const ev=E.move(g,seat,choice);afterMove(ev)}catch(e){notice=e.message;render()}}
 function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat(),p=g.people[seat];
@@ -183,8 +215,9 @@ function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat()
  if(!isTurn()||covered)return;
  if(source==='down'){perform({type:'play',source:'down',ids:[id]});return}
  const arr=p[source],picked=arr.find(c=>c.id===id);if(!picked)return;
+ if(source!==currentStage()&&!bridgeAvailable())return;
  if(!E.isLegal(g,picked)){notice='Not playable with the current restriction';render();return}
- selectMatching(arr,id);
+ selectMatching(bridgeAvailable()?[...p.hand,...p.up]:arr,id);
  if(selection.includes(id)){try{navigator.vibrate?.(8)}catch{}}
  notice='';render();
 }
@@ -208,6 +241,11 @@ function execute(action,button){
  }
  if(action==='sort'){sortMode=sortMode==='dealt'?'asc':sortMode==='asc'?'desc':'dealt';selection=[];
   window.PileheadTableFX?.resetHandScroll?.();render();return}
+ if(action==='snap'){const move=E.followUpOptions(g,viewSeat())[0];if(move)perform(move);return}
+ if(action==='pass-snap'){
+  if(g.followUp?.seat===viewSeat()){g.followUp=null;covered=mode==='hotseat';notice='Passed on the matching draw.';render()}
+  return;
+ }
  if(action==='take'){perform({type:'take'});return}
  if(action==='slam'){const choice=E.slamOptions(g,viewSeat())[0];if(choice)perform(choice);return}
  if(action==='hot-slam'){const seat=Number(button.dataset.seat);const choice=E.slamOptions(g,seat)[0];
@@ -230,14 +268,14 @@ let dragCard=null;
 app.addEventListener('dragstart',e=>{
  const b=e.target.closest('[data-card]');if(!b||!isTurn()||covered||g.phase!=='play')return;
  dragCard={id:Number(b.dataset.card),source:b.dataset.source};
- if(!selection.includes(dragCard.id))selectMatching(getPlayer()[dragCard.source]||[],dragCard.id);
+ if(!selection.includes(dragCard.id))selectMatching(bridgeAvailable()?[...getPlayer().hand,...getPlayer().up]:(getPlayer()[dragCard.source]||[]),dragCard.id);
  if(e.dataTransfer){e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(dragCard.id))}
 });
 app.addEventListener('dragover',e=>{if(dragCard&&e.target.closest('[data-play-target]'))e.preventDefault()});
 app.addEventListener('drop',e=>{
  if(!dragCard||!e.target.closest('[data-play-target]'))return;
  e.preventDefault();const move=dragCard;dragCard=null;
- if(isTurn()&&currentStage()===move.source)perform({type:'play',source:move.source,ids:selection.slice()});
+ if(isTurn()&&(currentStage()===move.source||bridgeAvailable()))perform({type:'play',source:currentStage(),ids:selection.slice()});
 });
 app.addEventListener('dragend',()=>{dragCard=null});
 
@@ -261,7 +299,7 @@ window.addEventListener('pointermove',e=>{
  if(d.scrolling){e.preventDefault();d.row.scrollLeft=d.startScroll-dx;return}
  if(d.dragging&&!d.el){const b=app.querySelector('[data-card="'+d.id+'"]');if(!b)return;
   d.el=b.cloneNode(true);d.el.classList.add('card-ghost');document.body.appendChild(d.el);
-  if(!selection.includes(d.id))selectMatching(getPlayer()[d.source]||[],d.id);
+  if(!selection.includes(d.id))selectMatching(bridgeAvailable()?[...getPlayer().hand,...getPlayer().up]:(getPlayer()[d.source]||[]),d.id);
   if(selection.length>1){const badge=document.createElement('span');
    badge.className='drag-count';badge.textContent=selection.length+' cards';d.el.appendChild(badge)}
  }
@@ -276,9 +314,9 @@ function endTouch(e){
  if(!d.dragging&&!d.scrolling)return;
  suppressTap=true;setTimeout(()=>suppressTap=false,350);
  if(d.scrolling)return;
- if(target&&isTurn()&&currentStage()===d.source){
+ if(target&&isTurn()&&(currentStage()===d.source||bridgeAvailable())){
   if(!selection.includes(d.id))selectMatching(getPlayer()[d.source]||[],d.id);
-  perform({type:'play',source:d.source,ids:selection.slice()})}
+  perform({type:'play',source:currentStage(),ids:selection.slice()})}
 }
 window.addEventListener('pointerup',endTouch);
 window.addEventListener('pointercancel',e=>{const d=touchGesture;touchGesture=null;d?.el?.remove();app.querySelector('[data-play-target]')?.classList.remove('drop-hover')});
