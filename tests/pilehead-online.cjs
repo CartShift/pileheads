@@ -181,6 +181,33 @@ async function run(){
  const tooMany=await request({action:'create',humans:3,bots:3,name:'Invalid'});
  assert.equal(tooMany.status,400);assert.equal(tooMany.data.error,'invalid_capacity');checks++;
 
+
+ // The freshly drawn matching number has server-enforced priority over other turns.
+ const snapRoom=await request({action:'create',humans:2,bots:0,name:'Snap host'});
+ const snapCode=snapRoom.data.code,snapHost=snapRoom.data.session;
+ const snapGuest=await request({action:'join',code:snapCode,name:'Snap guest'});
+ const snapGuestToken=snapGuest.data.session;
+ assert.equal((await request({action:'ready',code:snapCode,revision:0,ready:true},snapHost)).status,200);
+ assert.equal((await request({action:'ready',code:snapCode,revision:1,ready:true},snapGuestToken)).status,200);
+ assert.equal((await request({action:'start',code:snapCode,revision:2},snapHost)).status,200);
+ const snapGame=rooms.get(snapCode).state,snapRank=5,snapIDs=Engine.deck().filter(c=>c.rank===snapRank).slice(0,2).map(c=>c.id);
+ const snapZones=[snapGame.stock,snapGame.pile,snapGame.ashes,...snapGame.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const placeSnap=(a,i,id)=>{const b=snapZones.find(z=>z.some(c=>c.id===id)),j=b.findIndex(c=>c.id===id),old=a[i];a[i]=b[j];b[j]=old};
+ placeSnap(snapGame.people[0].hand,0,snapIDs[0]);placeSnap(snapGame.stock,snapGame.stock.length-1,snapIDs[1]);
+ Engine.invariant(snapGame);
+ const snapMade=await request({action:'move',code:snapCode,revision:3,move:{type:'play',source:'hand',ids:[snapIDs[0]]}},snapHost);
+ assert.equal(snapMade.status,200,JSON.stringify(snapMade));
+ assert.equal(snapMade.data.game.snapSeat,0);assert.ok(snapMade.data.game.snapUntil>Date.now());checks++;
+ const snapOtherMove=Engine.options(rooms.get(snapCode).state,1)[0];assert.ok(snapOtherMove);
+ const snapBlocked=await request({action:'move',code:snapCode,revision:4,move:snapOtherMove},snapGuestToken);
+ assert.equal(snapBlocked.status,409);assert.equal(snapBlocked.data.error,'snap_window_open');checks++;
+ const snapPlayed=await request({action:'move',code:snapCode,revision:4,move:snapMade.data.game.followup[0]},snapHost);
+ assert.equal(snapPlayed.status,200,JSON.stringify(snapPlayed));
+ assert.equal(snapPlayed.data.game.events.at(-1).type,'followup');
+ assert.equal(snapPlayed.data.game.players[1].hand,undefined);checks++;
+ const snapAfterMove=Engine.options(rooms.get(snapCode).state,1)[0];
+ const snapContinued=await request({action:'move',code:snapCode,revision:5,move:snapAfterMove},snapGuestToken);
+ assert.equal(snapContinued.status,200,JSON.stringify(snapContinued));checks++;
  console.log('PASS PILEHEAD online authoritative API: '+checks+' assertions (privacy, DUMP replay, auth, turns, CAS, room isolation)');
 }
 run().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>{

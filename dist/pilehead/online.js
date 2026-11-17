@@ -390,7 +390,8 @@ function startPolling(){
   const bots=data.game.botSeats||[];
   // Allow a brief physical reaction window for a freshly drawn matching card.
   if(data.game.followup?.length&&Date.now()-lastChangeAt<4700)return;
-  if(snapBlocked())return;
+  if(data.game.snapUntil&&Date.now()<data.game.snapUntil&&!data.game.botFollowupReady)return;
+   if(snapBlocked())return;
    if((bots.includes(data.game.turn)||data.game.botFollowupReady)&&Date.now()-botTickAt>=1250){
    botTickAt=Date.now();
    await command('advance');
