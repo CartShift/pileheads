@@ -45,7 +45,7 @@ async function request(body,session,headers={},method='POST',queryParams={}){
 }
 async function run(){
  let checks=0;
- const health=await request(null,null,{},'GET',{health:'1});
+ const health=await request(null,null,{},'GET',{health:'1'});
  assert.equal(health.status,200);assert.equal(health.data.ok,true);checks++;
  const host=await request({action:'create',capacity:2,name:'Host'});
  assert.equal(host.status,201);const {code,session:hostToken}=host.data;assert.match(code,/^[A-HJ-NP-Z2-9]{8}$/);
