@@ -40,7 +40,7 @@ check('large hand rail has scroll arrows and scroll position survives card reren
 check('multi-special selection works locally and in online rooms, including card drag',()=>{
  for(const code of [local,online]){
   assert.match(code,/function sameFace\(/);
-  assert.match(code,/selection\.push\(/);
+  assert.match(code,/function selectMatching\(/);
   assert.match(code,/sameFace\(/);
   assert.match(code,/className='drag-count'/);
   assert.doesNotThrow(()=>new vm.Script(code));

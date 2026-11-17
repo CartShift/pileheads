@@ -65,3 +65,8 @@ A printed deck remains mandatory for design decisions. The graphical hand/felt i
 - DUMP burns the played DUMP card(s) and sends only the existing pile to the next player, then gives the actor another turn.
 - SLAM can interrupt with a complete four-of-a-kind from the active layer while a pile exists, even if the current top rank differs. Existing completion of the top rank remains supported.
 - Hand selection now picks a full same-face group on the first tap; tapping individual selected cards removes them. Hand sorting is presentation-only.
+
+## Result screen
+Both online participants receive the end state from the server; the winner/last-place overlay is derived solely from finishedOrder and loser. Rematches start a fresh room (no secret seat tokens reused). Local games have a Play again action.
+
+BURN already exists as two dedicated action cards in the 52-card deck. Its action burns the entire played pile, including BURN, and awards another turn; the controls and rules now make this explicit.

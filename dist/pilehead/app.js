@@ -2,7 +2,7 @@
 (function(){'use strict';
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
 const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11';
-let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null,sortMode='dealt';
+let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null,sortMode='dealt',endDismissed=false;
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
  (a.kind==='number'?a.rank===b.rank:a.action===b.action)}
 function orderedHand(cards){
@@ -94,7 +94,7 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  '<div class="hand-area"><div class="area-label"><span>'+playerName(viewer)+' · HAND · '+p.hand.length+' cards</span><button type="button" class="hand-sort-button" data-do="sort">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></div>'+
  rowCards(p.hand,'hand',selectable&&stage==='hand')+'</div></section>'+
  '<div class="toolbar">'+(g.phase==='over'?'<button class="action primary" data-do="new">Play again</button>':
- '<button class="action primary" data-do="play" '+(!selection.length||!turn?'disabled':'')+'>Place '+(selection.length?selection.length+' card'+(selection.length>1?'s':''):'cards')+'</button>'+
+ '<button class="action primary" data-do="play" '+(!selection.length||!turn?'disabled':'')+'>'+(selection.some(id=>p.hand.some(c=>c.id===id&&c.action==='burn'))?'BURN PILE · '+selection.length:'Place '+(selection.length?selection.length+' card'+(selection.length>1?'s':''):'cards'))+'</button>'+
  '<button class="action secondary" data-do="take" '+(!turn||!pick?'disabled':'')+'>Take pile</button>'+
  '<button class="action slam" data-do="slam" '+(!slams.length?'disabled':'')+'>SLAM!'+(slams.length?' ×'+slams[0].ids.length+' NOW':'')+'</button>')+
  (mode==='hotseat'&&g.phase==='play'&&g.slamOpen?'<button class="action secondary" data-do="challenge">Other player SLAM</button>':'')+
@@ -103,6 +103,22 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  '<div class="meta"><span>Moves <strong>'+g.moves+'</strong></span><span>Draw stock <strong>'+g.stock.length+'</strong></span>'+
  '<span>Burned <strong>'+g.ashes.length+'</strong></span><span>Pickups <strong>'+g.people.reduce((n,x)=>n+x.pickups,0)+'</strong></span></div>'+
  '<div class="event-list" aria-label="Recent moves">'+g.events.slice(-8).reverse().map(e=>'<span class="event">'+eventName(e)+'</span>').join('')+'</div>';
+}
+function endScreen(){
+ if(!g||g.phase!=='over'||endDismissed)return '';
+ const order=[...g.finishedOrder,...(g.loser===null?[]:[g.loser])];
+ const viewer=mode==='bots'?0:null,win=viewer!==null&&viewer!==g.loser;
+ return '<div class="pilehead-result-backdrop" role="dialog" aria-modal="true" aria-labelledby="pilehead-result-title">'+
+ '<section class="pilehead-result-panel"><div class="result-glow" aria-hidden="true">✦ ✧ ✦</div>'+
+ '<div class="eyebrow">PILEHEAD · GAME COMPLETE</div>'+
+ '<div class="result-medal" aria-hidden="true">'+(win?'★':'♠')+'</div>'+
+ '<h2 id="pilehead-result-title">'+(viewer===null?'The round is finished!':win?'Congratulations!':'Game over!')+'</h2>'+
+ '<p class="result-lead">'+(viewer===null?'See who escaped and who is the PILEHEAD.':win?'You escaped the pile!':'You are the PILEHEAD this round.')+'</p>'+
+ '<div class="result-winner">First to finish <strong>'+playerName(g.finishedOrder[0])+'</strong></div>'+
+ '<div class="result-ranking">'+order.map((seat,i)=>'<div class="result-rank"><span class="result-position">'+(i===order.length-1?'LAST':('#'+(i+1)))+'</span>'+
+ '<strong>'+playerName(seat)+'</strong><small>'+(seat===g.loser?'PILEHEAD':'Escaped')+'</small></div>').join('')+'</div>'+
+ '<div class="result-actions"><button class="action primary" data-do="rematch">Play again</button>'+
+ '<button class="action secondary" data-do="dismiss-result">View final table</button></div></section></div>';
 }
 function overlay(){
  if(challengeOpen&&g?.phase==='play'){
@@ -121,7 +137,7 @@ function overlay(){
  '</div></div>';
 }
 function render(){
- app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay();
+ app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay()+endScreen();
  window.PileheadTableFX?.sync({identity:g?g.seed+':'+g.moves:null,
   event:g?.events?.[g.events.length-1]||null,
   ownSeat:g?viewSeat():0,active:g?isTurn()&&!covered:false,
@@ -150,7 +166,7 @@ function queueBot(){if(timer!==null){clearTimeout(timer);timer=null}
  }catch(e){notice='Bot error: '+e.message;render()}
  },canSlam?780:600);
 }
-function startGame(){g=E.create({players:seats,seed:Date.now()>>>0});setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
+function startGame(){endDismissed=false;g=E.create({players:seats,seed:Date.now()>>>0});setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
 function afterMove(ev){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
  if(mode==='hotseat'&&g.phase!=='over')covered=true;
  render()}
@@ -173,7 +189,9 @@ function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat()
 }
 function execute(action,button){
  if(action==='create'){seats=Number($('seat-count')?.value)||seats;mode=$('game-mode')?.value==='hotseat'?'hotseat':'bots';startGame();return}
- if(action==='new'){g=null;selection=[];swapFrom=null;covered=false;render();return}
+ if(action==='dismiss-result'){endDismissed=true;render();return}
+ if(action==='rematch'){startGame();return}
+ if(action==='new'){g=null;selection=[];swapFrom=null;covered=false;endDismissed=false;render();return}
  if(action==='ready'){
   selection=[];swapFrom=null;
   if(mode==='hotseat'&&setupSeat<seats-1){setupSeat++;covered=true}

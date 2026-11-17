@@ -10,7 +10,7 @@ const safeSessionRead=key=>{try{return localStorage.getItem(key)}catch{return nu
 const safeSessionSave=(key,value)=>{try{localStorage.setItem(key,value)}catch{}};
 let room=params.get('room')?.toUpperCase()||'',session=room?safeSessionRead(STORE+room):null;
 let data=null,busy=false,polling=false,selection=[],swapCard=null,notice='',networkError='',drag=null;
-let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false,sortMode='dealt';
+let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false,sortMode='dealt',endDismissed=false;
 const A=globalThis.PileheadCardArt;const symbols=A.glyph;
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
@@ -166,12 +166,30 @@ function playView(){
   '<div class="hand-area"><div class="area-label"><span>YOUR HAND · '+p.handCount+' cards</span><button type="button" class="hand-sort-button" data-do="sort" title="Change card order">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></div>'+
   '<div class="card-row hand">'+(p.hand?.length?orderedHand(p.hand).map(c=>card(c,{can:can&&source==='hand',source:'hand',selected:selection.includes(c.id)})).join(''):
   '<span style="font-size:12px;color:#b8cfba">No cards in hand</span>')+'</div></div></section>'+
-  '<div class="toolbar"><button class="action primary" data-do="play" '+(!legal||busy?'disabled':'')+'>Place '+(selection.length?selection.length+' card'+(selection.length>1?'s':''):'cards')+'</button>'+
+  '<div class="toolbar"><button class="action primary" data-do="play" '+(!legal||busy?'disabled':'')+'>'+(legal&&p.hand?.some(c=>selection.includes(c.id)&&c.action==='burn')?'BURN PILE · '+selection.length:'Place '+(selection.length?selection.length+' card'+(selection.length>1?'s':''):'cards'))+'</button>'+
   '<button class="action secondary" data-do="take" '+(!can||!g.legal.some(x=>x.type==='take')||busy?'disabled':'')+'>Take pile</button>'+
   '<button class="action slam" data-do="slam" '+(!canSlam||busy?'disabled':'')+'>SLAM!'+(canSlam?' ×'+g.slam[0].ids.length+' NOW':'')+'</button></div>'+
   '<div class="message" role="status" aria-live="polite">'+safe(notice||'Tap once for all matching cards, tap one to remove it. SLAM interrupts when ready.')+'</div>'+
   '<div class="meta"><span>Move '+g.moves+'</span><span>Draw '+g.stockCount+'</span><span>Ashes '+g.ashesCount+'</span><span>Synced · rev '+data.revision+'</span></div>'+
   '<div class="event-list">'+events()+'</div>';
+}
+function endScreen(){
+ if(!data||data.game.phase!=='over'||endDismissed)return '';
+ const g=data.game,order=[...(g.finishedOrder||[]),...(g.loser===null?[]:[g.loser])];
+ const won=g.loser!==data.me,champion=g.finishedOrder?.[0];
+ return '<div class="pilehead-result-backdrop" role="dialog" aria-modal="true" aria-labelledby="pilehead-result-title">'+
+  '<section class="pilehead-result-panel"><div class="result-glow" aria-hidden="true">✦ ✧ ✦</div>'+
+  '<div class="eyebrow">PILEHEAD · GAME COMPLETE</div>'+
+  '<div class="result-medal" aria-hidden="true">'+(won?'★':'♠')+'</div>'+
+  '<h2 id="pilehead-result-title">'+(won?'Congratulations!':'Game over!')+'</h2>'+
+  '<p class="result-lead">'+(won?'You escaped the pile!':'You are the PILEHEAD this round.')+'</p>'+
+  '<div class="result-winner">First to finish <strong>'+safe(displayName(champion))+'</strong></div>'+
+  '<div class="result-ranking">'+order.map((seat,i)=>'<div class="result-rank"><span class="result-position">'+(i===order.length-1?'LAST':('#'+(i+1)))+'</span>'+
+   '<strong>'+safe(displayName(seat))+(seat===data.me?' · You':'')+'</strong>'+
+   '<small>'+(seat===g.loser?'PILEHEAD':'Escaped')+'</small></div>').join('')+'</div>'+
+  '<div class="result-actions"><a class="action primary" href="?online=1">Create a new game</a>'+
+  '<button class="action secondary" data-do="dismiss-result">View final table</button></div>'+
+  '<p class="result-footnote">New games start with fresh hands and a new invitation link.</p></section></div>';
 }
 function welcome(){
  const nick=safe(safeSessionRead(NAME)||'');
@@ -190,7 +208,7 @@ function render(){
  root.innerHTML='<div class="online-layout">'+(!data?welcome():data.game.phase==='setup'?lobby():playView())+
   ((notice||networkError)&&data?.game.phase==='setup'?'<div class="message" role="status">'+safe(notice||networkError)+'</div>':'')+
   (networkError?'<p class="online-error" role="alert">'+safe(networkError)+'</p>':'')+
-  '</div>';
+  '</div>'+endScreen();
  window.PileheadTableFX?.sync({identity:data?room+':'+data.game.moves:null,
   event:data?.game.events?.[data.game.events.length-1]||null,
   ownSeat:data?.me||0,active:data?active():false,
@@ -227,6 +245,7 @@ root.addEventListener('click',async e=>{
   const opts=action==='create'?{capacity:Number($('online-seats')?.value||2),name:nick}:{code:room,name:nick};
   await doAction({action,...opts});return;
  }
+ if(action==='dismiss-result'){endDismissed=true;render();return}
  if(action==='ready'){swapCard=null;await command('ready',{ready:!data?.game.setupReady?.[data.me]});}
  if(action==='start')await command('start');
  if(action==='sort'){sortMode=sortMode==='dealt'?'asc':sortMode==='asc'?'desc':'dealt';selection=[];window.PileheadTableFX?.resetHandScroll?.();render();}

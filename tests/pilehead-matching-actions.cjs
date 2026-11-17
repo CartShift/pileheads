@@ -36,11 +36,12 @@ test('BURN pair burns once and repeats turn',()=>{
  assert.equal(ev.burned,true);assert.equal(g.ashes.length,before+2);assert.equal(g.pile.length,0);
  assert.equal(g.turn,0);E.invariant(g);
 });
-test('DUMP pair transfers both cards and repeats turn',()=>{
+test('DUMP pair burns both action cards, gives existing pile only, and repeats turn',()=>{
  const {g,two}=fixture('dump'),before=g.people[1].hand.length;
  const ev=E.move(g,0,{type:'play',source:'hand',ids:two.map(c=>c.id)});
- assert.equal(ev.target,1);assert.equal(ev.takenCount,2);
- assert.equal(g.people[1].hand.length,before+2);assert.ok(two.every(c=>g.people[1].hand.some(x=>x.id===c.id)));
+ assert.equal(ev.target,1);assert.equal(ev.takenCount,0);
+ assert.equal(g.people[1].hand.length,before);assert.ok(two.every(c=>g.ashes.some(x=>x.id===c.id)));
+ assert.ok(two.every(c=>!g.people[1].hand.some(x=>x.id===c.id)));
  assert.equal(g.pile.length,0);assert.equal(g.turn,0);assert.equal(g.people[1].pickups,1);E.invariant(g);
 });
 test('SKIP pair skips one player only',()=>{
