@@ -87,3 +87,10 @@ BURN already exists as two dedicated action cards in the 52-card deck. Its actio
 - After `phase=over`, any authenticated human can select **Play again · same room**. The server shuffles a fresh 52-card deck, increments the round, retains the room code, human seats/sessions and bot composition, and returns everyone to the face-up-selection lobby. The first seat remains the host for starting the next round.
 - If the host is away, human participants can trigger the rematch, but starting the round still requires the host and every human seat to confirm readiness. Rematch requests use optimistic concurrency control to avoid two competing resets.
 - The live table remains polling-based; browsers advance bot turns approximately every 1.75 seconds while visible. When all humans leave the page, bot turns pause until a participant reconnects. Bots use the existing engine strategy, not an AI language model.
+
+## Physical follow-up rules and explainable card effects
+
+- `SNAP!`: after a number play, only matching numbers **freshly replenished from stock in that exact move** can be thrown immediately, out of turn, as `type=followup`. This option expires after another move, including a pickup; a successful non-burning SNAP does not steal the next player's turn. A 4-of-a-kind still burns normally. Players can explicitly decline the SNAP opportunity.
+- `LAST-HAND COMBO`: when the stock is completely empty and a player has exactly one numeric hand card, any identical face-up cards may be placed together with that last card. The engine validates ownership and removes cards from both layers in the same atomic move.
+- All SNAP and bridge checks are validated on the authoritative engine; exposed-card combinations and only the owner's possible SNAP are sent to the relevant seat.
+- `drawnCount` is a non-sensitive count added to public events for the stock-to-hand animation. A DUMP pickup animates the pile moving to its intended recipient, and special cards display the outcome in plain language.

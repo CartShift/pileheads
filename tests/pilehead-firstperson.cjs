@@ -90,6 +90,18 @@ check('BURN and DUMP are clearly labeled as different actions',()=>{
  assert.match(html,/BURN/);
  assert.match(online,/BURN PILE/);assert.match(local,/BURN PILE/);
 });
+check('instant matching draw, final hand bridge and special effects are signposted',()=>{
+ for(const src of [online,solo]){
+  assert.match(src,/function bridgeAvailable\(/);
+  assert.match(src,/data-do="snap"/);
+  assert.match(src,/pilehead-bridge-hint/);
+  assert.match(src,/function lastEffect\(/);
+  assert.match(src,/effectInfo/);
+ }
+ assert.match(fx,/drawCards\(/);
+ assert.match(fx,/SNAP · MATCHING DRAW/);
+ assert.match(css,/pilehead-effect-note/);
+});
 check('CSS braces and strings balance',()=>{
  const normalized=css.replace(/\/\*[\s\S]*?\*\//g,'');
  let depth=0,quote=null,escaped=false;

@@ -158,6 +158,57 @@ test('SLAM on a run of tens still burns and grants the interrupter the next turn
  assert.equal(g.ashes.length,4);assert.equal(g.pile.length,0);assert.equal(g.turn,2);
  E.invariant(g);
 });
+
+test('matching number freshly drawn can SNAP immediately, even when another player is next',()=>{
+ const g=opened(2,911);
+ const played=inject(g,0,'hand',c=>c.kind==='number'&&c.rank===6);
+ const drawn=extract(g,c=>c.kind==='number'&&c.rank===6&&c.id!==played.id);
+ g.stock.push(drawn); // force a matching top-deck draw without changing total card count
+ const ev=E.move(g,0,{type:'play',source:'hand',ids:[played.id]});
+ assert.equal(ev.drawnCount,1);
+ assert.equal(g.turn,1);
+ const snap=E.followUpOptions(g,0)[0];assert.ok(snap);
+ assert.deepEqual(snap.ids,[drawn.id]);
+ const follow=E.move(g,0,snap);assert.equal(follow.type,'followup');
+ assert.equal(follow.reason,'snap');
+ assert.equal(g.turn,1,'next player stays the same after non-burning SNAP');
+ assert.equal(g.pile.length,2);
+ E.invariant(g);
+});
+test('matching drawn SNAP is lost when the next player completes a move',()=>{
+ const g=opened(2,913);
+ const played=inject(g,0,'hand',c=>c.kind==='number'&&c.rank===4);
+ g.stock.push(extract(g,c=>c.kind==='number'&&c.rank===4&&c.id!==played.id));
+ E.move(g,0,{type:'play',source:'hand',ids:[played.id]});
+ const snap=E.followUpOptions(g,0)[0];assert.ok(snap);
+ const other=E.options(g,1)[0];assert.ok(other);
+ E.move(g,1,other);
+ assert.equal(E.followUpOptions(g,0).length,0);
+ assert.throws(()=>E.move(g,0,snap),/Illegal follow-up/);
+ E.invariant(g);
+});
+test('last hand number joins matching face-up card after stock empties',()=>{
+ const g=opened(2,915);
+ g.ashes.push(...g.people[0].hand.splice(0));
+ const hand=extract(g,c=>c.kind==='number'&&c.rank===7),up=extract(g,c=>c.kind==='number'&&c.rank===7&&c.id!==hand.id);
+ g.people[0].hand.push(hand);g.people[0].up.push(up);g.ashes.push(...g.stock.splice(0));
+ const combo=E.options(g,0).find(x=>x.source==='hand'&&x.ids.length===2&&x.ids.includes(hand.id)&&x.ids.includes(up.id));
+ assert.ok(combo,'bridge move appears in legal options');
+ E.move(g,0,combo);
+ assert.ok(!g.people[0].up.some(c=>c.id===up.id),'matched exposed card was played');
+ assert.ok(!g.people[0].hand.some(c=>c.id===hand.id));
+ E.invariant(g);
+});
+test('face-up bridge is illegal until stock is completely gone',()=>{
+ const g=opened(2,917);
+ g.ashes.push(...g.people[0].hand.splice(0));
+ const hand=extract(g,c=>c.kind==='number'&&c.rank===7),up=extract(g,c=>c.kind==='number'&&c.rank===7&&c.id!==hand.id);
+ g.people[0].hand.push(hand);g.people[0].up.push(up);
+ const forbidden={type:'play',source:'hand',ids:[hand.id,up.id]};
+ assert.ok(!E.options(g,0).some(x=>x.ids?.includes(up.id)));
+ assert.throws(()=>E.move(g,0,forbidden));
+ E.invariant(g);
+});
 test('seeded bots conserve every card across whole games for 2–5 players',()=>{
  for(let players=2;players<=5;players++)for(let seed=1;seed<=16;seed++){
   const g=E.create({players,seed});g.people.forEach(p=>E.autoSetup(g,p.seat));E.start(g);
