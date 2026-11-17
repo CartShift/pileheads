@@ -77,3 +77,13 @@ BURN already exists as two dedicated action cards in the 52-card deck. Its actio
 - Focus Table is an optional, locally saved presentation mode that hides decorative navigation while leaving the action rail, HUD, cards and exit control available.
 - Confetti, transitions and chimes honor reduced-motion and the existing sound preference. Endgame modal has labelled dialog semantics and keyboard focus containment.
 - Visual verification remains necessary at narrow phone, tablet and desktop sizes, and a full two-device multiplayer finish should be exercised before treating this as production QA-complete.
+
+## Mixed online human + bot tables and same-room replay
+
+- Room creation now allows **1–5 human seats** and **0–4 bot seats**, with **2–5 seats in total**. Examples: 1 human + 2 bots, 2 humans + 1 bot, 3 humans + 2 bots.
+- Humans occupy contiguous seats starting at seat 0; the remaining seats are server-owned bots and cannot be claimed through invitation URLs or member tokens. Old rooms with no `humanCount` remain all-human.
+- Bots automatically choose their face-up cards and are ready from the lobby. Only humans have to join and confirm their cards before the host can start.
+- Bot actions are simulated **authoritatively on the server**, one at a time, through the revision-controlled `advance` action. Clients automatically ask for another bot move when the current turn belongs to a bot; no bot hand or deck information is sent to browsers.
+- After `phase=over`, any authenticated human can select **Play again · same room**. The server shuffles a fresh 52-card deck, increments the round, retains the room code, human seats/sessions and bot composition, and returns everyone to the face-up-selection lobby. The first seat remains the host for starting the next round.
+- If the host is away, human participants can trigger the rematch, but starting the round still requires the host and every human seat to confirm readiness. Rematch requests use optimistic concurrency control to avoid two competing resets.
+- The live table remains polling-based; browsers advance bot turns approximately every 1.75 seconds while visible. When all humans leave the page, bot turns pause until a participant reconnects. Bots use the existing engine strategy, not an AI language model.

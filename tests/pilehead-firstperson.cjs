@@ -80,7 +80,8 @@ check('end-game overlay includes winner/loser, rank order and retry action in bo
  assert.match(local,/function endScreen\(/);
  assert.match(online,/data-do="dismiss-result"/);
  assert.match(local,/data-do="rematch"/);
- assert.match(online,/Create a new game/);
+ assert.match(online,/function welcome\(/);
+ assert.match(online,/function startPolling\(/);
  assert.match(online,/finishedOrder/);assert.match(local,/finishedOrder/);
  assert.match(css,/\.pilehead-result-backdrop/);
  assert.match(css,/\.pilehead-result-panel/);

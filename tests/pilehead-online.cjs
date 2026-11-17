@@ -110,6 +110,77 @@ async function run(){
  const forbidden=await request({action:'state',code:other.data.code},hostToken);
  assert.equal(forbidden.status,403);checks++;
  const game=rooms.get(code).state;assert.equal(Engine.invariant(game),true);checks++;
+
+ // Hybrid room: two people and one bot share the table; bots never receive a session.
+ const hybrid=await request({action:'create',humans:2,bots:1,name:'Hybrid Host'});
+ assert.equal(hybrid.status,201,JSON.stringify(hybrid));
+ const hybridCode=hybrid.data.code,hybridHost=hybrid.data.session;
+ assert.deepEqual(hybrid.data.game.botSeats,[2]);
+ assert.equal(hybrid.data.game.round,1);
+ assert.equal(hybrid.data.humanCount,2);assert.equal(hybrid.data.botCount,1);
+ assert.deepEqual(hybrid.data.game.setupReady,[false,false,true]);checks++;
+ const second=await request({action:'join',code:hybridCode,name:'Hybrid Friend'});
+ assert.equal(second.status,201);assert.equal(second.data.me,1);
+ const hybridFriend=second.data.session;
+ const noThirdSeat=await request({action:'join',code:hybridCode,name:'Intruder'});
+ assert.equal(noThirdSeat.status,409);assert.equal(noThirdSeat.data.error,'full');checks++;
+ assert.equal(second.data.game.players[2].hand,undefined,'bot hand remains secret');
+ assert.equal(second.data.game.players[0].hand,undefined,'other human hand remains secret');checks++;
+ const hybridReady0=await request({action:'ready',code:hybridCode,revision:0,ready:true},hybridHost);
+ const hybridReady1=await request({action:'ready',code:hybridCode,revision:1,ready:true},hybridFriend);
+ assert.equal(hybridReady0.status,200);assert.equal(hybridReady1.status,200);checks++;
+ const hybridStart=await request({action:'start',code:hybridCode,revision:2},hybridHost);
+ assert.equal(hybridStart.status,200);assert.equal(hybridStart.data.game.phase,'play');checks++;
+ const prematureBot=await request({action:'advance',code:hybridCode,revision:3},hybridHost);
+ assert.equal(prematureBot.status,409);assert.equal(prematureBot.data.error,'not_bot_turn');checks++;
+ // Put the turn on a bot; server chooses from its hidden hand and commits exactly one move.
+ const hybridRecord=rooms.get(hybridCode);
+ hybridRecord.state.turn=2;Engine.invariant(hybridRecord.state);
+ const botMove=await request({action:'advance',code:hybridCode,revision:3},hybridFriend);
+ assert.equal(botMove.status,200,JSON.stringify(botMove));
+ assert.equal(botMove.data.game.moves,1);assert.equal(botMove.data.revision,4);
+ assert.equal(botMove.data.game.players[2].hand,undefined);
+ assert.equal(botMove.data.game.players[0].hand,undefined);
+ Engine.invariant(rooms.get(hybridCode).state);checks++;
+ const advanceAgainStale=await request({action:'advance',code:hybridCode,revision:3},hybridHost);
+ assert.equal(advanceAgainStale.status,409);checks++;
+ // Arrange a valid terminal state while conserving the complete 52-card deck.
+ const ended=rooms.get(hybridCode),g=ended.state;
+ for(const seat of [0,2]){
+  const player=g.people[seat];
+  g.ashes.push(...player.hand.splice(0),...player.up.splice(0),...player.down.splice(0));
+  player.out=true;
+ }
+ g.finishedOrder=[0,2];g.loser=1;g.phase='over';g.slamOpen=false;
+ ended.status='finished';
+ Engine.invariant(g);
+ const replay=await request({action:'rematch',code:hybridCode,revision:4},hybridFriend);
+ assert.equal(replay.status,200,JSON.stringify(replay));
+ assert.equal(replay.data.code,hybridCode);
+ assert.equal(replay.data.revision,5);
+ assert.equal(replay.data.game.phase,'setup');
+ assert.equal(replay.data.game.round,2);
+ assert.deepEqual(replay.data.game.botSeats,[2]);
+ assert.deepEqual(replay.data.game.setupReady,[false,false,true]);
+ assert.equal(replay.data.game.players[2].hand,undefined);checks++;
+ const oldTokenStillValid=await request({action:'state',code:hybridCode},hybridHost);
+ assert.equal(oldTokenStillValid.status,200);
+ assert.equal(oldTokenStillValid.data.game.round,2);
+ assert.equal(oldTokenStillValid.data.members.length,2);checks++;
+ const staleReplay=await request({action:'rematch',code:hybridCode,revision:4},hybridHost);
+ assert.equal(staleReplay.status,409);checks++;
+ const tooEarlyReplay=await request({action:'rematch',code:hybridCode,revision:5},hybridFriend);
+ assert.equal(tooEarlyReplay.status,409);
+ assert.equal(tooEarlyReplay.data.error,'game_not_finished');checks++;
+ const soloHybrid=await request({action:'create',humans:1,bots:2,name:'Solo vs bots'});
+ assert.equal(soloHybrid.status,201);assert.deepEqual(soloHybrid.data.game.botSeats,[1,2]);checks++;
+ const soloReady=await request({action:'ready',code:soloHybrid.data.code,revision:0,ready:true},soloHybrid.data.session);
+ assert.equal(soloReady.status,200);
+ const soloStart=await request({action:'start',code:soloHybrid.data.code,revision:1},soloHybrid.data.session);
+ assert.equal(soloStart.status,200);assert.equal(soloStart.data.game.phase,'play');checks++;
+ const tooMany=await request({action:'create',humans:3,bots:3,name:'Invalid'});
+ assert.equal(tooMany.status,400);assert.equal(tooMany.data.error,'invalid_capacity');checks++;
+
  console.log('PASS PILEHEAD online authoritative API: '+checks+' assertions (privacy, DUMP replay, auth, turns, CAS, room isolation)');
 }
 run().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>{
