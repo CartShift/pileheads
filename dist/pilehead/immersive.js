@@ -103,7 +103,7 @@ function resultHTML({players=[],finishedOrder=[],loser=null,me=null,moves=0,ashe
  const A=root.PileheadCardArt,back=A?.back?.()||'<span>PILEHEAD</span>';
  const festive=Array.from({length:34},(_,i)=>{
   const left=(i*73+19)%100,delay=(i*13%19)*-0.13,travel=150+(i*17%80);
-  return '<i style="--left:'+left+'%;--delay:'+delay+'s;--travel:'+travel+'px;--spin:'+(i%2?1:-1)+'" aria-hidden="true"></i>';
+  return '<i style="--left:'+left+'%;--delay:'+delay+'s;--travel:'+travel+'px;--drift:'+(i%2?26:-26)+'px;--turn:'+(i%2?880:-880)+'deg" aria-hidden="true"></i>';
  }).join('');
  const entries=ranking.map((seat,i)=>{
   const last=seat===loser,first=i===0;

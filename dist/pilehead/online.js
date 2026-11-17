@@ -157,11 +157,21 @@ function lobby(){
   (data.host?'<button class="action primary" data-do="start" '+(!allReady||busy?'disabled':'')+'>Start game · '+ready.filter(Boolean).length+'/'+data.capacity+' ready</button>':
   '<span class="small">'+(myReady?'Waiting for the host to start…':'Confirm your cards when ready')+'</span>')+'</div></section>';
 }
+
+function tableHUD(){
+ const g=data.game;
+ const layer=stageNow(),layerText=layer==='hand'?'HAND':layer==='up'?'FACE-UP CARDS':layer==='down'?'BLIND CARDS':'FINISHED';
+ const who=g.phase==='over'?'ROUND COMPLETE':active()?'YOUR TURN':displayName(g.turn)+' TO PLAY';
+ return '<div class="pilehead-table-hud '+(active()?'is-my-turn':'')+'" role="status">'+
+ '<span class="hud-status"><i class="hud-dot" aria-hidden="true"></i>'+safe(who)+'</span>'+
+ '<span class="hud-meta"><span>'+layerText+'</span><span>'+g.pile.length+' IN PILE</span>'+
+ (g.slam?.length?'<span>SLAM READY</span>':'')+'</span></div>';
+}
 function playView(){
  const p=current(),g=data.game,can=active(),source=stageNow(),legal=legalMove(),canSlam=g.slam?.length>0;
  return '<div class="pitch"><h1>'+safe(statusTitle())+'</h1><p>LIVE ROOM · '+safe(room)+' · '+data.capacity+' players</p></div>'+
   '<div class="online-room-tools"><span><span class="online-pulse"></span> Room '+safe(room)+'</span>'+
-  '<button class="action secondary" data-do="copy">Copy invitation</button><span>Seat '+(data.me+1)+': '+safe(displayName(data.me))+'</span></div>'+
+  '<button class="action secondary" data-do="copy">Copy invitation</button><span>Seat '+(data.me+1)+': '+safe(displayName(data.me))+'</span></div>'+tableHUD()+
   '<section class="table" aria-label="Live physical PILEHEAD table">'+opponentCards()+stack()+upDown()+
   '<div class="hand-area"><div class="area-label"><span>YOUR HAND · '+p.handCount+' cards</span><button type="button" class="hand-sort-button" data-do="sort" title="Change card order">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></div>'+
   '<div class="card-row hand">'+(p.hand?.length?orderedHand(p.hand).map(c=>card(c,{can:can&&source==='hand',source:'hand',selected:selection.includes(c.id)})).join(''):
@@ -169,27 +179,18 @@ function playView(){
   '<div class="toolbar"><button class="action primary" data-do="play" '+(!legal||busy?'disabled':'')+'>'+(legal&&p.hand?.some(c=>selection.includes(c.id)&&c.action==='burn')?'BURN PILE · '+selection.length:'Place '+(selection.length?selection.length+' card'+(selection.length>1?'s':''):'cards'))+'</button>'+
   '<button class="action secondary" data-do="take" '+(!can||!g.legal.some(x=>x.type==='take')||busy?'disabled':'')+'>Take pile</button>'+
   '<button class="action slam" data-do="slam" '+(!canSlam||busy?'disabled':'')+'>SLAM!'+(canSlam?' ×'+g.slam[0].ids.length+' NOW':'')+'</button></div>'+
-  '<div class="message" role="status" aria-live="polite">'+safe(notice||'Tap once for all matching cards, tap one to remove it. SLAM interrupts when ready.')+'</div>'+
+  '<div class="message" role="status" aria-live="polite">'+safe(notice||(selection.length>1?'You have '+selection.length+' matching cards selected. Tap individual cards to remove them, or play all.':'Tap once for all matching cards, tap one to remove it. SLAM interrupts when ready.'))+'</div>'+
   '<div class="meta"><span>Move '+g.moves+'</span><span>Draw '+g.stockCount+'</span><span>Ashes '+g.ashesCount+'</span><span>Synced · rev '+data.revision+'</span></div>'+
   '<div class="event-list">'+events()+'</div>';
 }
 function endScreen(){
  if(!data||data.game.phase!=='over'||endDismissed)return '';
- const g=data.game,order=[...(g.finishedOrder||[]),...(g.loser===null?[]:[g.loser])];
- const won=g.loser!==data.me,champion=g.finishedOrder?.[0];
- return '<div class="pilehead-result-backdrop" role="dialog" aria-modal="true" aria-labelledby="pilehead-result-title">'+
-  '<section class="pilehead-result-panel"><div class="result-glow" aria-hidden="true">✦ ✧ ✦</div>'+
-  '<div class="eyebrow">PILEHEAD · GAME COMPLETE</div>'+
-  '<div class="result-medal" aria-hidden="true">'+(won?'★':'♠')+'</div>'+
-  '<h2 id="pilehead-result-title">'+(won?'Congratulations!':'Game over!')+'</h2>'+
-  '<p class="result-lead">'+(won?'You escaped the pile!':'You are the PILEHEAD this round.')+'</p>'+
-  '<div class="result-winner">First to finish <strong>'+safe(displayName(champion))+'</strong></div>'+
-  '<div class="result-ranking">'+order.map((seat,i)=>'<div class="result-rank"><span class="result-position">'+(i===order.length-1?'LAST':('#'+(i+1)))+'</span>'+
-   '<strong>'+safe(displayName(seat))+(seat===data.me?' · You':'')+'</strong>'+
-   '<small>'+(seat===g.loser?'PILEHEAD':'Escaped')+'</small></div>').join('')+'</div>'+
-  '<div class="result-actions"><a class="action primary" href="?online=1">Create a new game</a>'+
-  '<button class="action secondary" data-do="dismiss-result">View final table</button></div>'+
-  '<p class="result-footnote">New games start with fresh hands and a new invitation link.</p></section></div>';
+ const g=data.game;
+ return window.PileheadTableFX?.resultHTML({
+  players:Array.from({length:data.capacity},(_,seat)=>displayName(seat)),
+  finishedOrder:g.finishedOrder||[],loser:g.loser,me:data.me,
+  moves:g.moves,ashes:g.ashesCount,online:true,key:room+':'+g.moves
+ })||'';
 }
 function welcome(){
  const nick=safe(safeSessionRead(NAME)||'');

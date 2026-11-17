@@ -83,13 +83,22 @@ function setupView(){if(!g)return '<section class="setup panel"><div class="eyeb
  rowCards(p.hand,'hand',true)+'<div class="toolbar"><button class="action primary" data-do="ready">'+
  (mode==='hotseat'&&setupSeat<seats-1?'Pass to next player':'Start the game')+'</button></div></section>';
 }
+
+function tableHUD(){
+ const viewer=viewSeat(),layer=currentStage(),who=g.phase==='over'?'ROUND COMPLETE':isTurn()?'YOUR TURN':playerName(g.turn)+' TO PLAY';
+ const layerText=layer==='hand'?'HAND':layer==='up'?'FACE-UP CARDS':layer==='down'?'BLIND CARDS':'FINISHED';
+ return '<div class="pilehead-table-hud '+(isTurn()?'is-my-turn':'')+'" role="status">'+
+ '<span class="hud-status"><i class="hud-dot" aria-hidden="true"></i>'+who+'</span>'+
+ '<span class="hud-meta"><span>'+layerText+'</span><span>'+g.pile.length+' IN PILE</span>'+
+ (E.slamOptions(g,viewer).length?'<span>SLAM READY</span>':'')+'</span></div>';
+}
 function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotseat'||viewer===0,turn=isTurn(),stage=currentStage();
  const selectable=turn&&g.phase==='play'&&!covered,slams=E.slamOptions(g,viewer),legal=E.options(g,viewer),pick=legal.some(o=>o.type==='take');
  const top=E.topRun(g),summary=g.phase==='over'?'Game over. '+playerName(g.loser)+' is the PILEHEAD.':
   turn?'Your turn · '+(stage==='down'?'Flip one blind card':stage==='up'?'Play from your face-up row':'Choose cards from your hand'):
   playerName(g.turn)+' is playing · watch for a SLAM!';
  return '<div class="pitch"><h1>'+summary+'</h1><p>52 custom cards · 40 numbers · 12 actions · '+g.people.length+' players</p></div>'+
- '<section class="table" aria-label="PILEHEAD physical table">'+opponents()+pile()+
+ tableHUD()+'<section class="table" aria-label="PILEHEAD physical table">'+opponents()+pile()+
  upAndDown(p,selectable)+
  '<div class="hand-area"><div class="area-label"><span>'+playerName(viewer)+' · HAND · '+p.hand.length+' cards</span><button type="button" class="hand-sort-button" data-do="sort">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></div>'+
  rowCards(p.hand,'hand',selectable&&stage==='hand')+'</div></section>'+
@@ -99,26 +108,18 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  '<button class="action slam" data-do="slam" '+(!slams.length?'disabled':'')+'>SLAM!'+(slams.length?' ×'+slams[0].ids.length+' NOW':'')+'</button>')+
  (mode==='hotseat'&&g.phase==='play'&&g.slamOpen?'<button class="action secondary" data-do="challenge">Other player SLAM</button>':'')+
  '</div><details class="playtest-tools"><summary>Playtest tools</summary><button class="action secondary" data-do="export">Export QA state</button></details>'+
- '<div class="message" role="status" aria-live="polite">'+(notice||'Tap once for all matching cards, tap one to remove it. SLAM interrupts when ready.')+'</div>'+
+ '<div class="message" role="status" aria-live="polite">'+(notice||(selection.length>1?'You have '+selection.length+' matching cards selected. Remove any card with a tap or place all.':'Tap once for all matching cards, tap one to remove it. SLAM interrupts when ready.'))+'</div>'+
  '<div class="meta"><span>Moves <strong>'+g.moves+'</strong></span><span>Draw stock <strong>'+g.stock.length+'</strong></span>'+
  '<span>Burned <strong>'+g.ashes.length+'</strong></span><span>Pickups <strong>'+g.people.reduce((n,x)=>n+x.pickups,0)+'</strong></span></div>'+
  '<div class="event-list" aria-label="Recent moves">'+g.events.slice(-8).reverse().map(e=>'<span class="event">'+eventName(e)+'</span>').join('')+'</div>';
 }
 function endScreen(){
  if(!g||g.phase!=='over'||endDismissed)return '';
- const order=[...g.finishedOrder,...(g.loser===null?[]:[g.loser])];
- const viewer=mode==='bots'?0:null,win=viewer!==null&&viewer!==g.loser;
- return '<div class="pilehead-result-backdrop" role="dialog" aria-modal="true" aria-labelledby="pilehead-result-title">'+
- '<section class="pilehead-result-panel"><div class="result-glow" aria-hidden="true">✦ ✧ ✦</div>'+
- '<div class="eyebrow">PILEHEAD · GAME COMPLETE</div>'+
- '<div class="result-medal" aria-hidden="true">'+(win?'★':'♠')+'</div>'+
- '<h2 id="pilehead-result-title">'+(viewer===null?'The round is finished!':win?'Congratulations!':'Game over!')+'</h2>'+
- '<p class="result-lead">'+(viewer===null?'See who escaped and who is the PILEHEAD.':win?'You escaped the pile!':'You are the PILEHEAD this round.')+'</p>'+
- '<div class="result-winner">First to finish <strong>'+playerName(g.finishedOrder[0])+'</strong></div>'+
- '<div class="result-ranking">'+order.map((seat,i)=>'<div class="result-rank"><span class="result-position">'+(i===order.length-1?'LAST':('#'+(i+1)))+'</span>'+
- '<strong>'+playerName(seat)+'</strong><small>'+(seat===g.loser?'PILEHEAD':'Escaped')+'</small></div>').join('')+'</div>'+
- '<div class="result-actions"><button class="action primary" data-do="rematch">Play again</button>'+
- '<button class="action secondary" data-do="dismiss-result">View final table</button></div></section></div>';
+ return window.PileheadTableFX?.resultHTML({
+  players:g.people.map(p=>playerName(p.seat)),
+  finishedOrder:g.finishedOrder||[],loser:g.loser,me:mode==='bots'?0:null,
+  moves:g.moves,ashes:g.ashes.length,online:false,key:g.seed+':'+g.moves
+ })||'';
 }
 function overlay(){
  if(challengeOpen&&g?.phase==='play'){
