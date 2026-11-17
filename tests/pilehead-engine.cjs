@@ -209,6 +209,27 @@ test('face-up bridge is illegal until stock is completely gone',()=>{
  assert.throws(()=>E.move(g,0,forbidden));
  E.invariant(g);
 });
+
+test('a freshly drawn matching rank can be SNAPped before the next turn',()=>{
+ const g=opened(2,230),rank=6,z=[g.stock,g.pile,g.ashes,...g.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const ids=E.deck().filter(c=>c.rank===rank).slice(0,2).map(c=>c.id);
+ const put=(a,i,id)=>{const b=z.find(v=>v.some(c=>c.id===id)),j=b.findIndex(c=>c.id===id),old=a[i];a[i]=b[j];b[j]=old};
+ put(g.people[0].hand,0,ids[0]);put(g.stock,g.stock.length-1,ids[1]);
+ E.move(g,0,{type:'play',source:'hand',ids:[ids[0]]});assert.equal(g.turn,1);
+ const snap=E.followUpOptions(g,0)[0];assert.ok(snap);assert.deepEqual(snap.ids,[ids[1]]);
+ E.move(g,0,snap);assert.equal(E.topRun(g).count,2);E.invariant(g);
+ g.followUp={seat:0,rank,ids:[ids[1]],expiresAt:Date.now()-1};
+ assert.equal(E.followUpOptions(g,0).length,0);
+});
+test('last hand and matching face-up cards can be played together',()=>{
+ const g=opened(2,49),p=g.people[0],z=[g.stock,g.pile,g.ashes,...g.people.flatMap(x=>[x.hand,x.up,x.down])];
+ const ids=E.deck().filter(c=>c.rank===7).slice(0,2).map(c=>c.id);
+ const put=(a,i,id)=>{const b=z.find(v=>v.some(c=>c.id===id)),j=b.findIndex(c=>c.id===id),old=a[i];a[i]=b[j];b[j]=old};
+ put(p.hand,0,ids[0]);put(p.up,0,ids[1]);g.ashes.push(...g.stock.splice(0),...p.hand.splice(1));
+ E.invariant(g);const combo=E.options(g,0).find(o=>o.ids?.length===2&&ids.every(id=>o.ids.includes(id)));assert.ok(combo);
+ const event=E.move(g,0,combo);assert.equal(event.bridgeCount,1);
+ assert.equal(p.hand.length,0);assert.ok(!p.up.some(c=>c.id===ids[1]));E.invariant(g);
+});
 test('seeded bots conserve every card across whole games for 2–5 players',()=>{
  for(let players=2;players<=5;players++)for(let seed=1;seed<=16;seed++){
   const g=E.create({players,seed});g.people.forEach(p=>E.autoSetup(g,p.seat));E.start(g);

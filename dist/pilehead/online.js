@@ -167,7 +167,8 @@ function selectedEffect(){
 }
 function lastEffect(){
  const e=data?.game?.events?.at(-1);if(!e)return '';
- let message=e.type==='followup'?'SNAP · '+displayName(e.seat)+' immediately threw a matching drawn '+e.rank+'.':
+ let message=e.bridgeCount?'HAND + FACE-UP COMBO · '+displayName(e.seat)+' moved matching cards from both layers.':
+  e.type==='followup'?'SNAP · '+displayName(e.seat)+' immediately threw a matching drawn '+e.rank+'.':
  e.reason==='four'||e.reason==='slam'?'FOUR OF A KIND · The entire pile burns.':
  e.action?effectInfo[e.action]:
  e.type==='take'||e.type==='blind-fail'?'PICKUP · The pile moves into '+displayName(e.seat)+'’s hand.':
@@ -175,7 +176,7 @@ function lastEffect(){
  'PLAY · '+displayName(e.seat)+' placed '+e.count+' card'+(e.count===1?'':'s')+'.';
  if(!message)return '';
  return '<div class="pilehead-effect-note" role="status" aria-live="polite"><span class="effect-label">'+
-  safe(e.action?e.action.toUpperCase():e.type==='followup'?'SNAP':e.burned?'BURN':'LAST MOVE')+
+  safe(e.bridgeCount?'COMBO':e.action?e.action.toUpperCase():e.type==='followup'?'SNAP':e.burned?'BURN':'LAST MOVE')+
   '</span><span>'+safe(message)+'</span></div>';
 }
 function events(){return data.game.events.slice(-7).reverse().map(e=>{

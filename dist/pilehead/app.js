@@ -84,14 +84,15 @@ function selectedEffect(){
 }
 function lastEffect(){
  const e=g?.events?.at(-1);if(!e)return '';
- const message=e.type==='followup'?'SNAP · '+playerName(e.seat)+' instantly played the matching card they just drew.':
+ const message=e.bridgeCount?'HAND + FACE-UP COMBO · '+playerName(e.seat)+' played matching cards from both layers.':
+  e.type==='followup'?'SNAP · '+playerName(e.seat)+' instantly played the matching card they just drew.':
  e.reason==='four'||e.reason==='slam'?'FOUR OF A KIND · The pile burns and the player acts again.':
  e.action?effectInfo[e.action]:
  e.type==='take'||e.type==='blind-fail'?'PICKUP · The pile goes into '+playerName(e.seat)+'’s hand.':
  e.burned?'BURN · The pile has been removed from play.':
  'PLAY · '+playerName(e.seat)+' placed '+e.count+' card'+(e.count===1?'':'s')+'.';
  return '<div class="pilehead-effect-note" role="status" aria-live="polite"><span class="effect-label">'+
-  (e.action?e.action.toUpperCase():e.type==='followup'?'SNAP':e.burned?'BURN':'LAST MOVE')+
+  (e.bridgeCount?'COMBO':e.action?e.action.toUpperCase():e.type==='followup'?'SNAP':e.burned?'BURN':'LAST MOVE')+
   '</span><span>'+message+'</span></div>';
 }
 function eventName(e){const who=playerName(e.seat);if(e.type==='take')return who+' picked up '+e.count;
