@@ -1451,3 +1451,13 @@ body.pilehead-playing .table .pilehead-cue{
 @media(prefers-reduced-motion:reduce){
  body.pilehead-playing .toolbar .snap{animation:none!important}
 }
+
+/* Explain the selected special card before it is played. */
+.pilehead-selected-effect{
+ width:min(100%,880px);margin:8px auto 0;display:flex;align-items:center;
+ gap:12px;padding:11px 15px;background:#243c3cd9;
+ border:1px solid #8dbcb591;border-radius:12px;color:#e5efe6;
+ font:700 12px/1.5 system-ui,sans-serif;
+}
+.pilehead-selected-effect strong{flex:none;font-size:10px;letter-spacing:.1em;color:#b9e9db}
+@media(max-width:650px){.pilehead-selected-effect{align-items:flex-start;flex-direction:column;gap:4px}}

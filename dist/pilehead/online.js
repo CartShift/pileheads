@@ -156,6 +156,11 @@ const effectInfo={
  burn:'BURN destroys the entire pile and gives the same player another turn.',
  dump:'DUMP burns itself and forces the next player to collect the existing pile.'
 };
+function selectedEffect(){
+ const cards=[...(current()?.hand||[]),...(current()?.up||[])],picked=cards.find(c=>selection.includes(c.id)&&c.kind==='action');
+ if(!picked)return '';
+ return '<div class="pilehead-selected-effect"><strong>YOUR '+safe(picked.action.toUpperCase())+' CARD</strong><span>'+safe(effectInfo[picked.action]||'Special action')+'</span></div>';
+}
 function lastEffect(){
  const e=data?.game?.events?.at(-1);if(!e)return '';
  let message=e.type==='followup'?'SNAP · '+displayName(e.seat)+' immediately threw a matching drawn '+e.rank+'.':
@@ -218,7 +223,7 @@ function playView(){
  '<button class="action snap" data-do="snap" '+(!g.followup?.length||busy?'disabled':'')+'>SNAP!'+(g.followup?.length?' Throw matching draw':'')+'</button></div>'+
  (g.followup?.length?'<div class="pilehead-snap-choice">You just drew a matching number. Throw it now, or <button class="action secondary" data-do="decline">Let the next player go</button>.</div>':'')+
  (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP: Your last hand card can be played together with the matching face-up cards. Tap either one to select the group.</p>':'')+
- lastEffect()+
+ selectedEffect()+lastEffect()+
   '<div class="message" role="status" aria-live="polite">'+safe(notice||(selection.length>1?'You have '+selection.length+' matching cards selected. Tap individual cards to remove them, or play all.':'Tap once for all matching cards, tap one to remove it. SLAM interrupts when ready.'))+'</div>'+
   '<div class="meta"><span>Move '+g.moves+'</span><span>Draw '+g.stockCount+'</span><span>Ashes '+g.ashesCount+'</span><span>Synced · rev '+data.revision+'</span></div>'+
   '<div class="event-list">'+events()+'</div>';
