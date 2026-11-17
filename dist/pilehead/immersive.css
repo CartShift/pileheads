@@ -1640,3 +1640,25 @@ body.pilehead-playing .table .area-label b{font:inherit;color:#dbcba7}
  body.pilehead-playing .table .card-row.hand{min-height:146px}
  body.pilehead-playing .table .zone .card-row{min-height:78px}
 }
+
+/* Explain the result of the last move at the moment the next action is chosen.
+   The selected action-card explanation takes priority over older move feedback. */
+@media (max-width:700px) and (orientation:portrait){
+ body.pilehead-playing .pilehead-selected-effect,
+ body.pilehead-playing .pilehead-effect-note{
+  display:flex;flex-direction:row;align-items:center;
+  width:calc(100% - 8px);min-height:34px;
+  margin:7px auto 2px;padding:7px 10px;
+  gap:9px;border-radius:10px;
+  font:650 11px/1.35 system-ui,sans-serif;
+ }
+ body.pilehead-playing .pilehead-effect-note .effect-label,
+ body.pilehead-playing .pilehead-selected-effect strong{
+  font:900 10px/1.25 system-ui,sans-serif;
+  flex:0 0 auto;min-width:0;max-width:82px;
+  letter-spacing:.05em;
+ }
+ body.pilehead-playing .pilehead-effect-note span:last-child,
+ body.pilehead-playing .pilehead-selected-effect span{min-width:0}
+ body.pilehead-playing .toolbar.table-actions{margin-top:5px}
+}

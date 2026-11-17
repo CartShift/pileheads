@@ -38,6 +38,13 @@ check('mobile controls are contextual and table height comes from cards',()=>{
  assert.match(css,/\.hand-controls/);
  assert.match(fx,/matchMedia\('\(max-width:700px\)'\)\.matches/);
 });
+check('special-card explanation and latest move appear before the action rail',()=>{
+ for(const source of [local,online]){
+  const game=source.slice(source.indexOf('function gameView(){')>=0?source.indexOf('function gameView(){'):source.indexOf('function playView(){'));
+  assert.ok(game.indexOf('(selectedEffect()||lastEffect())+tableActions(')>=0);
+ }
+ assert.match(css,/selected action-card explanation takes priority/);
+});
 check('tablet and desktop keep larger card faces while arranging groups',()=>{
  assert.equal(layout(6,720,106,false).fits,true);
  assert.ok(layout(15,720,106,false).span>=106);
