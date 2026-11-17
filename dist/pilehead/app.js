@@ -136,7 +136,7 @@ function tableActions({turn,legal,pick,slams,snap,stage}){
    const canPlace=legal.some(o=>o.type==='play'&&o.source===stage&&o.ids?.length===selection.length&&o.ids.every(id=>selection.includes(id)));
    if(canPlace){
     const burn=getPlayer().hand.some(c=>selection.includes(c.id)&&c.action==='burn');
-    buttons+='<button class="action primary" data-do="play">'+(burn?'Burn pile':'Play '+selection.length+' card'+(selection.length===1?'':'s'))+
+    buttons+='<button class="action primary" data-do="play">'+(burn?'BURN PILE':'Play '+selection.length+' card'+(selection.length===1?'':'s'))+
       ' <span aria-hidden="true">↗</span></button>';
    }
   }

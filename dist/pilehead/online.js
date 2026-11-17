@@ -225,7 +225,7 @@ function tableActions(){
   if(can&&legal){
    const burn=current().hand?.some(c=>selection.includes(c.id)&&c.action==='burn');
    buttons+='<button class="action primary" data-do="play" '+(busy?'disabled':'')+'>'+
-    (burn?'Burn pile':'Play '+selection.length+' card'+(selection.length===1?'':'s'))+
+    (burn?'BURN PILE':'Play '+selection.length+' card'+(selection.length===1?'':'s'))+
     ' <span aria-hidden="true">↗</span></button>';
   }
   if(take)buttons+='<button class="action secondary" data-do="take" '+(busy?'disabled':'')+'>Take pile</button>';
