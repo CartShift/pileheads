@@ -42,7 +42,7 @@ function setMessage(e){const map={
  session_required:'Your saved seat session is missing. Rejoin from your invitation link.',
  not_member:'This browser does not own a seat in this room.',
  invalid_code:'This room link is not valid.',room_not_found:'This room was not found.',
- room_expired:'The room expired after 24 hours.',game_not_finished:'Finish the round before starting another.',not_bot_turn:'Waiting for a player move.',room_rules_changed:'This room uses an older deck. Create a new game for the updated rules.',unready_to_swap:'Choose Change cards first.',bad_ready:'Invalid ready status.',full:'The room is full.',
+ room_expired:'The room expired after 24 hours.',game_not_finished:'Finish the round before starting another.',not_bot_turn:'Waiting for a player move.',no_snap_available:'The matching-draw opportunity has already passed.',room_rules_changed:'This room uses an older deck. Create a new game for the updated rules.',unready_to_swap:'Choose Change cards first.',bad_ready:'Invalid ready status.',full:'The room is full.',
  already_started:'The game already started.',waiting_for_players:'Waiting for everyone to join.',
  stale_revision:'Someone played at the same time. Refreshing the table.',
  rate_limited:'Too many requests from this network. Please try again later.',
@@ -73,6 +73,7 @@ async function doAction(payload){
   if(payload.action==='join')notice='You joined. Choose your face-up cards while waiting.';
   if(payload.action==='start')notice='Cards are on the table. Good luck!';
    if(payload.action==='rematch')notice='New round dealt! Choose your face-up cards and get ready.';
+   if(payload.action==='decline')notice='Passed on SNAP. Next player may continue.';
   networkError='';
  }catch(e){
   notice=setMessage(e.message);
@@ -215,6 +216,7 @@ function playView(){
   '<button class="action secondary" data-do="take" '+(!can||!g.legal.some(x=>x.type==='take')||busy?'disabled':'')+'>Take pile</button>'+
   '<button class="action slam" data-do="slam" '+(!canSlam||busy?'disabled':'')+'>SLAM!'+(canSlam?' ×'+g.slam[0].ids.length+' NOW':'')+'</button>'+
  '<button class="action snap" data-do="snap" '+(!g.followup?.length||busy?'disabled':'')+'>SNAP!'+(g.followup?.length?' Throw matching draw':'')+'</button></div>'+
+ (g.followup?.length?'<div class="pilehead-snap-choice">You just drew a matching number. Throw it now, or <button class="action secondary" data-do="decline">Let the next player go</button>.</div>':'')+
  (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP: Your last hand card can be played together with the matching face-up cards. Tap either one to select the group.</p>':'')+
  lastEffect()+
   '<div class="message" role="status" aria-live="polite">'+safe(notice||(selection.length>1?'You have '+selection.length+' matching cards selected. Tap individual cards to remove them, or play all.':'Tap once for all matching cards, tap one to remove it. SLAM interrupts when ready.'))+'</div>'+
@@ -298,6 +300,7 @@ root.addEventListener('click',async e=>{
  if(action==='take')await command('move',{move:{type:'take'}});
  if(action==='slam'){const m=data?.game.slam?.[0];if(m)await command('move',{move:m})}
  if(action==='snap'){const m=data?.game.followup?.[0];if(m)await command('move',{move:m})}
+ if(action==='decline')await command('decline');
  if(action==='copy'){try{await navigator.clipboard.writeText(invite());notice='Invite link copied.'}catch{notice='Copy this link: '+invite()}render()}
  if(action==='share'){try{if(navigator.share)await navigator.share({title:'PILEHEAD',url:invite(),text:'Join my PILEHEAD card game'});else await navigator.clipboard.writeText(invite())}catch{}}
 });
