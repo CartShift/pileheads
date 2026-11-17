@@ -98,3 +98,6 @@ BURN already exists as two dedicated action cards in the 52-card deck. Its actio
 ## Server-authoritative drawn-match priority
 
 A matching card drawn immediately after a numbered play opens a seven-second SNAP priority window online. Other normal turns, including bot turns, are delayed until SNAP, decline, or expiry. Four-card SLAM may still interrupt. On a shared device the reaction is untimed. The deadline belongs to the room state and is not based on client clocks.
+
+## Mobile play UI
+The phone table now sizes to its content rather than forcing a viewport-sized felt area; opponent thumbnails, pile, exposed cards and hand remain visible in one compact sequence. Play, Take, SLAM and SNAP controls only appear when relevant; a brief instructional prompt replaces disabled buttons. Small hands are fanned wider, with Sort and Clear selection available. The teaching pill no longer covers cards on phones. Existing desktop, landscape and multiplayer rules remain unchanged.

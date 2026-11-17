@@ -20,6 +20,24 @@ check('a pickup of 20 cards scrolls independently instead of becoming unreadably
  const x=layout(20,320,72,true);assert.equal(x.fits,false);
  assert.ok(x.span>296);assert.ok(x.overlap<=-30);
 });
+check('small hands spread across the fan before larger hands start overlapping',()=>{
+ const a=layout(3,350,82,true);
+ assert.ok(a.fits&&a.overlap>-20);
+ const b=layout(4,350,82,true);
+ assert.ok(b.fits&&b.overlap>-20);
+});
+check('mobile controls are contextual and table height comes from cards',()=>{
+ for(const source of [local,online]){
+  assert.match(source,/function tableActions\(/);
+  assert.match(source,/class="toolbar table-actions"/);
+  assert.match(source,/data-do="clear-selection"/);
+  assert.match(source,/table-action-prompt/);
+ }
+ assert.match(css,/PHONE TABLE · NOVEMBER 2026/);
+ assert.match(css,/grid-template-rows:auto auto auto auto/);
+ assert.match(css,/\.hand-controls/);
+ assert.match(fx,/matchMedia\('\(max-width:700px\)'\)\.matches/);
+});
 check('tablet and desktop keep larger card faces while arranging groups',()=>{
  assert.equal(layout(6,720,106,false).fits,true);
  assert.ok(layout(15,720,106,false).span>=106);
