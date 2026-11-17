@@ -1314,7 +1314,7 @@ body.pilehead-playing .message{max-width:800px;color:#e9d6b3}
  0%{transform:translate3d(0,-25px,0) rotate(0deg);opacity:0}
  6%{opacity:1}
  84%{opacity:.94}
- 100%{transform:translate3d(calc((var(--spin) * 26px)),calc(100dvh + var(--travel)),0) rotate(calc(var(--spin) * 880deg));opacity:0}
+ 100%{transform:translate3d(var(--drift),calc(100dvh + var(--travel)),0) rotate(var(--turn));opacity:0}
 }
 @media(prefers-reduced-motion:no-preference){
  .pilehead-result-panel .result-scene{animation:result-scene-reveal .7s cubic-bezier(.18,.76,.28,1.12) both}
@@ -1335,4 +1335,40 @@ body.pilehead-playing .message{max-width:800px;color:#e9d6b3}
  .pilehead-result-panel .result-rank{min-height:42px;padding:7px 9px}
  .pilehead-result-panel .result-actions{margin-top:14px}
  .pilehead-result-panel .result-rank-heading{margin-top:13px}
+}
+
+/* Focus mode is intentionally reversible and preserves every game control. */
+body.pilehead-focus .top{
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:nowrap;
+ padding:3px 8px 7px;margin:0;border-color:#aa8c6138;
+}
+body.pilehead-focus .top .eyebrow{display:none}
+body.pilehead-focus .top .brand{font-size:20px}
+body.pilehead-focus .top .table-menu-toggle{display:none!important}
+body.pilehead-focus .top .links{
+ display:flex!important;position:static!important;width:auto!important;
+ margin:0!important;padding:0!important;border:0!important;background:none!important;
+ box-shadow:none!important;gap:0;
+}
+body.pilehead-focus .top .links > :not([data-fx-focus]){display:none!important}
+body.pilehead-focus .top [data-fx-focus]{
+ border:1px solid #b896645e;background:#302920a8;color:#e9d2a8;font-size:11px;
+ padding:6px 10px;min-height:37px;display:inline-flex;align-items:center;
+}
+body.pilehead-focus .pitch,
+body.pilehead-focus .online-room-tools,
+body.pilehead-focus .meta,
+body.pilehead-focus .event-list,
+body.pilehead-focus .instructions{display:none!important}
+body.pilehead-focus .layout{padding-top:3px}
+body.pilehead-focus .table{min-height:clamp(570px,calc(100svh - 150px),1000px)}
+body.pilehead-focus .pilehead-table-hud{margin-top:6px}
+body.pilehead-focus .toolbar{margin-top:-6px}
+body.pilehead-focus .message{margin-top:3px}
+body.pilehead-focus .top:has([data-fx-focus]:focus-visible){outline:1px solid #d6b674}
+@media(max-width:700px){
+ body.pilehead-focus .layout{padding:2px 5px 11px}
+ body.pilehead-focus .table{min-height:clamp(550px,calc(100svh - 160px),850px)}
+ body.pilehead-focus .top{padding:2px 4px 5px}
+ body.pilehead-focus .top .brand{font-size:19px}
 }

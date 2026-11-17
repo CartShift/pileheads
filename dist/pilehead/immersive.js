@@ -3,8 +3,8 @@
 const STORE='pilehead-table-sound-v1';
 const motion=typeof matchMedia==='function'?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
 const $=(sel,el=document)=>el.querySelector(sel);
-let last=null,seen=false,ctx=null,sound=false,btn=null,menuButton=null,handScroll=0;
-try{sound=localStorage.getItem(STORE)==='on'}catch{}
+let last=null,seen=false,ctx=null,sound=false,btn=null,focusButton=null,focusMode=false,menuButton=null,handScroll=0;
+try{sound=localStorage.getItem(STORE)==='on';focusMode=localStorage.getItem('pilehead-table-focus-v1')==='on'}catch{}
 function controls(){
  const nav=$('.top .links');if(!nav)return;
  if(!menuButton){
@@ -30,6 +30,18 @@ function controls(){
   btn.addEventListener('click',()=>{sound=!sound;try{localStorage.setItem(STORE,sound?'on':'off')}catch{};updateButton();snap()});
   nav.appendChild(btn)}
  updateButton();
+ if(!focusButton){
+  focusButton=document.createElement('button');focusButton.type='button';
+  focusButton.dataset.fxFocus='1';focusButton.title='Hide distractions and focus on the card table';
+  focusButton.addEventListener('click',()=>{
+   focusMode=!focusMode;
+   try{localStorage.setItem('pilehead-table-focus-v1',focusMode?'on':'off')}catch{}
+   document.body.classList.toggle('pilehead-focus',focusMode&&!!$('#app .table'));
+   updateFocusButton();
+  });
+  nav.appendChild(focusButton);
+ }
+ updateFocusButton();
  if(!$('[data-table-fullscreen]',nav)&&document.documentElement.requestFullscreen){
   const f=document.createElement('button');f.type='button';f.dataset.tableFullscreen='1';f.textContent='⛶ Fullscreen';
   f.title='Immersive table fullscreen';f.addEventListener('click',async()=>{try{
@@ -37,6 +49,7 @@ function controls(){
   }catch{}});nav.appendChild(f)}
 }
 function updateButton(){if(btn){btn.setAttribute('aria-pressed',String(sound));btn.innerHTML='<span class="sound-led" aria-hidden="true"></span> '+(sound?'Sound on':'Sound off')}}
+function updateFocusButton(){if(focusButton){focusButton.setAttribute('aria-pressed',String(focusMode));focusButton.textContent=focusMode?'✕ Exit focus':'◎ Focus table'}}
 function handLayout(n,rowWidth,cardWidth,mobile){
  const budget=Math.max(0,rowWidth-24),maxStep=mobile?54:80,minStep=mobile?28:38;
  const step=n<=1?cardWidth:Math.min(maxStep,Math.max(minStep,(budget-cardWidth)/(n-1)));
@@ -277,6 +290,7 @@ function celebrate(table,ev,ownSeat){
 function sync({event=null,identity=null,ownSeat=0,active=false,selected=0,moveNo=0,online=false}={}){
  const table=$('#app .table');
  document.body.classList.toggle('pilehead-playing',!!table);
+ document.body.classList.toggle('pilehead-focus',!!table&&focusMode);
  document.body.classList.toggle('pilehead-online',Boolean(online));
  controls();
  if(!table){seen=false;last=null;syncResult();return}
