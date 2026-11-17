@@ -253,7 +253,7 @@ function playView(){
  (g.followup?.length?'<div class="pilehead-snap-choice">You just drew a matching number. Throw it now, or <button class="action secondary" data-do="decline">Let the next player go</button>.</div>':'')+
  (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP: Your last hand card can be played together with the matching face-up cards. Tap either one to select the group.</p>':'')+
  selectedEffect()+lastEffect()+
-  '<div class="message" role="status" aria-live="polite">'+safe(notice||(selection.length>1?'You have '+selection.length+' matching cards selected. Tap individual cards to remove them, or play all.':'Tap once for all matching cards, tap one to remove it. SLAM interrupts when ready.'))+'</div>'+
+  (notice?'<div class="message" role="status" aria-live="polite">'+safe(notice)+'</div>':'')+
   '<div class="meta"><span>Move '+g.moves+'</span><span>Draw '+g.stockCount+'</span><span>Ashes '+g.ashesCount+'</span><span>Synced · rev '+data.revision+'</span></div>'+
   '<div class="event-list">'+events()+'</div>';
 }
