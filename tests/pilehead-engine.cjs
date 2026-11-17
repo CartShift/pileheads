@@ -64,6 +64,19 @@ test('out-of-turn SLAM burns a public top run with matching private cards',()=>{
  assert.equal(g.pile.length,0);assert.equal(g.ashes.length,4);
  assert.equal(g.turn,1);E.invariant(g);
 });
+
+test('complete four-of-a-kind from hand can SLAM out of turn without matching pile top',()=>{
+ const g=opened(2,307),four=Array.from({length:4},()=>extract(g,c=>c.kind==='number'&&c.rank===8));
+ const previous=g.people[1].hand.splice(0);
+ g.stock.push(...previous);g.people[1].hand.push(...four);
+ g.pile.push(extract(g,c=>c.kind==='number'&&c.rank===2));
+ g.slamOpen=false;g.turn=0;
+ const option=E.slamOptions(g,1)[0];assert.ok(option);assert.equal(option.ids.length,4);
+ const event=E.move(g,1,option);
+ assert.equal(event.reason,'slam');assert.equal(event.burned,true);
+ assert.equal(g.pile.length,0);assert.equal(g.ashes.length,5);
+ assert.equal(g.turn,1);E.invariant(g);
+});
 test('SLAM cannot use blind cards; action breaks the numeric streak',()=>{
  const g=opened(),four=Array.from({length:4},()=>extract(g,c=>c.rank===2));
  g.pile.push(...four.slice(0,2));

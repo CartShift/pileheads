@@ -1108,3 +1108,6 @@ body.pilehead-playing .table .zone .up-pair>.card.selected:not(.back){transform:
 @media(max-width:420px){.pilehead-result-panel{padding:19px 14px}.pilehead-result-panel .result-glow{letter-spacing:9px}.pilehead-result-panel .result-medal{width:69px;height:69px;font-size:42px}}
 @media(prefers-reduced-motion:no-preference){.pilehead-result-panel{animation:pilehead-result-arrive .46s cubic-bezier(.18,.9,.25,1.08) both}
 @keyframes pilehead-result-arrive{from{transform:translateY(25px) scale(.95);opacity:.2}to{transform:translateY(0) scale(1);opacity:1}}}
+
+.pilehead-result-panel .result-actions a.action.primary{background:#f49a62;border:1px solid #ffd1ac;color:#2e1b11;font-weight:900}
+.pilehead-result-panel .result-actions a.action.primary:hover{background:#ffb177}
