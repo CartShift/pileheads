@@ -77,18 +77,18 @@ check('production and Sites builds contain both scene assets',()=>{
 });
 check('end-game overlay includes winner/loser, rank order and retry action in both controllers',()=>{
  assert.match(online,/function endScreen\(/);
- assert.match(local,/function endScreen\(/);
- assert.match(online,/data-do="dismiss-result"/);
- assert.match(local,/data-do="rematch"/);
+ assert.match(solo,/function endScreen\(/);
+ assert.match(fx,/data-do="dismiss-result"/);
+ assert.match(fx,/data-do="rematch"/);
  assert.match(online,/function welcome\(/);
  assert.match(online,/function startPolling\(/);
- assert.match(online,/finishedOrder/);assert.match(local,/finishedOrder/);
+ assert.match(online,/finishedOrder/);assert.match(solo,/finishedOrder/);
  assert.match(css,/\.pilehead-result-backdrop/);
  assert.match(css,/\.pilehead-result-panel/);
 });
 check('BURN and DUMP are clearly labeled as different actions',()=>{
  assert.match(html,/BURN/);
- assert.match(online,/BURN PILE/);assert.match(local,/BURN PILE/);
+ assert.match(online,/BURN PILE/);assert.match(solo,/BURN PILE/);
 });
 check('instant matching draw, final hand bridge and special effects are signposted',()=>{
  for(const src of [online,solo]){
