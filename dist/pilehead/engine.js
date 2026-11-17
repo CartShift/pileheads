@@ -69,6 +69,17 @@ function options(g,seat){if(g.phase!=='play'||g.turn!==seat)return[];
    opts.push({type:'play',source:s,ids});
   }
  }
+ // Last hand card can land together with matching exposed cards, after stock empties.
+ if(s==='hand'&&!g.stock.length&&p.hand.length===1){
+  const last=p.hand[0];
+  if(last.kind==='number'&&isLegal(g,last)){
+   const matching=p.up.filter(c=>c.kind==='number'&&c.rank===last.rank);
+   for(let mask=1;mask<(1<<matching.length);mask++){
+    const extra=matching.filter((_,i)=>mask&(1<<i));
+    if(extra.length+1<=4)opts.push({type:'play',source:'hand',ids:[last.id,...extra.map(c=>c.id)]});
+   }
+  }
+ }
  if(!opts.length&&g.pile.length)opts.push({type:'take'});
  return opts;
 }
@@ -90,20 +101,31 @@ function slamOptions(g,seat){if(g.phase!=='play'||g.people[seat]?.out||!g.pile.l
  const eligible=held.filter(c=>c.kind==='number'&&c.rank===top.rank);
  return eligible.length>=need?[{type:'slam',source:s,ids:eligible.slice(0,need).map(c=>c.id)}]:[];
 }
+function followUpOptions(g,seat){
+ if(g.phase!=='play'||!g.followUp||g.followUp.seat!==seat||g.people[seat]?.out)return[];
+ const {rank,ids}=g.followUp,held=g.people[seat].hand.filter(c=>ids.includes(c.id)&&c.kind==='number'&&c.rank===rank);
+ if(!held.length||topRun(g).rank!==rank)return[];
+ return [{type:'followup',source:'hand',ids:held.map(c=>c.id)}];
+}
 function take(g,seat){
  assert(g.pile.length>0,'Cannot take an empty pile');
  const n=g.pile.length;g.people[seat].hand.push(...g.pile.splice(0));g.people[seat].pickups++;
- g.limit=null;g.slamOpen=false;g.moves++;g.turn=next(g,seat);
+ g.limit=null;g.slamOpen=false;g.followUp=null;g.moves++;g.turn=next(g,seat);
  const event={type:'take',seat,count:n};g.events.push(event);invariant(g);return event;
 }
 function move(g,seat,choice){
  assert(g.phase==='play','Game is not in progress');
  assert(g.people[seat]&&!g.people[seat].out,'Invalid player');
- assert(choice&&['play','take','slam'].includes(choice.type),'Invalid action');
- if(choice.type==='slam'){
+ assert(choice&&['play','take','slam','followup'].includes(choice.type),'Invalid action');
+ const isFollowup=choice.type==='followup',previousTurn=g.turn;
+ if(isFollowup){
+  const eligible=followUpOptions(g,seat)[0];
+  assert(eligible&&choice.source==='hand'&&sameIds(choice.ids,eligible.ids),'Illegal follow-up');
+ }else if(choice.type==='slam'){
   const eligible=slamOptions(g,seat)[0];
   assert(eligible&&choice.source===eligible.source&&sameIds(choice.ids,eligible.ids),'Illegal SLAM');
  }else assert(g.turn===seat,'Not your turn');
+ if(!isFollowup)g.followUp=null;
  if(choice.type==='take'){
   assert(options(g,seat).some(o=>o.type==='take'),'Pickup only when no legal move');
   return take(g,seat);
@@ -112,8 +134,11 @@ function move(g,seat,choice){
  assert(s===choice.source,'Wrong card source');
  const ids=choice.ids;
  assert(Array.isArray(ids)&&ids.length>0&&ids.length<=4&&new Set(ids).size===ids.length,'Invalid card selection');
- const cards=ids.map(id=>p[s].find(c=>c.id===id));
+ const bridge=choice.type==='play'&&s==='hand'&&!g.stock.length&&p.hand.length===1&&
+  ids[0]===p.hand[0].id&&ids.length>1&&ids.slice(1).every(id=>p.up.some(c=>c.id===id));
+ const cards=ids.map(id=>p[s].find(c=>c.id===id)||(bridge?p.up.find(c=>c.id===id):null));
  assert(cards.every(Boolean),'Selected card not owned');
+ if(bridge)assert(cards.every(c=>c.kind==='number'&&c.rank===cards[0].rank),'Bridge requires equal numbers');
  if(choice.type==='play'){
   if(s==='down')assert(ids.length===1,'One blind card at a time');
   else{
@@ -124,6 +149,7 @@ function move(g,seat,choice){
   }
  }
  p[s]=p[s].filter(c=>!ids.includes(c.id));
+ if(bridge)p.up=p.up.filter(c=>!ids.includes(c.id));
  g.slamOpen=false;
  if(choice.type==='play'&&s==='down'&&!isLegal(g,cards[0])){
   g.pile.push(...cards);const ev=take(g,seat);ev.type='blind-fail';return ev;
@@ -141,7 +167,7 @@ function move(g,seat,choice){
   g.people[forcedTarget].pickups++;
   g.limit=null;g.slamOpen=false;
  }
- let burned=false,reason=choice.type==='slam'?'slam':'number';
+ let burned=false,reason=choice.type==='slam'?'slam':isFollowup?'snap':'number';
  if(choice.type==='slam'){burned=true}
  else if(card.kind==='action'){
   reason=card.action;
@@ -157,12 +183,22 @@ function move(g,seat,choice){
   else g.slamOpen=true;
  }
  if(burned){g.ashes.push(...g.pile.splice(0));g.limit=null;g.slamOpen=false}
- if(s==='hand')while(p.hand.length<3&&g.stock.length)p.hand.push(g.stock.pop());
+ // Only the cards physically drawn because of this numbered play may be snapped.
+ // An opponent's subsequent move invalidates the invitation.
+ const freshlyDrawn=[];
+ if(s==='hand')while(p.hand.length<3&&g.stock.length){
+  const drawn=g.stock.pop();p.hand.push(drawn);freshlyDrawn.push(drawn);
+ }
+ g.followUp=!burned&&card.kind==='number'?
+  (freshlyDrawn.some(c=>c.kind==='number'&&c.rank===card.rank)?
+   {seat,rank:card.rank,ids:freshlyDrawn.filter(c=>c.kind==='number'&&c.rank===card.rank).map(c=>c.id)}:null):null;
  g.moves++;const event={type:choice.type,seat,reason,count:cards.length,burned,
   rank:card.rank??null,action:card.action??null,target:forcedTarget,takenCount:forcedCount};
  g.events.push(event);
  const over=finish(g);
- if(!over)g.turn=burned||dump?(!p.out?seat:next(g,seat)):card.action==='skip'?next(g,next(g,seat)):next(g,seat);
+ if(!over)g.turn=burned||dump?(!p.out?seat:next(g,seat)):
+  isFollowup?previousTurn:card.action==='skip'?next(g,next(g,seat)):next(g,seat);
+ if(over)g.followUp=null;
  invariant(g);return event;
 }
 function sameIds(a,b){return Array.isArray(a)&&a.length===b.length&&a.every((x,i)=>x===b[i])}
@@ -197,7 +233,7 @@ function autoSlam(g,style='greedy',exclude=-1){if(g.phase!=='play'||!g.slamOpen)
  }return null;
 }
 const api={VERSION,DECK_SIZE,ACTIONS,deck,create,start,swap,autoSetup,stage,count,invariant,
- options,slamOptions,topRun,isLegal,move,choose,autoSlam,next};
+ options,slamOptions,followUpOptions,topRun,isLegal,move,choose,autoSlam,next};
 root.PileheadEngine=api;
 if(typeof module!=='undefined')module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
