@@ -254,7 +254,8 @@ function fly(table,ev,ownSeat){
   $('.opponent[data-seat="'+recipient+'"] .held-cards',table)||$('.opponent[data-seat="'+recipient+'"] .mini-cards',table)||$('.opponents',table);
  const from=(source||table).getBoundingClientRect(),to=target.getBoundingClientRect();
  const start=isPickup?to:from,dest=isPickup?from:to;
- const x=start.left+start.width/2-(dest.left+dest.width/2),y=start.top+start.height/2-(dest.top+dest.height/2);
+ const bridgeOrigin=ev.bridgeCount>0?(mine?$('.zone.your-up .card-row',table):
+  $('.opponent[data-seat="'+ev.seat+'"] .mini-cards',table)||$('.opponent[data-seat="'+ev.seat+'"]',table)):null;
  // Show an actual small stack when multiple equal cards land, or the pile is picked up.
  const count=Math.max(1,Math.min(isPickup?3:4,isPickup?Number(ev.takenCount??ev.count)||1:Number(ev.count)||1));
  for(let i=0;i<count;i++){
@@ -265,6 +266,8 @@ function fly(table,ev,ownSeat){
   piece.style.zIndex=String(110+i);
   document.body.appendChild(piece);
   const drift=i*7;
+  const origin=!isPickup&&bridgeOrigin&&i>=count-Number(ev.bridgeCount)?bridgeOrigin.getBoundingClientRect():start;
+  const x=origin.left+origin.width/2-(dest.left+dest.width/2),y=origin.top+origin.height/2-(dest.top+dest.height/2);
   const anim=piece.animate([
    {transform:'translate('+(x-drift)+'px,'+(y+drift)+'px) rotate('+(-16+i*3)+'deg) scale(.78)',opacity:.83},
    {transform:'translate('+(x*.22)+'px,'+(y*.25)+'px) rotate(3deg) scale(1.12)',opacity:1,offset:.72},
@@ -306,11 +309,12 @@ function cue(table,text){
 function celebrate(table,ev,ownSeat){
  if(!ev)return;
  if(ev.burned){table.classList.remove('just-burned');void table.offsetWidth;table.classList.add('just-burned');
-  cue(table,ev.reason==='slam'?'SLAM · FOUR CARDS':ev.reason==='four'?'FOUR · PILE BURNS':'BURN · PILE REMOVED');
+  cue(table,ev.bridgeCount?'TWO LAYERS · FOUR BURN':ev.reason==='slam'?'SLAM · FOUR CARDS':ev.reason==='four'?'FOUR · PILE BURNS':'BURN · PILE REMOVED');
   snap('burn');setTimeout(()=>table.classList.remove('just-burned'),550)}
  else if(ev.action==='dump'){cue(table,'DUMP · TAKE PILE');snap('pickup')}
  else if(ev.type==='take'||ev.type==='blind-fail'){cue(table,'PICK UP PILE');snap('pickup')}
  else if(ev.type==='followup'){cue(table,'SNAP · MATCHING DRAW');snap('play')}
+ else if(ev.bridgeCount){cue(table,'HAND + FACE UP · COMBO');snap('play')}
  else if(ev.type==='play'){
   snap();
   if(ev.action==='skip')cue(table,'SKIP · LOSE A TURN');
