@@ -86,6 +86,98 @@ function fan(table){
   handScroll=row.scrollLeft;
  }
 }
+
+/* Shared presentation: the same finale is used by bots, hot-seat and online rooms.
+   Names are escaped here, not by the game engine, so private state stays private. */
+function escapeMarkup(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function resultHTML({players=[],finishedOrder=[],loser=null,me=null,moves=0,ashes=0,key='',online=false}={}){
+ const ranking=[...finishedOrder];if(loser!==null&&!ranking.includes(loser))ranking.push(loser);
+ if(!ranking.length)return '';
+ const getName=seat=>escapeMarkup(players[seat]??('Player '+(seat+1)));
+ const champion=ranking[0],iWon=me!==null&&me!==loser,neutral=me===null;
+ const label=neutral?'THE FINAL TABLE':iWon?'YOU MADE IT OUT':'THE PILE GOT YOU';
+ const heading=neutral?'What a finish!':iWon?'CONGRATULATIONS!':'PILEHEAD!';
+ const message=neutral?'Every card has found its place. Here is how the table finished.':
+  iWon?'You played your last card and escaped the pile. That deserves a celebration.':
+  'The final pile is yours this round. Every great comeback starts here.';
+ const A=root.PileheadCardArt,back=A?.back?.()||'<span>PILEHEAD</span>';
+ const festive=Array.from({length:34},(_,i)=>{
+  const left=(i*73+19)%100,delay=(i*13%19)*-0.13,travel=150+(i*17%80);
+  return '<i style="--left:'+left+'%;--delay:'+delay+'s;--travel:'+travel+'px;--spin:'+(i%2?1:-1)+'" aria-hidden="true"></i>';
+ }).join('');
+ const entries=ranking.map((seat,i)=>{
+  const last=seat===loser,first=i===0;
+  return '<li class="result-rank '+(first?'is-champion ':'')+(last?'is-pilehead':'')+'">'+
+   '<span class="result-position">'+(last?'LAST':String(i+1).padStart(2,'0'))+'</span>'+
+   '<span class="result-person"><strong>'+getName(seat)+(me===seat?' <em>YOU</em>':'')+'</strong>'+
+   '<small>'+(last?'The Pilehead':first?'First out':'Escaped')+'</small></span>'+
+   '<span class="result-rank-symbol" aria-hidden="true">'+(last?'♠':first?'★':'✦')+'</span></li>';
+ }).join('');
+ const actions=online?
+  '<a class="action primary" href="?online=1">New online table</a>':
+  '<button class="action primary" data-do="rematch" type="button">Play another round</button>';
+ const caption=online?'A new table creates a fresh invitation.':'Same players. New shuffle. Another chance.';
+ return '<div class="pilehead-result-backdrop '+(iWon?'is-victory':'is-final')+'" role="dialog" aria-modal="true" aria-labelledby="pilehead-result-title" data-result-root data-game-result="'+escapeMarkup(key)+'">'+
+  '<div class="result-confetti" aria-hidden="true">'+festive+'</div>'+
+  '<div class="result-spotlight" aria-hidden="true"></div>'+
+  '<section class="pilehead-result-panel" aria-describedby="pilehead-result-subtitle">'+
+   '<div class="result-head"><span>PILEHEAD</span><span>END OF ROUND</span></div>'+
+   '<div class="result-scene" aria-hidden="true">'+
+    '<div class="result-scene-orbit"></div>'+
+    '<div class="result-fan-card result-fan-left ph-card">'+back+'</div>'+
+    '<div class="result-fan-card result-fan-right ph-card">'+back+'</div>'+
+    '<div class="result-fan-card result-fan-main ph-card">'+back+'</div>'+
+    '<div class="result-wreath">'+(iWon||neutral?'★':'♠')+'</div>'+
+   '</div>'+
+   '<div class="result-copy"><div class="result-kicker">'+label+'</div>'+
+   '<h2 id="pilehead-result-title" tabindex="-1">'+heading+'</h2>'+
+   '<p id="pilehead-result-subtitle" class="result-lead">'+message+'</p></div>'+
+   '<div class="result-winner"><span>FIRST TO ESCAPE</span><strong>'+getName(champion)+'</strong></div>'+
+   '<div class="result-stats"><span><b>'+Number(moves||0)+'</b> moves</span><span><b>'+Number(ashes||0)+'</b> burned</span><span><b>'+ranking.length+'</b> players</span></div>'+
+   '<div class="result-rank-heading"><span>FINAL STANDINGS</span><span>THE TABLE REMEMBERS</span></div>'+
+   '<ol class="result-ranking">'+entries+'</ol>'+
+   '<div class="result-actions">'+actions+
+    '<button class="action secondary" type="button" data-do="dismiss-result">View the table</button></div>'+
+   '<p class="result-footnote">'+caption+'</p>'+
+  '</section></div>';
+}
+let lastResultKey=null;
+function victoryChime(){
+ if(!sound||motion.matches)return;
+ try{
+  const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+  ctx||=new AC();if(ctx.state==='suspended')ctx.resume().catch(()=>{});
+  // Original three-note tabletop flourish. The sound setting remains opt-in.
+  for(const [i,hz] of [392,523.25,659.25].entries()){
+   const start=ctx.currentTime+i*.13,osc=ctx.createOscillator(),gain=ctx.createGain();
+   osc.type='sine';osc.frequency.setValueAtTime(hz,start);
+   gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(.055,start+.025);
+   gain.gain.exponentialRampToValueAtTime(.0001,start+.48);
+   osc.connect(gain).connect(ctx.destination);osc.start(start);osc.stop(start+.52);
+   osc.onended=()=>{osc.disconnect();gain.disconnect()};
+  }
+ }catch{}
+}
+function syncResult(){
+ const modal=$('[data-result-root]');
+ if(!modal){return}
+ const key=modal.getAttribute('data-game-result');
+ if(key===lastResultKey)return;
+ lastResultKey=key;
+ modal.querySelector('#pilehead-result-title')?.focus({preventScroll:true});
+ if(modal.classList.contains('is-victory'))victoryChime();
+}
+document.addEventListener('keydown',e=>{
+ const modal=$('[data-result-root]');if(!modal)return;
+ if(e.key==='Escape'){e.preventDefault();modal.querySelector('[data-do="dismiss-result"]')?.click();return}
+ if(e.key!=='Tab')return;
+ const focusable=Array.from(modal.querySelectorAll('button:not(:disabled),a[href]'));
+ if(!focusable.length)return;
+ const first=focusable[0],last=focusable[focusable.length-1];
+ if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}
+ else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}
+});
+
 const appRoot=$('#app');
 appRoot?.addEventListener('scroll',e=>{
  if(e.target?.classList?.contains('hand'))handScroll=e.target.scrollLeft;
@@ -187,12 +279,13 @@ function sync({event=null,identity=null,ownSeat=0,active=false,selected=0,moveNo
  document.body.classList.toggle('pilehead-playing',!!table);
  document.body.classList.toggle('pilehead-online',Boolean(online));
  controls();
- if(!table){seen=false;last=null;return}
+ if(!table){seen=false;last=null;syncResult();return}
  decor(table);fan(table);hint(table,active,selected,moveNo);
+  syncResult();
  table.classList.toggle('is-active-turn',Boolean(active));
  table.querySelector('[data-play-target]')?.classList.toggle('is-armed',Boolean(selected));
  if(!seen){seen=true;last=identity;table.classList.add('scene-entering');setTimeout(()=>table.classList.remove('scene-entering'),480);return}
  if(identity!==null&&last!==identity){last=identity;if(event)celebrate(table,event,ownSeat)}
 }
-root.PileheadTableFX={sync,handLayout,resetHandScroll(){handScroll=0}};
+root.PileheadTableFX={sync,handLayout,resultHTML,resetHandScroll(){handScroll=0}};
 })(typeof window!=='undefined'?window:globalThis);
