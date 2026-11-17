@@ -2,9 +2,20 @@
 (function(){'use strict';
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
 const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11';
-let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null;
+let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null,sortMode='dealt';
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
  (a.kind==='number'?a.rank===b.rank:a.action===b.action)}
+function orderedHand(cards){
+ const out=cards.slice();if(sortMode==='dealt')return out;
+ const rank=c=>c.kind==='number'?c.rank:11+['reset','ghost','under','skip','burn','dump'].indexOf(c.action);
+ return out.sort((a,b)=>(sortMode==='asc'?1:-1)*(rank(a)-rank(b))||a.id-b.id);
+}
+function selectMatching(cards,id){
+ const picked=cards.find(c=>c.id===id);if(!picked)return;
+ if(selection.includes(id)){selection=selection.filter(x=>x!==id);return}
+ const prev=selection.map(x=>cards.find(c=>c.id===x)).filter(Boolean);
+ selection=prev.length&&prev.every(c=>sameFace(c,picked))?[...selection,id]:cards.filter(c=>sameFace(c,picked)).map(c=>c.id);
+}
 function playerName(i){return mode==='bots'?(i===0?'You':'Bot '+i):'Player '+(i+1)}
 function viewSeat(){return mode==='bots'?0:g?.turn??0}
 function getPlayer(){return g.people[viewSeat()]}
@@ -27,7 +38,7 @@ function card(c,{interactive=false,selected=false,back=false,source='',small=fal
   ' aria-label="'+(action?name+' action: '+A.rules[c.action]:'Number '+c.rank)+'" aria-pressed="'+Boolean(selected)+'">'+A.face(c)+'</button>';
 }
 function rowCards(cards,source,interact=false){return '<div class="card-row '+(source==='hand'?'hand':'')+'">'+
- cards.map(c=>card(c,{interactive:interact,selected:selection.includes(c.id),source})).join('')+
+ (source==='hand'&&g?.phase==='play'?orderedHand(cards):cards).map(c=>card(c,{interactive:interact,selected:selection.includes(c.id),source})).join('')+
  (!cards.length?'<span style="font-size:12px;color:#a8c4b4">No cards left</span>':'')+'</div>'}
 function mini(c){return A.mini(c)}
 function opponents(){return '<div class="opponents">'+g.people.filter(p=>p.seat!==viewSeat()).map(p=>{
@@ -54,7 +65,7 @@ function upAndDown(p,allow){return '<div class="zone your-up"><div class="area-l
  }).join('')+'</div></div>'}
 function eventName(e){const who=playerName(e.seat);if(e.type==='take')return who+' picked up '+e.count;
  if(e.type==='blind-fail')return who+' flipped an illegal card and took '+e.count;
- if(e.action==='dump')return who+' used DUMP: '+playerName(e.target)+' took '+e.takenCount+' cards; '+who+' plays again';
+ if(e.action==='dump')return who+' burned DUMP: '+playerName(e.target)+' took '+e.takenCount+' pile cards; '+who+' plays again';
  if(e.reason==='slam')return who+' SLAM! Burned the pile';
  if(e.burned)return who+' burned the pile';
  if(e.action)return who+' played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase();
@@ -80,15 +91,15 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  return '<div class="pitch"><h1>'+summary+'</h1><p>52 custom cards · 40 numbers · 12 actions · '+g.people.length+' players</p></div>'+
  '<section class="table" aria-label="PILEHEAD physical table">'+opponents()+pile()+
  upAndDown(p,selectable)+
- '<div class="hand-area"><div class="area-label"><span>'+playerName(viewer)+' · HAND</span><span>'+p.hand.length+' cards</span></div>'+
+ '<div class="hand-area"><div class="area-label"><span>'+playerName(viewer)+' · HAND · '+p.hand.length+' cards</span><button type="button" class="hand-sort-button" data-do="sort">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></div>'+
  rowCards(p.hand,'hand',selectable&&stage==='hand')+'</div></section>'+
  '<div class="toolbar">'+(g.phase==='over'?'<button class="action primary" data-do="new">Play again</button>':
  '<button class="action primary" data-do="play" '+(!selection.length||!turn?'disabled':'')+'>Place '+(selection.length?selection.length+' card'+(selection.length>1?'s':''):'cards')+'</button>'+
  '<button class="action secondary" data-do="take" '+(!turn||!pick?'disabled':'')+'>Take pile</button>'+
- '<button class="action slam" data-do="slam" '+(!slams.length?'disabled':'')+'>SLAM!'+(slams.length&&top.rank!==null?' ×'+top.rank:'')+'</button>')+
+ '<button class="action slam" data-do="slam" '+(!slams.length?'disabled':'')+'>SLAM!'+(slams.length?' ×'+slams[0].ids.length+' NOW':'')+'</button>')+
  (mode==='hotseat'&&g.phase==='play'&&g.slamOpen?'<button class="action secondary" data-do="challenge">Other player SLAM</button>':'')+
  '</div><details class="playtest-tools"><summary>Playtest tools</summary><button class="action secondary" data-do="export">Export QA state</button></details>'+
- '<div class="message" role="status" aria-live="polite">'+(notice||'Tap matching numbers or identical special cards to play together. Drag onto the pile.')+'</div>'+
+ '<div class="message" role="status" aria-live="polite">'+(notice||'Tap once for all matching cards, tap one to remove it. SLAM interrupts when ready.')+'</div>'+
  '<div class="meta"><span>Moves <strong>'+g.moves+'</strong></span><span>Draw stock <strong>'+g.stock.length+'</strong></span>'+
  '<span>Burned <strong>'+g.ashes.length+'</strong></span><span>Pickups <strong>'+g.people.reduce((n,x)=>n+x.pickups,0)+'</strong></span></div>'+
  '<div class="event-list" aria-label="Recent moves">'+g.events.slice(-8).reverse().map(e=>'<span class="event">'+eventName(e)+'</span>').join('')+'</div>';
@@ -156,11 +167,7 @@ function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat()
  if(source==='down'){perform({type:'play',source:'down',ids:[id]});return}
  const arr=p[source],picked=arr.find(c=>c.id===id);if(!picked)return;
  if(!E.isLegal(g,picked)){notice='Not playable with the current restriction';render();return}
- if(selection.includes(id))selection=selection.filter(x=>x!==id);
- else{const prior=selection.map(i=>arr.find(c=>c.id===i)).filter(Boolean);
-  if(prior.length&&!prior.every(c=>sameFace(c,picked)))selection=[];
-  selection.push(id);
- }
+ selectMatching(arr,id);
  if(selection.includes(id)){try{navigator.vibrate?.(8)}catch{}}
  notice='';render();
 }
@@ -180,6 +187,8 @@ function execute(action,button){
   if(!selection.length)return;
   perform({type:'play',source:currentStage(),ids:selection.slice()});return;
  }
+ if(action==='sort'){sortMode=sortMode==='dealt'?'asc':sortMode==='asc'?'desc':'dealt';selection=[];
+  window.PileheadTableFX?.resetHandScroll?.();render();return}
  if(action==='take'){perform({type:'take'});return}
  if(action==='slam'){const choice=E.slamOptions(g,viewSeat())[0];if(choice)perform(choice);return}
  if(action==='hot-slam'){const seat=Number(button.dataset.seat);const choice=E.slamOptions(g,seat)[0];
@@ -202,7 +211,7 @@ let dragCard=null;
 app.addEventListener('dragstart',e=>{
  const b=e.target.closest('[data-card]');if(!b||!isTurn()||covered||g.phase!=='play')return;
  dragCard={id:Number(b.dataset.card),source:b.dataset.source};
- if(!selection.includes(dragCard.id))selection=[dragCard.id];
+ if(!selection.includes(dragCard.id))selectMatching(getPlayer()[dragCard.source]||[],dragCard.id);
  if(e.dataTransfer){e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(dragCard.id))}
 });
 app.addEventListener('dragover',e=>{if(dragCard&&e.target.closest('[data-play-target]'))e.preventDefault()});
@@ -233,12 +242,7 @@ window.addEventListener('pointermove',e=>{
  if(d.scrolling){e.preventDefault();d.row.scrollLeft=d.startScroll-dx;return}
  if(d.dragging&&!d.el){const b=app.querySelector('[data-card="'+d.id+'"]');if(!b)return;
   d.el=b.cloneNode(true);d.el.classList.add('card-ghost');document.body.appendChild(d.el);
-  if(!selection.includes(d.id)){
-   const cards=getPlayer()[d.source],picked=cards.find(c=>c.id===d.id);
-   const group=selection.map(id=>cards.find(c=>c.id===id)).filter(Boolean);
-   if(!picked||!group.length||!group.every(c=>sameFace(c,picked)))selection=[d.id];
-   else selection.push(d.id);
-  }
+  if(!selection.includes(d.id))selectMatching(getPlayer()[d.source]||[],d.id);
   if(selection.length>1){const badge=document.createElement('span');
    badge.className='drag-count';badge.textContent=selection.length+' cards';d.el.appendChild(badge)}
  }
@@ -254,7 +258,7 @@ function endTouch(e){
  suppressTap=true;setTimeout(()=>suppressTap=false,350);
  if(d.scrolling)return;
  if(target&&isTurn()&&currentStage()===d.source){
-  if(!selection.includes(d.id))selection=[d.id];
+  if(!selection.includes(d.id))selectMatching(getPlayer()[d.source]||[],d.id);
   perform({type:'play',source:d.source,ids:selection.slice()})}
 }
 window.addEventListener('pointerup',endTouch);
