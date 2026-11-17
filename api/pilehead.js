@@ -32,12 +32,14 @@ function freshGame({players,humans,bots,round=1}){
 }
 function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCount:g.stock.length,
  round:g.round||1,humanCount:humanCount(g),botSeats:botSeats(g),
+ botFollowupReady:botSeats(g).some(bot=>E.followUpOptions(g,bot).length>0),
  pile:g.pile,ashesCount:g.ashes.length,limit:g.limit,slamOpen:g.slamOpen,setupReady:g.setupReady||g.people.map(()=>false),loser:g.loser,finishedOrder:g.finishedOrder,
  players:g.people.map((p,i)=>({seat:i,out:p.out,up:p.up,handCount:p.hand.length,downCount:p.down.length,pickups:p.pickups,
  ...(i===seat?{hand:p.hand,blindSlots:p.down.map((_,j)=>j)}:{})})),
  events:g.events.slice(-24).map(({type,seat,reason,count,burned,rank,action,target,takenCount})=>({type,seat,reason,count,burned,rank,action,target,takenCount})),
  legal:g.phase==='play'&&g.turn===seat?E.options(g,seat).map(m=>m.source==='down'?{type:'play',source:'down',index:g.people[seat].down.findIndex(c=>c.id===m.ids[0])}:m):[],
- slam:g.phase==='play'?E.slamOptions(g,seat):[]
+ slam:g.phase==='play'?E.slamOptions(g,seat):[],
+ followup:g.phase==='play'?E.followUpOptions(g,seat):[]
 }}
 async function view(r,seat){const members=await query('SELECT seat,display_name FROM pilehead_members WHERE code=$1 ORDER BY seat',[r.code]);
  return {ok:true,code:r.code,revision:r.revision,capacity:r.capacity,
@@ -88,16 +90,18 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
   if(g.phase!=='play')fail(409,'not_started');
   const bots=botSeats(g);
   // One bot action per CAS update preserves the opportunity to interrupt with SLAM.
+  const followBot=bots.find(bot=>E.followUpOptions(g,bot).length);
   const slammer=bots.find(bot=>g.slamOpen&&E.slamOptions(g,bot).length);
-  if(slammer!==undefined)E.move(g,slammer,E.slamOptions(g,slammer)[0]);
+  if(followBot!==undefined)E.move(g,followBot,E.followUpOptions(g,followBot)[0]);
+  else if(slammer!==undefined)E.move(g,slammer,E.slamOptions(g,slammer)[0]);
   else if(bots.includes(g.turn))E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));
   else fail(409,'not_bot_turn');
  }
  else if(b.action==='move'){if(g.phase!=='play')fail(409,'not_started');const m=b.move;
   if(!m||typeof m!=='object'||Array.isArray(m))fail(400,'bad_move');
   if(m.type==='take'){try{E.move(g,seat,{type:'take'})}catch{fail(400,'illegal_move')}}
-  else if(m.type==='slam'||m.type==='play'){const source=E.stage(g,seat);if(m.source!==source)fail(400,'wrong_layer');let ids;
-   if(source==='down'){if(m.type==='slam'||!Number.isInteger(m.index)||m.index<0||m.index>=g.people[seat].down.length)fail(400,'bad_blind_slot');ids=[g.people[seat].down[m.index].id]}
+  else if(m.type==='slam'||m.type==='play'||m.type==='followup'){const source=E.stage(g,seat);if(m.source!==source)fail(400,'wrong_layer');let ids;
+   if(source==='down'){if(m.type==='slam'||m.type==='followup'||!Number.isInteger(m.index)||m.index<0||m.index>=g.people[seat].down.length)fail(400,'bad_blind_slot');ids=[g.people[seat].down[m.index].id]}
    else{if(!Array.isArray(m.ids)||m.ids.length<1||m.ids.length>4||!m.ids.every(Number.isInteger))fail(400,'bad_cards');ids=m.ids}
    try{E.move(g,seat,{type:m.type,source,ids})}catch{fail(400,'illegal_move')}}else fail(400,'bad_move')}
  else fail(400,'unknown_action');
