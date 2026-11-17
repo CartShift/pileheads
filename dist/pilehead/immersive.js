@@ -51,7 +51,7 @@ function controls(){
 function updateButton(){if(btn){btn.setAttribute('aria-pressed',String(sound));btn.innerHTML='<span class="sound-led" aria-hidden="true"></span> '+(sound?'Sound on':'Sound off')}}
 function updateFocusButton(){if(focusButton){focusButton.setAttribute('aria-pressed',String(focusMode));focusButton.textContent=focusMode?'✕ Exit focus':'◎ Focus table'}}
 function handLayout(n,rowWidth,cardWidth,mobile){
- const budget=Math.max(0,rowWidth-24),maxStep=mobile?54:80,minStep=mobile?28:38;
+ const budget=Math.max(0,rowWidth-24),maxStep=mobile?(n<=4?Math.min(cardWidth*.94,94):54):80,minStep=mobile?28:38;
  const step=n<=1?cardWidth:Math.min(maxStep,Math.max(minStep,(budget-cardWidth)/(n-1)));
  const overlap=Math.min(0,Math.round(step-cardWidth));
  return{overlap,span:n?cardWidth+(n-1)*(cardWidth+overlap):0,
@@ -211,7 +211,7 @@ function decor(table){
 }
 function hint(table,active,selected,moveNo){
  const area=$('.hand-area',table);if(!area)return;let h=$('.pilehead-hand-hint',area);
- if(!active||!area.querySelector('.card.playable')||moveNo>5){h?.remove();return}
+ if(!active||matchMedia('(max-width:700px)').matches||!area.querySelector('.card.playable')||moveNo>5){h?.remove();return}
  if(!h){h=document.createElement('span');h.className='pilehead-hand-hint';area.appendChild(h)}
  h.textContent=selected?'Tap the pile to place your cards':'Drag onto the pile · tap matching cards to group'
 }

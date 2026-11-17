@@ -214,19 +214,42 @@ function tableHUD(){
  (g.followup?.length?'<span class="hud-snap">SNAP '+g.followup[0].ids.length+' MATCHING CARD'+(g.followup[0].ids.length>1?'S':'')+'</span>':'')+
  (snapBlocked()?'<span class="hud-snap">SNAP REACTION WINDOW</span>':'')+'</span></div>';
 }
+function tableActions(){
+ const g=data.game,can=active(),legal=legalMove(),take=can&&g.legal?.some(m=>m.type==='take');
+ const slam=g.slam?.length>0,snap=g.followup?.length>0;
+ let buttons='';
+ if(g.phase==='over')buttons='<button class="action primary" data-do="rematch">Play again · same room</button>';
+ else {
+  if(snap)buttons+='<button class="action snap" data-do="snap" '+(busy?'disabled':'')+'>SNAP · matching draw</button>';
+  if(slam)buttons+='<button class="action slam" data-do="slam" '+(busy?'disabled':'')+'>SLAM · '+g.slam[0].ids.length+' cards</button>';
+  if(can&&legal){
+   const burn=current().hand?.some(c=>selection.includes(c.id)&&c.action==='burn');
+   buttons+='<button class="action primary" data-do="play" '+(busy?'disabled':'')+'>'+
+    (burn?'Burn pile':'Play '+selection.length+' card'+(selection.length===1?'':'s'))+
+    ' <span aria-hidden="true">↗</span></button>';
+  }
+  if(take)buttons+='<button class="action secondary" data-do="take" '+(busy?'disabled':'')+'>Take pile</button>';
+  if(!buttons){
+   const message=can?(selection.length?'Choose a legal combination':'Select a card to play'):
+    (snapBlocked()?'SNAP in progress':displayName(g.turn)+' is playing');
+   buttons='<span class="table-action-prompt" role="status">'+safe(message)+
+    '<small>'+(can?'Tap cards to select · drag onto pile':'Watch the table · SLAM is still possible')+'</small></span>';
+  }
+ }
+ return '<div class="toolbar table-actions" role="group" aria-label="Game actions">'+buttons+'</div>';
+}
 function playView(){
  const p=current(),g=data.game,can=active(),source=stageNow(),legal=legalMove(),canSlam=g.slam?.length>0;
  return '<div class="pitch"><h1>'+safe(statusTitle())+'</h1><p>ROUND '+(g.round||1)+' · ROOM '+safe(room)+' · '+(data.humanCount||data.capacity)+' humans · '+(data.botCount||0)+' bots</p></div>'+
   '<div class="online-room-tools"><span><span class="online-pulse"></span> Room '+safe(room)+'</span>'+
   '<button class="action secondary" data-do="copy">Copy invitation</button><span>Seat '+(data.me+1)+': '+safe(displayName(data.me))+'</span></div>'+tableHUD()+
   '<section class="table" aria-label="Live physical PILEHEAD table">'+opponentCards()+stack()+upDown()+
-  '<div class="hand-area"><div class="area-label"><span>YOUR HAND · '+p.handCount+' cards</span><button type="button" class="hand-sort-button" data-do="sort" title="Change card order">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></div>'+
+  '<div class="hand-area"><div class="area-label"><span>YOUR HAND <b>· '+p.handCount+'</b></span><span class="hand-controls">'+
+ (selection.length?'<button type="button" class="hand-clear-button" data-do="clear-selection" aria-label="Clear selected cards">'+selection.length+' selected · Clear</button>':'')+
+ '<button type="button" class="hand-sort-button" data-do="sort" title="Sort cards by rank">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></span></div>'+
   '<div class="card-row hand">'+(p.hand?.length?orderedHand(p.hand).map(c=>card(c,{can:can&&source==='hand',source:'hand',selected:selection.includes(c.id)})).join(''):
   '<span style="font-size:12px;color:#b8cfba">No cards in hand</span>')+'</div></div></section>'+
-  '<div class="toolbar"><button class="action primary" data-do="play" '+(!legal||busy?'disabled':'')+'>'+(legal&&p.hand?.some(c=>selection.includes(c.id)&&c.action==='burn')?'BURN PILE · '+selection.length:'Place '+(selection.length?selection.length+' card'+(selection.length>1?'s':''):'cards'))+'</button>'+
-  '<button class="action secondary" data-do="take" '+(!can||!g.legal.some(x=>x.type==='take')||busy?'disabled':'')+'>Take pile</button>'+
-  '<button class="action slam" data-do="slam" '+(!canSlam||busy?'disabled':'')+'>SLAM!'+(canSlam?' ×'+g.slam[0].ids.length+' NOW':'')+'</button>'+
- '<button class="action snap" data-do="snap" '+(!g.followup?.length||busy?'disabled':'')+'>SNAP!'+(g.followup?.length?' Throw matching draw':'')+'</button></div>'+
+   tableActions()+
  (g.followup?.length?'<div class="pilehead-snap-choice">You just drew a matching number. Throw it now, or <button class="action secondary" data-do="decline">Let the next player go</button>.</div>':'')+
  (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP: Your last hand card can be played together with the matching face-up cards. Tap either one to select the group.</p>':'')+
  selectedEffect()+lastEffect()+
@@ -306,7 +329,8 @@ root.addEventListener('click',async e=>{
  if(action==='rematch'){endDismissed=false;await command('rematch');return}
   if(action==='ready'){swapCard=null;await command('ready',{ready:!data?.game.setupReady?.[data.me]});}
  if(action==='start')await command('start');
- if(action==='sort'){sortMode=sortMode==='dealt'?'asc':sortMode==='asc'?'desc':'dealt';selection=[];window.PileheadTableFX?.resetHandScroll?.();render();}
+ if(action==='clear-selection'){selection=[];render();return}
+  if(action==='sort'){sortMode=sortMode==='dealt'?'asc':sortMode==='asc'?'desc':'dealt';selection=[];window.PileheadTableFX?.resetHandScroll?.();render();}
  if(action==='play')await play();
  if(action==='take')await command('move',{move:{type:'take'}});
  if(action==='slam'){const m=data?.game.slam?.[0];if(m)await command('move',{move:m})}
