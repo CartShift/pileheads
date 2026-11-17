@@ -66,17 +66,24 @@ async function run(){
  const cross=await request({action:'state',code:'ABCDEFGH'},guestToken);
  assert.equal(cross.status,404);checks++;
  const startGuest=await request({action:'start',code,revision:0},guestToken);assert.equal(startGuest.status,403);checks++;
- const start=await request({action:'start',code,revision:0},hostToken);
+ // Both players explicitly finish choosing their three face-up cards.
+ const hostReady=await request({action:'ready',code,revision:0,ready:true},hostToken);
+ assert.equal(hostReady.status,200);assert.equal(hostReady.data.game.setupReady[0],true);checks++;
+ const premature=await request({action:'start',code,revision:1},hostToken);
+ assert.equal(premature.status,409);checks++;
+ const guestReady=await request({action:'ready',code,revision:1,ready:true},guestToken);
+ assert.equal(guestReady.status,200);assert.equal(guestReady.data.game.setupReady[1],true);checks++;
+ const start=await request({action:'start',code,revision:2},hostToken);
  assert.equal(start.status,200);assert.equal(start.data.game.phase,'play');checks++;
- const wrong=await request({action:'move',code,revision:1,move:{type:'take'}},guestToken);
+ const wrong=await request({action:'move',code,revision:3,move:{type:'take'}},guestToken);
  assert.equal(wrong.status,400);checks++;
- const illegal=await request({action:'move',code,revision:1,move:{type:'play',source:'hand',ids:[999]}},hostToken);
+ const illegal=await request({action:'move',code,revision:3,move:{type:'play',source:'hand',ids:[999]}},hostToken);
  assert.equal(illegal.status,400);checks++;
  const current=await request({action:'state',code},hostToken);
  const legal=current.data.game.legal[0];assert.ok(legal);
  const move=await request({action:'move',code,revision:current.data.revision,move:legal},hostToken);
- assert.equal(move.status,200);assert.equal(move.data.revision,2);checks++;
- const stale=await request({action:'move',code,revision:1,move:legal},hostToken);
+ assert.equal(move.status,200);assert.equal(move.data.revision,4);checks++;
+ const stale=await request({action:'move',code,revision:3,move:legal},hostToken);
  assert.equal(stale.status,409);checks++;
 
  // Force a deterministic DUMP action into the active player's hand without changing card ownership.
@@ -93,8 +100,10 @@ async function run(){
  assert.equal(dumped.data.game.turn,actor);assert.equal(dumped.data.game.pile.length,0);
  const publicLast=dumped.data.game.events.at(-1);
  assert.equal(publicLast.action,'dump');
- assert.equal(publicLast.target,receiver);assert.equal(publicLast.takenCount,pileBefore+1);
- assert.equal(rooms.get(code).state.people[receiver].hand.length,receiverBefore+pileBefore+1);
+ assert.equal(publicLast.target,receiver);assert.equal(publicLast.takenCount,pileBefore);
+ assert.equal(rooms.get(code).state.people[receiver].hand.length,receiverBefore+pileBefore);
+ assert.ok(rooms.get(code).state.ashes.some(c=>c.id===dump.id),'DUMP must be burned');
+ assert.ok(!rooms.get(code).state.people[receiver].hand.some(c=>c.id===dump.id));
  assert.equal(dumped.data.game.players[receiver].hand,undefined);
  Engine.invariant(rooms.get(code).state);checks++;
  const other=await request({action:'create',capacity:2,name:'Other'});

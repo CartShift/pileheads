@@ -18,7 +18,7 @@ async function quota(req,action,max){const ip=String(req.headers['x-forwarded-fo
  const rows=await query("INSERT INTO pilehead_rate_limits(bucket,hits,expires_at) VALUES ($1,1,now()+interval '2 hours') ON CONFLICT(bucket) DO UPDATE SET hits=pilehead_rate_limits.hits+1 RETURNING hits",[key]);
  if(rows[0].hits>max)fail(429,'rate_limited')}
 function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCount:g.stock.length,
- pile:g.pile,ashesCount:g.ashes.length,limit:g.limit,slamOpen:g.slamOpen,loser:g.loser,finishedOrder:g.finishedOrder,
+ pile:g.pile,ashesCount:g.ashes.length,limit:g.limit,slamOpen:g.slamOpen,setupReady:g.setupReady||g.people.map(()=>false),loser:g.loser,finishedOrder:g.finishedOrder,
  players:g.people.map((p,i)=>({seat:i,out:p.out,up:p.up,handCount:p.hand.length,downCount:p.down.length,pickups:p.pickups,
  ...(i===seat?{hand:p.hand,blindSlots:p.down.map((_,j)=>j)}:{})})),
  events:g.events.slice(-24).map(({type,seat,reason,count,burned,rank,action,target,takenCount})=>({type,seat,reason,count,burned,rank,action,target,takenCount})),
@@ -32,7 +32,7 @@ async function auth(r,req){const match=/^Bearer ([A-Za-z0-9_-]{32,128})$/.exec(r
  const rows=await query('SELECT seat FROM pilehead_members WHERE code=$1 AND token_hash=$2',[r.code,h(match[1])]);if(!rows.length)fail(403,'not_member');return Number(rows[0].seat)}
 async function create(req,b){await quota(req,'create',15);const cap=Number(b.capacity),nick=name(b.name);if(!Number.isInteger(cap)||cap<2||cap>5)fail(400,'invalid_capacity');
  const t=secret(),seed=crypto.randomBytes(4).readUInt32BE(0);
- for(let tries=0;tries<4;tries++){const id=makeCode(),game=E.create({players:cap,seed});
+ for(let tries=0;tries<4;tries++){const id=makeCode(),game=E.create({players:cap,seed});game.setupReady=Array(cap).fill(false);
   try{await query("INSERT INTO pilehead_rooms(code,capacity,status,state) VALUES($1,$2,'lobby',$3::jsonb)",[id,cap,JSON.stringify(game)]);
    await query('INSERT INTO pilehead_members(code,seat,display_name,token_hash) VALUES($1,0,$2,$3)',[id,nick,h(t)]);
    return {...await view(await load(id),0),session:t};
@@ -44,10 +44,14 @@ async function join(req,b){await quota(req,'join',60);const id=code(b.code),nick
  if(!rows.length)fail(409,'full');return {...await view(r,Number(rows[0].seat)),session:t}}
 async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!==r.revision)fail(409,'stale_revision');
  const g=structuredClone(r.state);
- if(b.action==='swap'){if(g.phase!=='setup')fail(409,'already_started');if(!Number.isInteger(b.handId)||!Number.isInteger(b.upId))fail(400,'bad_swap');try{E.swap(g,seat,b.handId,b.upId)}catch{fail(400,'illegal_swap')}}
+ g.setupReady??=g.people.map(()=>false);
+ if(b.action==='swap'){if(g.phase!=='setup')fail(409,'already_started');if(g.setupReady[seat])fail(409,'unready_to_swap');
+  if(!Number.isInteger(b.handId)||!Number.isInteger(b.upId))fail(400,'bad_swap');try{E.swap(g,seat,b.handId,b.upId)}catch{fail(400,'illegal_swap')}}
+ else if(b.action==='ready'){if(g.phase!=='setup')fail(409,'already_started');
+  if(typeof b.ready!=='boolean')fail(400,'bad_ready');g.setupReady[seat]=b.ready}
  else if(b.action==='start'){if(seat!==0)fail(403,'host_only');if(g.phase!=='setup')fail(409,'already_started');
   const m=await query('SELECT seat FROM pilehead_members WHERE code=$1 ORDER BY seat',[r.code]);
-  if(m.length!==r.capacity||m.some((p,i)=>p.seat!==i))fail(409,'waiting_for_players');E.start(g)}
+  if(m.length!==r.capacity||m.some((p,i)=>p.seat!==i)||!g.setupReady.every(Boolean))fail(409,'waiting_for_players');E.start(g)}
  else if(b.action==='move'){if(g.phase!=='play')fail(409,'not_started');const m=b.move;
   if(!m||typeof m!=='object'||Array.isArray(m))fail(400,'bad_move');
   if(m.type==='take'){try{E.move(g,seat,{type:'take'})}catch{fail(400,'illegal_move')}}

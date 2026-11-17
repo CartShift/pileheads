@@ -58,3 +58,10 @@ The Vercel connector was denied permission to write project environment variable
 ## Design decisions
 
 A printed deck remains mandatory for design decisions. The graphical hand/felt is a tactile *simulation* and must be tested with human players. Keep cards readable, opponent hands private and the centre pile prominent. Do not add unrelated action cards until evidence suggests the current deck benefits from a change.
+
+## Playtest ergonomics update
+
+- Before a multiplayer game starts, every seat explicitly confirms its three face-up choices. The host can start only once all seats are marked ready. Unready again to change cards.
+- DUMP burns the played DUMP card(s) and sends only the existing pile to the next player, then gives the actor another turn.
+- SLAM can interrupt with a complete four-of-a-kind from the active layer while a pile exists, even if the current top rank differs. Existing completion of the top rank remains supported.
+- Hand selection now picks a full same-face group on the first tap; tapping individual selected cards removes them. Hand sorting is presentation-only.

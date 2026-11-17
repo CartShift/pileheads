@@ -125,10 +125,11 @@ test('DUMP makes the next active player take all cards, then grants the actor an
   g.limit={type:'min',value:9};g.slamOpen=true;
   const before=g.people[1].hand.length,ashes=g.ashes.length;
   const ev=E.move(g,0,{type:'play',source:'hand',ids:[dump.id]});
-  assert.equal(ev.action,'dump');assert.equal(ev.target,1);assert.equal(ev.takenCount,3);
-  assert.equal(ev.burned,false);assert.equal(g.people[1].hand.length,before+3);
-  assert.ok(g.people[1].hand.some(c=>c.id===dump.id));
-  assert.equal(g.ashes.length,ashes);assert.equal(g.pile.length,0);
+  assert.equal(ev.action,'dump');assert.equal(ev.target,1);assert.equal(ev.takenCount,2);
+  assert.equal(ev.burned,false);assert.equal(g.people[1].hand.length,before+2);
+  assert.ok(!g.people[1].hand.some(c=>c.id===dump.id),'DUMP must burn, never enter the rival hand');
+  assert.ok(g.ashes.some(c=>c.id===dump.id),'DUMP is permanently removed');
+  assert.equal(g.ashes.length,ashes+1);assert.equal(g.pile.length,0);
   assert.equal(g.limit,null);assert.equal(g.slamOpen,false);
   assert.equal(g.turn,0);E.invariant(g);
  }

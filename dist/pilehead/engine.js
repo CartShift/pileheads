@@ -77,11 +77,17 @@ function topRun(g){let n=0,rank=null;for(let i=g.pile.length-1;i>=0;i--){
  rank=c.rank;n++;
  }return{rank,count:n};
 }
-function slamOptions(g,seat){if(g.phase!=='play'||!g.slamOpen||g.people[seat]?.out)return[];
+function slamOptions(g,seat){if(g.phase!=='play'||g.people[seat]?.out||!g.pile.length)return[];
+ const s=stage(g,seat);if(s==='down'||s==='out')return[];
+ const held=g.people[seat][s];
+ // A complete four-of-a-kind can interrupt the table even without a top-rank match.
+ // It is always burned; never depend on the opponent's hidden hand.
+ const four=held.find(c=>c.kind==='number'&&held.filter(x=>x.kind==='number'&&x.rank===c.rank).length===4);
+ if(four)return [{type:'slam',source:s,ids:held.filter(c=>c.kind==='number'&&c.rank===four.rank).map(c=>c.id)}];
+ if(!g.slamOpen)return[];
  const top=topRun(g),need=4-top.count;
  if(top.count===0||need<=0)return[];
- const s=stage(g,seat);if(s==='down'||s==='out')return[];
- const eligible=g.people[seat][s].filter(c=>c.kind==='number'&&c.rank===top.rank);
+ const eligible=held.filter(c=>c.kind==='number'&&c.rank===top.rank);
  return eligible.length>=need?[{type:'slam',source:s,ids:eligible.slice(0,need).map(c=>c.id)}]:[];
 }
 function take(g,seat){
@@ -122,12 +128,13 @@ function move(g,seat,choice){
  if(choice.type==='play'&&s==='down'&&!isLegal(g,cards[0])){
   g.pile.push(...cards);const ev=take(g,seat);ev.type='blind-fail';return ev;
  }
- g.pile.push(...cards);
  const card=cards[0],dump=choice.type==='play'&&card.kind==='action'&&card.action==='dump';
+ // DUMP itself is spent immediately: only the pile already on the table is picked up.
+ // Both DUMP copies burn if played together; each performs only one forced pickup.
+ if(dump)g.ashes.push(...cards);
+ else g.pile.push(...cards);
  let forcedTarget=null,forcedCount=0;
  if(dump){
-  // DUMP forces the next active player to take the entire pile, including DUMP.
-  // Unlike BURN, the cards are not removed from play.
   forcedTarget=next(g,seat);
   forcedCount=g.pile.length;
   g.people[forcedTarget].hand.push(...g.pile.splice(0));
