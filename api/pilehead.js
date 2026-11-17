@@ -17,7 +17,21 @@ async function quota(req,action,max){const ip=String(req.headers['x-forwarded-fo
  const key=h([action,Math.floor(Date.now()/3600000),ip,process.env.PILEHEAD_DATABASE_URL].join('|'));
  const rows=await query("INSERT INTO pilehead_rate_limits(bucket,hits,expires_at) VALUES ($1,1,now()+interval '2 hours') ON CONFLICT(bucket) DO UPDATE SET hits=pilehead_rate_limits.hits+1 RETURNING hits",[key]);
  if(rows[0].hits>max)fail(429,'rate_limited')}
+function humanCount(g){return Number.isInteger(g.humanCount)?g.humanCount:g.people.length}
+function botSeats(g){return Array.isArray(g.botSeats)?g.botSeats:[]}
+function freshGame({players,humans,bots,round=1}){
+ const seed=crypto.randomBytes(4).readUInt32BE(0);
+ const game=E.create({players,seed});
+ game.humanCount=humans;
+ game.botSeats=Array.from({length:bots},(_,i)=>humans+i);
+ game.round=round;
+ game.setupReady=Array.from({length:players},(_,i)=>i>=humans);
+ for(const seat of game.botSeats)E.autoSetup(game,seat);
+ E.invariant(game);
+ return game;
+}
 function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCount:g.stock.length,
+ round:g.round||1,humanCount:humanCount(g),botSeats:botSeats(g),
  pile:g.pile,ashesCount:g.ashes.length,limit:g.limit,slamOpen:g.slamOpen,setupReady:g.setupReady||g.people.map(()=>false),loser:g.loser,finishedOrder:g.finishedOrder,
  players:g.people.map((p,i)=>({seat:i,out:p.out,up:p.up,handCount:p.hand.length,downCount:p.down.length,pickups:p.pickups,
  ...(i===seat?{hand:p.hand,blindSlots:p.down.map((_,j)=>j)}:{})})),
@@ -26,13 +40,22 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
  slam:g.phase==='play'?E.slamOptions(g,seat):[]
 }}
 async function view(r,seat){const members=await query('SELECT seat,display_name FROM pilehead_members WHERE code=$1 ORDER BY seat',[r.code]);
- return {ok:true,code:r.code,revision:r.revision,capacity:r.capacity,status:r.status,expiresAt:r.expires_at,me:seat,host:seat===0,
+ return {ok:true,code:r.code,revision:r.revision,capacity:r.capacity,
+ humanCount:humanCount(r.state),botCount:botSeats(r.state).length,
+ status:r.status,expiresAt:r.expires_at,me:seat,host:seat===0,
  members:members.map(m=>({seat:m.seat,name:m.display_name})),game:redacted(r.state,seat)}}
 async function auth(r,req){const match=/^Bearer ([A-Za-z0-9_-]{32,128})$/.exec(req.headers.authorization||'');if(!match)fail(401,'session_required');
  const rows=await query('SELECT seat FROM pilehead_members WHERE code=$1 AND token_hash=$2',[r.code,h(match[1])]);if(!rows.length)fail(403,'not_member');return Number(rows[0].seat)}
-async function create(req,b){await quota(req,'create',15);const cap=Number(b.capacity),nick=name(b.name);if(!Number.isInteger(cap)||cap<2||cap>5)fail(400,'invalid_capacity');
- const t=secret(),seed=crypto.randomBytes(4).readUInt32BE(0);
- for(let tries=0;tries<4;tries++){const id=makeCode(),game=E.create({players:cap,seed});game.setupReady=Array(cap).fill(false);
+async function create(req,b){
+ await quota(req,'create',15);
+ const nick=name(b.name);
+ // Older clients can still send only 'capacity'.
+ const humans=b.humans===undefined?Number(b.capacity):Number(b.humans);
+ const bots=b.bots===undefined?0:Number(b.bots);
+ const cap=humans+bots;
+ if(!Number.isInteger(humans)||!Number.isInteger(bots)||humans<1||bots<0||cap<2||cap>5)fail(400,'invalid_capacity');
+ const t=secret();
+ for(let tries=0;tries<4;tries++){const id=makeCode(),game=freshGame({players:cap,humans,bots});
   try{await query("INSERT INTO pilehead_rooms(code,capacity,status,state) VALUES($1,$2,'lobby',$3::jsonb)",[id,cap,JSON.stringify(game)]);
    await query('INSERT INTO pilehead_members(code,seat,display_name,token_hash) VALUES($1,0,$2,$3)',[id,nick,h(t)]);
    return {...await view(await load(id),0),session:t};
@@ -40,7 +63,7 @@ async function create(req,b){await quota(req,'create',15);const cap=Number(b.cap
  fail(503,'room_create_failed')}
 async function join(req,b){await quota(req,'join',60);const id=code(b.code),nick=name(b.name),t=secret(),r=await load(id);
  if(r.status!=='lobby')fail(409,'already_started');
- const rows=await query('INSERT INTO pilehead_members(code,seat,display_name,token_hash) SELECT $1::varchar(8),x,$2,$3 FROM generate_series(0,$4::integer-1) x WHERE NOT EXISTS(SELECT 1 FROM pilehead_members m WHERE m.code=$1::varchar(8) AND m.seat=x) ORDER BY x LIMIT 1 ON CONFLICT (code,seat) DO NOTHING RETURNING seat',[id,nick,h(t),r.capacity]);
+ const rows=await query('INSERT INTO pilehead_members(code,seat,display_name,token_hash) SELECT $1::varchar(8),x,$2,$3 FROM generate_series(0,$4::integer-1) x WHERE NOT EXISTS(SELECT 1 FROM pilehead_members m WHERE m.code=$1::varchar(8) AND m.seat=x) ORDER BY x LIMIT 1 ON CONFLICT (code,seat) DO NOTHING RETURNING seat',[id,nick,h(t),humanCount(r.state)]);
  if(!rows.length)fail(409,'full');return {...await view(r,Number(rows[0].seat)),session:t}}
 async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!==r.revision)fail(409,'stale_revision');
  const g=structuredClone(r.state);
@@ -49,9 +72,27 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
   if(!Number.isInteger(b.handId)||!Number.isInteger(b.upId))fail(400,'bad_swap');try{E.swap(g,seat,b.handId,b.upId)}catch{fail(400,'illegal_swap')}}
  else if(b.action==='ready'){if(g.phase!=='setup')fail(409,'already_started');
   if(typeof b.ready!=='boolean')fail(400,'bad_ready');g.setupReady[seat]=b.ready}
- else if(b.action==='start'){if(seat!==0)fail(403,'host_only');if(g.phase!=='setup')fail(409,'already_started');
+ else if(b.action==='start'){
+  if(seat!==0)fail(403,'host_only');
+  if(g.phase!=='setup')fail(409,'already_started');
   const m=await query('SELECT seat FROM pilehead_members WHERE code=$1 ORDER BY seat',[r.code]);
-  if(m.length!==r.capacity||m.some((p,i)=>p.seat!==i)||!g.setupReady.every(Boolean))fail(409,'waiting_for_players');E.start(g)}
+  if(m.length!==humanCount(g)||m.some((p,i)=>p.seat!==i)||!g.setupReady.every(Boolean))fail(409,'waiting_for_players');
+  E.start(g);
+ }
+ else if(b.action==='rematch'){
+  if(g.phase!=='over')fail(409,'game_not_finished');
+  const next=freshGame({players:g.people.length,humans:humanCount(g),bots:botSeats(g).length,round:(g.round||1)+1});
+  Object.assign(g,next);
+ }
+ else if(b.action==='advance'){
+  if(g.phase!=='play')fail(409,'not_started');
+  const bots=botSeats(g);
+  // One bot action per CAS update preserves the opportunity to interrupt with SLAM.
+  const slammer=bots.find(bot=>g.slamOpen&&E.slamOptions(g,bot).length);
+  if(slammer!==undefined)E.move(g,slammer,E.slamOptions(g,slammer)[0]);
+  else if(bots.includes(g.turn))E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));
+  else fail(409,'not_bot_turn');
+ }
  else if(b.action==='move'){if(g.phase!=='play')fail(409,'not_started');const m=b.move;
   if(!m||typeof m!=='object'||Array.isArray(m))fail(400,'bad_move');
   if(m.type==='take'){try{E.move(g,seat,{type:'take'})}catch{fail(400,'illegal_move')}}
