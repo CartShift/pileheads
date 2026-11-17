@@ -194,5 +194,5 @@ function sync({event=null,identity=null,ownSeat=0,active=false,selected=0,moveNo
  if(!seen){seen=true;last=identity;table.classList.add('scene-entering');setTimeout(()=>table.classList.remove('scene-entering'),480);return}
  if(identity!==null&&last!==identity){last=identity;if(event)celebrate(table,event,ownSeat)}
 }
-root.PileheadTableFX={sync,handLayout};
+root.PileheadTableFX={sync,handLayout,resetHandScroll(){handScroll=0}};
 })(typeof window!=='undefined'?window:globalThis);
