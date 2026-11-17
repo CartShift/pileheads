@@ -94,3 +94,7 @@ BURN already exists as two dedicated action cards in the 52-card deck. Its actio
 - `LAST-HAND COMBO`: when the stock is completely empty and a player has exactly one numeric hand card, any identical face-up cards may be placed together with that last card. The engine validates ownership and removes cards from both layers in the same atomic move.
 - All SNAP and bridge checks are validated on the authoritative engine; exposed-card combinations and only the owner's possible SNAP are sent to the relevant seat.
 - `drawnCount` is a non-sensitive count added to public events for the stock-to-hand animation. A DUMP pickup animates the pile moving to its intended recipient, and special cards display the outcome in plain language.
+
+## Server-authoritative drawn-match priority
+
+A matching card drawn immediately after a numbered play opens a seven-second SNAP priority window online. Other normal turns, including bot turns, are delayed until SNAP, decline, or expiry. Four-card SLAM may still interrupt. On a shared device the reaction is untimed. The deadline belongs to the room state and is not based on client clocks.

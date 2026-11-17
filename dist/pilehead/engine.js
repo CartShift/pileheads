@@ -103,6 +103,7 @@ function slamOptions(g,seat){if(g.phase!=='play'||g.people[seat]?.out||!g.pile.l
 }
 function followUpOptions(g,seat){
  if(g.phase!=='play'||!g.followUp||g.followUp.seat!==seat||g.people[seat]?.out)return[];
+ if(g.followUp.expiresAt&&Date.now()>=g.followUp.expiresAt)return[];
  const {rank,ids}=g.followUp,held=g.people[seat].hand.filter(c=>ids.includes(c.id)&&c.kind==='number'&&c.rank===rank);
  if(!held.length||topRun(g).rank!==rank)return[];
  return [{type:'followup',source:'hand',ids:held.map(c=>c.id)}];
