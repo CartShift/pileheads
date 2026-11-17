@@ -45,6 +45,7 @@ function setMessage(e){const map={
  room_expired:'The room expired after 24 hours.',game_not_finished:'Finish the round before starting another.',not_bot_turn:'Waiting for a player move.',no_snap_available:'The matching-draw opportunity has already passed.',room_rules_changed:'This room uses an older deck. Create a new game for the updated rules.',unready_to_swap:'Choose Change cards first.',bad_ready:'Invalid ready status.',full:'The room is full.',
  already_started:'The game already started.',waiting_for_players:'Waiting for everyone to join.',
  stale_revision:'Someone played at the same time. Refreshing the table.',
+  snap_window_open:'A matching number was just drawn. That player gets a moment to SNAP it.',
  rate_limited:'Too many requests from this network. Please try again later.',
  bad_cards:'That group of cards is not legal.',wrong_layer:'Finish your current card layer first.'
  };return map[e]||String(e||'Unexpected room error').replaceAll('_',' ');}
@@ -86,7 +87,8 @@ async function refresh(quiet=false){
  polling=true;
  try{
   const next=await api({action:'state',code:room});
-  if(!data||next.revision!==data.revision||next.members.length!==data.members.length||reconnecting)updateState(next);
+  if(!data||next.revision!==data.revision||next.members.length!==data.members.length||
+     next.game.followup?.length!==data.game.followup?.length||reconnecting)updateState(next);
   else networkError='';
   reconnecting=false;
  }catch(e){
@@ -100,11 +102,13 @@ function displayName(seat){
  return data?.members?.find(m=>m.seat===seat)?.name||'Waiting for player';
 }
 function current(){return data?.game?.players?.[data.me]}
-function active(){return data?.game?.turn===data.me&&data?.game?.phase==='play'}
+function snapBlocked(){const g=data?.game;return !!g?.snapUntil&&Date.now()<g.snapUntil&&g.snapSeat!==data.me;}
+function active(){return data?.game?.turn===data.me&&data?.game?.phase==='play'&&!snapBlocked()}
 function statusTitle(){
  const g=data.game;if(g.phase==='setup')return data.members.length+' of '+data.capacity+' players joined';
  if(g.phase==='over')return displayName(g.loser)+' is the PILEHEAD!';
- return active()?'Your turn · place a card':displayName(g.turn)+' is playing · watch for SLAM';
+ return snapBlocked()?displayName(g.snapSeat)+' has a matching-draw SNAP chance':
+   active()?'Your turn · place a card':displayName(g.turn)+' is playing · watch for SLAM';
 }
 function numberPolicy(){const l=data.game.limit;return l?.type==='under'?'NEXT: 1–4':l?.type==='min'?'NEXT: '+l.value+' or higher':'ANY NUMBER'}
 function opponentCards(){const g=data.game;
@@ -206,7 +210,8 @@ function tableHUD(){
  '<span class="hud-status"><i class="hud-dot" aria-hidden="true"></i>'+safe(who)+'</span>'+
  '<span class="hud-meta"><span>ROUND '+(g.round||1)+'</span><span>'+layerText+'</span><span>'+g.pile.length+' IN PILE</span>'+
  (g.slam?.length?'<span>SLAM READY</span>':'')+
- (g.followup?.length?'<span class="hud-snap">SNAP '+g.followup[0].ids.length+' MATCHING CARD'+(g.followup[0].ids.length>1?'S':'')+'</span>':'')+'</span></div>';
+ (g.followup?.length?'<span class="hud-snap">SNAP '+g.followup[0].ids.length+' MATCHING CARD'+(g.followup[0].ids.length>1?'S':'')+'</span>':'')+
+ (snapBlocked()?'<span class="hud-snap">SNAP REACTION WINDOW</span>':'')+'</span></div>';
 }
 function playView(){
  const p=current(),g=data.game,can=active(),source=stageNow(),legal=legalMove(),canSlam=g.slam?.length>0;
@@ -384,7 +389,8 @@ function startPolling(){
   const bots=data.game.botSeats||[];
   // Allow a brief physical reaction window for a freshly drawn matching card.
   if(data.game.followup?.length&&Date.now()-lastChangeAt<4700)return;
-  if((bots.includes(data.game.turn)||data.game.botFollowupReady)&&Date.now()-botTickAt>=1250){
+  if(snapBlocked())return;
+   if((bots.includes(data.game.turn)||data.game.botFollowupReady)&&Date.now()-botTickAt>=1250){
    botTickAt=Date.now();
    await command('advance');
   }
