@@ -248,14 +248,15 @@ function makeCard(ev,table){
 function fly(table,ev,ownSeat){
  if(motion.matches||!table||typeof Element==='undefined'||typeof Element.prototype.animate!=='function')return;
  const target=$('[data-play-target] .pile-card',table);if(!target)return;
- const mine=ev.seat===ownSeat,isPickup=ev.type==='take'||ev.type==='blind-fail';
- const source=mine?$('.hand-area .card-row.hand',table):
-  $('.opponent[data-seat="'+ev.seat+'"] .held-cards',table)||$('.opponent[data-seat="'+ev.seat+'"] .mini-cards',table)||$('.opponents',table);
+ const mine=ev.seat===ownSeat,isPickup=ev.type==='take'||ev.type==='blind-fail'||ev.action==='dump';
+ const recipient=ev.action==='dump'?ev.target:ev.seat;
+ const source=recipient===ownSeat?$('.hand-area .card-row.hand',table):
+  $('.opponent[data-seat="'+recipient+'"] .held-cards',table)||$('.opponent[data-seat="'+recipient+'"] .mini-cards',table)||$('.opponents',table);
  const from=(source||table).getBoundingClientRect(),to=target.getBoundingClientRect();
  const start=isPickup?to:from,dest=isPickup?from:to;
  const x=start.left+start.width/2-(dest.left+dest.width/2),y=start.top+start.height/2-(dest.top+dest.height/2);
  // Show an actual small stack when multiple equal cards land, or the pile is picked up.
- const count=Math.max(1,Math.min(isPickup?3:4,Number(ev.count)||1));
+ const count=Math.max(1,Math.min(isPickup?3:4,isPickup?Number(ev.takenCount??ev.count)||1:Number(ev.count)||1));
  for(let i=0;i<count;i++){
   const piece=makeCard(ev,table);piece.classList.add('pilehead-physical-fx');
   piece.style.left=(dest.left+dest.width/2-46+i*4)+'px';
@@ -273,6 +274,30 @@ function fly(table,ev,ownSeat){
   setTimeout(()=>piece.remove(),1100);
  }
 }
+function drawCards(table,ev,ownSeat){
+ if(motion.matches||!Number(ev.drawnCount)||typeof Element==='undefined'||typeof Element.prototype.animate!=='function')return;
+ const stock=$('.table-center .stack:first-child .pile-card',table);
+ const hand=ev.seat===ownSeat?$('.hand-area .card-row.hand',table):
+  $('.opponent[data-seat="'+ev.seat+'"] .held-cards',table);
+ if(!stock||!hand)return;
+ const from=stock.getBoundingClientRect(),to=hand.getBoundingClientRect();
+ const x=from.left+from.width/2,y=from.top+from.height/2;
+ const dx=to.left+to.width/2-x,dy=to.top+to.height/2-y;
+ const artwork=globalThis.PileheadCardArt;
+ for(let i=0;i<Math.min(Number(ev.drawnCount),3);i++){
+  const piece=document.createElement('div');piece.className='pilehead-physical-fx card back ph-card ph-back';
+  piece.innerHTML=artwork.back();
+  piece.style.left=x-38+'px';piece.style.top=y-51+'px';
+  piece.style.width='76px';piece.style.height='102px';document.body.appendChild(piece);
+  const animation=piece.animate([
+   {transform:'translate(0,0) scale(.84) rotate(-7deg)',opacity:1},
+   {transform:'translate('+dx*.65+'px,'+dy*.65+'px) scale(.92) rotate(8deg)',opacity:1,offset:.64},
+   {transform:'translate('+dx+'px,'+dy+'px) scale(.78) rotate('+(i*5-5)+'deg)',opacity:0}
+  ],{duration:440,delay:140+i*95,easing:'cubic-bezier(.22,.7,.35,1)',fill:'forwards'});
+  animation.onfinish=()=>piece.remove();animation.oncancel=()=>piece.remove();
+  setTimeout(()=>piece.remove(),1400);
+ }
+}
 function cue(table,text){
  if(!table||motion.matches)return;
  const el=document.createElement('div');el.className='pilehead-cue';el.textContent=text;
@@ -281,11 +306,20 @@ function cue(table,text){
 function celebrate(table,ev,ownSeat){
  if(!ev)return;
  if(ev.burned){table.classList.remove('just-burned');void table.offsetWidth;table.classList.add('just-burned');
-  cue(table,ev.reason==='slam'?'SLAM!':'BURN!');snap('burn');setTimeout(()=>table.classList.remove('just-burned'),550)}
- else if(ev.action==='dump'){cue(table,'DUMP!');snap('pickup')}
- else if(ev.type==='take'||ev.type==='blind-fail'){cue(table,'PICK UP');snap('pickup')}
- else if(ev.type==='play'){snap();if(ev.action==='skip')cue(table,'SKIP!')}
- fly(table,ev,ownSeat)
+  cue(table,ev.reason==='slam'?'SLAM · FOUR CARDS':ev.reason==='four'?'FOUR · PILE BURNS':'BURN · PILE REMOVED');
+  snap('burn');setTimeout(()=>table.classList.remove('just-burned'),550)}
+ else if(ev.action==='dump'){cue(table,'DUMP · TAKE PILE');snap('pickup')}
+ else if(ev.type==='take'||ev.type==='blind-fail'){cue(table,'PICK UP PILE');snap('pickup')}
+ else if(ev.type==='followup'){cue(table,'SNAP · MATCHING DRAW');snap('play')}
+ else if(ev.type==='play'){
+  snap();
+  if(ev.action==='skip')cue(table,'SKIP · LOSE A TURN');
+  if(ev.action==='under')cue(table,'UNDER · NUMBERS 1–4');
+  if(ev.action==='reset')cue(table,'RESET · ANY NUMBER');
+  if(ev.action==='ghost')cue(table,'GHOST · RULE STAYS');
+ }
+ fly(table,ev,ownSeat);
+ drawCards(table,ev,ownSeat);
 }
 function sync({event=null,identity=null,ownSeat=0,active=false,selected=0,moveNo=0,online=false}={}){
  const table=$('#app .table');
