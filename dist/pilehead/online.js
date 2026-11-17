@@ -72,7 +72,7 @@ async function doAction(payload){
  try{const next=await api(payload,payload.action==='create'||payload.action==='join'?null:session);updateState(next);
   if(payload.action==='create')notice='Room created. Share your invitation link.';
   if(payload.action==='join')notice='You joined. Choose your face-up cards while waiting.';
-  if(payload.action==='start')notice='Cards are on the table. Good luck!';
+  // The table and turn HUD now confirm the start; avoid a redundant persistent message.
    if(payload.action==='rematch')notice='New round dealt! Choose your face-up cards and get ready.';
    if(payload.action==='decline')notice='Passed on SNAP. Next player may continue.';
   networkError='';
