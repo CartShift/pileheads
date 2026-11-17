@@ -10,7 +10,7 @@ const safeSessionRead=key=>{try{return localStorage.getItem(key)}catch{return nu
 const safeSessionSave=(key,value)=>{try{localStorage.setItem(key,value)}catch{}};
 let room=params.get('room')?.toUpperCase()||'',session=room?safeSessionRead(STORE+room):null;
 let data=null,busy=false,polling=false,selection=[],swapCard=null,notice='',networkError='',drag=null;
-let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false,sortMode='dealt',endDismissed=false;
+let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false,sortMode='dealt',endDismissed=false,botTickAt=0;
 const A=globalThis.PileheadCardArt;const symbols=A.glyph;
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
@@ -42,7 +42,7 @@ function setMessage(e){const map={
  session_required:'Your saved seat session is missing. Rejoin from your invitation link.',
  not_member:'This browser does not own a seat in this room.',
  invalid_code:'This room link is not valid.',room_not_found:'This room was not found.',
- room_expired:'The room expired after 24 hours.',room_rules_changed:'This room uses an older deck. Create a new game for the updated rules.',unready_to_swap:'Choose Change cards first.',bad_ready:'Invalid ready status.',full:'The room is full.',
+ room_expired:'The room expired after 24 hours.',game_not_finished:'Finish the round before starting another.',not_bot_turn:'Waiting for a player move.',room_rules_changed:'This room uses an older deck. Create a new game for the updated rules.',unready_to_swap:'Choose Change cards first.',bad_ready:'Invalid ready status.',full:'The room is full.',
  already_started:'The game already started.',waiting_for_players:'Waiting for everyone to join.',
  stale_revision:'Someone played at the same time. Refreshing the table.',
  rate_limited:'Too many requests from this network. Please try again later.',
@@ -62,6 +62,7 @@ function updateState(next){
  if(next.session){session=next.session;safeSessionSave(STORE+next.code,session)}
  if(room!==next.code){room=next.code;history.replaceState(null,'',location.pathname+'?room='+encodeURIComponent(room)+(deploymentShare?'&_vercel_share='+encodeURIComponent(deploymentShare):''))}
  if(data&&next.revision!==data.revision){selection=[];swapCard=null}
+ if(data&&next.game?.round!==data.game?.round){endDismissed=false;sortMode='dealt';selection=[];swapCard=null}
  data=next;lastRevision=data.revision;networkError='';render();
 }
 async function doAction(payload){
@@ -70,6 +71,7 @@ async function doAction(payload){
   if(payload.action==='create')notice='Room created. Share your invitation link.';
   if(payload.action==='join')notice='You joined. Choose your face-up cards while waiting.';
   if(payload.action==='start')notice='Cards are on the table. Good luck!';
+   if(payload.action==='rematch')notice='New round dealt! Choose your face-up cards and get ready.';
   networkError='';
  }catch(e){
   notice=setMessage(e.message);
@@ -90,7 +92,11 @@ async function refresh(quiet=false){
   if(!quiet||!data)render();
  }finally{polling=false}
 }
-function displayName(seat){return data?.members?.find(m=>m.seat===seat)?.name||'Waiting for player'}
+function displayName(seat){
+ const bots=data?.game?.botSeats||[];
+ if(bots.includes(seat))return 'Bot '+(bots.indexOf(seat)+1);
+ return data?.members?.find(m=>m.seat===seat)?.name||'Waiting for player';
+}
 function current(){return data?.game?.players?.[data.me]}
 function active(){return data?.game?.turn===data.me&&data?.game?.phase==='play'}
 function statusTitle(){
@@ -101,7 +107,7 @@ function statusTitle(){
 function numberPolicy(){const l=data.game.limit;return l?.type==='under'?'NEXT: 1–4':l?.type==='min'?'NEXT: '+l.value+' or higher':'ANY NUMBER'}
 function opponentCards(){const g=data.game;
  return '<div class="opponents">'+g.players.filter(p=>p.seat!==data.me).map(p=>'<div data-seat="'+p.seat+'" class="opponent '+
-  (g.turn===p.seat&&g.phase==='play'?'current ':'')+(p.out?'finished':'')+'"><strong>'+safe(displayName(p.seat))+
+  (g.turn===p.seat&&g.phase==='play'?'current ':'')+(p.out?'finished ':'')+((g.botSeats||[]).includes(p.seat)?'is-bot':'')+'"><strong>'+safe(displayName(p.seat))+
   (g.turn===p.seat&&g.phase==='play'?' · TURN':'')+(p.out?' · OUT':'')+'</strong><small>'+p.handCount+
   ' in hand · '+p.up.length+' up · '+p.downCount+' blind</small><div class="held-cards" aria-label="Opponent holds '+p.handCount+' private cards">'+Array.from({length:Math.min(p.handCount,8)},(_,i)=>'<span class="held-back" aria-hidden="true" style="--hold-angle:'+((i-(Math.min(p.handCount,8)-1)/2)*5)+'deg"></span>').join('')+'</div><div class="mini-cards">'+
   p.up.map(c=>A.mini(c)).join('')+
@@ -141,14 +147,14 @@ function events(){return data.game.events.slice(-7).reverse().map(e=>{
  return '<span class="event">'+n+' '+safe(s)+'</span>';
  }).join('')}
 function lobby(){
- const joined=data.members.length,me=current(),ready=data.game.setupReady||[];
- const myReady=!!ready[data.me],allReady=joined===data.capacity&&Array.from({length:data.capacity},(_,i)=>ready[i]).every(Boolean);
+ const joined=data.members.length,humans=data.humanCount||data.capacity,bots=data.game.botSeats||[],me=current(),ready=data.game.setupReady||[];
+ const myReady=!!ready[data.me],allReady=joined===humans&&Array.from({length:data.capacity},(_,i)=>ready[i]).every(Boolean);
  return '<section class="setup panel online-lobby"><div class="eyebrow">PRIVATE ONLINE ROOM · '+safe(room)+'</div>'+
-  '<h2>Invite your friends to the table</h2><p>Share the room link. Every participant receives a private hand and can reconnect after refreshing.</p>'+
+  '<h2>Choose your opening cards</h2><p>'+humans+' human '+(humans===1?'player':'players')+' · '+bots.length+' '+(bots.length===1?'bot':'bots')+'. Share the link with your friends; computer players are ready automatically.</p>'+
   '<div class="online-code">'+safe(room)+'</div><div class="toolbar"><button class="action primary" data-do="copy">Copy invite link</button>'+
   '<button class="action secondary" data-do="share">Share</button></div>'+
-  '<div class="lobby-seats">'+Array.from({length:data.capacity},(_,i)=>'<div class="lobby-seat '+(i<joined?'filled':'')+'">'+
-  '<span>Seat '+(i+1)+'</span><strong>'+safe(displayName(i))+'</strong><small>'+(i<joined?(ready[i]?'Ready':'Choosing cards'):'Waiting')+'</small></div>').join('')+'</div>'+
+  '<div class="lobby-seats">'+Array.from({length:data.capacity},(_,i)=>'<div class="lobby-seat '+(i<joined||bots.includes(i)?'filled':'')+(bots.includes(i)?' is-bot':'')+'">'+
+  '<span>Seat '+(i+1)+(bots.includes(i)?' · CPU':'')+'</span><strong>'+safe(displayName(i))+'</strong><small>'+(bots.includes(i)?'Ready automatically':i<joined?(ready[i]?'Ready':'Choosing cards'):'Waiting to join')+'</small></div>').join('')+'</div>'+
   '<div class="setup-choice-guide"><strong>Step 1 · Choose your three face-up cards</strong><span>Tap a card in your hand, then tap the face-up card you want to replace. The host cannot start until everyone confirms.</span></div>'+
   '<div class="area-label"><span>FACE-UP CARDS</span></div><div class="card-row">'+me.up.map(c=>card(c,{can:!myReady,source:'up',selected:swapCard?.id===c.id})).join('')+'</div>'+
   '<div class="area-label"><span>YOUR HAND</span></div><div class="card-row hand">'+me.hand.map(c=>card(c,{can:!myReady,source:'hand',selected:swapCard?.id===c.id})).join('')+'</div>'+
@@ -164,12 +170,12 @@ function tableHUD(){
  const who=g.phase==='over'?'ROUND COMPLETE':active()?'YOUR TURN':displayName(g.turn)+' TO PLAY';
  return '<div class="pilehead-table-hud '+(active()?'is-my-turn':'')+'" role="status">'+
  '<span class="hud-status"><i class="hud-dot" aria-hidden="true"></i>'+safe(who)+'</span>'+
- '<span class="hud-meta"><span>'+layerText+'</span><span>'+g.pile.length+' IN PILE</span>'+
+ '<span class="hud-meta"><span>ROUND '+(g.round||1)+'</span><span>'+layerText+'</span><span>'+g.pile.length+' IN PILE</span>'+
  (g.slam?.length?'<span>SLAM READY</span>':'')+'</span></div>';
 }
 function playView(){
  const p=current(),g=data.game,can=active(),source=stageNow(),legal=legalMove(),canSlam=g.slam?.length>0;
- return '<div class="pitch"><h1>'+safe(statusTitle())+'</h1><p>LIVE ROOM · '+safe(room)+' · '+data.capacity+' players</p></div>'+
+ return '<div class="pitch"><h1>'+safe(statusTitle())+'</h1><p>ROUND '+(g.round||1)+' · ROOM '+safe(room)+' · '+(data.humanCount||data.capacity)+' humans · '+(data.botCount||0)+' bots</p></div>'+
   '<div class="online-room-tools"><span><span class="online-pulse"></span> Room '+safe(room)+'</span>'+
   '<button class="action secondary" data-do="copy">Copy invitation</button><span>Seat '+(data.me+1)+': '+safe(displayName(data.me))+'</span></div>'+tableHUD()+
   '<section class="table" aria-label="Live physical PILEHEAD table">'+opponentCards()+stack()+upDown()+
@@ -189,19 +195,21 @@ function endScreen(){
  return window.PileheadTableFX?.resultHTML({
   players:Array.from({length:data.capacity},(_,seat)=>displayName(seat)),
   finishedOrder:g.finishedOrder||[],loser:g.loser,me:data.me,
-  moves:g.moves,ashes:g.ashesCount,online:true,key:room+':'+g.moves
+  moves:g.moves,ashes:g.ashesCount,online:true,key:room+':'+(g.round||1)+':'+g.moves
  })||'';
 }
 function welcome(){
  const nick=safe(safeSessionRead(NAME)||'');
  if(room)return '<section class="setup panel"><div class="eyebrow">PILEHEAD · INVITED TABLE</div><h2>Take your seat</h2>'+
-  '<p>Room <strong>'+safe(room)+'</strong>. Only your own hand will be visible. No account required.</p>'+
+  '<p>Room <strong>'+safe(room)+'</strong>. Play with your friends and any bots already at the table. Only your own hand will be visible; no account required.</p>'+
   '<label>Your name<input id="online-name" maxlength="24" autocomplete="nickname" value="'+nick+'" placeholder="Player name"></label>'+
   '<div class="toolbar"><button class="action primary" data-do="join">Join room</button><a class="action secondary" href="?online=1">Create another room</a></div></section>';
  return '<section class="setup panel"><div class="eyebrow">PILEHEAD · REAL PLAYERS</div><h2>A real table, wherever your friends are.</h2>'+
   '<p>Create a private room, send the link, and play together. Everyone gets their own secret hand. SLAM works even during someone else’s turn.</p>'+
   '<div class="fields"><label>Your name<input id="online-name" maxlength="24" autocomplete="nickname" value="'+nick+'" placeholder="Player name"></label>'+
-  '<label>Seats<select id="online-seats">'+[2,3,4,5].map(n=>'<option value="'+n+'" '+(n===2?'selected':'')+'>'+n+' players</option>').join('')+'</select></label></div>'+
+  '<label>Human players (including you)<select id="online-humans">'+[1,2,3,4,5].map(n=>'<option value="'+n+'" '+(n===2?'selected':'')+'>'+n+' '+(n===1?'human':'humans')+'</option>').join('')+'</select></label>'+
+  '<label>Computer opponents<select id="online-bots">'+[0,1,2,3,4].map(n=>'<option value="'+n+'">'+n+' '+(n===1?'bot':'bots')+'</option>').join('')+'</select></label></div>'+
+  '<p id="online-seat-summary" class="online-seat-summary" role="status">2 players · 2 humans + 0 bots (max 5)</p>'+
   '<button class="action primary" data-do="create">Create online room</button>'+
   '<p class="small">Rooms last for 24 hours. No sign-in required; keep this browser to retain your seat.</p></section>';
 }
@@ -243,11 +251,14 @@ root.addEventListener('click',async e=>{
  if(action==='create'||action==='join'){
   const nick=$('online-name')?.value?.trim();if(!nick){notice='Enter your name to join.';render();return}
   storeName(nick);notice='';
-  const opts=action==='create'?{capacity:Number($('online-seats')?.value||2),name:nick}:{code:room,name:nick};
+  const humans=Number($('online-humans')?.value??2),bots=Number($('online-bots')?.value??0);
+   if(action==='create'&&(humans+bots<2||humans+bots>5)){notice='Choose 2 to 5 players in total.';render();return}
+   const opts=action==='create'?{humans,bots,name:nick}:{code:room,name:nick};
   await doAction({action,...opts});return;
  }
  if(action==='dismiss-result'){endDismissed=true;render();return}
- if(action==='ready'){swapCard=null;await command('ready',{ready:!data?.game.setupReady?.[data.me]});}
+ if(action==='rematch'){endDismissed=false;await command('rematch');return}
+  if(action==='ready'){swapCard=null;await command('ready',{ready:!data?.game.setupReady?.[data.me]});}
  if(action==='start')await command('start');
  if(action==='sort'){sortMode=sortMode==='dealt'?'asc':sortMode==='asc'?'desc':'dealt';selection=[];window.PileheadTableFX?.resetHandScroll?.();render();}
  if(action==='play')await play();
@@ -255,6 +266,15 @@ root.addEventListener('click',async e=>{
  if(action==='slam'){const m=data?.game.slam?.[0];if(m)await command('move',{move:m})}
  if(action==='copy'){try{await navigator.clipboard.writeText(invite());notice='Invite link copied.'}catch{notice='Copy this link: '+invite()}render()}
  if(action==='share'){try{if(navigator.share)await navigator.share({title:'PILEHEAD',url:invite(),text:'Join my PILEHEAD card game'});else await navigator.clipboard.writeText(invite())}catch{}}
+});
+root.addEventListener('change',e=>{
+ const select=e.target.closest('#online-humans,#online-bots');
+ if(!select)return;
+ const humans=Number($('online-humans')?.value??2),bots=Number($('online-bots')?.value??0),total=humans+bots;
+ const info=$('online-seat-summary'),button=root.querySelector('[data-do="create"]');
+ const valid=total>=2&&total<=5;
+ if(info){info.textContent=valid?total+' players · '+humans+' human'+(humans===1?'':'s')+' + '+bots+' bot'+(bots===1?'':'s'):total+' players selected · choose 2 to 5 total';info.classList.toggle('is-invalid',!valid)}
+ if(button)button.disabled=!valid;
 });
 root.addEventListener('click',e=>{
  if(e.target.closest('[data-play-target]')&&selection.length&&!busy)play();
@@ -315,8 +335,15 @@ window.addEventListener('pointercancel',()=>{
 });
 
 function startPolling(){
- if(pollTimer)return;pollTimer=setInterval(()=>{
-  if(document.visibilityState!=='hidden'&&!busy&&session&&data)refresh(true);
+ if(pollTimer)return;pollTimer=setInterval(async()=>{
+  if(document.visibilityState==='hidden'||busy||!session||!data)return;
+  await refresh(true);
+  if(busy||polling||!data||data.game.phase!=='play')return;
+  const bots=data.game.botSeats||[];
+  if(bots.includes(data.game.turn)&&Date.now()-botTickAt>=1250){
+   botTickAt=Date.now();
+   await command('advance');
+  }
  },1750);
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&session)refresh(true)});
 }
