@@ -127,9 +127,9 @@ function resultHTML({players=[],finishedOrder=[],loser=null,me=null,moves=0,ashe
    '<span class="result-rank-symbol" aria-hidden="true">'+(last?'♠':first?'★':'✦')+'</span></li>';
  }).join('');
  const actions=online?
-  '<a class="action primary" href="?online=1">New online table</a>':
+  '<button class="action primary" data-do="rematch" type="button">Play again · same room</button>':
   '<button class="action primary" data-do="rematch" type="button">Play another round</button>';
- const caption=online?'A new table creates a fresh invitation.':'Same players. New shuffle. Another chance.';
+ const caption=online?'Same players and link, new cards. <a href="?online=1">Create a different table</a>':'Same players. New shuffle. Another chance.';
  return '<div class="pilehead-result-backdrop '+(iWon?'is-victory':'is-final')+'" role="dialog" aria-modal="true" aria-labelledby="pilehead-result-title" data-result-root data-game-result="'+escapeMarkup(key)+'">'+
   '<div class="result-confetti" aria-hidden="true">'+festive+'</div>'+
   '<div class="result-spotlight" aria-hidden="true"></div>'+

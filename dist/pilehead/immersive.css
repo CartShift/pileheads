@@ -1372,3 +1372,21 @@ body.pilehead-focus .top:has([data-fx-focus]:focus-visible){outline:1px solid #d
  body.pilehead-focus .top{padding:2px 4px 5px}
  body.pilehead-focus .top .brand{font-size:19px}
 }
+
+/* The setup describes the exact table composition, including automated seats. */
+.online-layout .online-seat-summary{
+ max-width:100%;margin:3px 0 14px;
+ padding:9px 12px;color:#d8f0c7;background:#103b31;
+ border:1px solid #93ad845a;border-radius:10px;
+ font:750 12px/1.4 system-ui,sans-serif;
+}
+.online-layout .online-seat-summary.is-invalid{color:#ffbbad;border-color:#e49a82}
+.online-lobby .lobby-seat.is-bot{
+ background:linear-gradient(145deg,#163b44,#153833);
+ border:1px solid #83acb17d;
+}
+.online-lobby .lobby-seat.is-bot strong:before{content:"◈";color:#a8d8e0;margin-right:6px}
+body.pilehead-playing .table .opponent.is-bot{border-style:dashed;border-color:#8dbcb26c}
+.pilehead-result-panel .result-footnote a{
+ color:#f1d299;text-decoration:underline;text-underline-offset:3px;
+}
