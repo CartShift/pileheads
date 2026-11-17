@@ -193,7 +193,7 @@ function move(g,seat,choice){
   (freshlyDrawn.some(c=>c.kind==='number'&&c.rank===card.rank)?
    {seat,rank:card.rank,ids:freshlyDrawn.filter(c=>c.kind==='number'&&c.rank===card.rank).map(c=>c.id)}:null):null;
  g.moves++;const event={type:choice.type,seat,reason,count:cards.length,burned,
-  rank:card.rank??null,action:card.action??null,target:forcedTarget,takenCount:forcedCount};
+  rank:card.rank??null,action:card.action??null,target:forcedTarget,takenCount:forcedCount,drawnCount:freshlyDrawn.length};
  g.events.push(event);
  const over=finish(g);
  if(!over)g.turn=burned||dump?(!p.out?seat:next(g,seat)):
