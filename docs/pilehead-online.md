@@ -70,3 +70,10 @@ A printed deck remains mandatory for design decisions. The graphical hand/felt i
 Both online participants receive the end state from the server; the winner/last-place overlay is derived solely from finishedOrder and loser. Rematches start a fresh room (no secret seat tokens reused). Local games have a Play again action.
 
 BURN already exists as two dedicated action cards in the 52-card deck. Its action burns the entire played pile, including BURN, and awards another turn; the controls and rules now make this explicit.
+
+## Immersive tabletop and result stage (Nov 2026)
+- Both the local simulator and private-seat online rooms use one common resultHTML presentation in `dist/pilehead/immersive.js`; finish states remain engine/server authoritative, never inferred from animations.
+- The results show first to escape, ordered finishers, PILEHEAD, moves and burned cards, with a physical card fan, confetti and opt-in original victory chime. In online play, "New online table" creates a new room; it is not automatic same-room rematch.
+- Focus Table is an optional, locally saved presentation mode that hides decorative navigation while leaving the action rail, HUD, cards and exit control available.
+- Confetti, transitions and chimes honor reduced-motion and the existing sound preference. Endgame modal has labelled dialog semantics and keyboard focus containment.
+- Visual verification remains necessary at narrow phone, tablet and desktop sizes, and a full two-device multiplayer finish should be exercised before treating this as production QA-complete.
