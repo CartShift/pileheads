@@ -331,6 +331,9 @@ function render(){
   focused?.id==='online-name'?{type:'name'}:null;
  root.innerHTML='<div class="online-layout">'+(!data?welcome():data.game.phase==='setup'?lobby():playView())+
    (notice&&data?.game.phase==='setup'?'<div class="message" role="status">'+safe(notice)+'</div>':'')+
+   (roomIssue?'<div class="room-issue" role="alert"><strong>Room unavailable</strong>'+
+    '<span>'+safe(setMessage(roomIssue))+'</span>'+
+    '<a class="action secondary" href="?online=1">Create a new room</a></div>':'')+
    (networkError?'<div class="connection-banner" role="alert"><strong>Connection interrupted</strong>'+
     '<span>'+safe(networkError)+'</span><button class="action secondary" type="button" data-do="retry">Retry connection</button></div>':'')+
    '</div>'+dumpTargetOverlay()+endScreen();
