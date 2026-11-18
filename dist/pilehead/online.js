@@ -9,6 +9,7 @@ const deploymentShare=params.get('_vercel_share');
 const safeSessionRead=key=>{try{return localStorage.getItem(key)}catch{return null}};
 const safeSessionSave=(key,value)=>{try{localStorage.setItem(key,value)}catch{}};
 let room=params.get('room')?.toUpperCase()||'',session=room?safeSessionRead(STORE+room):null;
+let draftName=safeSessionRead(NAME)||'',draftHumans=2,draftBots=0;
 let data=null,busy=false,polling=false,selection=[],swapCard=null,dumpDraft=null,notice='',networkError='',roomIssue='',drag=null;
 let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false,sortMode='dealt',endDismissed=false,botTickAt=0,lastChangeAt=0;
 const A=globalThis.PileheadCardArt;const symbols=A.glyph;
@@ -38,6 +39,11 @@ function card(c,opts={}){
 }
 const permanentRoomErrors=new Set(['room_rules_changed','room_expired','room_not_found','session_required','not_member']);
 function setMessage(e){const map={
+ name_required:'Enter your name to join the room.',
+ invalid_capacity:'Choose 2 to 5 players in total.',
+ server_error:'The room server could not create your room. Please try again.',
+ 'Failed to fetch':'Could not reach the room server. Check your connection and try again.',
+ 'NetworkError when attempting to fetch resource.':'Could not reach the room server. Check your connection and try again.',
  online_not_configured:'Online games need the room database connection to be configured on Vercel.',
  service_unavailable:'The room server is temporarily unavailable.',
  session_required:'Your saved seat session is missing. Rejoin from your invitation link.',
@@ -299,18 +305,21 @@ function endScreen(){
  })||'';
 }
 function welcome(){
- const nick=safe(safeSessionRead(NAME)||'');
+ const nick=safe(draftName);
  if(room)return '<section class="setup panel"><div class="eyebrow">PILEHEAD · INVITED TABLE</div><h2>Take your seat</h2>'+
   '<p>Room <strong>'+safe(room)+'</strong>. Play with your friends and any bots already at the table. Only your own hand will be visible; no account required.</p>'+
-  '<label>Your name<input id="online-name" maxlength="24" autocomplete="nickname" value="'+nick+'" placeholder="Player name"></label>'+
-  '<div class="toolbar"><button class="action primary" data-do="join">Join room</button><a class="action secondary" href="?online=1">Create another room</a></div></section>';
+  '<label>Your name<input id="online-name" maxlength="24" autocomplete="nickname" value="'+nick+'" placeholder="Player name" aria-describedby="online-form-message"></label>'+
+  '<div class="toolbar"><button type="button" class="action primary" data-do="join" '+(busy?'disabled aria-busy="true"':'')+'>'+(busy?'Joining room…':'Join room')+'</button><a class="action secondary" href="?online=1">Create another room</a></div></section>';
+ const total=draftHumans+draftBots,valid=total>=2&&total<=5;
  return '<section class="setup panel"><div class="eyebrow">PILEHEAD · REAL PLAYERS</div><h2>A real table, wherever your friends are.</h2>'+
   '<p>Create a private room, send the link, and play together. Everyone gets their own secret hand. SLAM works even during someone else’s turn.</p>'+
-  '<div class="fields"><label>Your name<input id="online-name" maxlength="24" autocomplete="nickname" value="'+nick+'" placeholder="Player name"></label>'+
-  '<label>Human players (including you)<select id="online-humans">'+[1,2,3,4,5].map(n=>'<option value="'+n+'" '+(n===2?'selected':'')+'>'+n+' '+(n===1?'human':'humans')+'</option>').join('')+'</select></label>'+
-  '<label>Computer opponents<select id="online-bots">'+[0,1,2,3,4].map(n=>'<option value="'+n+'">'+n+' '+(n===1?'bot':'bots')+'</option>').join('')+'</select></label></div>'+
-  '<p id="online-seat-summary" class="online-seat-summary" role="status">2 players · 2 humans + 0 bots (max 5)</p>'+
-  '<button class="action primary" data-do="create">Create online room</button>'+
+  '<div class="fields"><label>Your name (optional)<input id="online-name" maxlength="24" autocomplete="nickname" value="'+nick+'" placeholder="Player 1" aria-describedby="online-name-hint online-form-message">'+
+  '<span class="small" id="online-name-hint">Leave blank to play as Player 1.</span></label>'+
+  '<label>Human players (including you)<select id="online-humans">'+[1,2,3,4,5].map(n=>'<option value="'+n+'" '+(n===draftHumans?'selected':'')+'>'+n+' '+(n===1?'human':'humans')+'</option>').join('')+'</select></label>'+
+  '<label>Computer opponents<select id="online-bots">'+[0,1,2,3,4].map(n=>'<option value="'+n+'" '+(n===draftBots?'selected':'')+'>'+n+' '+(n===1?'bot':'bots')+'</option>').join('')+'</select></label></div>'+
+  '<p id="online-seat-summary" class="online-seat-summary'+(valid?'':' is-invalid')+'" role="status">'+
+  (valid?total+' players · '+draftHumans+' human'+(draftHumans===1?'':'s')+' + '+draftBots+' bot'+(draftBots===1?'':'s')+' (max 5)':total+' players selected · choose 2 to 5 total')+'</p>'+
+  '<button type="button" class="action primary" data-do="create" '+(!valid||busy?'disabled':'')+(busy?' aria-busy="true"':'')+'>'+(busy?'Creating room…':'Create online room')+'</button>'+
   '<p class="small">Rooms last for 24 hours. No sign-in required; keep this browser to retain your seat.</p></section>';
 }
 function dumpTargetOverlay(){
@@ -330,7 +339,7 @@ function render(){
   focused?.dataset?.do?{type:'action',name:focused.dataset.do}:
   focused?.id==='online-name'?{type:'name'}:null;
  root.innerHTML='<div class="online-layout">'+(!data?welcome():data.game.phase==='setup'?lobby():playView())+
-   (notice&&data?.game.phase==='setup'?'<div class="message" role="status">'+safe(notice)+'</div>':'')+
+   (notice&&(!data||data?.game.phase==='setup')?'<div id="online-form-message" class="message online-form-message" role="alert" aria-live="assertive">'+safe(notice)+'</div>':'')+
    (roomIssue?'<div class="room-issue" role="alert"><strong>Room unavailable</strong>'+
     '<span>'+safe(setMessage(roomIssue))+'</span>'+
     '<a class="action secondary" href="?online=1">Create a new room</a></div>':'')+
@@ -401,11 +410,20 @@ root.addEventListener('click',async e=>{
  if(target.dataset.blind!==undefined&&target.dataset.blind!==''){await command('move',{move:{type:'play',source:'down',index:Number(target.dataset.blind)}});return}
  const action=target.dataset.do;if(!action)return;
  if(action==='create'||action==='join'){
-  const nick=$('online-name')?.value?.trim();if(!nick){notice='Enter your name to join.';render();return}
-  storeName(nick);notice='';
-  const humans=Number($('online-humans')?.value??2),bots=Number($('online-bots')?.value??0);
-   if(action==='create'&&(humans+bots<2||humans+bots>5)){notice='Choose 2 to 5 players in total.';render();return}
-   const opts=action==='create'?{humans,bots,name:nick}:{code:room,name:nick};
+  const typedName=$('online-name')?.value?.trim()||'';
+  draftName=typedName;
+  draftHumans=Number($('online-humans')?.value??draftHumans);
+  draftBots=Number($('online-bots')?.value??draftBots);
+  if(action==='join'&&!typedName){
+   notice='Enter your name to join the room.';render();
+   $('online-name')?.focus({preventScroll:true});return;
+  }
+  if(action==='create'&&(draftHumans+draftBots<2||draftHumans+draftBots>5)){
+   notice='Choose 2 to 5 players in total.';render();return;
+  }
+  const nick=typedName||(action==='create'?'Player 1':'');
+  draftName=nick;storeName(nick);notice='';
+  const opts=action==='create'?{humans:draftHumans,bots:draftBots,name:nick}:{code:room,name:nick};
   await doAction({action,...opts});return;
  }
  if(action==='retry'){
@@ -433,10 +451,21 @@ root.addEventListener('click',async e=>{
  if(action==='copy'){try{await navigator.clipboard.writeText(invite());notice='Invite link copied.'}catch{notice='Copy this link: '+invite()}render()}
  if(action==='share'){try{if(navigator.share)await navigator.share({title:'PILEHEAD',url:invite(),text:'Join my PILEHEAD card game'});else await navigator.clipboard.writeText(invite())}catch{}}
 });
+root.addEventListener('input',e=>{
+ if(e.target?.id!=='online-name')return;
+ draftName=e.target.value;
+ if(notice&&!data){notice='';const message=$('online-form-message');if(message)message.remove()}
+});
+root.addEventListener('keydown',e=>{
+ if(e.key==='Enter'&&e.target?.id==='online-name'){
+  e.preventDefault();root.querySelector('[data-do="'+(room?'join':'create')+'"]')?.click();
+ }
+});
 root.addEventListener('change',e=>{
  const select=e.target.closest('#online-humans,#online-bots');
  if(!select)return;
- const humans=Number($('online-humans')?.value??2),bots=Number($('online-bots')?.value??0),total=humans+bots;
+ const humans=Number($('online-humans')?.value??draftHumans),bots=Number($('online-bots')?.value??draftBots),total=humans+bots;
+ draftHumans=humans;draftBots=bots;
  const info=$('online-seat-summary'),button=root.querySelector('[data-do="create"]');
  const valid=total>=2&&total<=5;
  if(info){info.textContent=valid?total+' players · '+humans+' human'+(humans===1?'':'s')+' + '+bots+' bot'+(bots===1?'':'s'):total+' players selected · choose 2 to 5 total';info.classList.toggle('is-invalid',!valid)}
