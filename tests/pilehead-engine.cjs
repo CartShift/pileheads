@@ -96,7 +96,7 @@ test('illegal blind flip joins the pile and is picked up to the hand',()=>{
  assert.equal(ev.type,'blind-fail');assert.equal(g.people[0].hand.length,2);
  assert.equal(g.pile.length,0);E.invariant(g);
 });
-test('numeric groups cannot mix ranks, take forbidden when legal',()=>{
+test('numeric groups cannot mix ranks; empty pile cannot be taken',()=>{
  const g=opened(),p=g.people[0];assert.throws(()=>E.move(g,0,{type:'take'}));
  const ids=p.hand.filter(c=>c.kind==='number').slice(0,2).map(c=>c.id);
  if(ids.length===2&&p.hand.find(c=>c.id===ids[0]).rank!==p.hand.find(c=>c.id===ids[1]).rank)
@@ -104,6 +104,58 @@ test('numeric groups cannot mix ranks, take forbidden when legal',()=>{
  E.invariant(g);
 });
 
+
+test('strategic pickup offered despite playable cards in all card layers',()=>{
+ for(const layer of ['hand','up','down']){
+  const g=opened(3,1013),p=g.people[0];
+  if(layer==='up'||layer==='down'){
+   g.ashes.push(...g.stock.splice(0),...p.hand.splice(0));
+   if(layer==='down')g.ashes.push(...p.up.splice(0));
+  }
+  const onPile=g.ashes.length?g.ashes.pop():g.stock.pop();
+  g.pile.push(onPile);
+  g.limit=null;
+  assert.equal(E.stage(g,0),layer);
+  const opts=E.options(g,0);
+  assert.ok(opts.some(m=>m.type==='play'),'Play must remain an option');
+  assert.ok(opts.some(m=>m.type==='take'),'Take must be offered with a playable card');
+  const before=p.hand.length,n=g.pile.length;
+  const move=E.move(g,0,{type:'take'});
+  assert.equal(move.type,'take');assert.equal(move.count,n);
+  assert.equal(p.hand.length,before+n);
+  assert.equal(g.pile.length,0);assert.equal(g.turn,1);
+  assert.equal(p.pickups,1);E.invariant(g);
+ }
+});
+test('strategic pickup clears number limit, SNAP invitation and finishes the turn',()=>{
+ const g=opened(2,2721);
+ g.pile.push(g.stock.pop());g.limit={type:'min',value:1};
+ g.slamOpen=true;g.followUp={seat:1,rank:1,ids:[],expiresAt:Date.now()-100};
+ const n=g.pile.length,hand=g.people[0].hand.length;
+ E.move(g,0,{type:'take'});
+ assert.equal(g.pile.length,0);assert.equal(g.people[0].hand.length,hand+n);
+ assert.equal(g.limit,null);assert.equal(g.followUp,null);
+ assert.equal(g.slamOpen,false);assert.equal(g.turn,1);E.invariant(g);
+});
+test('strategic pickup unavailable when empty, outside turn or awaiting DUMP',()=>{
+ const g=opened(2,404);
+ assert.ok(!E.options(g,0).some(m=>m.type==='take'));
+ assert.throws(()=>E.move(g,0,{type:'take'}),/nonempty pile/);
+ g.pile.push(g.stock.pop());
+ assert.ok(E.options(g,0).some(m=>m.type==='take'));
+ assert.throws(()=>E.move(g,1,{type:'take'}),/Not your turn/);
+ g.pendingDump={seat:0,source:'hand',count:1};
+ assert.ok(!E.options(g,0).some(m=>m.type==='take'));
+ assert.throws(()=>E.move(g,0,{type:'take'}),/Choose the DUMP recipient/);
+ g.pendingDump=null;E.invariant(g);
+});
+test('random bot does not pick up voluntarily when it can play',()=>{
+ const g=opened(2,501);
+ g.pile.push(g.stock.pop());g.limit=null;
+ assert.ok(E.options(g,0).some(o=>o.type==='take'));
+ for(let i=0;i<30;i++)assert.notEqual(E.choose(g,0,'random').type,'take');
+ E.invariant(g);
+});
 test('all ten numbered ranks are ordinary including 10 and not unlimited escape cards',()=>{
  const a=E.deck();assert.equal(a.filter(c=>c.kind==='number').length,40);
  assert.deepEqual(E.ACTIONS,{reset:2,ghost:2,under:2,skip:2,burn:2,dump:2});
