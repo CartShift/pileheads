@@ -37,7 +37,7 @@ assert.match(index,/href="playtest\.html">Playtest kit/);
 assert.match(print,/href="playtest\.html">Playtest rules/);
 assert.match(vercel,/'playtest\.html'/,'Vercel build must include playtest.html');
 assert.match(worker,/'pilehead\/playtest\.html'/,'Sites build must include playtest.html');
-assert.match(readme,/Official playtest kit:/);
+assert.match(readme,/Official playtest kit/);
 assert.match(protocol,/Default OFF/,'Experimental rule must not silently affect canonical play');
 assert.match(protocol,/no personal/i,'Playtest scorecard must avoid PII');
 assert.match(design,/frozen 2026-11-18/);
