@@ -26,7 +26,7 @@ The following tables already exist in that project:
 
 Retrieve the value in Neon Console and enter it through Vercel Settings → Environment Variables. Never commit it, put it in the browser bundle, append it to a URL, or paste it into chat. Vercel must rebuild/redeploy after saving the variable. If connector permissions allow, configure it via the Vercel integration without displaying its value.
 
-The Vercel connector was denied permission to write project environment variables (403) during this implementation. **This feature remains unavailable until the credential is actually configured.** The client displays an explicit error instead of falsely pretending that the room is working.
+The Vercel connector was denied permission to write project environment variables (403) during this implementation. **Historical activation note:** this credential was not available during the original implementation. The current deployment and environment must be checked independently before claiming a room is live. The client displays an explicit error when the database is not configured.
 
 ## Privacy and consistency
 
@@ -43,7 +43,7 @@ The Vercel connector was denied permission to write project environment variable
 - Existing SPARK/D1 online rooms are unchanged and not exposed on Vercel.
 - PILEHEAD online synchronization currently uses polling, not low-latency WebSocket transport. A technically first successful SLAM request wins, so real-world latency can matter; this is a known playtest limitation.
 - The game may be playable on a shared device locally without server credentials, via the older hotseat mode, but that is NOT online multiplayer.
-- Full live two-device QA cannot be claimed until Vercel environment permission is resolved and at least two independent browser sessions join and complete a game.
+- Full live two-device QA cannot be claimed until at least two independent browser sessions join, play, reconnect and finish a game on the current deployment. A READY deployment or passing mocked API tests is insufficient.
 - Validate portrait + landscape phones, tablet, desktop, keyboard, screen reader and prefers-reduced-motion on actual hardware. Code-level and simulation tests alone are not sufficient.
 
 ## Activation smoke test
@@ -67,13 +67,13 @@ A printed deck remains mandatory for design decisions. The graphical hand/felt i
 - Hand selection now picks a full same-face group on the first tap; tapping individual selected cards removes them. Hand sorting is presentation-only.
 
 ## Result screen
-Both online participants receive the end state from the server; the winner/last-place overlay is derived solely from finishedOrder and loser. Rematches start a fresh room (no secret seat tokens reused). Local games have a Play again action.
+All online participants receive the end state from the server; the winner/last-place overlay is derived solely from finishedOrder and loser. **Current behavior:** Play again in the same room deals a fresh round while retaining member seats, room code and sessions. Local games have a Play again action.
 
 BURN already exists as two dedicated action cards in the 52-card deck. Its action burns the entire played pile, including BURN, and awards another turn; the controls and rules now make this explicit.
 
 ## Immersive tabletop and result stage (Nov 2026)
 - Both the local simulator and private-seat online rooms use one common resultHTML presentation in `dist/pilehead/immersive.js`; finish states remain engine/server authoritative, never inferred from animations.
-- The results show first to escape, ordered finishers, PILEHEAD, moves and burned cards, with a physical card fan, confetti and opt-in original victory chime. In online play, "New online table" creates a new room; it is not automatic same-room rematch.
+- The results show first to escape, ordered finishers, PILEHEAD, moves and burned cards, with a physical card fan, confetti and opt-in original victory chime. In online play, "Play again · same room" returns all existing participants to a new round lobby.
 - Focus Table is an optional, locally saved presentation mode that hides decorative navigation while leaving the action rail, HUD, cards and exit control available.
 - Confetti, transitions and chimes honor reduced-motion and the existing sound preference. Endgame modal has labelled dialog semantics and keyboard focus containment.
 - Visual verification remains necessary at narrow phone, tablet and desktop sizes, and a full two-device multiplayer finish should be exercised before treating this as production QA-complete.
@@ -105,3 +105,7 @@ The phone table now sizes to its content rather than forcing a viewport-sized fe
 ## Physical-motion director (November 2026)
 
 The shared immersive controller now animates real physical trajectories using safe move metadata from the authoritative engine: `source` (hand/up/down), monotonically increasing `move`, and `burnedCount`. The same public event data is used in online play without exposing opponents' private hands. Animations include a first-round deal, one-by-one throws, blind reveal, draws, pickups, DUMP burning itself while sending the prior pile to the next seat, BURN/SLAM/four-of-a-kind combustion to the ash area, SNAP, and action explanations. Consecutive server events are queued (up to four unseen moves per refresh) so intermediate actions remain visible. Short durations, limited animated cards, opt-in audio and reduced-motion support keep the experience responsive. The card movement is purely presentational; the game engine remains authoritative. Browser/device screenshot QA remains a separate step.
+
+## Official controlled playtest (2026-11-18)
+
+Canonical game rules are frozen in `docs/pilehead-design.md`. Participant-facing printable rules, session records, and controlled final-duel experiment are described in `docs/pilehead-playtest-kit.md` and `/pilehead/playtest.html`. These playtest tools collect data **locally only** and do not upload ratings to the room database. A full-four independent SLAM may occur even when `slamOpen` is false; automated bot SLAM checks must honor this rule. Do not treat polling-based SLAM as latency-neutral.
