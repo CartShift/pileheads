@@ -83,7 +83,9 @@ function updateMotionButton(){
  document.body?.classList.toggle('pilehead-motion-off',motionMode==='off'||Boolean(motion.matches));
 }
 function handLayout(n,rowWidth,cardWidth,mobile){
- const budget=Math.max(0,rowWidth-24),maxStep=mobile?(n<=4?Math.min(cardWidth*.94,94):54):80,minStep=mobile?28:38;
+ // Never squeeze a hand so tightly that the visible card index disappears.
+ // Wide hands intentionally scroll instead of hiding the identity of 13+ cards.
+ const budget=Math.max(0,rowWidth-24),maxStep=mobile?(n<=4?Math.min(cardWidth*.94,94):54):80,minStep=mobile?38:44;
  const step=n<=1?cardWidth:Math.min(maxStep,Math.max(minStep,(budget-cardWidth)/(n-1)));
  const overlap=Math.min(0,Math.round(step-cardWidth));
  return{overlap,span:n?cardWidth+(n-1)*(cardWidth+overlap):0,
@@ -93,14 +95,17 @@ function fan(table){
  const row=$('.hand-area .card-row.hand',table);if(!row)return;
  const cards=Array.from(row.querySelectorAll(':scope > .card'));
  const n=cards.length,center=(n-1)/2,mobile=matchMedia('(max-width:700px)').matches;
+ const dense=n>=8;
+ row.classList.toggle('hand-dense',dense);
  // Set the fan transform without ever replaying an idle-card transition.
  const width=cards[0]?.offsetWidth||0,{overlap}=handLayout(n,row.clientWidth,width,mobile);
- const spread=Math.min(mobile?12:15,n<=4?6.5:n<=8?3.6:2.1);
+ const spread=dense?0:Math.min(mobile?12:15,n<=4?6.5:3.6);
  cards.forEach((card,i)=>{
   const r=i-center,ratio=center?Math.abs(r)/center:0;
   card.style.setProperty('--fan-angle',Math.max(-13,Math.min(13,r*spread)).toFixed(1)+'deg');
-  card.style.setProperty('--fan-rise',Math.round(ratio*ratio*(mobile?6:10))+'px');
-  card.style.setProperty('--fan-z',String(Math.max(1,Math.round(n-Math.abs(r)))));
+  card.style.setProperty('--fan-rise',(dense?0:Math.round(ratio*ratio*(mobile?6:10)))+'px');
+  // Later cards sit on top: each left index remains visible like a real spread.
+  card.style.setProperty('--fan-z',String(i+1));
   card.style.setProperty('--card-overlap',overlap+'px');
  });
  // Restore scroll on a freshly mounted hand only, never on a resize or another
