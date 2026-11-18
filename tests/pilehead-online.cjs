@@ -106,6 +106,65 @@ async function run(){
  assert.ok(!rooms.get(code).state.people[receiver].hand.some(c=>c.id===dump.id));
  assert.equal(dumped.data.game.players[receiver].hand,undefined);
  Engine.invariant(rooms.get(code).state);checks++;
+
+ // In three-player online games, the actor chooses any active opponent, not the next seat.
+ const choiceRoom=await request({action:'create',humans:1,bots:2,name:'Chooser'});
+ assert.equal(choiceRoom.status,201);
+ const choiceCode=choiceRoom.data.code,choiceToken=choiceRoom.data.session;
+ const choiceReady=await request({action:'ready',code:choiceCode,revision:0,ready:true},choiceToken);
+ assert.equal(choiceReady.status,200);
+ const choiceStart=await request({action:'start',code:choiceCode,revision:1},choiceToken);
+ assert.equal(choiceStart.status,200);
+ const cg=rooms.get(choiceCode).state;
+ const available=[cg.stock,cg.pile,cg.ashes,...cg.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const dsrc=available.find(z=>z.some(c=>c.action==='dump')),di=dsrc.findIndex(c=>c.action==='dump');
+ const dc=dsrc[di],replaced=cg.people[0].hand[0];
+ dsrc[di]=replaced;cg.people[0].hand[0]=dc;
+ const pi=cg.stock.findIndex(c=>c.kind==='number');
+ cg.pile.push(cg.stock.splice(pi,1)[0]);
+ Engine.invariant(cg);
+ const missing=await request({action:'move',code:choiceCode,revision:2,
+  move:{type:'play',source:'hand',ids:[dc.id]}},choiceToken);
+ assert.equal(missing.status,400,'multiple opponents require choosing DUMP target');
+ const ownTarget=await request({action:'move',code:choiceCode,revision:2,
+  move:{type:'play',source:'hand',ids:[dc.id],target:0}},choiceToken);
+ assert.equal(ownTarget.status,400,'cannot dump onto yourself');
+ const chosenBefore=cg.people[2].hand.length,unselectedBefore=cg.people[1].hand.length;
+ const chosen=await request({action:'move',code:choiceCode,revision:2,
+  move:{type:'play',source:'hand',ids:[dc.id],target:2}},choiceToken);
+ assert.equal(chosen.status,200,JSON.stringify(chosen));
+ assert.equal(chosen.data.game.events.at(-1).target,2);
+ assert.equal(chosen.data.game.turn,0);
+ const chosenGame=rooms.get(choiceCode).state;
+ assert.equal(chosenGame.people[2].hand.length,chosenBefore+1);
+ assert.equal(chosenGame.people[1].hand.length,unselectedBefore);
+ Engine.invariant(chosenGame);checks++;
+
+ // A face-down DUMP is revealed before choosing a victim; other moves are blocked meanwhile.
+ const blindAreas=[chosenGame.stock,chosenGame.pile,chosenGame.ashes,...chosenGame.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const secondSource=blindAreas.find(z=>z.some(c=>c.action==='dump')),secondIndex=secondSource.findIndex(c=>c.action==='dump');
+ const secondDump=secondSource[secondIndex],blindOriginal=chosenGame.people[0].down[0];
+ secondSource[secondIndex]=blindOriginal;chosenGame.people[0].down[0]=secondDump;
+ chosenGame.ashes.push(...chosenGame.people[0].hand.splice(0),...chosenGame.people[0].up.splice(0),...chosenGame.stock.splice(0));
+ const numbered=chosenGame.ashes.findIndex(c=>c.kind==='number');
+ chosenGame.pile.push(chosenGame.ashes.splice(numbered,1)[0]);
+ Engine.invariant(cg);
+ const blind=await request({action:'move',code:choiceCode,revision:3,
+  move:{type:'play',source:'down',index:0}},choiceToken);
+ assert.equal(blind.status,200,JSON.stringify(blind));
+ assert.equal(blind.data.game.pendingDump.seat,0);
+ const blocked=await request({action:'move',code:choiceCode,revision:4,
+  move:{type:'take'}},choiceToken);
+ assert.equal(blocked.status,400);
+ const badRecipient=await request({action:'dump-target',code:choiceCode,revision:4,target:0},choiceToken);
+ assert.equal(badRecipient.status,400);
+ const resolved=await request({action:'dump-target',code:choiceCode,revision:4,target:2},choiceToken);
+ assert.equal(resolved.status,200,JSON.stringify(resolved));
+ assert.equal(resolved.data.game.pendingDump,null);
+ assert.equal(resolved.data.game.events.at(-1).target,2);
+ assert.equal(resolved.data.game.events.at(-1).takenCount,1);
+ Engine.invariant(rooms.get(choiceCode).state);checks++;
+
  const other=await request({action:'create',capacity:2,name:'Other'});
  const forbidden=await request({action:'state',code:other.data.code},hostToken);
  assert.equal(forbidden.status,403);checks++;

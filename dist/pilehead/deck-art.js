@@ -8,7 +8,7 @@ const rules=Object.freeze({
  under:'NEXT NUMBER 1–4',
  skip:'SKIP NEXT PLAYER',
  burn:'BURN PILE · PLAY AGAIN',
- dump:'DUMP BURNS · THEY TAKE PILE'
+ dump:'PICK A RIVAL · THEY TAKE PILE'
 });
 const glyph=Object.freeze({reset:'↺',ghost:'◇',under:'↓4',skip:'↷',burn:'♨',dump:'⇢'});
 const crown='<svg class="ph-crown" viewBox="0 0 42 22" aria-hidden="true" focusable="false"><path d="M3 17L1 4l11 7 9-10 9 10L41 4l-2 13H3Z" fill="#f6c56e" stroke="#123b34" stroke-width="1.7"/><path d="M5 19h32" stroke="#f8e6ad" stroke-width="3" stroke-linecap="round"/></svg>';

@@ -2,7 +2,7 @@
 (function(){'use strict';
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
 const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11';
-let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null,sortMode='dealt',endDismissed=false;
+let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null,sortMode='dealt',endDismissed=false,dumpDraft=null;
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
  (a.kind==='number'?a.rank===b.rank:a.action===b.action)}
 function orderedHand(cards){
@@ -23,7 +23,7 @@ function currentStage(){return E.stage(g,viewSeat())}
 function isTurn(){return g.phase==='play'&&g.turn===viewSeat()}
 function save(){try{localStorage.setItem(KEY,JSON.stringify({g,mode,seats,setupSeat,covered,notice,lastMove}))}catch(e){console.warn('Save unavailable',e)}}
 function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
- if(!x||!['pilehead-1.1.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
+ if(!x||!['pilehead-1.1.0','pilehead-1.2.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
  // Same state schema and physical deck; migrate saved games without wiping the hand.
  x.g.version=E.VERSION;
  E.invariant(x.g);g=x.g;mode=x.mode;seats=x.seats;setupSeat=x.setupSeat??0;
@@ -75,7 +75,7 @@ const effectInfo={
  under:'UNDER means the next number must be 1 through 4.',
  skip:'SKIP makes the next player miss a turn.',
  burn:'BURN removes the pile and gives another turn.',
- dump:'DUMP burns itself; the next player collects the existing pile.'
+ dump:'DUMP burns itself; choose any active rival to take the existing pile. You play again.'
 };
 function selectedEffect(){
  const p=getPlayer(),cards=[...p.hand,...p.up],selected=cards.find(c=>selection.includes(c.id)&&c.kind==='action');
@@ -87,7 +87,7 @@ function lastEffect(){
  const message=e.bridgeCount?'HAND + FACE-UP COMBO · '+playerName(e.seat)+' played matching cards from both layers.':
   e.type==='followup'?'SNAP · '+playerName(e.seat)+' instantly played the matching card they just drew.':
  e.reason==='four'||e.reason==='slam'?'FOUR OF A KIND · The pile burns and the player acts again.':
- e.action?effectInfo[e.action]:
+ e.action==='dump'?'DUMP · '+playerName(e.target)+' takes the pile. '+playerName(e.seat)+' plays again.':e.action?effectInfo[e.action]:
  e.type==='take'||e.type==='blind-fail'?'PICKUP · The pile goes into '+playerName(e.seat)+'’s hand.':
  e.burned?'BURN · The pile has been removed from play.':
  'PLAY · '+playerName(e.seat)+' placed '+e.count+' card'+(e.count===1?'':'s')+'.';
@@ -98,6 +98,7 @@ function lastEffect(){
 function eventName(e){const who=playerName(e.seat);if(e.type==='take')return who+' picked up '+e.count;
  if(e.type==='blind-fail')return who+' flipped an illegal card and took '+e.count;
  if(e.type==='followup')return who+' snapped the just-drawn '+e.rank+' onto the pile';
+ if(e.type==='dump-pending')return who+' revealed DUMP! Choose who must take the pile.';
  if(e.action==='dump')return who+' burned DUMP: '+playerName(e.target)+' took '+e.takenCount+' pile cards; '+who+' plays again';
  if(e.reason==='slam')return who+' SLAM! Burned the pile';
  if(e.burned)return who+' burned the pile';
@@ -192,6 +193,14 @@ function endScreen(){
  })||'';
 }
 function overlay(){
+ if((dumpDraft||g?.pendingDump?.seat===viewSeat())&&g?.phase==='play'){
+  const targets=E.dumpTargets(g,viewSeat());
+  return '<div class="overlay"><div class="panel" role="dialog" aria-modal="true" aria-label="Choose DUMP target">'+
+   '<div class="eyebrow">DUMP · CHOOSE YOUR TARGET</div><h2>Who takes the pile?</h2>'+
+   '<p>Choose any opponent still in the game. They take the current pile; you play again.</p>'+
+   '<div class="toolbar">'+targets.map(seat=>'<button class="action primary" data-do="dump-target" data-seat="'+seat+'">'+playerName(seat)+'</button>').join('')+'</div>'+
+   (dumpDraft?'<button class="action secondary" data-do="cancel-dump">Cancel</button>':'')+'</div></div>';
+ }
  if(challengeOpen&&g?.phase==='play'){
  return '<div class="overlay"><div class="panel"><div class="eyebrow">OUT-OF-TURN INTERRUPT</div><h2>SLAM!</h2>'+
  '<p>Choose the player who is placing the missing matching card(s). The game checks legality without showing anyone\'s private hand.</p>'+
@@ -251,20 +260,31 @@ function celebrate(ev){
 }
 function queueBot(){if(timer!==null){clearTimeout(timer);timer=null}
  if(!g||g.phase!=='play'||mode!=='bots')return;
- const canSlam=g.people.some(p=>p.seat!==0&&E.slamOptions(g,p.seat).length);
+ if(g.pendingDump?.seat===0)return;
+  const botDump=!!g.pendingDump;
+  const canSlam=g.people.some(p=>p.seat!==0&&E.slamOptions(g,p.seat).length);
  const botSnap=g.followUp&&g.followUp.seat!==0&&E.followUpOptions(g,g.followUp.seat).length;
- if(g.turn===0&&!canSlam&&!botSnap)return;
+ if(g.turn===0&&!canSlam&&!botSnap&&!botDump)return;
  timer=setTimeout(()=>{timer=null;if(!g||g.phase!=='play')return;
- try{let ev=botSnap?E.move(g,g.followUp.seat,E.followUpOptions(g,g.followUp.seat)[0]):E.autoSlam(g,'greedy',0);
+ try{let ev=botDump?E.resolveDump(g,g.pendingDump.seat,E.botDumpTarget(g,g.pendingDump.seat)):
+    botSnap?E.move(g,g.followUp.seat,E.followUpOptions(g,g.followUp.seat)[0]):E.autoSlam(g,'greedy',0);
   if(!ev&&g.turn!==0)ev=E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));
   if(ev){lastMove=ev;notice=eventName(ev);selection=[];render()}
  }catch(e){notice='Bot error: '+e.message;render()}
  },g.followUp?.seat===0?4800:canSlam?780:600);
 }
-function startGame(){endDismissed=false;g=E.create({players:seats,seed:Date.now()>>>0});setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
+function startGame(){endDismissed=false;dumpDraft=null;g=E.create({players:seats,seed:Date.now()>>>0});setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
 function afterMove(ev){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
- if(mode==='hotseat'&&g.phase!=='over')covered=g.followUp?.seat!==ev.seat;
+ if(mode==='hotseat'&&g.phase!=='over')covered=!g.pendingDump&&g.followUp?.seat!==ev.seat;
  render()}
+function submitPlay(choice){
+ const p=g.people[viewSeat()];
+ const first=[...p.hand,...p.up].find(c=>choice.ids?.includes(c.id));
+ if(first?.action==='dump'&&E.dumpTargets(g,viewSeat()).length>1){
+  dumpDraft=choice;render();return;
+ }
+ perform(choice);
+}
 function perform(choice,seat=viewSeat()){
  try{
   if(choice?.source)window.PileheadTableFX?.captureMove?.({
@@ -294,7 +314,7 @@ function execute(action,button){
  if(action==='create'){seats=Number($('seat-count')?.value)||seats;mode=$('game-mode')?.value==='hotseat'?'hotseat':'bots';startGame();return}
  if(action==='dismiss-result'){endDismissed=true;render();return}
  if(action==='rematch'){startGame();return}
- if(action==='new'){g=null;selection=[];swapFrom=null;covered=false;endDismissed=false;render();return}
+ if(action==='new'){g=null;dumpDraft=null;selection=[];swapFrom=null;covered=false;endDismissed=false;render();return}
  if(action==='ready'){
   selection=[];swapFrom=null;
   if(mode==='hotseat'&&setupSeat<seats-1){setupSeat++;covered=true}
@@ -304,13 +324,23 @@ function execute(action,button){
  if(action==='reveal'){covered=false;render();return}
  if(action==='challenge'){challengeOpen=true;render();return}
  if(action==='cancel-challenge'){challengeOpen=false;render();return}
+ if(action==='cancel-dump'){dumpDraft=null;render();return}
+ if(action==='dump-target'){
+  const target=Number(button.dataset.seat);
+  if(dumpDraft){const move={...dumpDraft,target};dumpDraft=null;perform(move);return}
+  if(g.pendingDump?.seat===viewSeat()){
+   try{afterMove(E.resolveDump(g,viewSeat(),target))}
+   catch(e){notice=e.message;render()}
+  }
+  return;
+ }
  if(action==='play'){
   if(!selection.length)return;
   const ids=bridgeAvailable()?[
     ...selection.filter(id=>getPlayer().hand.some(c=>c.id===id)),
     ...selection.filter(id=>!getPlayer().hand.some(c=>c.id===id))
    ]:selection.slice();
-   perform({type:'play',source:currentStage(),ids});return;
+   submitPlay({type:'play',source:currentStage(),ids});return;
  }
  if(action==='clear-selection'){selection=[];render();return}
  if(action==='sort'){sortMode=sortMode==='dealt'?'asc':sortMode==='asc'?'desc':'dealt';selection=[];
@@ -331,11 +361,11 @@ app.addEventListener('click',e=>{
  const b=e.target.closest('button');
  if(b?.dataset.card){handleCard(Number(b.dataset.card),b.dataset.source);return}
  if(b?.dataset.do){execute(b.dataset.do,b);return}
- if(e.target.closest('[data-play-target]')&&selection.length&&isTurn())perform({type:'play',source:currentStage(),ids:selection.slice()});
+ if(e.target.closest('[data-play-target]')&&selection.length&&isTurn())submitPlay({type:'play',source:currentStage(),ids:selection.slice()});
 });
 app.addEventListener('keydown',e=>{
  if(e.target.closest('[data-play-target]')&&(e.key==='Enter'||e.key===' ')&&selection.length&&isTurn()){
-  e.preventDefault();perform({type:'play',source:currentStage(),ids:selection.slice()});
+  e.preventDefault();submitPlay({type:'play',source:currentStage(),ids:selection.slice()});
  }
 });
 let dragCard=null;
@@ -349,7 +379,7 @@ app.addEventListener('dragover',e=>{if(dragCard&&e.target.closest('[data-play-ta
 app.addEventListener('drop',e=>{
  if(!dragCard||!e.target.closest('[data-play-target]'))return;
  e.preventDefault();const move=dragCard;dragCard=null;
- if(isTurn()&&(currentStage()===move.source||bridgeAvailable()))perform({type:'play',source:currentStage(),ids:selection.slice()});
+ if(isTurn()&&(currentStage()===move.source||bridgeAvailable()))submitPlay({type:'play',source:currentStage(),ids:selection.slice()});
 });
 app.addEventListener('dragend',()=>{dragCard=null});
 
@@ -390,7 +420,7 @@ function endTouch(e){
  if(d.scrolling)return;
  if(target&&isTurn()&&(currentStage()===d.source||bridgeAvailable())){
   if(!selection.includes(d.id))selectMatching(getPlayer()[d.source]||[],d.id);
-  perform({type:'play',source:currentStage(),ids:selection.slice()})}
+  submitPlay({type:'play',source:currentStage(),ids:selection.slice()})}
 }
 window.addEventListener('pointerup',endTouch);
 window.addEventListener('pointercancel',e=>{const d=touchGesture;touchGesture=null;d?.el?.remove();app.querySelector('[data-play-target]')?.classList.remove('drop-hover')});

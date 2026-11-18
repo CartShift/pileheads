@@ -131,21 +131,59 @@ test('BURN is an independent special, removes the entire pile and immediately re
   assert.equal(g.limit,null);assert.equal(g.turn,0);E.invariant(g);
  }
 });
-test('DUMP makes the next active player take all cards, then grants the actor another turn',()=>{
+test('DUMP targets any active rival, preserving the actor repeat turn',()=>{
  for(const players of [2,3,5]){
   const g=opened(players,93),dump=inject(g,0,'hand',c=>c.action==='dump');
   g.pile.push(extract(g,c=>c.kind==='number'&&c.rank===8),extract(g,c=>c.kind==='number'&&c.rank===9));
   g.limit={type:'min',value:9};g.slamOpen=true;
-  const before=g.people[1].hand.length,ashes=g.ashes.length;
-  const ev=E.move(g,0,{type:'play',source:'hand',ids:[dump.id]});
-  assert.equal(ev.action,'dump');assert.equal(ev.target,1);assert.equal(ev.takenCount,2);
-  assert.equal(ev.burned,false);assert.equal(g.people[1].hand.length,before+2);
-  assert.ok(!g.people[1].hand.some(c=>c.id===dump.id),'DUMP must burn, never enter the rival hand');
+  const target=players===2?1:players-1, before=g.people[target].hand.length,ashes=g.ashes.length;
+  const ev=E.move(g,0,{type:'play',source:'hand',ids:[dump.id],target});
+  assert.equal(ev.action,'dump');assert.equal(ev.target,target);assert.equal(ev.takenCount,2);
+  assert.equal(ev.burned,false);assert.equal(g.people[target].hand.length,before+2);
+  assert.ok(!g.people[target].hand.some(c=>c.id===dump.id),'DUMP must burn, never enter the rival hand');
   assert.ok(g.ashes.some(c=>c.id===dump.id),'DUMP is permanently removed');
   assert.equal(g.ashes.length,ashes+1);assert.equal(g.pile.length,0);
   assert.equal(g.limit,null);assert.equal(g.slamOpen,false);
   assert.equal(g.turn,0);E.invariant(g);
  }
+});
+test('DUMP cannot target self, finished player, or silently choose a rival',()=>{
+ const g=opened(4,4242),dump=inject(g,0,'hand',c=>c.action==='dump');
+ assert.throws(()=>E.move(g,0,{type:'play',source:'hand',ids:[dump.id]}),/Choose a DUMP target/);
+ assert.throws(()=>E.move(g,0,{type:'play',source:'hand',ids:[dump.id],target:0}),/Invalid DUMP target/);
+ assert.throws(()=>E.move(g,0,{type:'play',source:'hand',ids:[dump.id],target:99}),/Invalid DUMP target/);
+ g.people[2].out=true;g.ashes.push(...g.people[2].hand.splice(0),...g.people[2].up.splice(0),...g.people[2].down.splice(0));
+ assert.deepEqual(E.dumpTargets(g,0),[1,3]);
+ assert.throws(()=>E.move(g,0,{type:'play',source:'hand',ids:[dump.id],target:2}),/Invalid DUMP target/);
+ E.invariant(g);
+});
+test('Bot DUMP chooses a valid threat rather than blindly attacking next seat',()=>{
+ const g=opened(4,4526);
+ g.ashes.push(...g.people[2].hand.splice(0,2));
+ assert.equal(E.botDumpTarget(g,0),2);
+ g.people[2].out=true;
+ g.ashes.push(...g.people[2].hand.splice(0),...g.people[2].up.splice(0),...g.people[2].down.splice(0));
+ assert.ok(E.dumpTargets(g,0).every(i=>i!==2));
+ assert.ok(E.botDumpTarget(g,0)!==0);E.invariant(g);
+});
+test('Blind DUMP reveals first, then pauses until chosen target resolves',()=>{
+ const g=opened(4,4277),dump=inject(g,0,'down',c=>c.action==='dump');
+ g.ashes.push(...g.stock.splice(0),...g.people[0].hand.splice(0),...g.people[0].up.splice(0));
+ g.pile.push(extract(g,c=>c.kind==='number'));
+ assert.equal(E.stage(g,0),'down');
+ const started=E.move(g,0,{type:'play',source:'down',ids:[dump.id]});
+ assert.equal(started.type,'dump-pending');assert.equal(g.moves,0);
+ assert.equal(g.pendingDump.seat,0);assert.equal(E.options(g,0).length,0);
+ assert.equal(E.slamOptions(g,1).length,0);
+ assert.throws(()=>E.move(g,1,{type:'take'}),/Choose the DUMP recipient/);
+ assert.throws(()=>E.resolveDump(g,0,0),/Invalid DUMP target/);
+ assert.throws(()=>E.resolveDump(g,1,3),/No DUMP awaiting/);
+ const before=g.people[3].hand.length;
+ const result=E.resolveDump(g,0,3);
+ assert.equal(result.target,3);assert.equal(result.takenCount,1);
+ assert.equal(g.people[3].hand.length,before+1);
+ assert.equal(g.pendingDump,null);assert.equal(g.turn,0);
+ assert.ok(g.ashes.some(c=>c.id===dump.id));E.invariant(g);
 });
 test('SLAM on a run of tens still burns and grants the interrupter the next turn',()=>{
  const g=opened(3,89),four=Array.from({length:4},()=>extract(g,c=>c.kind==='number'&&c.rank===10));
@@ -247,7 +285,10 @@ test('automatic SLAM catches four of a kind even when the top run is closed',()=
 test('seeded bots conserve every card across whole games for 2–5 players',()=>{
  for(let players=2;players<=5;players++)for(let seed=1;seed<=16;seed++){
   const g=E.create({players,seed});g.people.forEach(p=>E.autoSetup(g,p.seat));E.start(g);
-  while(g.phase==='play'&&g.moves<1100){if(!E.autoSlam(g))E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));}
+  while(g.phase==='play'&&g.moves<1100){
+   if(g.pendingDump)E.resolveDump(g,g.pendingDump.seat,E.botDumpTarget(g,g.pendingDump.seat));
+   else if(!E.autoSlam(g))E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));
+  }
   E.invariant(g);
   if(g.phase==='over'){assert.equal(g.people.filter(p=>!p.out).length,1);assert.ok(g.loser!==null)}
  }

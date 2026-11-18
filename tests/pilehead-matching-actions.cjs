@@ -16,8 +16,8 @@ function choices(g,two,source='hand'){
  second:opts.find(o=>o.ids.length===1&&o.ids[0]===two[1].id),
  pair:opts.find(o=>o.ids.length===2&&two.every(c=>o.ids.includes(c.id)))};
 }
-test('v1.2 with all 52 cards and unpowered numbers',()=>{
- assert.equal(E.VERSION,'pilehead-1.2.0');assert.equal(E.deck().length,52);
+test('v1.3 with all 52 cards and unpowered numbers',()=>{
+ assert.equal(E.VERSION,'pilehead-1.3.0');assert.equal(E.deck().length,52);
  assert.equal(E.deck().filter(c=>c.kind==='number').length,40);
  for(const n of Object.values(E.ACTIONS))assert.equal(n,2);
 });
@@ -26,7 +26,7 @@ test('all six matching action kinds can be grouped or played separately',()=>{
   const {g,two}=fixture(name),opts=choices(g,two);
   assert.ok(opts.first,'first '+name);assert.ok(opts.second,'second '+name);
   assert.ok(opts.pair,'pair '+name);
-  const ev=E.move(g,0,{type:'play',source:'hand',ids:[two[1].id,two[0].id]});
+  const ev=E.move(g,0,{type:'play',source:'hand',ids:[two[1].id,two[0].id],...(name==='dump'?{target:2}:{})});
   assert.equal(ev.action,name);assert.equal(ev.count,2);E.invariant(g);
  }
 });
@@ -37,12 +37,12 @@ test('BURN pair burns once and repeats turn',()=>{
  assert.equal(g.turn,0);E.invariant(g);
 });
 test('DUMP pair burns both action cards, gives existing pile only, and repeats turn',()=>{
- const {g,two}=fixture('dump'),before=g.people[1].hand.length;
- const ev=E.move(g,0,{type:'play',source:'hand',ids:two.map(c=>c.id)});
- assert.equal(ev.target,1);assert.equal(ev.takenCount,0);
- assert.equal(g.people[1].hand.length,before);assert.ok(two.every(c=>g.ashes.some(x=>x.id===c.id)));
- assert.ok(two.every(c=>!g.people[1].hand.some(x=>x.id===c.id)));
- assert.equal(g.pile.length,0);assert.equal(g.turn,0);assert.equal(g.people[1].pickups,1);E.invariant(g);
+ const {g,two}=fixture('dump'),before=g.people[2].hand.length;
+ const ev=E.move(g,0,{type:'play',source:'hand',ids:two.map(c=>c.id),target:2});
+ assert.equal(ev.target,2);assert.equal(ev.takenCount,0);
+ assert.equal(g.people[2].hand.length,before);assert.ok(two.every(c=>g.ashes.some(x=>x.id===c.id)));
+ assert.ok(two.every(c=>!g.people[2].hand.some(x=>x.id===c.id)));
+ assert.equal(g.pile.length,0);assert.equal(g.turn,0);assert.equal(g.people[2].pickups,1);E.invariant(g);
 });
 test('SKIP pair skips one player only',()=>{
  const {g,two}=fixture('skip',4);

@@ -34,7 +34,7 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
  round:g.round||1,humanCount:humanCount(g),botSeats:botSeats(g),
  snapUntil:g.followUp?.expiresAt||null,snapSeat:g.followUp?.seat??null,
  botFollowupReady:botSeats(g).some(bot=>E.followUpOptions(g,bot).length>0),
- pile:g.pile,ashesCount:g.ashes.length,limit:g.limit,slamOpen:g.slamOpen,setupReady:g.setupReady||g.people.map(()=>false),loser:g.loser,finishedOrder:g.finishedOrder,
+ pile:g.pile,ashesCount:g.ashes.length,limit:g.limit,slamOpen:g.slamOpen,pendingDump:g.pendingDump?{seat:g.pendingDump.seat}:null,setupReady:g.setupReady||g.people.map(()=>false),loser:g.loser,finishedOrder:g.finishedOrder,
  players:g.people.map((p,i)=>({seat:i,out:p.out,up:p.up,handCount:p.hand.length,downCount:p.down.length,pickups:p.pickups,
  ...(i===seat?{hand:p.hand,blindSlots:p.down.map((_,j)=>j)}:{})})),
  events:g.events.slice(-24).map(({type,seat,source,reason,count,burned,burnedCount,rank,action,target,takenCount,drawnCount,bridgeCount,move})=>({type,seat,source,reason,count,burned,burnedCount,rank,action,target,takenCount,drawnCount,bridgeCount,move})),
@@ -99,11 +99,19 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
   const humanSnapPending=g.followUp?.expiresAt>Date.now()&&
     !bots.includes(g.followUp.seat)&&E.followUpOptions(g,g.followUp.seat).length;
   if(humanSnapPending&&slammer===undefined)fail(409,'snap_window_open');
-  if(followBot!==undefined)E.move(g,followBot,E.followUpOptions(g,followBot)[0]);
+  if(g.pendingDump){
+   if(!bots.includes(g.pendingDump.seat))fail(409,'dump_target_pending');
+   E.resolveDump(g,g.pendingDump.seat,E.botDumpTarget(g,g.pendingDump.seat));
+  }
+  else if(followBot!==undefined)E.move(g,followBot,E.followUpOptions(g,followBot)[0]);
   else if(slammer!==undefined)E.move(g,slammer,E.slamOptions(g,slammer)[0]);
   else if(bots.includes(g.turn))E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));
   else fail(409,'not_bot_turn');
   if(g.followUp&&!g.followUp.expiresAt)g.followUp.expiresAt=Date.now()+7000;
+ }
+ else if(b.action==='dump-target'){
+  if(g.phase!=='play'||g.pendingDump?.seat!==seat)fail(409,'dump_target_not_pending');
+  try{E.resolveDump(g,seat,b.target)}catch{fail(400,'invalid_dump_target')}
  }
  else if(b.action==='move'){if(g.phase!=='play')fail(409,'not_started');const m=b.move;
   if(!m||typeof m!=='object'||Array.isArray(m))fail(400,'bad_move');
@@ -113,7 +121,7 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
   else if(m.type==='slam'||m.type==='play'||m.type==='followup'){const source=E.stage(g,seat);if(m.source!==source)fail(400,'wrong_layer');let ids;
    if(source==='down'){if(m.type==='slam'||m.type==='followup'||!Number.isInteger(m.index)||m.index<0||m.index>=g.people[seat].down.length)fail(400,'bad_blind_slot');ids=[g.people[seat].down[m.index].id]}
    else{if(!Array.isArray(m.ids)||m.ids.length<1||m.ids.length>4||!m.ids.every(Number.isInteger))fail(400,'bad_cards');ids=m.ids}
-   try{E.move(g,seat,{type:m.type,source,ids})}catch{fail(400,'illegal_move')}}else fail(400,'bad_move');
+   try{E.move(g,seat,{type:m.type,source,ids,target:m.target})}catch{fail(400,'illegal_move')}}else fail(400,'bad_move');
   if(g.followUp&&!g.followUp.expiresAt)g.followUp.expiresAt=Date.now()+7000;
  }
  else fail(400,'unknown_action');

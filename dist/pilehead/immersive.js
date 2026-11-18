@@ -471,7 +471,7 @@ function celebrate(table,ev,ownSeat){
   return 720;
  }
  if(ev.action==='dump'){
-  cue(table,'DUMP · PILE TO NEXT PLAYER');
+  cue(table,'DUMP · PILE TO CHOSEN PLAYER');
   // DUMP itself is burned: it must NEVER enter the recipient's hand.
   playCards(table,ev,ownSeat,{to:landmark(table,'ashes'),via:landmark(table,'pile'),fade:true});
   later(()=>particles(landmark(table,'ashes'),'burn'),330);

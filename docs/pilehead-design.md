@@ -1,4 +1,4 @@
-# PILEHEAD — Official external playtest rules (v1.2, frozen 2026-11-18)
+# PILEHEAD — Official external playtest rules (v1.3, revised 2026-11-18)
 
 Status: **canonical rules for the controlled external playtest**, not a retail-approved ruleset. Rule changes require a documented variant and a new playtest cohort. See `docs/pilehead-playtest-kit.md` and the printable `/pilehead/playtest.html` for facilitators. Lives alongside SPARK and TILT in `yotamon/spark-card-game`; does not share their rules or browser storage.
 
@@ -15,8 +15,8 @@ Shithead-family shedding game reimagined for a purpose-built deck, with no suits
 - UNDER ×2: the next number must be 1–4, regardless of previous numeric rank. The condition persists through GHOST and SKIP and is replaced by another UNDER; it ends on the next played number, RESET, BURN, or pickup.
 - SKIP ×2: the next active player loses a turn. Requirement stays as it was. With two players, the actor plays again.
 - BURN ×2: move the pile (including BURN) to ashes, clear restrictions, actor plays again.
-- DUMP ×2: **burn DUMP itself** (including both copies if grouped). Force the next active player to collect **only the cards already in the pile**, even if they could have played. The actor immediately plays again. DUMP never moves into the target's hand.
-All actions are always playable irrespective of the current numeric threshold. **Two or more identical action cards may be played together as one move**, just like matching numbers. Only identical action types may be grouped; different types cannot be combined. The action's effect resolves **exactly once per group** (two SKIP cards skip only one player; two BURN cards burn once and give one extra turn; two DUMP cards are burned together, and the next player takes only the preexisting pile; the actor receives one extra turn). Actions never count toward four of a kind.
+- DUMP ×2: **burn DUMP itself** (including both copies if grouped). Choose **any other active player** to collect **only the cards already in the pile**, even if they could have played. The actor immediately plays again. DUMP never moves into the target's hand.
+All actions are always playable irrespective of the current numeric threshold. **Two or more identical action cards may be played together as one move**, just like matching numbers. Only identical action types may be grouped; different types cannot be combined. The action's effect resolves **exactly once per group** (two SKIP cards skip only one player; two BURN cards burn once and give one extra turn; two DUMP cards are burned together, and the chosen active opponent takes only the preexisting pile; the actor receives one extra turn). Actions never count toward four of a kind.
 
 No suits, face cards, traditional jokers, scoring markers, chips, or extra board. One pile only. DUMP is a distinct action card (sometimes colloquially called a 'joker'), not a numbered rank or a wild joker.
 
@@ -72,10 +72,10 @@ For online play, simultaneous response ordering requires server-authoritative ti
 - RESET after UNDER removes the UNDER effect.
 - Taking the pile clears all restrictions.
 - A BURN on an empty pile discards itself and grants a repeat turn. A pair of BURN cards burns both as a single action and grants only one extra turn.
-- DUMP on an empty pile **burns its own card(s)**, transfers zero cards to the next player, and grants one repeat turn; DUMP is not given to its target.
-- DUMP always targets the next active seat (not necessarily the following numbered seat if a player is already out). The target picks up even when they could have played a legal card.
+- DUMP on an empty pile **burns its own card(s)**, transfers zero cards to the chosen opponent, and grants one repeat turn; DUMP is not given to its target.
+- DUMP can target **any other player who has not finished**, including someone across the table. The chosen target must pick up even if they have a legal move. You cannot choose yourself or a finished player. With only one eligible opponent, the choice is automatic. If a face-down card reveals DUMP, choose the target **after revealing it**, before the pile moves; no other move can happen while the choice is pending.
 - A number 10 on any pile acts exactly like any other high rank: playing a single 10 does not burn or repeat the turn; four matching 10s still burn.
-- When the actor goes out on BURN, DUMP, a normal four-of-a-kind or SLAM, the next active player takes the next turn instead; if only one player remains, game ends.
+- When the actor goes out on BURN, DUMP, a normal four-of-a-kind or SLAM, the next active player takes the next turn instead; if only one player remains, game ends. Choosing a DUMP recipient does not change clockwise turn order; the actor plays again if still in the game.
 - Any last-card finish removes that player immediately; when only one remains, the game is over.
 - Action cards never contribute to a SLAM. There are two copies of each action in this 52-card deck.
 - Normal turns and SLAM must not use face-up or face-down cards before those layers are available, except the explicit LAST-HAND COMBO bridge from the final numeric hand card. Face-up pairs may be grouped when their layer is active, but blind cards remain one-per-turn.
@@ -101,6 +101,7 @@ For online play, simultaneous response ordering requires server-authoritative ti
 - No browser/phone device rendering or drag/touch performance assertion should be claimed until verified in a real browser.
 - Test ability to discover SLAM on a crowded real tabletop. Assess whether the chance of an out-of-turn slam in 2-player games is too low.
 - Validate action distribution and whether UNDER/RESET create satisfying pressure rather than easy escape.
+- Verify arbitrary DUMP targeting in 3–5 player games, after a blind reveal, and against eliminated-player edge cases.
 - Verify printed deck feel, legibility and card-back alignment.
 - Trademark/legal clearance, language/age compliance and product-safety review before retail printing.
 

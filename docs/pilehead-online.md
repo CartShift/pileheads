@@ -62,7 +62,7 @@ A printed deck remains mandatory for design decisions. The graphical hand/felt i
 ## Playtest ergonomics update
 
 - Before a multiplayer game starts, every seat explicitly confirms its three face-up choices. The host can start only once all seats are marked ready. Unready again to change cards.
-- DUMP burns the played DUMP card(s) and sends only the existing pile to the next player, then gives the actor another turn.
+- DUMP burns the played DUMP card(s) and sends only the existing pile to any selected active opponent (never the actor), then gives the actor another turn. Blind DUMP reveals before target selection, with the server pausing all other moves until the target is chosen.
 - SLAM can interrupt with a complete four-of-a-kind from the active layer while a pile exists, even if the current top rank differs. Existing completion of the top rank remains supported.
 - Hand selection now picks a full same-face group on the first tap; tapping individual selected cards removes them. Hand sorting is presentation-only.
 
@@ -104,7 +104,7 @@ The phone table now sizes to its content rather than forcing a viewport-sized fe
 
 ## Physical-motion director (November 2026)
 
-The shared immersive controller now animates real physical trajectories using safe move metadata from the authoritative engine: `source` (hand/up/down), monotonically increasing `move`, and `burnedCount`. The same public event data is used in online play without exposing opponents' private hands. Animations include a first-round deal, one-by-one throws, blind reveal, draws, pickups, DUMP burning itself while sending the prior pile to the next seat, BURN/SLAM/four-of-a-kind combustion to the ash area, SNAP, and action explanations. Consecutive server events are queued (up to four unseen moves per refresh) so intermediate actions remain visible. Short durations, limited animated cards, opt-in audio and reduced-motion support keep the experience responsive. The card movement is purely presentational; the game engine remains authoritative. Browser/device screenshot QA remains a separate step.
+The shared immersive controller now animates real physical trajectories using safe move metadata from the authoritative engine: `source` (hand/up/down), monotonically increasing `move`, and `burnedCount`. The same public event data is used in online play without exposing opponents' private hands. Animations include a first-round deal, one-by-one throws, blind reveal, draws, pickups, DUMP burning itself while sending the prior pile to the chosen active opponent, BURN/SLAM/four-of-a-kind combustion to the ash area, SNAP, and action explanations. Consecutive server events are queued (up to four unseen moves per refresh) so intermediate actions remain visible. Short durations, limited animated cards, opt-in audio and reduced-motion support keep the experience responsive. The card movement is purely presentational; the game engine remains authoritative. Browser/device screenshot QA remains a separate step.
 
 ## Official controlled playtest (2026-11-18)
 

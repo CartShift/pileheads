@@ -1,6 +1,6 @@
 # PILEHEAD — official external playtest kit
 
-**Freeze:** 2026-11-18. **Canonical rules:** `docs/pilehead-design.md` (engine `pilehead-1.2.0`). **Status:** controlled human test, **not** manufacturing / commercial approval.
+**Freeze:** 2026-11-18. **Canonical rules:** `docs/pilehead-design.md` (engine `pilehead-1.3.0`). **Status:** controlled human test, **not** manufacturing / commercial approval.
 
 ## Goal and scope
 
@@ -19,7 +19,7 @@ Find out whether unfamiliar players can learn PILEHEAD, choose to replay it, and
 1. Recruit people who **did not build the game**. Use a distinct session ID, no full names or other identifying information.
 2. Seat 2–5 people. Record whether they already know Shithead, plus **canonical** or **final-duel experiment**. Start with canonical and only change variant between complete rounds.
 3. Hand them the printed deck and quick rules. Do **not** explain unprompted. Time how long they take to begin a valid game.
-4. Play at least one complete round. Observe first unassisted SLAM, SNAP confusion, DUMP reactions, pickups, misread action cards, and endgame stalls. Record clock time and approximate move count where possible.
+4. Play at least one complete round. Observe first unassisted SLAM, SNAP confusion, chosen DUMP targets, reactions, pickups, misread action cards, and endgame stalls. Record clock time and approximate move count where possible.
 5. Ask **before offering**: “Would you like to play again?” Record whether the group initiates another round, not just whether individuals say they enjoyed it.
 6. Collect scorecard data and verbatim confusion notes, without coaching participants toward favorable answers.
 7. If appropriate, teach or replay ordinary Shithead with the **same group**, and ask which they would choose for their next card night; alternate play order across groups.
