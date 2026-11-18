@@ -582,3 +582,55 @@ body.pilehead-playing .table .card-row.hand>.card.selected .ph-hand-index{
 @media(prefers-reduced-motion:reduce){
  .ph-card .ph-hand-index{transition:none!important;animation:none!important}
 }
+
+/* Opening draw · identical across solo, hotseat, and online multiplayer */
+.stack-starter-reveal{
+ position:fixed;inset:0;z-index:115;display:grid;place-items:center;
+ padding:clamp(16px,5vw,40px);background:#071511cb;
+ backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.stack-starter-panel{
+ width:min(95vw,520px);overflow:hidden;text-align:center;
+ padding:clamp(24px,6vw,44px) clamp(18px,6vw,42px);
+ background:repeating-linear-gradient(110deg,#70573306 0 2px,transparent 2px 9px),#f5ead7;
+ border:3px solid #191e1a;border-radius:15px;
+ box-shadow:7px 10px 0 #d34e33,0 28px 90px #000a;color:#191e1a;
+}
+.stack-starter-eyebrow{font:900 12px/1.2 system-ui,sans-serif;letter-spacing:.2em;color:#975339}
+.stack-starter-heading{
+ margin:15px 0 20px;font:italic 950 clamp(35px,9vw,61px)/.94 Impact,"Arial Black",sans-serif;
+ letter-spacing:-.04em;
+}
+.stack-starter-window{
+ position:relative;overflow:hidden;margin:0 auto;
+ height:48px;width:min(100%,340px);background:#1e3430;color:#f8e8ca;
+ border:2px solid #a4804b;border-radius:7px;
+ box-shadow:inset 0 0 0 2px #19231f;
+}
+.stack-starter-window::after{
+ content:"";position:absolute;inset:0;border-left:6px solid #da4b32;border-right:6px solid #da4b32;
+ pointer-events:none;
+}
+.stack-starter-reel{animation:stack-starter-roll 1.8s cubic-bezier(.16,.82,.13,1) forwards}
+.stack-starter-chip{
+ height:48px;display:flex;align-items:center;justify-content:center;
+ font:900 22px/1 Impact,"Arial Black",sans-serif;letter-spacing:.02em;
+ white-space:nowrap;
+}
+.stack-starter-trophy{font-size:70px;line-height:1;color:#dc512e;text-shadow:4px 4px #191e1a}
+.stack-starter-name{
+ margin-top:25px;min-height:40px;
+ font:italic 950 clamp(24px,6vw,35px)/1.1 Impact,"Arial Black",sans-serif;
+ color:#bf3c28;animation:stack-starter-name .55s 1.55s both;
+ overflow-wrap:anywhere;
+}
+.stack-starter-explain{
+ margin:9px 0 0;color:#555044;font:700 13px/1.45 system-ui,sans-serif;
+ animation:stack-starter-name .55s 1.7s both;
+}
+@keyframes stack-starter-roll{0%{transform:translateY(0)}100%{transform:translateY(var(--landing-offset))}}
+@keyframes stack-starter-name{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){
+ .stack-starter-reel{animation:none;transform:translateY(var(--landing-offset))}
+ .stack-starter-name,.stack-starter-explain{animation:none}
+}
