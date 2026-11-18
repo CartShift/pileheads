@@ -5,8 +5,9 @@ const fxCode=read('dist/pilehead/immersive.js');
 const local=read('dist/pilehead/app.js'),online=read('dist/pilehead/online.js');
 const css=read('dist/pilehead/stack-brand.css');
 const sandbox={
- window:{},localStorage:{getItem(){return null}},
- document:{addEventListener(){}},matchMedia:()=>({matches:false}),
+ window:{addEventListener(){}},localStorage:{getItem(){return null}},
+ document:{addEventListener(){},querySelector(){return null}},matchMedia:()=>({matches:false}),
+ setTimeout(){return 1},clearTimeout(){},
 };
 sandbox.globalThis=sandbox;
 vm.runInNewContext(fxCode,sandbox,{filename:'immersive.js'});
