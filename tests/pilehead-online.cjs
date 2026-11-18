@@ -267,6 +267,63 @@ async function run(){
  const snapAfterMove=Engine.options(rooms.get(snapCode).state,1)[0];
  const snapContinued=await request({action:'move',code:snapCode,revision:5,move:snapAfterMove},snapGuestToken);
  assert.equal(snapContinued.status,200,JSON.stringify(snapContinued));checks++;
+
+ {
+ // A live 1.2 room must survive the 1.3 deploy without changing its seat tokens.
+ const legacy=await request({action:'create',humans:2,bots:1,name:'Legacy host'});
+ const legacyCode=legacy.data.code,legacyToken=legacy.data.session;
+ const legacyGuest=await request({action:'join',code:legacyCode,name:'Friend'});
+ assert.equal(legacyGuest.status,201);
+ const oldRoom=rooms.get(legacyCode);
+ oldRoom.state.version='pilehead-1.2.0';
+ const readOld=await request({action:'state',code:legacyCode},legacyToken);
+ assert.equal(readOld.status,200,JSON.stringify(readOld));
+ assert.equal(readOld.data.game.rulesVersion,'pilehead-1.2.0');
+ assert.equal(readOld.data.game.players[1].hand,undefined);checks++;
+ assert.equal((await request({action:'ready',code:legacyCode,revision:0,ready:true},legacyToken)).status,200);
+ assert.equal((await request({action:'ready',code:legacyCode,revision:1,ready:true},legacyGuest.data.session)).status,200);
+ assert.equal((await request({action:'start',code:legacyCode,revision:2},legacyToken)).status,200);checks++;
+ const legacyGame=oldRoom.state,legacyHand=legacyGame.people[0].hand;
+ const legacyZones=[legacyGame.stock,legacyGame.pile,legacyGame.ashes,
+  ...legacyGame.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const dumpZone=legacyZones.find(z=>z.some(c=>c.action==='dump'));
+ const dumpIndex=dumpZone.findIndex(c=>c.action==='dump');
+ [legacyHand[0],dumpZone[dumpIndex]]=[dumpZone[dumpIndex],legacyHand[0]];
+ legacyGame.pile.push(legacyGame.stock.pop());
+ Engine.invariant(legacyGame);
+ const recipientBefore=legacyGame.people[1].hand.length;
+ const oldMove=await request({
+  action:'move',code:legacyCode,revision:3,
+  move:{type:'play',source:'hand',ids:[legacyHand[0].id],target:2}
+ },legacyToken);
+ assert.equal(oldMove.status,200,JSON.stringify(oldMove));
+ assert.equal(oldMove.data.game.events.at(-1).target,1);
+ assert.equal(oldRoom.state.people[1].hand.length,recipientBefore+1);
+ assert.equal(oldRoom.state.version,'pilehead-1.2.0');
+ assert.equal(Engine.invariant(oldRoom.state),true);checks++;
+ const ended=oldRoom.state;
+ for(const seat of [0,2]){
+  const p=ended.people[seat];
+  ended.ashes.push(...p.hand.splice(0),...p.up.splice(0),...p.down.splice(0));p.out=true;
+ }
+ ended.finishedOrder=[0,2];ended.loser=1;ended.phase='over';ended.slamOpen=false;
+ ended.followUp=null;oldRoom.status='finished';Engine.invariant(ended);
+ const newRound=await request({action:'rematch',code:legacyCode,revision:4},legacyToken);
+ assert.equal(newRound.status,200,JSON.stringify(newRound));
+ assert.equal(newRound.data.game.rulesVersion,Engine.VERSION);
+ assert.equal(newRound.data.game.round,2);
+ assert.equal((await request({action:'state',code:legacyCode},legacyGuest.data.session)).status,200);checks++;
+ const unknown=await request({action:'create',humans:2,bots:0,name:'Old unsupported'});
+ rooms.get(unknown.data.code).state.version='pilehead-1.1.0';
+ const blocked=await request({action:'state',code:unknown.data.code},unknown.data.session);
+ assert.equal(blocked.status,409);assert.equal(blocked.data.error,'room_rules_changed');checks++;
+ const invalid=await request({action:'create',humans:2,bots:0,name:'Corrupt legacy'});
+ const invalidState=rooms.get(invalid.data.code).state;
+ invalidState.version='pilehead-1.2.0';
+ invalidState.stock[0]=invalidState.stock[1];
+ const rejected=await request({action:'state',code:invalid.data.code},invalid.data.session);
+ assert.equal(rejected.status,409);assert.equal(rejected.data.error,'room_rules_changed');checks++;
+ }
  console.log('PASS PILEHEAD online authoritative API: '+checks+' assertions (privacy, DUMP replay, auth, turns, CAS, room isolation)');
 }
 run().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>{
