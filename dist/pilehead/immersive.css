@@ -2030,3 +2030,45 @@ body.pilehead-focus .move-history{display:none!important}
  body.pilehead-playing .toolbar.table-actions .action,
  body.pilehead-playing .move-history summary{transition:none!important}
 }
+
+/* Stable live announcements are intentionally outside the rerendered game root. */
+.visually-hidden{
+ position:absolute!important;width:1px!important;height:1px!important;
+ padding:0!important;margin:-1px!important;overflow:hidden!important;
+ clip:rect(0,0,0,0)!important;white-space:nowrap!important;
+ border:0!important;clip-path:inset(50%)!important;
+}
+/* Room preparation: participants can see whether the host is waiting on them. */
+.online-lobby .lobby-progress{
+ display:flex;align-items:center;justify-content:space-between;
+ flex-wrap:wrap;gap:8px;margin:14px 0 9px;padding:11px 13px;
+ border-radius:12px;border:1px solid #c5b68b7a;
+ background:linear-gradient(110deg,#214b3b,#13382e);
+ text-align:left;color:#e3e9d0;
+}
+.online-lobby .lobby-progress strong{
+ font:850 15px/1.2 system-ui,sans-serif;color:#ffe1aa;
+}
+.online-lobby .lobby-progress span{
+ font:650 12px/1.4 system-ui,sans-serif;color:#c6dac8;
+}
+.online-lobby .lobby-seats{margin-top:9px}
+.online-lobby .lobby-seat{
+ min-width:0;gap:5px;padding:11px;
+ border-radius:12px;
+}
+.online-lobby .lobby-seat strong{
+ min-width:0;overflow-wrap:anywhere;font-size:14px;
+}
+.online-lobby .setup-ready-controls{
+ border-top:1px solid #dfc18b55;padding-top:15px;
+}
+.online-lobby .setup-ready-controls .action{min-height:48px}
+.online-lobby .card-row .card:focus-visible{
+ outline:3px solid #ffd592;outline-offset:3px;
+}
+@media(max-width:600px){
+ .online-lobby .lobby-progress{flex-direction:column;align-items:flex-start}
+ .online-lobby .lobby-seats{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .online-lobby .setup-choice-guide{font-size:12px;padding:11px 12px}
+}
