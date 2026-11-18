@@ -38,6 +38,17 @@ test('mixed four of a kind SLAM interrupts and burns',()=>{
  assert.equal(ev.bridgeCount,2);assert.equal(ev.reason,'slam');
  assert.equal(ev.burned,true);assert.equal(g.turn,0);E.invariant(g);
 });
+test('one hand plus one up card can finish an exposed pair for SLAM',()=>{
+ const g=fixture(),p=g.people[0];
+ place(g,p.hand,c=>c.rank===5);place(g,p.up,c=>c.rank===5);
+ place(g,g.pile,c=>c.rank===5);place(g,g.pile,c=>c.rank===5);
+ g.slamOpen=true;g.turn=1;
+ const slam=E.slamOptions(g,0)[0];
+ assert.equal(slam?.ids.length,2);
+ const ev=E.move(g,0,slam);
+ assert.equal(ev.burned,true);assert.equal(ev.bridgeCount,1);
+ assert.equal(ev.burnedCount,4);E.invariant(g);
+});
 test('identical action cards bridge, but take effect once',()=>{
  const g=fixture(),p=g.people[0];
  place(g,p.hand,c=>c.action==='ghost');place(g,p.up,c=>c.action==='ghost');
