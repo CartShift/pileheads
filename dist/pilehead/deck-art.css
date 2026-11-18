@@ -266,3 +266,25 @@ body:has(.layout .top){background-color:#17211f}
  }
  .ph-stack-illustration,.ph-illustration{filter:none}
 }
+
+
+/* STACK v3: the approved card artwork is one self-contained viewBox.
+ * Do not reposition its numbers, bars, action icons or footers with CSS.
+ * This is intentionally shared by play, online rooms, gallery and print. */
+.ph-card .ph-plate.ph-ref-face{
+ position:absolute;inset:0;width:100%;height:100%;
+ background:transparent!important;border-radius:inherit;
+ padding:0!important;margin:0!important;overflow:hidden;
+}
+.ph-card .ph-ref-face::before,
+.ph-card .ph-ref-face::after{content:none!important;display:none!important}
+.ph-card .ph-ref-face svg.ph-full-face{
+ position:absolute;inset:0;width:100%;height:100%;max-width:100%;
+ display:block;overflow:hidden;pointer-events:none;
+}
+.ph-card .ph-ref-face svg.ph-full-face *{pointer-events:none}
+.ph-card.ph-back .ph-ref-face{background:transparent!important}
+@media print{
+ .ph-card .ph-ref-face svg.ph-full-face{filter:none!important}
+ .ph-card{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+}
