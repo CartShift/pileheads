@@ -4,7 +4,7 @@ const STORE='pilehead-table-sound-v1',MOTION_STORE='pilehead-table-motion-v1';
 const motion=typeof matchMedia==='function'?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
 const $=(sel,el=document)=>el.querySelector(sel);
 let last=null,seen=false,ctx=null,sound=false,btn=null,focusButton=null,motionButton=null,
- focusMode=false,motionMode='full',menuButton=null,handScroll=0;
+ focusMode=false,motionMode='full',menuButton=null,handScroll=0,lastAutoSelected=null;
 try{
  sound=localStorage.getItem(STORE)==='on';
  focusMode=localStorage.getItem('pilehead-table-focus-v1')==='on';
@@ -93,9 +93,7 @@ function fan(table){
  const row=$('.hand-area .card-row.hand',table);if(!row)return;
  const cards=Array.from(row.querySelectorAll(':scope > .card'));
  const n=cards.length,center=(n-1)/2,mobile=matchMedia('(max-width:700px)').matches;
- // Measure the *actual available width*, not the viewport. A fitted hand needs
- // no page-level horizontal scrolling; a large pickup remains swipeable inside
- // its own rail, with readable card indices even when partly overlapped.
+ // Set the fan transform without ever replaying an idle-card transition.
  const width=cards[0]?.offsetWidth||0,{overlap}=handLayout(n,row.clientWidth,width,mobile);
  const spread=Math.min(mobile?12:15,n<=4?6.5:n<=8?3.6:2.1);
  cards.forEach((card,i)=>{
@@ -105,29 +103,38 @@ function fan(table){
   card.style.setProperty('--fan-z',String(Math.max(1,Math.round(n-Math.abs(r)))));
   card.style.setProperty('--card-overlap',overlap+'px');
  });
- row.scrollLeft=handScroll;
- // An independent scrollbar for a picked-up hand, rather than an oversized
- // flex child that pushes the entire felt table off the viewport.
+ // Restore scroll on a freshly mounted hand only, never on a resize or another
+ // call to sync(); otherwise the row can oscillate while a player swipes.
+ if(row.dataset.handRestored!=='1'){
+  row.scrollLeft=handScroll;row.dataset.handRestored='1';
+ }
  const overflow=row.scrollWidth>row.clientWidth+4;
  const area=row.closest('.hand-area');
  if(area){
   area.classList.toggle('hand-overflow',overflow);
-  area.querySelectorAll('[data-hand-scroll]').forEach(x=>x.remove());
   if(overflow){
-   const prev=document.createElement('button'),next=document.createElement('button');
-   for(const [button,dir,arrow,title] of [[prev,-1,'‹','Earlier cards'],[next,1,'›','Later cards']]){
-    button.type='button';button.className='hand-scroll-arrow';
-    button.dataset.handScroll=String(dir);button.setAttribute('aria-label',title);
-    button.textContent=arrow;area.appendChild(button);
+   if(!area.querySelector('[data-hand-scroll]')){
+    const prev=document.createElement('button'),next=document.createElement('button');
+    for(const [button,dir,arrow,title] of [[prev,-1,'‹','Earlier cards'],[next,1,'›','Later cards']]){
+     button.type='button';button.className='hand-scroll-arrow';
+     button.dataset.handScroll=String(dir);button.setAttribute('aria-label',title);
+     button.textContent=arrow;area.appendChild(button);
+    }
    }
    row.setAttribute('aria-label',n+' cards. Swipe horizontally or use the arrow buttons to see all cards.');
    const selected=cards.find(c=>c.classList.contains('selected'));
-   if(selected){
+   const selectedId=selected?.dataset.card||null;
+   if(selected&&selectedId!==lastAutoSelected){
     const x=selected.offsetLeft,left=row.scrollLeft,right=left+row.clientWidth;
     if(x<left+10||x+width>right-10)
      row.scrollLeft=Math.max(0,x-(row.clientWidth-width)/2);
    }
-  }else row.setAttribute('aria-label',n+' cards in your hand');
+   lastAutoSelected=selectedId;
+  }else{
+   area.querySelectorAll('[data-hand-scroll]').forEach(x=>x.remove());
+   row.setAttribute('aria-label',n+' cards in your hand');
+   row.scrollLeft=0;lastAutoSelected=null;
+  }
   handScroll=row.scrollLeft;
  }
 }
@@ -572,5 +579,5 @@ function sync({event=null,events=[],identity=null,gameKey=null,ownSeat=0,active=
 }
 
 document.addEventListener?.('visibilitychange',()=>{if(document.visibilityState==='hidden')clearMotion()});
-root.PileheadTableFX={sync,handLayout,resultHTML,captureMove,resetHandScroll(){handScroll=0}};
+root.PileheadTableFX={sync,handLayout,resultHTML,captureMove,resetHandScroll(){handScroll=0;lastAutoSelected=null}};
 })(typeof window!=='undefined'?window:globalThis);
