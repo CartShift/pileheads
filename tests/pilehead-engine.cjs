@@ -276,7 +276,10 @@ test('automatic SLAM catches four of a kind even when the top run is closed',()=
 test('seeded bots conserve every card across whole games for 2–5 players',()=>{
  for(let players=2;players<=5;players++)for(let seed=1;seed<=16;seed++){
   const g=E.create({players,seed});g.people.forEach(p=>E.autoSetup(g,p.seat));E.start(g);
-  while(g.phase==='play'&&g.moves<1100){if(!E.autoSlam(g))E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));}
+  while(g.phase==='play'&&g.moves<1100){
+   if(g.pendingDump)E.resolveDump(g,g.pendingDump.seat,E.botDumpTarget(g,g.pendingDump.seat));
+   else if(!E.autoSlam(g))E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));
+  }
   E.invariant(g);
   if(g.phase==='over'){assert.equal(g.people.filter(p=>!p.out).length,1);assert.ok(g.loser!==null)}
  }
