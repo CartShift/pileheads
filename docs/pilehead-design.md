@@ -1,6 +1,6 @@
-# PILEHEAD — Physical playtest design specification (v1.2)
+# PILEHEAD — Official external playtest rules (v1.2, frozen 2026-11-18)
 
-Status: **playtest hypothesis**, not an approved commercial ruleset. Lives alongside SPARK and TILT in \`yotamon/spark-card-game\`; does not share their rules or browser storage.
+Status: **canonical rules for the controlled external playtest**, not a retail-approved ruleset. Rule changes require a documented variant and a new playtest cohort. See `docs/pilehead-playtest-kit.md` and the printable `/pilehead/playtest.html` for facilitators. Lives alongside SPARK and TILT in `yotamon/spark-card-game`; does not share their rules or browser storage.
 
 ## Design target
 
@@ -15,8 +15,8 @@ Shithead-family shedding game reimagined for a purpose-built deck, with no suits
 - UNDER ×2: the next number must be 1–4, regardless of previous numeric rank. The condition persists through GHOST and SKIP and is replaced by another UNDER; it ends on the next played number, RESET, BURN, or pickup.
 - SKIP ×2: the next active player loses a turn. Requirement stays as it was. With two players, the actor plays again.
 - BURN ×2: move the pile (including BURN) to ashes, clear restrictions, actor plays again.
-- DUMP ×2: force the next active player to take the entire pile, including DUMP, into their hand. The actor plays again; the pile is not burned and none of its cards leave the game.
-All actions are always playable irrespective of the current numeric threshold. **Two or more identical action cards may be played together as one move**, just like matching numbers. Only identical action types may be grouped; different types cannot be combined. The action's effect resolves **exactly once per group** (two SKIP cards skip only one player; two BURN cards burn once and give one extra turn; two DUMP cards are both handed to the next player with the pile and grant one extra turn). Actions never count toward four of a kind.
+- DUMP ×2: **burn DUMP itself** (including both copies if grouped). Force the next active player to collect **only the cards already in the pile**, even if they could have played. The actor immediately plays again. DUMP never moves into the target's hand.
+All actions are always playable irrespective of the current numeric threshold. **Two or more identical action cards may be played together as one move**, just like matching numbers. Only identical action types may be grouped; different types cannot be combined. The action's effect resolves **exactly once per group** (two SKIP cards skip only one player; two BURN cards burn once and give one extra turn; two DUMP cards are burned together, and the next player takes only the preexisting pile; the actor receives one extra turn). Actions never count toward four of a kind.
 
 No suits, face cards, traditional jokers, scoring markers, chips, or extra board. One pile only. DUMP is a distinct action card (sometimes colloquially called a 'joker'), not a numbered rank or a wild joker.
 
@@ -43,15 +43,15 @@ Play **one** legal card or a group of matching numbered cards **or identical spe
 - Turns may be changed by SKIP, BURN, DUMP, or SLAM. BURN, DUMP and a successful four-of-a-kind or out-of-turn SLAM always grant the actor another turn while the actor remains in play.
 - Numeric four-of-a-kind burns the pile, clears the restriction, and grants the actor another turn.
 
-**Layer progression:** Play from hand until both stock and hand are empty. Then play the face-up cards; if blocked, collect the pile into the hand and return to hand play. Once the face-up cards are gone and the hand is empty, play face-down cards blindly, one per turn. If a revealed face-down card is illegal, add it to the pile and take that whole pile into your hand. The player returns to hand play. The original face-down slots are not replenished.
+**Layer progression:** Play from hand until both stock and hand are empty. **Exception:** if the stock is empty and exactly one numeric card remains in the hand, it may be grouped in one move with matching face-up number cards (LAST-HAND COMBO). Otherwise, play from face-up only after the hand is empty. If blocked, collect the pile into the hand and return to hand play. Once the face-up cards are gone and the hand is empty, play face-down cards blindly, one per turn. If a revealed face-down card is illegal, add it to the pile and take that whole pile into your hand. The player returns to hand play. The original face-down slots are not replenished.
 
 Players whose hand, face-up and face-down cards all disappear finish immediately and sit out. There is no separate win-score. As soon as exactly one player remains, that player is the **PILEHEAD** (the loser).
 
-## SLAM — out-of-turn completion
+## SLAM — out-of-turn completion (including a complete independent four)
 
 A run of four consecutive number cards of the **same rank at the top of the pile** burns the pile.
 
-Any player still in the game can interrupt when they can *complete* the top run to four by laying exactly the missing number of matching cards. The cards must come from their current playable layer (hand or face-up, never blind). The player may contribute one, two, or three cards. Winning the interrupt clears the pile and awards that player the next turn.
+Any player still in the game can interrupt when they can *complete* the top run to four by laying exactly the missing number of matching cards. Alternatively, on any **nonempty pile**, the player may SLAM all four copies of one number from their current playable layer, **even if they do not match the top rank**. The cards must come from the currently playable layer (hand or face-up, never blind). A successful SLAM burns the whole pile and awards that player the next turn. Matching special cards cannot SLAM.
 
 Examples:
 - pile top 7, 7, 7; another player lays one 7 → SLAM
@@ -59,7 +59,7 @@ Examples:
 - pile top 5; another player lays three 5s → SLAM
 - pile top 5, GHOST, 5, 5; the intervening GHOST breaks the streak; this is **not** a four-of-a-kind.
 
-The interrupted player's planned move does not resolve. A normal multi-card play is atomic, so a SLAM occurs after the played group is complete, not during a player's hand placement. First *physically legal* completed SLAM wins. No penalty for an incorrect verbal call, though it does not burn. This physical speed rule cannot be faithfully represented by serial hotseat on one device; the local app offers an explicit interruption action instead.
+A successful SLAM overrides the next planned move. A SLAM cannot be declared when the pile is empty. A normal multi-card play is atomic, so a SLAM occurs after the played group is complete, not during a player's hand placement. First *physically legal* completed SLAM wins. No penalty for an incorrect verbal call, though it does not burn. This physical speed rule cannot be faithfully represented by serial hotseat on one device; the local app offers an explicit interruption action instead.
 
 For online play, simultaneous response ordering requires server-authoritative timestamps and a defined latency policy. **Online room code exists**, but live use requires the Vercel database connection and real two-device verification (see `docs/pilehead-online.md`).
 
@@ -72,13 +72,19 @@ For online play, simultaneous response ordering requires server-authoritative ti
 - RESET after UNDER removes the UNDER effect.
 - Taking the pile clears all restrictions.
 - A BURN on an empty pile discards itself and grants a repeat turn. A pair of BURN cards burns both as a single action and grants only one extra turn.
-- DUMP on an empty pile gives that card, or both DUMP cards played together, to the next active player and grants one repeat turn.
+- DUMP on an empty pile **burns its own card(s)**, transfers zero cards to the next player, and grants one repeat turn; DUMP is not given to its target.
 - DUMP always targets the next active seat (not necessarily the following numbered seat if a player is already out). The target picks up even when they could have played a legal card.
 - A number 10 on any pile acts exactly like any other high rank: playing a single 10 does not burn or repeat the turn; four matching 10s still burn.
 - When the actor goes out on BURN, DUMP, a normal four-of-a-kind or SLAM, the next active player takes the next turn instead; if only one player remains, game ends.
 - Any last-card finish removes that player immediately; when only one remains, the game is over.
 - Action cards never contribute to a SLAM. There are two copies of each action in this 52-card deck.
-- Normal turns and SLAM must not use face-up or face-down cards before those layers are available. Face-up pairs may be grouped, but blind cards remain one-per-turn.
+- Normal turns and SLAM must not use face-up or face-down cards before those layers are available, except the explicit LAST-HAND COMBO bridge from the final numeric hand card. Face-up pairs may be grouped when their layer is active, but blind cards remain one-per-turn.
+
+## SNAP and LAST-HAND COMBO — additional frozen rules
+
+- **SNAP:** After playing a number from the hand, newly replenished cards from the stock matching that played number can be thrown immediately, before the next player's move. Only cards drawn in **that same move** are eligible; old matching cards in the hand do not count. This does not steal the next turn unless a group of four burns the pile. Online, the server gives the player a seven-second priority window; local hotseat is untimed. If the player declines or another move resolves, the opportunity ends.
+- **LAST-HAND COMBO:** Only after the draw stock is empty and with exactly one numeric card remaining in hand, play that last hand card together with any matching face-up cards as one atomic numbered group. The number must be legal against the pile. Group size remains at most four. This bridge is not available for special cards or while stock remains.
+- **Endgame:** No rule change for the final two players in the canonical rules. The experimental three-of-a-kind final-duel rule is documented **only as an optional separate trial** in `docs/pilehead-playtest-kit.md`; do not silently enable it in production or mix results without recording the variant.
 
 ## Implementation map
 
