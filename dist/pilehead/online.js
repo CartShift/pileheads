@@ -9,7 +9,7 @@ const deploymentShare=params.get('_vercel_share');
 const safeSessionRead=key=>{try{return localStorage.getItem(key)}catch{return null}};
 const safeSessionSave=(key,value)=>{try{localStorage.setItem(key,value)}catch{}};
 let room=params.get('room')?.toUpperCase()||'',session=room?safeSessionRead(STORE+room):null;
-let data=null,busy=false,polling=false,selection=[],swapCard=null,dumpDraft=null,notice='',networkError='',drag=null;
+let data=null,busy=false,polling=false,selection=[],swapCard=null,dumpDraft=null,notice='',networkError='',roomIssue='',drag=null;
 let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false,sortMode='dealt',endDismissed=false,botTickAt=0,lastChangeAt=0;
 const A=globalThis.PileheadCardArt;const symbols=A.glyph;
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -36,13 +36,14 @@ function card(c,opts={}){
   '" '+(action?'data-action="'+c.action+'" ':'')+(opts.can?'data-card="'+c.id+'" data-source="'+opts.source+'" draggable="true"':'disabled')+
   ' aria-label="'+safe(action?c.action.toUpperCase()+' action: '+A.rules[c.action]:'Number '+c.rank)+'" aria-pressed="'+Boolean(opts.selected)+'">'+A.face(c)+'</button>';
 }
+const permanentRoomErrors=new Set(['room_rules_changed','room_expired','room_not_found','session_required','not_member']);
 function setMessage(e){const map={
  online_not_configured:'Online games need the room database connection to be configured on Vercel.',
  service_unavailable:'The room server is temporarily unavailable.',
  session_required:'Your saved seat session is missing. Rejoin from your invitation link.',
  not_member:'This browser does not own a seat in this room.',
  invalid_code:'This room link is not valid.',room_not_found:'This room was not found.',
- room_expired:'The room expired after 24 hours.',game_not_finished:'Finish the round before starting another.',not_bot_turn:'Waiting for a player move.',no_snap_available:'The matching-draw opportunity has already passed.',room_rules_changed:'This room uses an older deck. Create a new game for the updated rules.',unready_to_swap:'Choose Change cards first.',bad_ready:'Invalid ready status.',full:'The room is full.',
+ room_expired:'The room expired after 24 hours.',game_not_finished:'Finish the round before starting another.',not_bot_turn:'Waiting for a player move.',no_snap_available:'The matching-draw opportunity has already passed.',room_rules_changed:'This room uses an unsupported rules version. The saved cards have not been changed.',unready_to_swap:'Choose Change cards first.',bad_ready:'Invalid ready status.',full:'The room is full.',
  already_started:'The game already started.',waiting_for_players:'Waiting for everyone to join.',
  stale_revision:'Someone played at the same time. Refreshing the table.',
   snap_window_open:'A matching number was just drawn. That player gets a moment to SNAP it.',
@@ -66,7 +67,7 @@ function updateState(next){
  if(!data||next.revision!==data.revision)lastChangeAt=Date.now();
  if(data&&next.revision!==data.revision){selection=[];swapCard=null;dumpDraft=null}
  if(data&&next.game?.round!==data.game?.round){endDismissed=false;sortMode='dealt';selection=[];swapCard=null;dumpDraft=null}
- data=next;lastRevision=data.revision;networkError='';render();
+ data=next;lastRevision=data.revision;networkError='';roomIssue='';render();
 }
 async function doAction(payload){
  if(busy)return;busy=true;notice='';render();
@@ -360,7 +361,7 @@ async function play(){
  const m=legalMove();
  if(!m){notice='That group is not currently legal.';render();return}
  const cards=[...(current()?.hand||[]),...(current()?.up||[])];
- if(m.ids?.some(id=>cards.find(c=>c.id===id)?.action==='dump')&&data.game.players.filter(p=>!p.out&&p.seat!==data.me).length>1){
+ if(data.game.rulesVersion!=='pilehead-1.2.0'&&m.ids?.some(id=>cards.find(c=>c.id===id)?.action==='dump')&&data.game.players.filter(p=>!p.out&&p.seat!==data.me).length>1){
   dumpDraft=m;render();return;
  }
  await command('move',{move:m});
