@@ -584,5 +584,29 @@ function sync({event=null,events=[],identity=null,gameKey=null,ownSeat=0,active=
 }
 
 document.addEventListener?.('visibilitychange',()=>{if(document.visibilityState==='hidden')clearMotion()});
-root.PileheadTableFX={sync,handLayout,resultHTML,captureMove,resetHandScroll(){handScroll=0;lastAutoSelected=null}};
+// A presentation-only reveal. The engine/server already selected starterSeat;
+// every online participant sees the same result without disclosing private cards.
+function starterHTML({names,seat,reason,startedAt}={}){
+ if(!Array.isArray(names)||!names.length||!Number.isInteger(seat)||
+  seat<0||seat>=names.length||!Number.isFinite(startedAt)||Date.now()-startedAt>=3300)return '';
+ const winner=escapeMarkup(names[seat]);
+ const ordered=Array.from({length:3*names.length},(_,i)=>{
+  const index=i%names.length;
+  return '<div class="stack-starter-chip'+(index===seat?' is-candidate':'')+'">'+
+   escapeMarkup(names[index])+'</div>';
+ }).join('');
+ const isWinner=reason==='winner';
+ return '<div class="stack-starter-reveal" role="dialog" aria-modal="true" aria-label="Starting player reveal">'+
+  '<div class="stack-starter-panel">'+
+   '<div class="stack-starter-eyebrow">STACK · ROUND OPENING</div>'+
+   '<div class="stack-starter-heading">'+(isWinner?'CHAMPION STARTS':'WHO STARTS?')+'</div>'+
+   (isWinner?'<div class="stack-starter-trophy" aria-hidden="true">★</div>':
+     '<div class="stack-starter-window"><div class="stack-starter-reel" style="--landing-offset:-'+
+      ((names.length*2+seat)*48)+'px">'+ordered+'</div></div>')+
+   '<div class="stack-starter-name">'+winner+'</div>'+
+   '<p class="stack-starter-explain">'+(isWinner?'First out last round · first turn this round':
+    'The starter was drawn at random · their first turn begins now')+'</p>'+
+  '</div></div>';
+}
+root.PileheadTableFX={sync,handLayout,resultHTML,starterHTML,captureMove,resetHandScroll(){handScroll=0;lastAutoSelected=null}};
 })(typeof window!=='undefined'?window:globalThis);
