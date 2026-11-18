@@ -9,7 +9,7 @@ const deploymentShare=params.get('_vercel_share');
 const safeSessionRead=key=>{try{return localStorage.getItem(key)}catch{return null}};
 const safeSessionSave=(key,value)=>{try{localStorage.setItem(key,value)}catch{}};
 let room=params.get('room')?.toUpperCase()||'',session=room?safeSessionRead(STORE+room):null;
-let data=null,busy=false,polling=false,selection=[],swapCard=null,notice='',networkError='',drag=null;
+let data=null,busy=false,polling=false,selection=[],swapCard=null,dumpDraft=null,notice='',networkError='',drag=null;
 let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false,sortMode='dealt',endDismissed=false,botTickAt=0,lastChangeAt=0;
 const A=globalThis.PileheadCardArt;const symbols=A.glyph;
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -47,6 +47,7 @@ function setMessage(e){const map={
  stale_revision:'Someone played at the same time. Refreshing the table.',
   snap_window_open:'A matching number was just drawn. That player gets a moment to SNAP it.',
  rate_limited:'Too many requests from this network. Please try again later.',
+ invalid_dump_target:'Choose an active rival for DUMP.',dump_target_not_pending:'This DUMP has already resolved.',dump_target_pending:'The player must choose a DUMP target first.',
  bad_cards:'That group of cards is not legal.',wrong_layer:'Finish your current card layer first.'
  };return map[e]||String(e||'Unexpected room error').replaceAll('_',' ');}
 async function api(payload,auth=session){
@@ -63,8 +64,8 @@ function updateState(next){
  if(next.session){session=next.session;safeSessionSave(STORE+next.code,session)}
  if(room!==next.code){room=next.code;history.replaceState(null,'',location.pathname+'?room='+encodeURIComponent(room)+(deploymentShare?'&_vercel_share='+encodeURIComponent(deploymentShare):''))}
  if(!data||next.revision!==data.revision)lastChangeAt=Date.now();
- if(data&&next.revision!==data.revision){selection=[];swapCard=null}
- if(data&&next.game?.round!==data.game?.round){endDismissed=false;sortMode='dealt';selection=[];swapCard=null}
+ if(data&&next.revision!==data.revision){selection=[];swapCard=null;dumpDraft=null}
+ if(data&&next.game?.round!==data.game?.round){endDismissed=false;sortMode='dealt';selection=[];swapCard=null;dumpDraft=null}
  data=next;lastRevision=data.revision;networkError='';render();
 }
 async function doAction(payload){
@@ -103,11 +104,12 @@ function displayName(seat){
 }
 function current(){return data?.game?.players?.[data.me]}
 function snapBlocked(){const g=data?.game;return !!g?.snapUntil&&Date.now()<g.snapUntil&&g.snapSeat!==data.me;}
-function active(){return data?.game?.turn===data.me&&data?.game?.phase==='play'&&!snapBlocked()}
+function active(){return data?.game?.turn===data.me&&data?.game?.phase==='play'&&!data?.game?.pendingDump&&!snapBlocked()}
 function statusTitle(){
  const g=data.game;if(g.phase==='setup')return data.members.length+' of '+data.capacity+' players joined';
  if(g.phase==='over')return displayName(g.loser)+' is the PILEHEAD!';
- return snapBlocked()?displayName(g.snapSeat)+' has a matching-draw SNAP chance':
+ return g.pendingDump?displayName(g.pendingDump.seat)+' is choosing a DUMP target':
+ snapBlocked()?displayName(g.snapSeat)+' has a matching-draw SNAP chance':
    active()?'Your turn · place a card':displayName(g.turn)+' is playing · watch for SLAM';
 }
 function numberPolicy(){const l=data.game.limit;return l?.type==='under'?'NEXT: 1–4':l?.type==='min'?'NEXT: '+l.value+' or higher':'ANY NUMBER'}
@@ -162,7 +164,7 @@ const effectInfo={
  under:'UNDER forces the next number to be 1 through 4.',
  skip:'SKIP makes the next player miss a turn.',
  burn:'BURN destroys the entire pile and gives the same player another turn.',
- dump:'DUMP burns itself and forces the next player to collect the existing pile.'
+ dump:'DUMP burns itself; choose any active rival to take the pile. You play again.'
 };
 function selectedEffect(){
  const cards=[...(current()?.hand||[]),...(current()?.up||[])],picked=cards.find(c=>selection.includes(c.id)&&c.kind==='action');
@@ -174,7 +176,7 @@ function lastEffect(){
  let message=e.bridgeCount?'HAND + FACE-UP COMBO · '+displayName(e.seat)+' moved matching cards from both layers.':
   e.type==='followup'?'SNAP · '+displayName(e.seat)+' immediately threw a matching drawn '+e.rank+'.':
  e.reason==='four'||e.reason==='slam'?'FOUR OF A KIND · The entire pile burns.':
- e.action?effectInfo[e.action]:
+ e.action==='dump'?'DUMP · '+displayName(e.target)+' takes the pile. '+displayName(e.seat)+' plays again.':e.action?effectInfo[e.action]:
  e.type==='take'||e.type==='blind-fail'?'PICKUP · The pile moves into '+displayName(e.seat)+'’s hand.':
  e.burned?'BURN · The pile is removed from the table.':
  'PLAY · '+displayName(e.seat)+' placed '+e.count+' card'+(e.count===1?'':'s')+'.';
@@ -284,11 +286,20 @@ function welcome(){
   '<button class="action primary" data-do="create">Create online room</button>'+
   '<p class="small">Rooms last for 24 hours. No sign-in required; keep this browser to retain your seat.</p></section>';
 }
+function dumpTargetOverlay(){
+ if(!data||data.game.phase!=='play'||!dumpDraft&&data.game.pendingDump?.seat!==data.me)return '';
+ const opponents=data.game.players.filter(p=>!p.out&&p.seat!==data.me);
+ return '<div class="overlay"><div class="panel" role="dialog" aria-modal="true" aria-label="Choose DUMP target">'+
+  '<div class="eyebrow">DUMP · CHOOSE YOUR TARGET</div><h2>Who takes the pile?</h2>'+
+  '<p>Pick any opponent still in the game. They take the existing pile; you play again.</p>'+
+  '<div class="toolbar">'+opponents.map(p=>'<button class="action primary" data-do="dump-target" data-seat="'+p.seat+'">'+safe(displayName(p.seat))+'</button>').join('')+'</div>'+
+  (dumpDraft?'<button class="action secondary" data-do="cancel-dump">Cancel</button>':'')+'</div></div>';
+}
 function render(){
  root.innerHTML='<div class="online-layout">'+(!data?welcome():data.game.phase==='setup'?lobby():playView())+
   ((notice||networkError)&&data?.game.phase==='setup'?'<div class="message" role="status">'+safe(notice||networkError)+'</div>':'')+
   (networkError?'<p class="online-error" role="alert">'+safe(networkError)+'</p>':'')+
-  '</div>'+endScreen();
+  '</div>'+dumpTargetOverlay()+endScreen();
  window.PileheadTableFX?.sync({identity:data?room+':'+data.game.moves:null,
   gameKey:data?room+':round:'+data.game.round:null,
   event:data?.game.events?.[data.game.events.length-1]||null,events:data?.game.events||[],
@@ -305,7 +316,15 @@ async function command(action,more={}){
  }
  await doAction({action,code:room,revision:data.revision,...more});
 }
-async function play(){const m=legalMove();if(m)await command('move',{move:m});else{notice='That group is not currently legal.';render()}}
+async function play(){
+ const m=legalMove();
+ if(!m){notice='That group is not currently legal.';render();return}
+ const cards=[...(current()?.hand||[]),...(current()?.up||[])];
+ if(m.ids?.some(id=>cards.find(c=>c.id===id)?.action==='dump')&&data.game.players.filter(p=>!p.out&&p.seat!==data.me).length>1){
+  dumpDraft=m;render();return;
+ }
+ await command('move',{move:m});
+}
 async function selectCard(c){
  if(!data)return;
  if(data.game.phase==='setup'){
@@ -341,6 +360,13 @@ root.addEventListener('click',async e=>{
  if(action==='start')await command('start');
  if(action==='clear-selection'){selection=[];render();return}
   if(action==='sort'){sortMode=sortMode==='dealt'?'asc':sortMode==='asc'?'desc':'dealt';selection=[];window.PileheadTableFX?.resetHandScroll?.();render();}
+ if(action==='cancel-dump'){dumpDraft=null;render();return}
+ if(action==='dump-target'){
+  const seat=Number(target.dataset.seat);
+  if(data?.game.pendingDump?.seat===data.me){await command('dump-target',{target:seat});return}
+  if(dumpDraft){const move={...dumpDraft,target:seat};dumpDraft=null;await command('move',{move});return}
+  return;
+ }
  if(action==='play')await play();
  if(action==='take')await command('move',{move:{type:'take'}});
  if(action==='slam'){const m=data?.game.slam?.[0];if(m)await command('move',{move:m})}
@@ -426,7 +452,7 @@ function startPolling(){
   if(data.game.followup?.length&&Date.now()-lastChangeAt<4700)return;
   if(data.game.snapUntil&&Date.now()<data.game.snapUntil&&!data.game.botFollowupReady)return;
    if(snapBlocked())return;
-   if((bots.includes(data.game.turn)||data.game.botFollowupReady)&&Date.now()-botTickAt>=1250){
+   if((bots.includes(data.game.turn)||data.game.botFollowupReady||data.game.pendingDump&&bots.includes(data.game.pendingDump.seat))&&Date.now()-botTickAt>=1250){
    botTickAt=Date.now();
    await command('advance');
   }
