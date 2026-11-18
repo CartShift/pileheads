@@ -11,7 +11,7 @@ const safeSessionSave=(key,value)=>{try{localStorage.setItem(key,value)}catch{}}
 let room=params.get('room')?.toUpperCase()||'',session=room?safeSessionRead(STORE+room):null;
 let draftName=safeSessionRead(NAME)||'',draftHumans=2,draftBots=0;
 let data=null,busy=false,polling=false,selection=[],swapCard=null,dumpDraft=null,notice='',networkError='',roomIssue='',drag=null;
-let lastRevision=-1,lastEvent=null,pollTimer=null,reconnecting=false,sortMode='dealt',endDismissed=false,botTickAt=0,lastChangeAt=0;
+let lastRevision=-1,lastEvent=null,pollTimer=null,transitionTimer=null,reconnecting=false,sortMode='dealt',endDismissed=false,botTickAt=0,lastChangeAt=0;
 const A=globalThis.PileheadCardArt;const symbols=A.glyph;
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
@@ -105,8 +105,16 @@ async function refresh(quiet=false){
  polling=true;
  try{
   const next=await api({action:'state',code:room});
+  // A SNAP deadline is time-dependent, not a room revision. The response
+  // can change from blocked to unblocked without an UPDATE to the room.
+  const timeGateChanged=!!data&&(
+   next.game.snapUntil!==data.game.snapUntil||
+   next.game.snapSeat!==data.game.snapSeat||
+   next.game.startedAt!==data.game.startedAt
+  );
   if(!data||next.revision!==data.revision||next.members.length!==data.members.length||
-     next.game.followup?.length!==data.game.followup?.length||reconnecting)updateState(next);
+     next.game.followup?.length!==data.game.followup?.length||
+     timeGateChanged||reconnecting)updateState(next);
   else {const hadError=!!networkError||!!roomIssue;networkError='';roomIssue='';if(hadError)render()}
   reconnecting=false;
  }catch(e){
@@ -157,8 +165,8 @@ function stack(){const g=data.game,a=g.pile.slice(-4);
 }
 function bridgeAvailable(){
  const p=current(),g=data?.game;
- return active()&&g.stockCount===0&&p.handCount===1&&p.hand?.[0]?.kind==='number'&&
-  p.up.some(c=>c.kind==='number'&&c.rank===p.hand[0].rank);
+ return active()&&g.stockCount===0&&p.handCount>0&&p.handCount<4&&p.hand?.length===p.handCount&&
+  p.hand.every(c=>sameFace(c,p.hand[0]))&&p.up.some(c=>sameFace(c,p.hand[0]));
 }
 function upDown(){
  const p=current(),stage=stageNow(),upCan=(stage==='up'&&active())||bridgeAvailable(),blindCan=stage==='down'&&active();
@@ -294,7 +302,7 @@ function playView(){
   '<div class="card-row hand">'+(p.hand?.length?orderedHand(p.hand).map(c=>card(c,{can:can&&source==='hand',source:'hand',selected:selection.includes(c.id)})).join(''):
   '<span style="font-size:12px;color:#b8cfba">No cards in hand</span>')+'</div></div></section>'+
  (g.followup?.length?'<div class="pilehead-snap-choice">You just drew a matching number. Throw it now, or <button class="action secondary" data-do="decline">Let the next player go</button>.</div>':'')+
- (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP: Your last hand card can be played together with the matching face-up cards. Tap either one to select the group.</p>':'')+
+ (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP: Your last matching hand cards can combine with matching face-up cards. Four numbers can also SLAM. Tap either one to select the group.</p>':'')+
  (selectedEffect()||lastEffect())+tableActions()+
   (notice?'<div class="message" role="status" aria-live="polite">'+safe(notice)+'</div>':'')+
   '<div class="meta"><span>Move '+g.moves+'</span><span>Draw '+g.stockCount+'</span><span>Ashes '+g.ashesCount+'</span><span>Synced · rev '+data.revision+'</span></div>'+
@@ -353,7 +361,21 @@ function render(){
     '<a class="action secondary" href="?online=1">Create a new room</a></div>':'')+
    (networkError?'<div class="connection-banner" role="alert"><strong>Connection interrupted</strong>'+
     '<span>'+safe(networkError)+'</span><button class="action secondary" type="button" data-do="retry">Retry connection</button></div>':'')+
-   '</div>'+dumpTargetOverlay()+endScreen();
+   '</div>'+dumpTargetOverlay()+
+   (data?.game.phase==='play'?(window.PileheadTableFX?.starterHTML?.({
+    names:data.game.players.map(p=>displayName(p.seat)),
+    seat:data.game.starterSeat,reason:data.game.starterReason,startedAt:data.game.startedAt
+   })||''):'')+endScreen();
+ // Re-render when a time-only gate expires, even if Neon room revision stays
+ // unchanged. Otherwise a live phone can display "SNAP in progress" forever.
+ if(transitionTimer!==null){clearTimeout(transitionTimer);transitionTimer=null}
+ if(data?.game.phase==='play'){
+  const deadlines=[data.game.snapUntil,data.game.startedAt?data.game.startedAt+3300:null]
+   .filter(t=>Number.isFinite(t)&&t>Date.now());
+  if(deadlines.length)transitionTimer=setTimeout(()=>{
+   transitionTimer=null;render();
+  },Math.max(30,Math.min(...deadlines)-Date.now()+25));
+ }
  if(historyOpen&&root.querySelector('.move-history'))root.querySelector('.move-history').open=true;
  if(key){
   const next=key.type==='history'?root.querySelector('.move-history summary'):
