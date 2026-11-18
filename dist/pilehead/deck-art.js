@@ -1,115 +1,143 @@
-/* PILEHEAD illustrated playtest deck.
- * Shared vector artwork for local table, online rooms and physical print sheets.
- * Presentation only: does not define rank powers or game rules. */
+/* STACK · one authoritative vector deck for simulator, online rooms, gallery and print.
+ * Illustration is presentation-only: numeric cards have NO powers.
+ * No card ID, game engine state or rules depend on these drawings.
+ */
 (function(root){'use strict';
+const C=Object.freeze({
+ ink:'#18191A',cream:'#F6F0E3',red:'#D44630',blue:'#16658D',amber:'#EDB632',
+ olive:'#7B813E',paper:'#FFFBF2',pale:'#D5CBB5'
+});
 const rules=Object.freeze({
  reset:'ANY NUMBER NEXT',
  ghost:'KEEP THE LIMIT',
  under:'NEXT NUMBER 1–4',
  skip:'SKIP NEXT PLAYER',
- burn:'BURN PILE · PLAY AGAIN',
- dump:'PICK A RIVAL · THEY TAKE PILE'
+ burn:'CLEAR PILE · PLAY AGAIN',
+ dump:'CHOOSE A RIVAL · TAKE PILE · PLAY AGAIN'
 });
-const glyph=Object.freeze({reset:'↺',ghost:'◇',under:'↓4',skip:'↷',burn:'♨',dump:'⇢'});
-const crown='<svg class="ph-crown" viewBox="0 0 42 22" aria-hidden="true" focusable="false"><path d="M3 17L1 4l11 7 9-10 9 10L41 4l-2 13H3Z" fill="#f6c56e" stroke="#123b34" stroke-width="1.7"/><path d="M5 19h32" stroke="#f8e6ad" stroke-width="3" stroke-linecap="round"/></svg>';
-const svgStart='<svg class="ph-illustration" viewBox="0 0 160 140" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">';
-const illustrations={
- reset:[
-  '<g fill="none" stroke-linecap="round" stroke-linejoin="round">',
-  '<circle cx="80" cy="69" r="53" stroke="#72deea" stroke-width="3" stroke-dasharray="9 14" opacity=".75"/>',
-  '<path d="M38 71c0-25 18-44 43-44 17 0 27 7 35 17" stroke="#092f3e" stroke-width="20"/>',
-  '<path d="M38 71c0-25 18-44 43-44 17 0 27 7 35 17" stroke="#f9fff0" stroke-width="14"/>',
-  '<path d="M115 24l6 30-31-5" fill="#f9fff0" stroke="#092f3e" stroke-width="3"/>',
-  '<path d="M122 68c0 25-19 44-43 44-17 0-27-6-36-17" stroke="#092f3e" stroke-width="20"/>',
-  '<path d="M122 68c0 25-19 44-43 44-17 0-27-6-36-17" stroke="#f9fff0" stroke-width="14"/>',
-  '<path d="M46 114l-6-31 31 6" fill="#f9fff0" stroke="#092f3e" stroke-width="3"/>',
-  '<path d="M12 39l12 5M132 102l14 9M16 103l12-9M134 24l12-10" stroke="#76e9e4" stroke-width="5"/>',
-  '</g>'
- ].join(''),
- ghost:[
-  '<path d="M28 96L79 16l56 80-56 31Z" fill="#8b53c4" stroke="#e7b9fc" stroke-width="5" opacity=".75"/>',
-  '<path d="M50 76C50 37 63 22 83 22c21 0 33 20 33 43v47l-15-8-13 18-14-18-19 10Z" fill="#fcf8ff" stroke="#54307e" stroke-width="5"/>',
-  '<path d="M50 78C55 51 68 40 82 40s25 10 31 28" stroke="#cbb3f7" stroke-width="10" opacity=".8" fill="none"/>',
-  '<ellipse cx="71" cy="72" rx="6.5" ry="10" fill="#43256c"/><ellipse cx="94" cy="72" rx="6.5" ry="10" fill="#43256c"/>',
-  '<path d="M19 89q20 19 14 37M134 52q13-17 19-22M114 124q13-1 21-12" stroke="#dbc6fb" stroke-width="5" fill="none" stroke-linecap="round"/>',
-  '<circle cx="30" cy="36" r="4" fill="#e6ceff"/><circle cx="138" cy="108" r="3.5" fill="#e6ceff"/>'
- ].join(''),
- under:[
-  '<path d="M16 35h128v14H16z" fill="#ffe5a0" stroke="#503321" stroke-width="5"/>',
-  '<path d="M35 48h13v45H35zM112 48h13v45h-13z" fill="#ffcf66" stroke="#503321" stroke-width="4"/>',
-  '<rect x="58" y="21" width="44" height="43" rx="6" fill="#fff4c2" stroke="#6b4116" stroke-width="5"/>',
-  '<text x="80" y="54" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="37" fill="#673b16">4</text>',
-  '<path d="M12 104q41 33 86 6l-10-12 56 2-27 34-7-14Q52 150 12 112Z" fill="#ffdc5d" stroke="#713c12" stroke-width="5" stroke-linejoin="round"/>',
-  '<path d="M29 77l-11 8m126-23 10 7M26 24l-10-10" stroke="#ffefa6" stroke-width="5" stroke-linecap="round"/>'
- ].join(''),
- skip:[
-  '<circle cx="73" cy="52" r="15" fill="#d9ff79" stroke="#265e2d" stroke-width="5"/>',
-  '<path d="M49 100c4-21 11-31 23-31s21 10 25 31Z" fill="#a3f05b" stroke="#265e2d" stroke-width="5"/>',
-  '<path d="M18 71C43 3 124 5 133 63" stroke="#164628" stroke-width="18" fill="none" stroke-linecap="round"/>',
-  '<path d="M18 71C43 3 124 5 133 63" stroke="#f6ffb5" stroke-width="11" fill="none" stroke-linecap="round"/>',
-  '<path d="M108 56l27 22 16-35" fill="#ecffb6" stroke="#164628" stroke-width="5" stroke-linejoin="round"/>',
-  '<path d="M24 96l-10 6M28 109l-12 15M39 118l-4 15" stroke="#f5ffb5" stroke-width="5" stroke-linecap="round"/>'
- ].join(''),
- burn:[
-  '<path d="M34 115C4 79 39 72 42 34c20 21 17 26 24 30C83 43 79 27 99 9c-1 27 31 33 26 55 12-4 14-20 14-20 25 47-11 84-39 91Z" fill="#ffb93e" stroke="#7f281b" stroke-width="5"/>',
-  '<path d="M57 131C36 100 59 90 71 73c4 21 18 26 22 33 9-10 11-21 11-21 14 23-2 44-15 50Z" fill="#fff1a8"/>',
-  '<path d="M43 86l75-3 13 16-76 5Z" fill="#fdf0d2" stroke="#802d24" stroke-width="4"/>',
-  '<path d="M37 101l80-3 10 15-79 5Z" fill="#fff3d9" stroke="#832e25" stroke-width="4"/>',
-  '<path d="M42 116l79-3 8 14-77 5Z" fill="#fff2db" stroke="#832e25" stroke-width="4"/>',
-  '<path d="M20 40l-7-12m126 8 10-14M20 70l-15-2" stroke="#ffe16b" stroke-width="5" stroke-linecap="round"/>'
- ].join(''),
- dump:[
-  '<g transform="rotate(-7 90 94)">',
-  '<path d="M39 93h83l18 13-84 5Z" fill="#fff7dd" stroke="#7e285b" stroke-width="4"/>',
-  '<path d="M29 104h90l14 16-88 4Z" fill="#ffe4f1" stroke="#7e285b" stroke-width="4"/>',
-  '<path d="M23 116h96l10 14-94 4Z" fill="#fff1d5" stroke="#7e285b" stroke-width="4"/>',
-  '</g>',
-  '<path d="M46 56c17-16 31-14 45-10 16 4 19-6 28-4 8 1 11 8 8 15-3 7-20 11-36 13l-24 6-18-7Z" fill="#ffd4e9" stroke="#7b2c55" stroke-width="5" stroke-linejoin="round"/>',
-  '<path d="M33 59q-10 5-15 23M26 39l-13 1M42 28l-7-13" stroke="#ffdeef" stroke-width="7" stroke-linecap="round"/>',
-  '<path d="M133 64l11 1m-18 12 14 5" stroke="#ffd0e6" stroke-width="6" stroke-linecap="round"/>'
- ].join('')
-};
-function art(action){return illustrations[action]?svgStart+illustrations[action]+'</svg>':''}
-function actionIcon(action){return glyph[action]||'◇'}
+const glyph=Object.freeze({reset:'↶',ghost:'□',under:'↓4',skip:'↷',burn:'✦',dump:'↗'});
+const actions=Object.freeze(['reset','ghost','under','skip','burn','dump']);
+const svgStart='<svg class="ph-illustration" viewBox="0 0 160 142" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">';
+const numberStart='<svg class="ph-stack-illustration" viewBox="0 0 160 142" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">';
+const palette=[C.blue,C.red,C.amber,C.olive,C.ink];
+const topPalette=['#4391B8','#F17960','#F7D367','#A5AB63','#535454'];
+const sidePalette=['#10455F','#A43125','#C6911D','#575D2B','#101112'];
+function slab(x,y,width,colorIndex,height=9){
+ const c=palette[colorIndex%5],light=topPalette[colorIndex%5],dark=sidePalette[colorIndex%5];
+ const x2=x+width,dep=6;
+ return '<g class="ph-slab" data-slab="1">'+
+  '<path d="M'+x+' '+y+'h'+width+'l'+dep+' -'+dep+'h-'+width+'Z" fill="'+light+'"/>'+
+  '<rect x="'+x+'" y="'+y+'" width="'+width+'" height="'+height+'" rx="1" fill="'+c+'"/>'+
+  '<path d="M'+x2+' '+y+'l'+dep+' -'+dep+'v'+height+'l-'+dep+' '+dep+'Z" fill="'+dark+'"/>'+
+  '<path d="M'+x+' '+(y+height)+'h'+width+'" stroke="'+C.ink+'" stroke-opacity=".15" stroke-width="1"/>'+
+ '</g>';
+}
+function numberArt(n){
+ if(!Number.isInteger(n)||n<1||n>10)throw Error('invalid rank');
+ let art='';
+ for(let i=0;i<n;i++){
+  const x=25+[0,4,-3,6,1,-4,3,-2,5,0][i];
+  art+=slab(x,120-i*9.4,102-(i%3)*2,[1,0,2,3,4][i%5],7.3);
+ }
+ return numberStart+'<path d="M18 136h127" stroke="'+C.ink+'" stroke-opacity=".1" stroke-width="2"/>'+art+'</svg>';
+}
+function actionArt(action){
+ switch(action){
+ case 'reset':
+  return svgStart+slab(30,93,97,0,11)+slab(37,81,84,1,10)+
+   '<path d="M42 70C18 35 36 17 72 16c23-1 39 11 44 28" fill="none" stroke="'+C.ink+'" stroke-width="11" stroke-linecap="square"/>'+
+   '<path d="M42 70C18 35 36 17 72 16c23-1 39 11 44 28" fill="none" stroke="'+C.red+'" stroke-width="7"/>'+
+   '<path d="M99 35l20 19 13-24" fill="none" stroke="'+C.red+'" stroke-width="8" stroke-linecap="square"/>'+
+   '<path d="M48 118h65" stroke="'+C.ink+'" stroke-opacity=".25" stroke-width="3"/>'+
+   '</svg>';
+ case 'ghost':
+  return svgStart+slab(28,100,101,0,10)+slab(36,88,89,4,10)+
+   '<path d="M40 30h88v62H40z" fill="'+C.blue+'" fill-opacity=".10" stroke="'+C.blue+'" stroke-width="3" stroke-dasharray="6 5"/>'+
+   '<path d="M26 48h89v57H26z" fill="'+C.blue+'" fill-opacity=".12" stroke="'+C.blue+'" stroke-width="3"/>'+
+   '<path d="M54 19h82v59H54z" fill="'+C.paper+'" fill-opacity=".48" stroke="'+C.blue+'" stroke-width="2.4"/>'+
+   '<path d="M45 115h81" stroke="'+C.ink+'" stroke-opacity=".28" stroke-width="3"/>'+
+   '</svg>';
+ case 'under':
+  return svgStart+
+   '<path d="M21 35h118" stroke="'+C.ink+'" stroke-width="9" />'+
+   '<path d="M24 44v72M136 44v72" stroke="'+C.ink+'" stroke-opacity=".65" stroke-width="5"/>'+
+   '<path d="M80 18v57" stroke="'+C.ink+'" stroke-width="10"/>'+
+   '<path d="M60 61l20 22 20-22" fill="none" stroke="'+C.ink+'" stroke-width="9" stroke-linecap="square"/>'+
+   slab(44,101,72,1,9)+
+   '<rect x="47" y="121" width="67" height="17" rx="2" fill="'+C.blue+'"/>'+
+   '<text x="80" y="134" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="17" font-weight="900" fill="'+C.paper+'">1–4</text>'+
+   '</svg>';
+ case 'skip':
+  return svgStart+
+   '<circle cx="29" cy="108" r="13" fill="'+C.blue+'"/><circle cx="80" cy="108" r="13" fill="'+C.pale+'"/><circle cx="131" cy="108" r="13" fill="'+C.blue+'"/>'+
+   '<path d="M13 133h32V127Q29 118 13 127ZM64 133h32v-6q-16-10-32 0ZM115 133h32v-6q-16-10-32 0Z" fill="'+C.ink+'" fill-opacity=".86"/>'+
+   '<path d="M28 77C26 14 137 16 131 77" fill="none" stroke="'+C.red+'" stroke-width="9" stroke-linecap="round"/>'+
+   '<path d="M116 61l15 21 15-20" fill="none" stroke="'+C.red+'" stroke-width="9" stroke-linecap="square"/>'+
+   '<path d="M64 103l32 11M96 103l-32 11" stroke="'+C.ink+'" stroke-width="4" opacity=".6"/>'+
+   '</svg>';
+ case 'burn':
+  return svgStart+slab(26,117,108,4,8)+
+   '<path d="M80 76l-12-42 18-20 10 43Z" fill="'+C.red+'"/>'+
+   '<path d="M54 71L33 43 48 27l24 35Z" fill="'+C.red+'"/>'+
+   '<path d="M100 73l25-38 14 13-24 36Z" fill="'+C.red+'"/>'+
+   '<path d="M42 84L14 73l4-19 37 14Z" fill="'+C.red+'"/>'+
+   '<path d="M115 93l31-8 7 18-35 3Z" fill="'+C.amber+'"/>'+
+   '<path d="M76 87l-18 17-19-16 8-14Z" fill="'+C.red+'"/>'+
+   '<path d="M84 95l23-18 18 15-24 18Z" fill="'+C.blue+'"/>'+
+   '<path d="M42 18l-6-11M126 12l10-8M151 56l8-4M17 111l-11 4" stroke="'+C.ink+'" stroke-width="3.5"/>'+
+   '</svg>';
+ case 'dump':
+  return svgStart+
+   slab(12,68,66,0,8)+slab(16,57,62,1,8)+slab(20,46,58,2,8)+
+   '<path d="M76 71Q97 52 110 28M77 77Q95 79 108 79M76 83Q95 99 111 128" fill="none" stroke="'+C.ink+'" stroke-width="3.5" stroke-linecap="round"/>'+
+   '<path d="M102 24l9 3-2 9M100 74l10 5-9 5M102 121l9 6-11 4" fill="none" stroke="'+C.ink+'" stroke-width="3.5"/>'+
+   '<circle cx="126" cy="27" r="12" fill="'+C.blue+'"/>'+
+   '<circle cx="126" cy="79" r="12" fill="'+C.red+'"/>'+
+   '<circle cx="126" cy="129" r="12" fill="'+C.olive+'"/>'+
+   '<path d="M116 38h20M116 90h20M116 140h20" stroke="'+C.ink+'" stroke-width="3" stroke-linecap="round"/>'+
+   '</svg>';
+ default:throw Error('invalid action');
+ }
+}
+function art(action){return actionArt(String(action||''))}
 function face(c){
  if(!c||typeof c!=='object')throw Error('card required');
  if(c.kind==='number'){
   const n=Number(c.rank);
   if(!Number.isInteger(n)||n<1||n>10)throw Error('invalid rank');
   return '<span class="ph-plate ph-number-plate" aria-hidden="true">'+
-   '<span class="ph-number-rays"></span><span class="ph-crest">'+crown+'</span>'+
-   '<span class="ph-index ph-index-top">'+n+'</span><span class="ph-number-main">'+n+'</span>'+
-   '<span class="ph-mountain"></span><span class="ph-index ph-index-bottom">'+n+'</span>'+
+   '<span class="ph-number-corner"></span>'+
+   '<span class="ph-index ph-index-top">'+n+'</span>'+
+   '<span class="ph-number-main">'+n+'</span>'+
+   '<span class="ph-stack-art">'+numberArt(n)+'</span>'+
+   '<span class="ph-index ph-index-bottom">'+n+'</span>'+
    '</span>';
  }
  const action=String(c.action||'');
- if(!Object.prototype.hasOwnProperty.call(illustrations,action))throw Error('invalid action');
+ if(!actions.includes(action))throw Error('invalid action');
  return '<span class="ph-plate ph-action-plate" aria-hidden="true">'+
-  '<span class="ph-action-sparks"></span><span class="ph-crest">'+crown+'</span>'+
   '<span class="ph-action-title">'+action.toUpperCase()+'</span>'+
-  '<span class="ph-action-art">'+art(action)+'</span>'+
+  '<span class="ph-action-art">'+actionArt(action)+'</span>'+
   '<span class="ph-action-rule">'+rules[action]+'</span>'+
-  '<span class="ph-action-index">'+actionIcon(action)+'</span>'+
+  '<span class="ph-action-index">'+glyph[action]+'</span>'+
   '</span>';
 }
 function back(){
  return '<span class="ph-plate ph-back-plate" aria-hidden="true">'+
-  '<span class="ph-back-frame"></span><span class="ph-back-burst"></span>'+
-  '<span class="ph-back-crown">'+crown+'</span>'+
-  '<span class="ph-back-title">PILEHEAD</span>'+
-  '<svg class="ph-back-stack" viewBox="0 0 90 56" aria-hidden="true"><path d="M8 16 42 5 82 19 47 31Z" fill="#fff1c9" stroke="#e9bf71" stroke-width="3"/><path d="M10 28 47 42 80 30M10 39l37 13 33-12" stroke="#fff1c9" stroke-width="6" fill="none" stroke-linecap="round"/></svg>'+
-  '</span>';
+  '<span class="ph-back-frame"></span>'+
+  '<span class="ph-back-title">STACK</span>'+
+  '<svg class="ph-back-stack" viewBox="0 0 140 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
+  slab(18,18,98,0,12)+slab(24,37,88,2,12)+slab(18,56,98,1,12)+slab(24,75,88,3,12)+'</svg>'+
+  '<span class="ph-back-subtitle">THE CARD GAME</span></span>';
 }
 function mini(c){
  if(!c)return '<span class="mini back ph-mini ph-mini-back" aria-hidden="true">'+back()+'</span>';
  if(c.kind==='number'){
-  const n=Number(c.rank);
-  if(!Number.isInteger(n)||n<1||n>10)throw Error('invalid miniature number');
-  return '<span class="mini ph-mini ph-mini-number">'+n+'</span>';
+  const n=Number(c.rank);if(!Number.isInteger(n)||n<1||n>10)throw Error('invalid miniature number');
+  return '<span class="mini ph-mini ph-mini-number" title="Number '+n+'">'+n+'</span>';
  }
- const action=String(c.action||'');
- if(!Object.prototype.hasOwnProperty.call(illustrations,action))throw Error('invalid miniature action');
- return '<span class="mini ph-mini ph-mini-action" data-action="'+action+'" title="'+action.toUpperCase()+'">'+actionIcon(action)+'</span>';
+ const action=String(c.action||'');if(!actions.includes(action))throw Error('invalid miniature action');
+ return '<span class="mini ph-mini ph-mini-action" data-action="'+action+'" title="'+action.toUpperCase()+'">'+glyph[action]+'</span>';
 }
-root.PileheadCardArt=Object.freeze({face,back,mini,art,rules,glyph});
+root.PileheadCardArt=Object.freeze({face,back,mini,art,numberArt,rules,glyph,palette:C});
 })(typeof window!=='undefined'?window:globalThis);
