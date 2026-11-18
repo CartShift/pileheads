@@ -24,8 +24,9 @@ function isTurn(){return g.phase==='play'&&g.turn===viewSeat()}
 function save(){try{localStorage.setItem(KEY,JSON.stringify({g,mode,seats,setupSeat,covered,notice,lastMove}))}catch(e){console.warn('Save unavailable',e)}}
 function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
  if(!x||!['pilehead-1.1.0','pilehead-1.2.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
- // Same state schema and physical deck; migrate saved games without wiping the hand.
- x.g.version=E.VERSION;
+ // Keep the existing 1.2 DUMP behavior during saved games.
+ // 1.1 sessions keep the prior upgrade behavior.
+ if(x.g.version==='pilehead-1.1.0')x.g.version=E.VERSION;
  E.invariant(x.g);g=x.g;mode=x.mode;seats=x.seats;setupSeat=x.setupSeat??0;
  covered=mode==='hotseat'&&g.phase!=='over';challengeOpen=false;notice=x.notice||'';lastMove=x.lastMove||null;return true;
  }catch{return false}}
@@ -280,7 +281,7 @@ function afterMove(ev){lastMove=ev;selection=[];challengeOpen=false;notice=event
 function submitPlay(choice){
  const p=g.people[viewSeat()];
  const first=[...p.hand,...p.up].find(c=>choice.ids?.includes(c.id));
- if(first?.action==='dump'&&E.dumpTargets(g,viewSeat()).length>1){
+ if(first?.action==='dump'&&g.version!=='pilehead-1.2.0'&&E.dumpTargets(g,viewSeat()).length>1){
   dumpDraft=choice;render();return;
  }
  perform(choice);
