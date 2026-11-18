@@ -517,3 +517,70 @@ body .overlay .action.primary{background:var(--stack-red);color:#fff9e5;border-c
  body.pilehead-playing .toolbar.table-actions,
  body .layout>.top .table-menu-toggle{display:none!important}
 }
+
+
+/* STACK LARGE HAND / VISIBLE CARD IDENTITY
+   Printed artwork stays untouched. A compact UI index sits above it, within
+   the exposed leading edge of each card in a scrollable physical hand.
+   Minimum exposed width is enforced by handLayout() in immersive.js. */
+.ph-card .ph-hand-index{
+ position:absolute;z-index:12;top:4px;left:4px;
+ display:inline-flex;align-items:center;justify-content:center;
+ min-width:30px;max-width:calc(100% - 8px);height:31px;
+ padding:1px 4px 2px;box-sizing:border-box;
+ border:1px solid #282922;border-bottom:3px solid var(--stack-red);
+ border-radius:3px;background:#fff4db;
+ color:#1b211f;box-shadow:1px 2px 0 #121a1580;
+ font:900 19px/1 Impact,"Arial Narrow","Arial Black",sans-serif;
+ font-variant-numeric:tabular-nums;letter-spacing:-.025em;
+ text-shadow:none;
+ pointer-events:none;user-select:none;
+}
+.ph-card .ph-hand-index.ph-hand-index-action{
+ font-size:11px;letter-spacing:.01em;
+ background:#243d34;color:#fff4db;
+ border-color:#0d211c;border-bottom-color:var(--stack-gold);
+}
+.ph-card.selected .ph-hand-index{
+ background:#ffe09b;border-bottom-color:#d54b32;
+}
+.ph-card.selected .ph-hand-index-action{
+ color:#1b211f;border-bottom-color:#d54b32;
+}
+/* Dense hands are a stable row of partially exposed faces, not a tilted
+   overlapping fan. The ranking strip remains on each visible card. */
+body.pilehead-playing .table .card-row.hand.hand-dense>.card:not(.selected):not(:focus-visible){
+ transform:translateY(0) rotate(0deg)!important;
+}
+body.pilehead-playing .table .hand-area.hand-overflow .area-label>span:first-child:after{
+ content:"  ·  SWIPE \2194";
+ display:inline-block;
+ margin-left:5px;font-size:10px;letter-spacing:.06em;
+ color:#f4d797;white-space:nowrap;
+}
+body.pilehead-playing .table .card-row.hand{
+ scroll-padding-inline:44px;
+}
+body.pilehead-playing .table .card-row.hand>.card{
+ touch-action:pan-x;
+}
+/* Keep playability and selection visual; the badge never captures input. */
+body.pilehead-playing .table .card-row.hand>.card.selected .ph-hand-index{
+ box-shadow:0 0 0 2px #ffdf80,1px 2px 0 #121a1580;
+}
+@media(max-width:700px){
+ .ph-card .ph-hand-index{
+  min-width:30px;height:29px;top:3px;left:3px;
+  font-size:18px;
+ }
+ .ph-card .ph-hand-index.ph-hand-index-action{font-size:11px}
+ body.pilehead-playing .table .card-row.hand{
+  scroll-snap-type:x proximity;
+ }
+ body.pilehead-playing .table .hand-area.hand-overflow .area-label>span:first-child:after{
+  font-size:9px;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .ph-card .ph-hand-index{transition:none!important;animation:none!important}
+}
