@@ -122,4 +122,26 @@ check('STACK is the visible identity while keeping legacy URLs and logic',()=>{
  assert.match(print,/<h1>STACK<\/h1>/);
  assert.match(css,/#f6f0e3/i);
 });
+check('approved infographic rank palettes, colored corners and 3D geometry',()=>{
+ const corners=['#D44630','#16658D','#EDB632','#7B813E','#D44630',
+  '#7B813E','#16658D','#EDB632','#16658D','#EDB632'];
+ for(let n=1;n<=10;n++){
+  const face=A.face({kind:'number',rank:n});
+  assert.ok(face.includes('data-rank="'+n+'"'),'rank should have a stable graphic identity');
+  assert.ok(face.includes('--rank-accent:'+corners[n-1]),'rank '+n+' reference corner');
+  assert.match(face,/ph-number-corner-bottom/);
+  assert.match(face,/ph-stack-illustration/);
+  assert.match(face,/ph-slab/);
+ }
+ assert.match(artCode,/rankPalettes=Object\.freeze/);
+ assert.match(css,/reference v2/);
+});
+check('phone setup is unclipped without changing the fan in active play',()=>{
+ assert.match(css,/\.setup \.card-row\.hand/);
+ assert.match(css,/\.online-lobby \.card-row\.hand/);
+ assert.match(css,/overflow:visible/);
+ assert.match(css,/\.card-row\.hand:has/);
+ assert.match(css,/@media print/);
+});
+
 console.log('STACK illustrated deck: '+count+' test groups passed');

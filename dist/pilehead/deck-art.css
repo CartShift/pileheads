@@ -156,3 +156,113 @@ body:has(.layout .top){background-color:#17211f}
 .layout>.top .eyebrow{color:#edb632;letter-spacing:.14em}
 .layout>.top .links a,.layout>.top .links button{background:#242c2a;border:1px solid #ede3d148;color:#f6f0e3}
 .layout>.top .links a:hover,.layout>.top .links button:hover{background:#36403c}
+
+
+/* STACK visual reference v2 · approved 52-card overview, 18 Nov 2026.
+ * One vector component powers live table, online table, gallery and A4 print.
+ * Do not turn numeric rank illustrations into special abilities.
+ */
+.ph-card{
+ border:1px solid #dfd4c3!important;
+ background:#fbf4e9!important;
+ border-radius:6.4%!important;
+ box-shadow:0 1px 1px #fff9ed inset,0 2px 2px #0a171530,0 7px 16px #061c184d;
+}
+.ph-plate::after{inset:2.7%;border:1px solid #7d68531c;border-radius:3.5%}
+.ph-number-plate,.ph-action-plate{
+ background:
+  repeating-linear-gradient(115deg,#54391e03 0 1px,transparent 1px 5px),
+  radial-gradient(ellipse at 50% 38%,#fffaf1 0%,#f7eddd 72%,#eadbc8 100%);
+}
+.ph-number-plate{--rank-secondary:#16658d}
+.ph-number-plate[data-rank="2"],.ph-number-plate[data-rank="7"]{--rank-secondary:#7b813e}
+.ph-number-plate[data-rank="3"],.ph-number-plate[data-rank="8"]{--rank-secondary:#16658d}
+.ph-number-plate[data-rank="4"],.ph-number-plate[data-rank="9"]{--rank-secondary:#d44630}
+.ph-number-plate[data-rank="5"],.ph-number-plate[data-rank="10"]{--rank-secondary:#16658d}
+.ph-number-plate[data-rank="6"]{--rank-secondary:#edb632}
+.ph-number-corner{
+ right:0;top:0;width:29%;height:20%;background:var(--rank-accent,#d44630);
+ clip-path:polygon(34% 0,100% 0,100% 100%);
+}
+.ph-number-corner-bottom{
+ position:absolute;z-index:4;left:0;bottom:0;width:16%;height:12%;
+ background:var(--rank-secondary,#16658d);
+ clip-path:polygon(0 0,100% 100%,0 100%);
+}
+.ph-number-main{
+ top:7.5%;height:43%;font-family:Impact,"Arial Black","Franklin Gothic Heavy",system-ui,sans-serif;
+ font-size:clamp(36px,75cqw,165px);font-weight:950;
+ transform:skewX(-3deg) scaleX(.92);letter-spacing:-.07em;
+ color:#121515;text-shadow:.45px .2px #121515;
+}
+.ph-number-plate[data-rank="10"] .ph-number-main{font-size:clamp(32px,59cqw,132px);letter-spacing:-.095em}
+.ph-index{display:none}
+.ph-stack-art{inset:47% 0 3%;align-items:stretch;justify-content:stretch}
+.ph-stack-illustration{width:100%;height:100%;preserveAspectRatio:xMidYMid meet;filter:drop-shadow(0 2px 1px #2a201c22)}
+.ph-action-plate{--stack-accent:#d44630}
+.ph-card[data-action="reset"]{--stack-accent:#16658d}
+.ph-card[data-action="ghost"]{--stack-accent:#7b813e}
+.ph-card[data-action="under"]{--stack-accent:#d44630}
+.ph-card[data-action="skip"]{--stack-accent:#16658d}
+.ph-card[data-action="burn"]{--stack-accent:#7b813e}
+.ph-card[data-action="dump"]{--stack-accent:#d44630}
+.ph-action-plate::before{
+ top:23.5%;left:11%;right:11%;height:2.1%;
+ background:var(--stack-accent);
+}
+.ph-action-title{
+ top:6.5%;left:3%;right:3%;
+ font-family:Impact,"Arial Black","Franklin Gothic Heavy",system-ui,sans-serif;
+ font-style:italic;font-size:clamp(12px,20cqw,45px);
+ letter-spacing:-.05em;transform:scaleX(.92);
+}
+.ph-action-index{display:none}
+.ph-action-art{top:28%;bottom:20%;left:4%;right:4%;height:auto}
+.ph-illustration{width:100%;height:100%;filter:drop-shadow(0 2px 1px #36271912)}
+.ph-action-rule{
+ left:4%;right:4%;bottom:4%;height:16.5%;padding:2% 3%;border-radius:1px;
+ background:#17191a;color:#fff8ee;line-height:1.05;
+ font-family:Impact,"Arial Narrow",system-ui,sans-serif;
+ font-size:clamp(7px,8.2cqw,16px);font-weight:900;letter-spacing:.004em;
+}
+.ph-card.ph-back{background:#191a1b!important}
+.ph-card.ph-back .ph-back-plate{border-radius:inherit}
+
+/* Small tabletop cards keep the artwork legible; controls retain their own ARIA labels. */
+@container (max-width:75px){
+ .ph-number-main{top:9%;height:43%;font-size:73cqw}
+ .ph-number-plate[data-rank="10"] .ph-number-main{font-size:56cqw}
+ .ph-stack-art{inset:46% 0 3%}
+ .ph-action-title{top:8%;font-size:20cqw}
+ .ph-action-art{top:27%;left:2%;right:2%;bottom:10%}
+ .ph-action-rule{display:none}
+}
+@container (max-width:44px){
+ .ph-action-title{font-size:18cqw}
+}
+/* In the deal/exchange phase only three cards are present. Never overlap
+ * them or crop their faces as the old hand-fan rule did on narrow phones. */
+.setup .card-row,.online-lobby .card-row{gap:clamp(7px,2vw,14px)}
+.setup .card-row .ph-card,.online-lobby .card-row .ph-card{
+ width:clamp(72px,21vw,100px);height:auto;aspect-ratio:57/82;
+}
+.setup .card-row.hand,.online-lobby .card-row.hand{
+ overflow:visible;min-height:0;justify-content:center;
+ padding:22px 4px 15px;gap:clamp(7px,2vw,14px);
+ scroll-snap-type:none;
+}
+.setup .card-row.hand .ph-card,.online-lobby .card-row.hand .ph-card{margin-left:0;flex-shrink:1}
+.card-row.hand:has(>.ph-card:nth-child(3):last-child) .ph-card{margin-left:0}
+.card-row.hand:has(>.ph-card:nth-child(3):last-child){gap:clamp(6px,1.8vw,12px)}
+@media(max-width:380px){
+ .setup{padding:19px 13px}
+ .setup .card-row .ph-card,.online-lobby .card-row .ph-card{width:clamp(68px,22vw,85px)}
+ .setup .area-label,.online-lobby .area-label{font-size:10px;letter-spacing:.065em}
+}
+@media print{
+ .ph-card{box-shadow:none!important;border-color:#bcb0a2!important}
+ .ph-number-plate,.ph-action-plate{
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;
+ }
+ .ph-stack-illustration,.ph-illustration{filter:none}
+}
