@@ -1,0 +1,41 @@
+/* STACK v4 / image-first artwork; imported AFTER deck-art.css.
+   No generated SVG or CSS illustrations: only 4×4 sprite crops. */
+.ph-card{background:#f8f0e4!important;overflow:hidden;isolation:isolate}
+.ph-card>.ph-raster-plate{
+ position:absolute;inset:0;display:block;overflow:hidden;
+ border-radius:inherit;background:none!important;
+ pointer-events:none;z-index:3;
+}
+.ph-card>.ph-raster-plate::before,.ph-card>.ph-raster-plate::after{content:none!important}
+.ph-card .ph-raster-cell{
+ display:block;position:absolute;inset:0;
+ width:100%;height:100%;
+ background-image:url("assets/stack-sheet.webp");
+ background-size:400% 400%;background-repeat:no-repeat;
+ background-position:var(--stack-x) var(--stack-y);
+ background-color:#f8f0e4;
+ pointer-events:none;
+}
+.ph-card .ph-raster-back{
+ display:block;position:absolute;inset:0;width:100%;height:100%;
+ object-fit:fill;pointer-events:none;
+}
+.ph-card.ph-back{background:#18191a!important}
+.mini.ph-raster-mini{position:relative;overflow:hidden;isolation:isolate}
+.mini.ph-raster-mini .ph-raster-cell{
+ display:block;position:absolute;inset:0;width:100%;height:100%;
+ background-image:url("assets/stack-sheet.webp");
+ background-size:400% 400%;background-repeat:no-repeat;
+ background-position:var(--stack-x) var(--stack-y);
+}
+.mini.ph-raster-mini .ph-raster-back{
+ position:absolute;inset:0;width:100%;height:100%;object-fit:fill;
+}
+.ph-card .ph-raster-cell,.ph-card .ph-raster-back,
+.mini.ph-raster-mini .ph-raster-cell{transition:none!important;animation:none!important}
+@media print{
+ .ph-card{box-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .ph-card .ph-raster-cell,.ph-card .ph-raster-back{
+  -webkit-print-color-adjust:exact;print-color-adjust:exact
+ }
+}
