@@ -14,7 +14,7 @@ function name(v){const x=typeof v==='string'?v.trim().replace(/[\u0000-\u001f\u0
  // Legacy 1.2 games remain playable without rewriting stored state.
  // Validate the complete card identity and conservation before accepting them.
 function compatibleLegacy(g){
- if(g?.version!=='pilehead-1.2.0')return false;
+ if(!['pilehead-1.2.0','pilehead-1.3.0'].includes(g?.version))return false;
  try{
   E.invariant(g);
   if(!['setup','play','over'].includes(g.phase)||g.people.length<2||g.people.length>5)return false;
@@ -33,12 +33,16 @@ async function quota(req,action,max){const ip=String(req.headers['x-forwarded-fo
  if(rows[0].hits>max)fail(429,'rate_limited')}
 function humanCount(g){return Number.isInteger(g.humanCount)?g.humanCount:g.people.length}
 function botSeats(g){return Array.isArray(g.botSeats)?g.botSeats:[]}
-function freshGame({players,humans,bots,round=1}){
+function freshGame({players,humans,bots,round=1,starterSeat=null}){
  const seed=crypto.randomBytes(4).readUInt32BE(0);
  const game=E.create({players,seed});
  game.humanCount=humans;
  game.botSeats=Array.from({length:bots},(_,i)=>humans+i);
  game.round=round;
+ // Pick the first starter once, on the server; the clients only animate the
+ // already-authoritative result. Subsequent rounds use the prior winner.
+ game.starterSeat=starterSeat===null?crypto.randomInt(players):starterSeat;
+ game.starterReason=starterSeat===null?'draw':'winner';
  game.setupReady=Array.from({length:players},(_,i)=>i>=humans);
  for(const seat of game.botSeats)E.autoSetup(game,seat);
  E.invariant(game);
@@ -47,7 +51,11 @@ function freshGame({players,humans,bots,round=1}){
 function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCount:g.stock.length,
   rulesVersion:g.version,
  round:g.round||1,humanCount:humanCount(g),botSeats:botSeats(g),
- snapUntil:g.followUp?.expiresAt||null,snapSeat:g.followUp?.seat??null,
+ starterSeat:g.starterSeat??0,starterReason:g.starterReason||'draw',startedAt:g.startedAt||null,
+ // Time-limited SNAP does not require a database revision to expire:
+ // redact it as absent after the deadline so polling clients can repaint.
+ snapUntil:g.followUp?.expiresAt>Date.now()?g.followUp.expiresAt:null,
+ snapSeat:g.followUp?.expiresAt>Date.now()?g.followUp.seat:null,
  botFollowupReady:botSeats(g).some(bot=>E.followUpOptions(g,bot).length>0),
  pile:g.pile,ashesCount:g.ashes.length,limit:g.limit,slamOpen:g.slamOpen,pendingDump:g.pendingDump?{seat:g.pendingDump.seat}:null,setupReady:g.setupReady||g.people.map(()=>false),loser:g.loser,finishedOrder:g.finishedOrder,
  players:g.people.map((p,i)=>({seat:i,out:p.out,up:p.up,handCount:p.hand.length,downCount:p.down.length,pickups:p.pickups,
@@ -103,14 +111,18 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
  }
  else if(b.action==='rematch'){
   if(g.phase!=='over')fail(409,'game_not_finished');
-  const next=freshGame({players:g.people.length,humans:humanCount(g),bots:botSeats(g).length,round:(g.round||1)+1});
+  // In STACK the first player to get rid of their cards wins this round,
+  // whereas the final player still holding cards is the PILEHEAD.
+  const winner=g.finishedOrder?.[0];
+  const next=freshGame({players:g.people.length,humans:humanCount(g),bots:botSeats(g).length,
+   round:(g.round||1)+1,starterSeat:Number.isInteger(winner)?winner:null});
   Object.assign(g,next);
  }
  else if(b.action==='advance'){
   if(g.phase!=='play')fail(409,'not_started');
   const bots=botSeats(g);
   const followBot=bots.find(bot=>E.followUpOptions(g,bot).length);
-  const slammer=bots.find(bot=>g.slamOpen&&E.slamOptions(g,bot).length);
+  const slammer=bots.find(bot=>E.slamOptions(g,bot).length);
   const humanSnapPending=g.followUp?.expiresAt>Date.now()&&
     !bots.includes(g.followUp.seat)&&E.followUpOptions(g,g.followUp.seat).length;
   if(humanSnapPending&&slammer===undefined)fail(409,'snap_window_open');
