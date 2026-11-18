@@ -234,6 +234,36 @@ function snap(type='play'){
    Animate only public facts from authoritative move events. A rival's hand is
    represented by card backs; no private card IDs or ranks are inspected. */
 let motionGame=null,observedMove=0,motionQueue=[],motionPlaying=false,motionGeneration=0;
+let capturedMove=null;
+const motionGhosts=new Set(),motionTimers=new Set();
+function later(fn,delay){
+ const generation=motionGeneration;
+ const timer=setTimeout(()=>{motionTimers.delete(timer);if(generation===motionGeneration)fn()},delay);
+ motionTimers.add(timer);return timer;
+}
+function clearMotion(){
+ motionGeneration++;motionQueue.length=0;motionPlaying=false;
+ for(const timer of motionTimers)clearTimeout(timer);
+ motionTimers.clear();
+ for(const ghost of motionGhosts)ghost.remove();
+ motionGhosts.clear();capturedMove=null;
+}
+function captureMove({gameKey,seat,moveNo,move}={}){
+ const table=$('#app .table');
+ if(!table||!gameKey||!move||typeof move!=='object')return;
+ const ids=Array.isArray(move.ids)?move.ids:[];
+ if(!ids.length&&move.index===undefined)return;
+ const points=ids.map(id=>{
+  if(!Number.isInteger(id))return null;
+  const node=table.querySelector('[data-card="'+id+'"]');
+  return node?center(node):null;
+ });
+ if(!ids.length&&Number.isInteger(move.index)){
+  const node=table.querySelector('[data-blind="'+move.index+'"]');
+  points.push(node?center(node):null);
+ }
+ capturedMove={gameKey,seat,moveNo,points,stamp:Date.now()};
+}
 const canMove=()=>!motion.matches&&document.visibilityState!=='hidden'&&
  typeof Element!=='undefined'&&typeof Element.prototype.animate==='function';
 function placeFor(table,seat,layer,ownSeat){
@@ -270,11 +300,11 @@ function physicalCard(ev,hidden=false){
 }
 function moveCard(table,start,end,ev,opts={}){
  if(!canMove()||!start||!end)return;
- const a=center(start),b=center(end),size=Math.round(Math.min(90,Math.max(64,(root.innerWidth||390)*.19)));
+ const a=opts.startPoint||center(start),b=center(end),size=Math.round(Math.min(90,Math.max(64,(root.innerWidth||390)*.19)));
  const piece=physicalCard(ev,opts.hidden);
  piece.style.left=(a.x-size*.5)+'px';piece.style.top=(a.y-size*.70)+'px';
  piece.style.width=size+'px';piece.style.height=Math.round(size*1.4)+'px';
- document.body.appendChild(piece);
+ document.body.appendChild(piece);motionGhosts.add(piece);
  const dx=b.x-a.x+(opts.spreadX||0),dy=b.y-a.y+(opts.spreadY||0);
  const middle=opts.via?center(opts.via):null;
  const duration=opts.duration||440,delay=opts.delay||0;
@@ -285,17 +315,17 @@ function moveCard(table,start,end,ev,opts={}){
  frames.push({transform:'translate3d('+dx+'px,'+dy+'px,0) rotate('+rotate+'deg) scale(.92)',opacity:opts.fade?0:1,offset:1});
  if(opts.reveal){
   // A blind card flies face down and only turns into the public card on landing.
-  setTimeout(()=>{if(piece.isConnected){const art=root.PileheadCardArt;
+  later(()=>{if(piece.isConnected){const art=root.PileheadCardArt;
    piece.className='card ph-card pilehead-physical-fx '+(ev.action?'ph-action action-card':'ph-number');
    piece.innerHTML=art?.face?.(ev.action?{kind:'action',action:ev.action}:{kind:'number',rank:Number(ev.rank)})||'';
   }},delay+Math.floor(duration*.63));
  }
  try{
   const animation=piece.animate(frames,{duration,delay,easing:'cubic-bezier(.23,.73,.25,1)',fill:'forwards'});
-  animation.onfinish=()=>piece.remove();
-  animation.oncancel=()=>piece.remove();
- }catch{piece.remove();return}
- setTimeout(()=>piece.remove(),delay+duration+160);
+  animation.onfinish=()=>{piece.remove();motionGhosts.delete(piece)};
+  animation.oncancel=()=>{piece.remove();motionGhosts.delete(piece)};
+ }catch{piece.remove();motionGhosts.delete(piece);return}
+ later(()=>{piece.remove();motionGhosts.delete(piece)},delay+duration+160);
 }
 function pulse(el,type='hit'){
  if(!el||!canMove())return;
@@ -318,14 +348,17 @@ function particles(where,type='burn'){
   spark.style.setProperty('--delay',(i%3*26)+'ms');
   group.appendChild(spark);
  }
- document.body.appendChild(group);
- setTimeout(()=>group.remove(),830);
+ document.body.appendChild(group);motionGhosts.add(group);
+ later(()=>{group.remove();motionGhosts.delete(group)},830);
 }
 function cue(table,text){
  if(!table||document.visibilityState==='hidden')return;
- const el=document.createElement('div');el.className='pilehead-cue';
+ const el=document.createElement('div');el.className='pilehead-cue pilehead-cue-fixed';
  el.setAttribute('aria-hidden','true');el.textContent=text;
- table.appendChild(el);setTimeout(()=>el.remove(),1050);
+ const point=center(landmark(table,'pile'));
+ el.style.left=point.x+'px';el.style.top=point.y+'px';
+ document.body.appendChild(el);motionGhosts.add(el);
+ later(()=>{el.remove();motionGhosts.delete(el)},1050);
 }
 function playCards(table,ev,ownSeat,options={}){
  const source=placeFor(table,ev.seat,ev.source||'hand',ownSeat);
@@ -333,15 +366,20 @@ function playCards(table,ev,ownSeat,options={}){
  const total=Math.max(1,Math.min(4,Number(ev.count)||1));
  const bridge=Math.min(total-1,Math.max(0,Number(ev.bridgeCount)||0));
  const fast=ev.type==='slam'||ev.type==='followup';
+ const fromTouch=capturedMove&&capturedMove.gameKey===motionGame&&
+  capturedMove.seat===ev.seat&&capturedMove.moveNo===ev.move&&
+  Date.now()-capturedMove.stamp<15000?capturedMove:null;
  for(let i=0;i<total;i++){
   const from=i>=total-bridge?placeFor(table,ev.seat,'up',ownSeat):source;
   moveCard(table,from,options.to||pile,ev,{
+   startPoint:fromTouch?.points?.[i]||null,
    index:i,hidden:(ev.source==='down'||ev.seat!==ownSeat)&&i===0,delay:i*(fast?52:67),
    duration:fast?300:410,rotate:(i-(total-1)/2)*7,
    spreadX:(i-(total-1)/2)*7,spreadY:-i*3,
    fade:Boolean(options.fade),via:options.via||null,reveal:(ev.source==='down'||ev.seat!==ownSeat)&&i===0&&!options.fade
   });
  }
+ if(fromTouch)capturedMove=null;
  pulse(pile,'hit');
 }
 function pickupCards(table,ev,ownSeat,recipient,delay=0,countOverride=null){
@@ -353,12 +391,12 @@ function pickupCards(table,ev,ownSeat,recipient,delay=0,countOverride=null){
   hidden:true,delay:delay+i*58,duration:470,index:i,
   spreadX:(i-(shown-1)/2)*14,spreadY:-(i%2)*8
  });
- setTimeout(()=>pulse(hand,'turn'),delay+370);
+ later(()=>pulse(hand,'turn'),delay+370);
 }
 function burnPile(table,ev,delay=320){
  const pile=landmark(table,'pile'),ashes=landmark(table,'ashes');
  const n=Math.max(1,Math.min(5,Number(ev.burnedCount)||Number(ev.count)||1));
- setTimeout(()=>{
+ later(()=>{
   if(!canMove())return;
   particles(pile,ev.reason==='slam'?'slam':'burn');
   for(let i=0;i<n;i++)moveCard(table,pile,ashes,ev,{
@@ -376,7 +414,7 @@ function drawCards(table,ev,ownSeat,delay=0){
   hidden:true,delay:delay+i*105,duration:460,index:i,
   spreadX:(i-(total-1)/2)*14,spreadY:-i*7
  });
- setTimeout(()=>pulse(hand,'turn'),delay+340);
+ later(()=>pulse(hand,'turn'),delay+340);
 }
 function celebrate(table,ev,ownSeat){
  if(!table||!ev||!canMove())return 0;
@@ -394,7 +432,7 @@ function celebrate(table,ev,ownSeat){
   cue(table,'DUMP · PILE TO NEXT PLAYER');
   // DUMP itself is burned: it must NEVER enter the recipient's hand.
   playCards(table,ev,ownSeat,{to:landmark(table,'ashes'),via:landmark(table,'pile'),fade:true});
-  setTimeout(()=>particles(landmark(table,'ashes'),'burn'),330);
+  later(()=>particles(landmark(table,'ashes'),'burn'),330);
   pickupCards(table,ev,ownSeat,ev.target,370,ev.takenCount);
   snap('pickup');
   drawCards(table,ev,ownSeat,530);
@@ -442,7 +480,7 @@ function animateQueue(ownSeat){
  const generation=motionGeneration;
  motionPlaying=true;
  const duration=celebrate(table,ev,ownSeat)||300;
- setTimeout(()=>{
+ later(()=>{
   if(generation!==motionGeneration)return;
   motionPlaying=false;animateQueue(ownSeat);
  },Math.max(280,duration));
@@ -454,8 +492,7 @@ function sync({event=null,events=[],identity=null,gameKey=null,ownSeat=0,active=
  document.body.classList.toggle('pilehead-online',Boolean(online));
  controls();
  if(!table){
-  seen=false;last=null;motionGame=null;motionQueue.length=0;
-  motionPlaying=false;motionGeneration++;syncResult();return;
+  seen=false;last=null;motionGame=null;clearMotion();syncResult();return;
  }
  decor(table);fan(table);hint(table,active,selected,moveNo);syncResult();
  table.classList.toggle('is-active-turn',Boolean(active));
@@ -464,23 +501,25 @@ function sync({event=null,events=[],identity=null,gameKey=null,ownSeat=0,active=
  const changed=motionGame!==stableKey||!seen;
  if(changed){
   seen=true;last=identity;motionGame=stableKey;observedMove=Number(moveNo)||0;
-  motionQueue.length=0;motionPlaying=false;motionGeneration++;
+  clearMotion();
   table.classList.add('scene-entering');
-  setTimeout(()=>table.classList.remove('scene-entering'),480);
+  later(()=>table.classList.remove('scene-entering'),480);
   if(!Number(moveNo))firstDeal(table,ownSeat);
   return;
  }
  if(last===identity)return;last=identity;
  const nextMove=Number(moveNo)||0;
  if(nextMove<=observedMove){observedMove=nextMove;return}
- let newEvents=Array.isArray(events)?events.filter(x=>Number.isInteger(x.move)&&x.move>observedMove&&x.move<=nextMove):[];
+ let newEvents=Array.isArray(events)?events.filter(x=>Number.isInteger(x.move)&&x.move>observedMove&&x.move<=nextMove)
+  .sort((a,b)=>a.move-b.move):[];
  if(!newEvents.length&&event)newEvents=[event];
  observedMove=nextMove;
  // Prevent a reconnect after a long pause from replaying dozens of stale moves.
  motionQueue.push(...newEvents.slice(-4));if(motionQueue.length>6)motionQueue.splice(0,motionQueue.length-6);
  animateQueue(ownSeat);
- if(turn!==null)turnPulse(table,turn,ownSeat);
+ if(turn!==null&&!motionPlaying)turnPulse(table,turn,ownSeat);
 }
 
-root.PileheadTableFX={sync,handLayout,resultHTML,resetHandScroll(){handScroll=0}};
+document.addEventListener?.('visibilitychange',()=>{if(document.visibilityState==='hidden')clearMotion()});
+root.PileheadTableFX={sync,handLayout,resultHTML,captureMove,resetHandScroll(){handScroll=0}};
 })(typeof window!=='undefined'?window:globalThis);
