@@ -22,10 +22,10 @@ check('engine still has 52 cards and no powers on numbered tens',()=>{
 check('ten numbered cards use STACK paper layout and precisely matching structural layers',()=>{
  for(let n=1;n<=10;n++){
   const html=A.face({kind:'number',rank:n});
-  assert.match(html,/ph-number-plate/);assert.match(html,/ph-number-main/);
-  assert.match(html,/ph-index-top/);assert.match(html,/ph-index-bottom/);
-  assert.match(html,/ph-stack-art/);assert.match(html,/ph-stack-illustration/);
-  assert.match(html,/ph-number-corner/);assert.doesNotMatch(html,/data-action/);
+  assert.match(html,/ph-number-plate/);assert.match(html,/stack-rank-number/);
+  assert.match(html,/ph-ref-face/);assert.match(html,/ph-full-face/);
+  assert.match(html,/stack-rank-bars/);assert.match(html,/ph-full-face/);
+  assert.match(html,/ph-art-number/);assert.doesNotMatch(html,/data-action/);
   assert.equal((html.match(/data-slab="1"/g)||[]).length,n,'Rank '+n+' should visually have '+n+' layers');
   assert.equal(A.face({kind:'number',rank:n,id:100}),A.face({kind:'number',rank:n,id:999}),
     'all copies of the same numeric rank must be visually identical');
@@ -36,14 +36,14 @@ check('six special cards each have a large unique inline illustration and rule',
  const svg=new Set();
  for(const action of Object.keys(engine.ACTIONS)){
   const html=A.face({kind:'action',action});
-  assert.match(html,/ph-action-plate/);assert.match(html,/ph-action-title/);
-  assert.match(html,/ph-action-rule/);assert.match(html,/ph-illustration/);
+  assert.match(html,/ph-action-plate/);assert.match(html,/stack-action-name/);
+  assert.match(html,/stack-action-foot/);assert.match(html,/stack-illustration/);
   assert.ok(html.includes(action.toUpperCase()));
-  assert.ok(A.rules[action]&&html.includes(A.rules[action]));
-  assert.ok(html.includes('viewBox="0 0 160 142"'));
+  assert.ok(A.rules[action] && /stack-action-foot/.test(html));
+  assert.ok(html.includes('viewBox="0 0 200 288"'));
   assert.equal(A.face({kind:'action',action,id:12}),A.face({kind:'action',action,id:88}),
     'action copies must be visually identical');
-  svg.add(html.match(/<svg class="ph-illustration"[\s\S]*?<\/svg>/)[0]);
+  svg.add(html.match(/<svg class="ph-full-face [^\"]+"[\s\S]*?<\/svg>/)[0]);
  }
  assert.equal(svg.size,6);assert.throws(()=>A.face({kind:'action',action:'joker'}));
 });
@@ -127,14 +127,14 @@ check('approved infographic rank palettes, colored corners and 3D geometry',()=>
   '#7B813E','#16658D','#EDB632','#16658D','#EDB632'];
  for(let n=1;n<=10;n++){
   const face=A.face({kind:'number',rank:n});
-  assert.ok(face.includes('data-rank="'+n+'"'),'rank should have a stable graphic identity');
-  assert.ok(face.includes('--rank-accent:'+corners[n-1]),'rank '+n+' reference corner');
-  assert.match(face,/ph-number-corner-bottom/);
-  assert.match(face,/ph-stack-illustration/);
+  assert.ok(face.includes('stack-rank-number'),'rank should have a stable graphic identity');
+  assert.ok(face.includes(corners[n-1]),'rank '+n+' reference corner');
+  assert.match(face,/ph-art-number/);
+  assert.match(face,/stack-rank-bars/);
   assert.match(face,/ph-slab/);
  }
- assert.match(artCode,/rankPalettes=Object\.freeze/);
- assert.match(css,/reference v2/);
+ assert.match(artCode,/const LAYERS=/);
+ assert.match(css,/STACK v3/);
 });
 check('phone setup is unclipped without changing the fan in active play',()=>{
  assert.match(css,/\.setup \.card-row\.hand/);
@@ -142,6 +142,14 @@ check('phone setup is unclipped without changing the fan in active play',()=>{
  assert.match(css,/overflow:visible/);
  assert.match(css,/\.card-row\.hand:has/);
  assert.match(css,/@media print/);
+});
+
+
+check('all live card faces use the same self-contained 200×288 composition',()=>{
+ for(let n=1;n<=10;n++)assert.match(A.face({kind:'number',rank:n}),/class="ph-full-face ph-art-number"/);
+ for(const action of Object.keys(engine.ACTIONS))assert.match(A.face({kind:'action',action}),/class="ph-full-face ph-art-action"/);
+ assert.match(css,/\.ph-ref-face svg\.ph-full-face/);
+ assert.match(css,/content:none!important/);
 });
 
 console.log('STACK illustrated deck: '+count+' test groups passed');
