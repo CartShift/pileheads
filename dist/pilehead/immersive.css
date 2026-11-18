@@ -1662,3 +1662,50 @@ body.pilehead-playing .table .area-label b{font:inherit;color:#dbcba7}
  body.pilehead-playing .pilehead-selected-effect span{min-width:0}
  body.pilehead-playing .toolbar.table-actions{margin-top:5px}
 }
+
+/* Physical-card animations run in viewport space, so they survive DOM updates
+   and never expose cards from an opponent's private hand. */
+.pilehead-physical-fx{
+ pointer-events:none!important;position:fixed!important;z-index:150!important;
+ transform-origin:center center;backface-visibility:hidden;
+ will-change:transform,opacity;contain:layout paint;
+ filter:drop-shadow(0 9px 10px #03100cb8);
+}
+.pilehead-impact-particles{
+ position:fixed;z-index:175;pointer-events:none;
+ width:1px;height:1px;overflow:visible;
+}
+.pilehead-impact-particles i{
+ position:absolute;left:-3px;top:-7px;width:6px;height:14px;
+ border-radius:3px 3px 1px 1px;
+ background:linear-gradient(#fff3c2,#ffae54,#c34c2d);
+ box-shadow:0 0 9px #ffb86b;opacity:0;
+ animation:pilehead-embers .72s ease-out var(--delay) both;
+}
+.pilehead-impact-particles.is-slam i{
+ background:linear-gradient(#fff9d2,#d4f5bf,#6bd0ae);
+ box-shadow:0 0 9px #a2ffd9;
+}
+@keyframes pilehead-embers{
+ 0%{opacity:0;transform:rotate(var(--angle)) translateY(0) scale(.3)}
+ 16%{opacity:1}
+ 65%{opacity:.96}
+ 100%{opacity:0;transform:rotate(var(--angle)) translateY(calc(0px - var(--radius))) scale(.16)}
+}
+body.pilehead-playing .table .pilehead-cue{
+ pointer-events:none;max-width:min(80vw,440px);
+ white-space:normal;overflow-wrap:break-word;
+}
+@media(max-width:700px){
+ .pilehead-physical-fx{filter:drop-shadow(0 6px 7px #03100cb8)}
+ body.pilehead-playing .table .pilehead-cue{
+  padding:9px 11px;min-width:125px;max-width:68vw;
+  border-width:1px;border-radius:12px;
+  font-size:clamp(14px,3.8vw,22px);
+  box-shadow:0 5px 18px #0009,0 0 0 5px #eeba7030;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .pilehead-impact-particles i{animation:none!important;display:none!important}
+ .pilehead-physical-fx{animation:none!important;transition:none!important}
+}

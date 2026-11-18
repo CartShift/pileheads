@@ -286,8 +286,9 @@ function render(){
   (networkError?'<p class="online-error" role="alert">'+safe(networkError)+'</p>':'')+
   '</div>'+endScreen();
  window.PileheadTableFX?.sync({identity:data?room+':'+data.game.moves:null,
-  event:data?.game.events?.[data.game.events.length-1]||null,
-  ownSeat:data?.me||0,active:data?active():false,
+  gameKey:data?room+':round:'+data.game.round:null,
+  event:data?.game.events?.[data.game.events.length-1]||null,events:data?.game.events||[],
+  ownSeat:data?.me||0,active:data?active():false,turn:data?.game.turn??null,
   selected:selection.length,moveNo:data?.game.moves||0,online:true});
 }
 async function command(action,more={}){

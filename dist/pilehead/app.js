@@ -198,9 +198,9 @@ function overlay(){
 }
 function render(){
  app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay()+endScreen();
- window.PileheadTableFX?.sync({identity:g?g.seed+':'+g.moves:null,
-  event:g?.events?.[g.events.length-1]||null,
-  ownSeat:g?viewSeat():0,active:g?isTurn()&&!covered:false,
+ window.PileheadTableFX?.sync({identity:g?g.seed+':'+g.moves:null,gameKey:g?'local:'+g.seed:null,
+  event:g?.events?.[g.events.length-1]||null,events:g?.events||[],
+  ownSeat:g?viewSeat():0,active:g?isTurn()&&!covered:false,turn:g?.turn??null,
   selected:selection.length,moveNo:g?.moves||0,online:false});
  save();queueBot();
 }
