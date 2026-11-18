@@ -1,6 +1,6 @@
 'use strict';
 const assert=require('node:assert/strict');
-const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto');
 const base=path.join(__dirname,'..'),read=p=>fs.readFileSync(path.join(base,p),'utf8');
 let count=0;function test(name,fn){fn();count++;console.log('PASS '+name)}
 const ctx={};vm.runInNewContext(read('dist/pilehead/deck-art.js'),ctx);
@@ -47,6 +47,16 @@ test('published raster files are valid WebP images',()=>{
   assert.equal(bytes.subarray(0,4).toString(),'RIFF');
   assert.equal(bytes.subarray(8,12).toString(),'WEBP');
  }
+});
+test('approved 4×4 corner-index artwork remains the simulator source',()=>{
+ // This digest intentionally identifies the approved illustrated sheet, not the
+ // earlier generic STACK art. Update it when a new deck is deliberately approved.
+ const approved=fs.readFileSync(path.join(base,'dist/pilehead/assets/stack-sheet.webp'));
+ const digest=crypto.createHash('sha256').update(approved).digest('hex');
+ assert.equal(digest,'145d5b9fe348359a6be0b8d49749ac59991dfd0f3897b61a706c273b8ca5a8a6');
+ assert.deepEqual([art.cell({kind:'number',rank:1}).col,art.cell({kind:'number',rank:1}).row],[0,0]);
+ assert.deepEqual([art.cell({kind:'number',rank:10}).col,art.cell({kind:'number',rank:10}).row],[1,2]);
+ assert.deepEqual([art.cell({kind:'action',action:'dump'}).col,art.cell({kind:'action',action:'dump'}).row],[3,3]);
 });
 test('every display surface selects the raster art after compatibility module',()=>{
  for(const page of ['index.html','gallery.html','print.html']){
