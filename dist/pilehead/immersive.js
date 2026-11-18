@@ -336,10 +336,10 @@ function playCards(table,ev,ownSeat,options={}){
  for(let i=0;i<total;i++){
   const from=i>=total-bridge?placeFor(table,ev.seat,'up',ownSeat):source;
   moveCard(table,from,options.to||pile,ev,{
-   index:i,hidden:ev.source==='down'&&i===0,delay:i*(fast?52:67),
+   index:i,hidden:(ev.source==='down'||ev.seat!==ownSeat)&&i===0,delay:i*(fast?52:67),
    duration:fast?300:410,rotate:(i-(total-1)/2)*7,
    spreadX:(i-(total-1)/2)*7,spreadY:-i*3,
-   fade:Boolean(options.fade),via:options.via||null,reveal:ev.source==='down'&&i===0
+   fade:Boolean(options.fade),via:options.via||null,reveal:(ev.source==='down'||ev.seat!==ownSeat)&&i===0&&!options.fade
   });
  }
  pulse(pile,'hit');
@@ -405,7 +405,7 @@ function celebrate(table,ev,ownSeat){
   cue(table,ev.type==='slam'?'SLAM! · FOUR OF A KIND':
    ev.reason==='four'?'FOUR MATCHING · PILE BURNS':'BURN · PILE REMOVED');
   burnPile(table,ev,ev.type==='slam'?350:390);
- }else if(ev.type==='followup'){cue(table,'SNAP! · MATCHING DRAW');snap('play');particles(landmark(table,'pile'),'slam')}
+ }else if(ev.type==='followup'){cue(table,'SNAP · MATCHING DRAW');snap('play');particles(landmark(table,'pile'),'slam')}
  else if(ev.bridgeCount){cue(table,'HAND + FACE UP · COMBO');snap('play')}
  else if(ev.action){
   const messages={skip:'SKIP · NEXT PLAYER MISSES TURN',under:'UNDER · PLAY 1–4',
