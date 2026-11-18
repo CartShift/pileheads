@@ -47,15 +47,17 @@ function slab(x,y,width,colorIndex,height=12){
 }
 function numberArt(n){
  if(!Number.isInteger(n)||n<1||n>10)throw Error('invalid rank');
- const recipe=rankPalettes[n], step=n<=2?26:n<=4?20:n<=6?17:n<=8?14:12;
- const thickness=n<=2?20:n<=4?16:n<=6?13:n<=8?11:9.5;
+ const recipe=rankPalettes[n], step=n<=2?26:n<=4?20:n<=6?17:n<=8?14:11;
+ const thickness=n===1?27:n===2?22:n<=4?19:n<=6?16:n<=8?13:11;
  let art='';
  // Draw bottom to top to make the staggered paper slabs read as a real stack.
  for(let i=n-1;i>=0;i--){
   const offset=[0,5,-4,3,-2,7,-3,2,-1,4][i];
   const width=n<=3?112:n<=6?117:119;
   const x=17+offset;
-  const baseline=n<=2?116:n<=4?121:126;
+  // Keep one slab or ten equally centered within the illustration's fixed frame.
+  const totalHeight=(n-1)*step+thickness;
+  const baseline=76+totalHeight/2-thickness;
   const y=baseline-(n-1-i)*step;
   art+=slab(x,y,width,recipe[i],thickness);
  }
@@ -123,35 +125,94 @@ function actionArt(action){
  }
 }
 function art(action){return actionArt(String(action||''))}
+/* Each card face is a single fixed-coordinate composition. CSS may resize the
+ * physical card; it must never independently resize or reposition the artwork.
+ * SVGs deliberately have no per-instance IDs (many identical cards coexist).
+ */
+const actionColors=Object.freeze({
+ reset:C.blue,ghost:C.olive,under:C.red,skip:C.blue,burn:C.red,dump:C.red
+});
+const actionCompact=Object.freeze({
+ reset:'ANY RANK',ghost:'LIMIT STAYS',under:'1–4 NEXT',
+ skip:'SKIP NEXT',burn:'CLEAR + GO',dump:'CHOOSE RIVAL'
+});
+const actionLines=Object.freeze({
+ reset:['ANY NUMBER NEXT'],ghost:['KEEP THE LIMIT'],
+ under:['NEXT NUMBER 1–4'],skip:['SKIP NEXT PLAYER'],
+ burn:['CLEAR PILE','PLAY AGAIN'],
+ dump:['CHOOSE A RIVAL','TAKE PILE · PLAY AGAIN']
+});
+const displayFont='Impact,Arial Black,Arial Narrow,sans-serif';
+function faceSvg(content,extraClass){
+ return '<svg class="ph-composed-face '+extraClass+'" viewBox="0 0 240 344" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">'+content+'</svg>';
+}
+function paper(){
+ return '<rect width="240" height="344" fill="#F8F0E4"/>'+
+  '<path d="M0 0H240V344H0Z" fill="none" stroke="#B6A58E" stroke-width="2"/>'+
+  '<path d="M9 9H231V335H9Z" fill="none" stroke="#BEAA8C" stroke-opacity=".5" stroke-width=".75"/>'+
+  '<path d="M14 14H226M14 330H226" stroke="#E3D8C8" stroke-width="1.5"/>'+
+  '<path d="M18 52h15M207 292h15" stroke="#1B1C1B" stroke-opacity=".15" stroke-width="2"/>';
+}
+function embedded(svg,oldClass,newClass,x,y,w,h){
+ return svg.replace('class="'+oldClass+'"','class="'+newClass+'"')
+  .replace('viewBox="0 0 160 142"','viewBox="0 0 160 142" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" preserveAspectRatio="xMidYMid meet"');
+}
 function face(c){
  if(!c||typeof c!=='object')throw Error('card required');
  if(c.kind==='number'){
   const n=Number(c.rank);
   if(!Number.isInteger(n)||n<1||n>10)throw Error('invalid rank');
-  return '<span class="ph-plate ph-number-plate" data-rank="'+n+'" style="--rank-accent:'+rankCorners[n-1]+'" aria-hidden="true">'+
-   '<span class="ph-number-corner"></span><span class="ph-number-corner-bottom"></span>'+
-   '<span class="ph-index ph-index-top">'+n+'</span>'+
-   '<span class="ph-number-main">'+n+'</span>'+
-   '<span class="ph-stack-art">'+numberArt(n)+'</span>'+
-   '<span class="ph-index ph-index-bottom">'+n+'</span>'+
-   '</span>';
+  const accent=rankCorners[n-1],secondary=palette[(n+1)%5];
+  const numberSize=n===10?111:148;
+  const main=paper()+
+   '<path class="ph-number-corner-vector" d="M174 0H240V69Z" fill="'+accent+'"/>'+
+   '<path class="ph-number-corner-bottom-vector" d="M0 301L40 344H0Z" fill="'+secondary+'"/>'+
+   '<path d="M22 166H218" stroke="#201D19" stroke-width="3"/>'+
+   '<path d="M22 171H218" stroke="'+accent+'" stroke-width="2"/>'+
+   '<text class="ph-index-top-vector" x="21" y="42" fill="#201C19" font-family="'+displayFont+'" font-size="29" font-weight="900">'+n+'</text>'+
+   '<text x="207" y="30" font-family="'+displayFont+'" font-size="15" font-weight="900" fill="#FFF8EA" transform="rotate(34 207 30)">S</text>'+
+   '<text class="ph-number-main-vector" x="120" y="150" text-anchor="middle" fill="#17191A" font-family="'+displayFont+'" font-size="'+numberSize+'" font-weight="900" letter-spacing="-6">'+n+'</text>'+
+   '<g class="ph-stack-art-vector">'+embedded(numberArt(n),'ph-stack-illustration','ph-stack-illustration-vector',8,174,224,150)+'</g>'+
+   '<text x="22" y="329" font-family="'+displayFont+'" font-size="10" letter-spacing="2" fill="#292A26">STACK / '+String(n).padStart(2,'0')+'</text>'+
+   '<text class="ph-index-bottom-vector" x="217" y="322" text-anchor="end" fill="#201C19" font-family="'+displayFont+'" font-size="24" font-weight="900" transform="rotate(180 217 322)">'+n+'</text>';
+  return '<span class="ph-plate ph-number-plate ph-composed-plate" data-rank="'+n+'" style="--rank-accent:'+accent+'" aria-hidden="true">'+faceSvg(main,'ph-number-vector')+'</span>';
  }
  const action=String(c.action||'');
  if(!actions.includes(action))throw Error('invalid action');
- return '<span class="ph-plate ph-action-plate" aria-hidden="true">'+
-  '<span class="ph-action-title">'+action.toUpperCase()+'</span>'+
-  '<span class="ph-action-art">'+actionArt(action)+'</span>'+
-  '<span class="ph-action-rule">'+rules[action]+'</span>'+
-  '<span class="ph-action-index">'+glyph[action]+'</span>'+
-  '</span>';
+ const accent=actionColors[action],lines=actionLines[action];
+ const lineSvg=lines.length===1?
+  '<text class="ph-action-rule-vector" x="120" y="302" text-anchor="middle" fill="#FFF9ED" font-family="'+displayFont+'" font-size="20" font-weight="900" textLength="192" lengthAdjust="spacingAndGlyphs">'+lines[0]+'</text>':
+  '<text class="ph-action-rule-vector" x="120" y="286" text-anchor="middle" fill="#FFF9ED" font-family="'+displayFont+'" font-size="22" font-weight="900">'+lines[0]+'</text>'+
+  '<text class="ph-action-rule-vector" x="120" y="310" text-anchor="middle" fill="#FFF9ED" font-family="'+displayFont+'" font-size="17" font-weight="900" textLength="187" lengthAdjust="spacingAndGlyphs">'+lines[1]+'</text>';
+ const body=paper()+
+  '<desc>'+rules[action]+'</desc>'+
+  '<path d="M0 0H240V19H0Z" fill="'+accent+'"/>'+
+  '<path d="M18 71H222" stroke="'+accent+'" stroke-width="6"/>'+
+  '<text class="ph-action-title-vector" x="120" y="59" text-anchor="middle" fill="#17191A" font-family="'+displayFont+'" font-size="48" font-weight="900" letter-spacing="-1.8">'+action.toUpperCase()+'</text>'+
+  '<g class="ph-action-art-vector">'+embedded(actionArt(action),'ph-illustration','ph-illustration-vector',8,82,224,179)+'</g>'+
+  '<rect x="12" y="267" width="216" height="61" rx="2" fill="#18191A"/>'+
+  '<path d="M12 267H228" stroke="'+accent+'" stroke-width="5"/>'+
+  '<g class="ph-action-long-rule">'+lineSvg+'</g>'+
+  '<text class="ph-action-compact-rule" x="120" y="306" text-anchor="middle" fill="#FFF9ED" font-family="'+displayFont+'" font-size="26" font-weight="900">'+actionCompact[action]+'</text>'+
+  '<path d="M18 337H222" stroke="'+accent+'" stroke-width="2"/>';
+ return '<span class="ph-plate ph-action-plate ph-composed-plate" aria-hidden="true">'+faceSvg(body,'ph-action-vector')+'</span>';
 }
 function back(){
- return '<span class="ph-plate ph-back-plate" aria-hidden="true">'+
-  '<span class="ph-back-frame"></span>'+
-  '<span class="ph-back-title">STACK</span>'+
-  '<svg class="ph-back-stack" viewBox="0 0 140 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
-  slab(18,18,98,0,12)+slab(24,37,88,2,12)+slab(18,56,98,1,12)+slab(24,75,88,3,12)+'</svg>'+
-  '<span class="ph-back-subtitle">THE CARD GAME</span></span>';
+ const backBase='<rect width="240" height="344" fill="#17191A"/>'+
+  '<path d="M8 8H232V336H8Z" fill="none" stroke="#F6F0E3" stroke-width="2"/>'+
+  '<path d="M16 16H224V328H16Z" fill="none" stroke="#D44630" stroke-width="3"/>'+
+  '<path d="M23 23H217V321H23Z" fill="none" stroke="#F6F0E3" stroke-opacity=".5" stroke-width="1"/>'+
+  '<path d="M30 123H210M30 221H210" stroke="#F6F0E3" stroke-opacity=".5" stroke-width="2"/>'+
+  '<text class="ph-back-title-vector" x="120" y="85" text-anchor="middle" font-family="'+displayFont+'" font-size="58" font-weight="900" letter-spacing="-3" fill="#F6F0E3">STACK</text>'+
+  '<text x="120" y="85" text-anchor="middle" font-family="'+displayFont+'" font-size="58" font-weight="900" letter-spacing="-3" fill="#F6F0E3" transform="rotate(180 120 172)">STACK</text>'+
+  '<g class="ph-back-stack-vector">'+
+   slab(44,134,144,0,12)+slab(50,153,132,2,12)+
+   '<g transform="rotate(180 120 172)">'+slab(44,134,144,0,12)+slab(50,153,132,2,12)+'</g>'+
+  '</g>'+
+  '<path d="M26 111H214M26 233H214" stroke="#D44630" stroke-width="5"/>'+
+  '<circle cx="120" cy="172" r="5" fill="#F6F0E3"/>'+
+  '<path d="M23 23l16 0M201 321h16" stroke="#F6F0E3" stroke-width="3"/>';
+ return '<span class="ph-plate ph-back-plate ph-composed-plate" aria-hidden="true">'+faceSvg(backBase,'ph-back-vector')+'</span>';
 }
 function mini(c){
  if(!c)return '<span class="mini back ph-mini ph-mini-back" aria-hidden="true">'+back()+'</span>';
