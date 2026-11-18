@@ -80,6 +80,7 @@ function updateMotionButton(){
  motionButton.disabled=Boolean(motion.matches);
  motionButton.setAttribute('aria-label',label+(motion.matches?'':'. Change animation speed.'));
  document.body?.classList.toggle('pilehead-quick-motion',motionMode==='quick');
+ document.body?.classList.toggle('pilehead-motion-off',motionMode==='off'||Boolean(motion.matches));
 }
 function handLayout(n,rowWidth,cardWidth,mobile){
  const budget=Math.max(0,rowWidth-24),maxStep=mobile?(n<=4?Math.min(cardWidth*.94,94):54):80,minStep=mobile?28:38;
@@ -407,7 +408,7 @@ function playCards(table,ev,ownSeat,options={}){
   const from=i>=total-bridge?placeFor(table,ev.seat,'up',ownSeat):source;
   moveCard(table,from,options.to||pile,ev,{
    startPoint:fromTouch?.points?.[i]||null,
-   index:i,hidden:(ev.source==='down'||ev.seat!==ownSeat)&&i===0,delay:i*(fast?52:67),
+   index:i,hidden:!options.fade&&(ev.source==='down'||ev.seat!==ownSeat)&&i===0,delay:i*(fast?52:67),
    duration:fast?300:410,rotate:(i-(total-1)/2)*7,
    spreadX:(i-(total-1)/2)*7,spreadY:-i*3,
    fade:Boolean(options.fade),via:options.via||null,reveal:(ev.source==='down'||ev.seat!==ownSeat)&&i===0&&!options.fade
@@ -508,7 +509,7 @@ function firstDeal(table,ownSeat){
  const recipients=[...opponents.map(el=>({el,own:false})),
   {el:$('.hand-area .card-row.hand',table),own:true}].filter(x=>x.el);
  recipients.forEach((r,seat)=>{
-  for(let i=0;i<(r.own?3:2);i++)moveCard(table,deck,r.el,{type:'deal'},{
+  for(let i=0;i<3;i++)moveCard(table,deck,r.el,{type:'deal'},{
    hidden:true,delay:seat*95+i*80,duration:530,index:i,
    spreadX:(i-1)*19,spreadY:-i*5
   });

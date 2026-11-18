@@ -99,7 +99,7 @@ check('first deal travels from the deck to the human hand and opponent seat',()=
  const s=stage();
  s.sync({gameKey:'round-A',identity:'round-A:0',moveNo:0,ownSeat:0,events:[]});
  const cards=s.movements.filter(x=>x.kind==='animate');
- assert.ok(cards.length>=5);
+ assert.ok(cards.length>=6,'Three cards should travel to every player, not just two');
  assert.ok(cards.every(x=>x.clazz.includes('ph-back')));
 });
 check('batched place, draw, pickup and DUMP animate sequentially',()=>{
@@ -154,6 +154,7 @@ check('motion presets support quick and off without breaking gameplay',()=>{
  assert.ok(fullAnim&&quickAnim);
  assert.ok(quickAnim.options.duration<fullAnim.options.duration);
  assert.equal(off.movements.filter(x=>x.kind==='animate').length,0);
+ assert.match(read('dist/pilehead/immersive.css'),/pilehead-motion-off/);
 });
 check('new round cancels stale flight and burn callbacks',()=>{
  const s=stage();

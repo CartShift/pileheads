@@ -1745,3 +1745,18 @@ body.pilehead-playing .top .links .motion-toggle:disabled{opacity:.7;cursor:not-
  .pilehead-was-skipped{transition:none!important}
  .pilehead-cue-fixed{animation:none!important}
 }
+
+/* Explicit Motion Off also disables decorative CSS animation, not only JS flights.
+   Focus, selection, legal actions and accessible status text remain functional. */
+body.pilehead-motion-off .table .card,
+body.pilehead-motion-off .table .stack,
+body.pilehead-motion-off .table .pilehead-cue,
+body.pilehead-motion-off .table .zone .card,
+body.pilehead-motion-off .table.scene-entering .card,
+body.pilehead-motion-off .toolbar .slam,
+body.pilehead-motion-off .result-confetti i,
+body.pilehead-motion-off .pilehead-result-panel,
+body.pilehead-motion-off .pilehead-result-panel .result-wreath{
+ animation:none!important;transition:none!important;
+}
+body.pilehead-motion-off .result-confetti{display:none!important}
