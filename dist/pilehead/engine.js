@@ -2,7 +2,7 @@
    Rules v1.2: 40 ordinary numbers (1–10 x4) + 12 independent actions; identical action cards may be played together.
    All information lives in state; rendering never determines legality. */
 (function(root){'use strict';
-const VERSION='pilehead-1.4.0',DECK_SIZE=52,ACTIONS={reset:2,ghost:2,under:2,skip:2,burn:2,dump:2};
+const VERSION='pilehead-1.5.0',DECK_SIZE=52,ACTIONS={reset:2,ghost:2,under:2,skip:2,burn:2,dump:2};
 function assert(ok,message){if(!ok)throw new Error(message)}
 function random(g){g.rng=(Math.imul(g.rng,1664525)+1013904223)>>>0;return g.rng/4294967296}
 function shuffle(a,g){for(let i=a.length-1;i>0;i--){let j=Math.floor(random(g)*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -84,7 +84,10 @@ function finalHandBridge(g,seat){
  return matching.length?{hand:p.hand,up:matching,kind:first.kind,rank:first.rank,action:first.action}:null;
 }
 function options(g,seat){if(g.phase!=='play'||g.pendingDump||g.turn!==seat)return[];
- const p=g.people[seat],s=stage(g,seat);if(s==='down')return p.down.map(c=>({type:'play',ids:[c.id],source:'down'}));
+ const p=g.people[seat],s=stage(g,seat);if(s==='down')return [
+  ...p.down.map(c=>({type:'play',ids:[c.id],source:'down'})),
+  ...(g.pile.length?[{type:'take'}]:[])
+ ];
  const cards=p[s],legal=cards.filter(c=>isLegal(g,c)),opts=[];
  // Every subset is legal, not only the first copy of a rank or action.
  // In particular, the second identical action card must be playable alone.
@@ -110,7 +113,9 @@ function options(g,seat){if(g.phase!=='play'||g.pendingDump||g.turn!==seat)retur
     opts.push({type:'play',source:'hand',ids:[...bridge.hand,...extra].map(c=>c.id)});
   }
  }
- if(!opts.length&&g.pile.length)opts.push({type:'take'});
+ // Taking the existing pile is a strategic option on every normal turn,
+ // including when the player could legally play a card.
+ if(g.pile.length)opts.push({type:'take'});
  return opts;
 }
 function topRun(g){let n=0,rank=null;for(let i=g.pile.length-1;i>=0;i--){
@@ -170,7 +175,7 @@ function move(g,seat,choice){
  }else assert(g.turn===seat,'Not your turn');
  if(!isFollowup)g.followUp=null;
  if(choice.type==='take'){
-  assert(options(g,seat).some(o=>o.type==='take'),'Pickup only when no legal move');
+  assert(options(g,seat).some(o=>o.type==='take'),'Can only pick up a nonempty pile on your turn');
   return take(g,seat);
  }
  const p=g.people[seat],s=stage(g,seat);
@@ -309,7 +314,12 @@ function choose(g,seat,style='greedy'){
   // pair helps empty the hand but does not multiply SKIP/DUMP/BURN effects.
   return (style==='saver'?power-15:power)+(o.ids.length-1)*9;
  };
- if(style==='random')return withBotTarget(g,seat,opts[Math.floor(random(g)*opts.length)]);
+ if(style==='random'){
+  // Keep existing bot behavior: a random bot doesn't randomly surrender an
+  // otherwise playable turn just because human players now have that choice.
+  const playable=opts.filter(o=>o.type!=='take'),choices=playable.length?playable:opts;
+  return withBotTarget(g,seat,choices[Math.floor(random(g)*choices.length)]);
+ }
  return withBotTarget(g,seat,opts.slice().sort((a,b)=>score(b)-score(a))[0]);
 }
 function autoSlam(g,style='greedy',exclude=-1){if(g.phase!=='play'||!g.pile.length)return null;
