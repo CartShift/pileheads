@@ -43,7 +43,7 @@ check('six special cards each have a large unique inline illustration and rule',
   assert.ok(html.includes('viewBox="0 0 160 142"'));
   assert.equal(A.face({kind:'action',action,id:12}),A.face({kind:'action',action,id:88}),
     'action copies must be visually identical');
-  svg.add(html.match(/<svg class="ph-illustration"[\s\S]*?<\/svg>/)[0]);
+  svg.add(A.art(action)); // Authoritative SVG; face nests a scaled, class-isolated copy.
  }
  assert.equal(svg.size,6);assert.throws(()=>A.face({kind:'action',action:'joker'}));
 });
