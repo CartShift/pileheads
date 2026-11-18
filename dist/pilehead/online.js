@@ -79,9 +79,13 @@ async function doAction(payload){
    if(payload.action==='decline')notice='Passed on SNAP. Next player may continue.';
   networkError='';
  }catch(e){
-  notice=setMessage(e.message);
-  if(e.message==='stale_revision')await refresh(true);
-  if(e.message==='online_not_configured')networkError=notice;
+  if(permanentRoomErrors.has(e.message)){
+   roomIssue=e.message;notice='';networkError='';
+  }else{
+   notice=setMessage(e.message);
+   if(e.message==='stale_revision')await refresh(true);
+   if(e.message==='online_not_configured')networkError=notice;
+  }
  }finally{busy=false;render()}
 }
 async function refresh(quiet=false){
@@ -94,9 +98,15 @@ async function refresh(quiet=false){
   else {const hadError=!!networkError;networkError='';if(hadError)render()}
   reconnecting=false;
  }catch(e){
-  const hadError=!!networkError;
-  networkError=setMessage(e.message);
-  if(!hadError||!quiet||!data)render();
+  if(permanentRoomErrors.has(e.message)){
+   const changed=roomIssue!==e.message;
+   roomIssue=e.message;notice='';networkError='';
+   if(changed||!quiet||!data)render();
+  }else{
+   const hadError=!!networkError;
+   networkError=setMessage(e.message);roomIssue='';
+   if(!hadError||!quiet||!data)render();
+  }
  }finally{polling=false}
 }
 function displayName(seat){
