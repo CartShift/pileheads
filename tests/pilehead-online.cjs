@@ -135,18 +135,19 @@ async function run(){
  assert.equal(chosen.status,200,JSON.stringify(chosen));
  assert.equal(chosen.data.game.events.at(-1).target,2);
  assert.equal(chosen.data.game.turn,0);
- assert.equal(cg.people[2].hand.length,chosenBefore+1);
- assert.equal(cg.people[1].hand.length,unselectedBefore);
- Engine.invariant(cg);checks++;
+ const chosenGame=rooms.get(choiceCode).state;
+ assert.equal(chosenGame.people[2].hand.length,chosenBefore+1);
+ assert.equal(chosenGame.people[1].hand.length,unselectedBefore);
+ Engine.invariant(chosenGame);checks++;
 
  // A face-down DUMP is revealed before choosing a victim; other moves are blocked meanwhile.
- const blindAreas=[cg.stock,cg.pile,cg.ashes,...cg.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const blindAreas=[chosenGame.stock,chosenGame.pile,chosenGame.ashes,...chosenGame.people.flatMap(p=>[p.hand,p.up,p.down])];
  const secondSource=blindAreas.find(z=>z.some(c=>c.action==='dump')),secondIndex=secondSource.findIndex(c=>c.action==='dump');
- const secondDump=secondSource[secondIndex],blindOriginal=cg.people[0].down[0];
- secondSource[secondIndex]=blindOriginal;cg.people[0].down[0]=secondDump;
- cg.ashes.push(...cg.people[0].hand.splice(0),...cg.people[0].up.splice(0),...cg.stock.splice(0));
- const numbered=cg.ashes.findIndex(c=>c.kind==='number');
- cg.pile.push(cg.ashes.splice(numbered,1)[0]);
+ const secondDump=secondSource[secondIndex],blindOriginal=chosenGame.people[0].down[0];
+ secondSource[secondIndex]=blindOriginal;chosenGame.people[0].down[0]=secondDump;
+ chosenGame.ashes.push(...chosenGame.people[0].hand.splice(0),...chosenGame.people[0].up.splice(0),...chosenGame.stock.splice(0));
+ const numbered=chosenGame.ashes.findIndex(c=>c.kind==='number');
+ chosenGame.pile.push(chosenGame.ashes.splice(numbered,1)[0]);
  Engine.invariant(cg);
  const blind=await request({action:'move',code:choiceCode,revision:3,
   move:{type:'play',source:'down',index:0}},choiceToken);
