@@ -118,13 +118,23 @@ function setupView(){if(!g)return '<section class="setup panel"><div class="eyeb
 }
 
 function tableHUD(){
- const viewer=viewSeat(),layer=currentStage(),who=g.phase==='over'?'ROUND COMPLETE':isTurn()?'YOUR TURN':playerName(g.turn)+' TO PLAY';
- const layerText=layer==='hand'?'HAND':layer==='up'?'FACE-UP CARDS':layer==='down'?'BLIND CARDS':'FINISHED';
- return '<div class="pilehead-table-hud '+(isTurn()?'is-my-turn':'')+'" role="status">'+
- '<span class="hud-status"><i class="hud-dot" aria-hidden="true"></i>'+who+'</span>'+
- '<span class="hud-meta"><span>'+layerText+'</span><span>'+g.pile.length+' IN PILE</span>'+
- (E.slamOptions(g,viewer).length?'<span>SLAM READY</span>':'')+
- (E.followUpOptions(g,viewer).length?'<span class="hud-snap">SNAP READY · MATCHING DRAW</span>':'')+'</span></div>';
+ const viewer=viewSeat(),layer=currentStage(),turn=isTurn(),can=turn&&!covered;
+ const who=g.phase==='over'?'ROUND COMPLETE':can?'YOUR TURN':playerName(g.turn)+' TO PLAY';
+ const guide=g.phase==='over'?'Round finished · view results':
+ E.followUpOptions(g,viewer).length?'SNAP now or let the next player continue':
+ E.slamOptions(g,viewer).length?'SLAM available · interrupt any turn':
+ can?(layer==='down'?'Choose one blind card to flip':
+  layer==='up'?'Choose a face-up card':
+  selection.length?'Confirm your selected cards':'Tap a card to select matching copies'):
+ 'Waiting for '+playerName(g.turn)+' · watch for SLAM';
+ const rule=g.limit?.type==='under'?'NUMBERS 1–4':
+  g.limit?.type==='min'?'NUMBERS '+g.limit.value+'+':'ANY NUMBER';
+ return '<div class="pilehead-table-hud '+(can?'is-my-turn':'is-waiting')+'" aria-label="Table status">'+
+  '<div class="hud-main"><span class="hud-status"><i class="hud-dot" aria-hidden="true"></i>'+who+'</span>'+
+  '<span class="hud-guidance">'+guide+'</span></div>'+
+  '<div class="hud-meta"><span>'+('ROUND 1')+'</span><span class="hud-rule">'+rule+'</span>'+
+  (E.slamOptions(g,viewer).length?'<span class="hud-urgent">SLAM READY</span>':'')+
+  (E.followUpOptions(g,viewer).length?'<span class="hud-urgent">SNAP READY</span>':'')+'</div></div>';
 }
 function tableActions({turn,legal,pick,slams,snap,stage}){
  let buttons='';
@@ -140,7 +150,7 @@ function tableActions({turn,legal,pick,slams,snap,stage}){
       ' <span aria-hidden="true">↗</span></button>';
    }
   }
-  if(turn&&pick)buttons+='<button class="action secondary" data-do="take">Take pile</button>';
+  if(turn&&pick)buttons+='<button class="action secondary" data-do="take">Take pile · '+g.pile.length+'</button>';
   if(mode==='hotseat'&&g.slamOpen)buttons+='<button class="action secondary" data-do="challenge">Other player SLAM</button>';
   if(!buttons){
    const message=turn?(stage==='down'?'Choose a blind card':selection.length?'Choose a legal combination':'Select a card to play'):
@@ -170,7 +180,8 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  (notice?'<div class="message" role="status" aria-live="polite">'+notice+'</div>':'')+
  '<div class="meta"><span>Moves <strong>'+g.moves+'</strong></span><span>Draw stock <strong>'+g.stock.length+'</strong></span>'+
  '<span>Burned <strong>'+g.ashes.length+'</strong></span><span>Pickups <strong>'+g.people.reduce((n,x)=>n+x.pickups,0)+'</strong></span></div>'+
- '<div class="event-list" aria-label="Recent moves">'+g.events.slice(-8).reverse().map(e=>'<span class="event">'+eventName(e)+'</span>').join('')+'</div>';
+ '<details class="move-history"><summary>Move history <span>'+g.moves+' moves</span></summary>'+
+      '<div class="event-list" role="list" aria-label="Recent moves">'+g.events.slice(-8).reverse().map(e=>'<span class="event" role="listitem">'+eventName(e)+'</span>').join('')+'</div></details>';
 }
 function endScreen(){
  if(!g||g.phase!=='over'||endDismissed)return '';
@@ -197,7 +208,15 @@ function overlay(){
  '</div></div>';
 }
 function render(){
+ const focused=app.contains(document.activeElement)?document.activeElement:null;
+ const key=focused?.dataset?.card?{type:'card',id:focused.dataset.card,source:focused.dataset.source}:
+  focused?.dataset?.do?{type:'action',name:focused.dataset.do}:null;
  app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay()+endScreen();
+ if(key){
+  const next=key.type==='card'?app.querySelector('[data-card="'+key.id+'"][data-source="'+key.source+'"]'):
+   app.querySelector('[data-do="'+key.name+'"]');
+  try{next?.focus({preventScroll:true})}catch{}
+ }
  window.PileheadTableFX?.sync({identity:g?g.seed+':'+g.moves:null,gameKey:g?'local:'+g.seed:null,
   event:g?.events?.[g.events.length-1]||null,events:g?.events||[],
   ownSeat:g?viewSeat():0,active:g?isTurn()&&!covered:false,turn:g?.turn??null,
