@@ -90,11 +90,12 @@ async function refresh(quiet=false){
   const next=await api({action:'state',code:room});
   if(!data||next.revision!==data.revision||next.members.length!==data.members.length||
      next.game.followup?.length!==data.game.followup?.length||reconnecting)updateState(next);
-  else networkError='';
+  else {const hadError=!!networkError;networkError='';if(hadError)render()}
   reconnecting=false;
  }catch(e){
+  const hadError=!!networkError;
   networkError=setMessage(e.message);
-  if(!quiet||!data)render();
+  if(!hadError||!quiet||!data)render();
  }finally{polling=false}
 }
 function displayName(seat){
@@ -189,7 +190,7 @@ function events(){return data.game.events.slice(-7).reverse().map(e=>{
  const n=safe(displayName(e.seat));let s=e.type==='take'?'picked up '+e.count+' cards':e.type==='blind-fail'?'picked up after a blind flip':
  e.type==='followup'?'SNAP! threw the freshly drawn matching '+e.rank:
  e.action==='dump'?'burned DUMP; '+displayName(e.target)+' took '+e.takenCount+' pile cards':e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
- return '<span class="event">'+n+' '+safe(s)+'</span>';
+ return '<span class="event" role="listitem">'+n+' '+safe(s)+'</span>';
  }).join('')}
 function lobby(){
  const joined=data.members.length,humans=data.humanCount||data.capacity,bots=data.game.botSeats||[],me=current(),ready=data.game.setupReady||[];
@@ -214,15 +215,25 @@ function lobby(){
 }
 
 function tableHUD(){
- const g=data.game;
- const layer=stageNow(),layerText=layer==='hand'?'HAND':layer==='up'?'FACE-UP CARDS':layer==='down'?'BLIND CARDS':'FINISHED';
- const who=g.phase==='over'?'ROUND COMPLETE':active()?'YOUR TURN':displayName(g.turn)+' TO PLAY';
- return '<div class="pilehead-table-hud '+(active()?'is-my-turn':'')+'" role="status">'+
- '<span class="hud-status"><i class="hud-dot" aria-hidden="true"></i>'+safe(who)+'</span>'+
- '<span class="hud-meta"><span>ROUND '+(g.round||1)+'</span><span>'+layerText+'</span><span>'+g.pile.length+' IN PILE</span>'+
- (g.slam?.length?'<span>SLAM READY</span>':'')+
- (g.followup?.length?'<span class="hud-snap">SNAP '+g.followup[0].ids.length+' MATCHING CARD'+(g.followup[0].ids.length>1?'S':'')+'</span>':'')+
- (snapBlocked()?'<span class="hud-snap">SNAP REACTION WINDOW</span>':'')+'</span></div>';
+ const g=data.game,can=active(),layer=stageNow();
+ const who=g.phase==='over'?'ROUND COMPLETE':can?'YOUR TURN':displayName(g.turn)+' TURN';
+ const guide=g.phase==='over'?'Round finished · view results':
+  g.followup?.length?'SNAP now, or let the next player continue':
+  g.slam?.length?'SLAM available · interrupt any turn':
+  can?(layer==='down'?'Choose one blind card to flip':
+   layer==='up'?'Choose a face-up card':
+   selection.length?(legalMove()?'Ready to place '+selection.length+' selected card'+(selection.length===1?'':'s'):'Choose a legal combination'):
+   'Tap a card to select matching copies'):
+  snapBlocked()?'Waiting for matching-draw reaction':
+   'Waiting for '+displayName(g.turn)+' · watch for SLAM';
+ const rule=g.limit?.type==='under'?'NUMBERS 1–4':
+  g.limit?.type==='min'?'NUMBERS '+g.limit.value+'+':'ANY NUMBER';
+ return '<div class="pilehead-table-hud '+(can?'is-my-turn':'is-waiting')+'" aria-label="Table status">'+
+  '<div class="hud-main"><span class="hud-status"><i class="hud-dot" aria-hidden="true"></i>'+safe(who)+'</span>'+
+  '<span class="hud-guidance">'+safe(guide)+'</span></div>'+
+  '<div class="hud-meta"><span>ROUND '+(g.round||1)+'</span><span class="hud-rule">'+safe(rule)+'</span>'+
+  (g.slam?.length?'<span class="hud-urgent">SLAM READY</span>':'')+
+  (g.followup?.length?'<span class="hud-urgent">SNAP READY</span>':'')+'</div></div>';
 }
 function tableActions(){
  const g=data.game,can=active(),legal=legalMove(),take=can&&g.legal?.some(m=>m.type==='take');
@@ -238,7 +249,7 @@ function tableActions(){
     (burn?'BURN PILE':'Play '+selection.length+' card'+(selection.length===1?'':'s'))+
     ' <span aria-hidden="true">↗</span></button>';
   }
-  if(take)buttons+='<button class="action secondary" data-do="take" '+(busy?'disabled':'')+'>Take pile</button>';
+  if(take)buttons+='<button class="action secondary" data-do="take" '+(busy?'disabled':'')+'>Take pile · '+g.pile.length+'</button>';
   if(!buttons){
    const message=can?(selection.length?'Choose a legal combination':'Select a card to play'):
     (snapBlocked()?'SNAP in progress':displayName(g.turn)+' is playing');
@@ -251,8 +262,8 @@ function tableActions(){
 function playView(){
  const p=current(),g=data.game,can=active(),source=stageNow(),legal=legalMove(),canSlam=g.slam?.length>0;
  return '<div class="pitch"><h1>'+safe(statusTitle())+'</h1><p>ROUND '+(g.round||1)+' · ROOM '+safe(room)+' · '+(data.humanCount||data.capacity)+' humans · '+(data.botCount||0)+' bots</p></div>'+
-  '<div class="online-room-tools"><span><span class="online-pulse"></span> Room '+safe(room)+'</span>'+
-  '<button class="action secondary" data-do="copy">Copy invitation</button><span>Seat '+(data.me+1)+': '+safe(displayName(data.me))+'</span></div>'+tableHUD()+
+  '<div class="online-room-tools"><span class="room-identity"><span class="online-pulse" aria-hidden="true"></span> Room <strong>'+safe(room)+'</strong></span>'+
+  '<button class="action secondary room-invite" data-do="copy" aria-label="Copy room invitation link">Copy invite</button><span class="my-seat">Seat '+(data.me+1)+' · '+safe(displayName(data.me))+'</span></div>'+tableHUD()+
   '<section class="table" aria-label="Live physical PILEHEAD table">'+opponentCards()+stack()+upDown()+
   '<div class="hand-area"><div class="area-label"><span>YOUR HAND <b>· '+p.handCount+'</b></span><span class="hand-controls">'+
  (selection.length?'<button type="button" class="hand-clear-button" data-do="clear-selection" aria-label="Clear selected cards">'+selection.length+' selected · Clear</button>':'')+
@@ -264,7 +275,8 @@ function playView(){
  (selectedEffect()||lastEffect())+tableActions()+
   (notice?'<div class="message" role="status" aria-live="polite">'+safe(notice)+'</div>':'')+
   '<div class="meta"><span>Move '+g.moves+'</span><span>Draw '+g.stockCount+'</span><span>Ashes '+g.ashesCount+'</span><span>Synced · rev '+data.revision+'</span></div>'+
-  '<div class="event-list">'+events()+'</div>';
+  '<details class="move-history"><summary>Move history <span>'+g.moves+' moves</span></summary>'+
+   '<div class="event-list" role="list">'+events()+'</div></details>';
 }
 function endScreen(){
  if(!data||data.game.phase!=='over'||endDismissed)return '';
@@ -300,10 +312,24 @@ function dumpTargetOverlay(){
   (dumpDraft?'<button class="action secondary" data-do="cancel-dump">Cancel</button>':'')+'</div></div>';
 }
 function render(){
+ const focused=root.contains(document.activeElement)?document.activeElement:null;
+ const historyOpen=!!root.querySelector('.move-history')?.open;
+ const key=focused?.tagName==='SUMMARY'&&focused.parentElement?.classList.contains('move-history')?{type:'history'}:
+  focused?.dataset?.card?{type:'card',id:focused.dataset.card,source:focused.dataset.source}:
+  focused?.dataset?.do?{type:'action',name:focused.dataset.do}:
+  focused?.id==='online-name'?{type:'name'}:null;
  root.innerHTML='<div class="online-layout">'+(!data?welcome():data.game.phase==='setup'?lobby():playView())+
-  ((notice||networkError)&&data?.game.phase==='setup'?'<div class="message" role="status">'+safe(notice||networkError)+'</div>':'')+
-  (networkError?'<p class="online-error" role="alert">'+safe(networkError)+'</p>':'')+
-  '</div>'+dumpTargetOverlay()+endScreen();
+   (notice&&data?.game.phase==='setup'?'<div class="message" role="status">'+safe(notice)+'</div>':'')+
+   (networkError?'<div class="connection-banner" role="alert"><strong>Connection interrupted</strong>'+
+    '<span>'+safe(networkError)+'</span><button class="action secondary" type="button" data-do="retry">Retry connection</button></div>':'')+
+   '</div>'+dumpTargetOverlay()+endScreen();
+ if(historyOpen&&root.querySelector('.move-history'))root.querySelector('.move-history').open=true;
+ if(key){
+  const next=key.type==='history'?root.querySelector('.move-history summary'):
+   key.type==='card'?root.querySelector('[data-card="'+key.id+'"][data-source="'+key.source+'"]'):
+   key.type==='action'?root.querySelector('[data-do="'+key.name+'"]'):root.querySelector('#online-name');
+  try{next?.focus({preventScroll:true})}catch{}
+ }
  const announcer=document.getElementById('pilehead-announcer');
  if(announcer&&data){
   const key=room+':'+data.revision+':'+data.game.phase;
@@ -368,7 +394,11 @@ root.addEventListener('click',async e=>{
    const opts=action==='create'?{humans,bots,name:nick}:{code:room,name:nick};
   await doAction({action,...opts});return;
  }
- if(action==='dismiss-result'){endDismissed=true;render();return}
+ if(action==='retry'){
+   if(!room||!session){location.reload();return}
+   networkError='';await refresh(false);return
+  }
+  if(action==='dismiss-result'){endDismissed=true;render();return}
  if(action==='rematch'){endDismissed=false;await command('rematch');return}
   if(action==='ready'){swapCard=null;await command('ready',{ready:!data?.game.setupReady?.[data.me]});}
  if(action==='start')await command('start');
