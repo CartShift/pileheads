@@ -55,7 +55,8 @@ function numberArt(n){
   const offset=[0,5,-4,3,-2,7,-3,2,-1,4][i];
   const width=n<=3?112:n<=6?117:119;
   const x=17+offset;
-  const y=128-(n-1-i)*step;
+  const baseline=n<=2?116:n<=4?121:126;
+  const y=baseline-(n-1-i)*step;
   art+=slab(x,y,width,recipe[i],thickness);
  }
  const tally=n===1?'<path d="M12 79h27M12 87h27M12 95h27M12 103h27" stroke="'+C.ink+'" stroke-width="2.3"/>':'';
