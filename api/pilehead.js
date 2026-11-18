@@ -10,8 +10,22 @@ const secret=()=>crypto.randomBytes(32).toString('base64url');
 function code(x){if(typeof x!=='string'||!/^[A-HJ-NP-Z2-9]{8}$/.test(x.toUpperCase()))fail(400,'invalid_code');return x.toUpperCase()}
 function makeCode(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from(crypto.randomBytes(8),n=>a[n%a.length]).join('')}
 function name(v){const x=typeof v==='string'?v.trim().replace(/[\u0000-\u001f\u007f<>]/g,'').slice(0,24):'';if(!x)fail(400,'name_required');return x}
+// The 1.3 update changed the DUMP target rule but not its 52-card deck.
+ // Legacy 1.2 games remain playable without rewriting stored state.
+ // Validate the complete card identity and conservation before accepting them.
+function compatibleLegacy(g){
+ if(g?.version!=='pilehead-1.2.0')return false;
+ try{
+  E.invariant(g);
+  if(!['setup','play','over'].includes(g.phase)||g.people.length<2||g.people.length>5)return false;
+  const expected=E.deck(),cards=[...g.stock,...g.pile,...g.ashes,
+   ...g.people.flatMap(p=>[...p.hand,...p.up,...p.down])];
+  return cards.every(c=>{const reference=expected[c.id];
+   return reference&&c.kind===reference.kind&&c.rank===reference.rank&&c.action===reference.action});
+ }catch{return false}
+}
 async function load(id){const r=await query('SELECT code,capacity,revision,status,state,expires_at FROM pilehead_rooms WHERE code=$1',[id]);if(!r[0])fail(404,'room_not_found');if(new Date(r[0].expires_at)<=new Date())fail(410,'room_expired');
- if(r[0].state?.version!==E.VERSION)fail(409,'room_rules_changed');
+ if(r[0].state?.version!==E.VERSION&&!compatibleLegacy(r[0].state))fail(409,'room_rules_changed');
  return r[0]}
 async function quota(req,action,max){const ip=String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'?').split(',')[0].slice(0,100);
  const key=h([action,Math.floor(Date.now()/3600000),ip,process.env.PILEHEAD_DATABASE_URL].join('|'));
@@ -31,6 +45,7 @@ function freshGame({players,humans,bots,round=1}){
  return game;
 }
 function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCount:g.stock.length,
+  rulesVersion:g.version,
  round:g.round||1,humanCount:humanCount(g),botSeats:botSeats(g),
  snapUntil:g.followUp?.expiresAt||null,snapSeat:g.followUp?.seat??null,
  botFollowupReady:botSeats(g).some(bot=>E.followUpOptions(g,bot).length>0),

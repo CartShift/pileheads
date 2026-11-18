@@ -165,7 +165,11 @@ function move(g,seat,choice){
  }
  const isDump=choice.type==='play'&&cards[0]?.kind==='action'&&cards[0]?.action==='dump';
  const validTargets=isDump?dumpTargets(g,seat):[];
- const selectedTarget=choice.target===undefined&&validTargets.length===1?validTargets[0]:choice.target;
+ // Existing 1.2 rooms must finish with the rules they started with:
+ // DUMP automatically targets the next active player. New 1.3 rooms can choose.
+ const legacyDump=g.version==='pilehead-1.2.0';
+ const selectedTarget=legacyDump?next(g,seat):
+  choice.target===undefined&&validTargets.length===1?validTargets[0]:choice.target;
  if(isDump&&selectedTarget!==undefined)assert(validTargets.includes(selectedTarget),'Invalid DUMP target');
  if(isDump&&selectedTarget===undefined&&s!=='down')assert(false,'Choose a DUMP target');
  if(!isDump&&choice.target!==undefined)assert(false,'Unexpected target');
