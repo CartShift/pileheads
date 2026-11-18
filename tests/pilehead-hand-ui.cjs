@@ -11,10 +11,10 @@ const env={
 };
 new vm.Script(fx).runInNewContext(env);
 const layout=env.window.PileheadTableFX.handLayout;
-check('fan measures cards and fits 8 on a narrow phone without horizontal page movement',()=>{
- const x=layout(8,320,72,true);assert.equal(x.fits,true);
- assert.ok(x.span<=296,'8 cards should fit within the 296px usable rail');
- assert.ok(x.overlap<0,'cards form a real overlapping fan');
+check('8+ cards scroll inside the hand rather than hide their numbers',()=>{
+ const x=layout(8,320,72,true);assert.equal(x.fits,false);
+ assert.ok(x.span>296,'8 card identities need a wider scrollable rail');
+ assert.ok(72+x.overlap>=38,'each card must expose its index');
 });
 check('a pickup of 20 cards scrolls independently instead of becoming unreadably narrow',()=>{
  const x=layout(20,320,72,true);assert.equal(x.fits,false);
