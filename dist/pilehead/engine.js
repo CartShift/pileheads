@@ -175,6 +175,7 @@ function move(g,seat,choice){
   if(card.action==='reset')g.limit=null;
   if(card.action==='under')g.limit={type:'under'};
   if(card.action==='burn')burned=true;
+  if(card.action==='skip')forcedTarget=next(g,seat);
   // DUMP has already forced the following player to collect the pile.
   // GHOST and SKIP preserve the active numeric/UNDER restriction.
  }else{
