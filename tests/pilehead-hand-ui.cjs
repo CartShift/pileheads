@@ -83,4 +83,15 @@ check('physical feedback stays accessible and respects reduced motion',()=>{
  assert.match(local,/aria-pressed/);
  assert.match(online,/aria-pressed/);
 });
+
+check('the final CSS disables idle transform tweening and touch hover jitter',()=>{
+ const i=css.lastIndexOf('HAND STABILITY / NOV 2026');
+ assert.ok(i>=0);
+ const layer=css.slice(i);
+ assert.ok(layer.includes('transition-property:box-shadow,filter!important'));
+ assert.ok(layer.includes('animation:none!important'));
+ assert.ok(layer.includes('(hover:none), (pointer:coarse)'));
+ assert.ok(layer.includes(':hover:not(:active)'));
+ assert.ok(i>css.indexOf('animation:ph-paper-pick'));
+});
 console.log('PILEHEAD hand UI: '+checks+' groups passed');
