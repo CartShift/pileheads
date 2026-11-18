@@ -30,13 +30,19 @@ function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
  E.invariant(x.g);g=x.g;mode=x.mode;seats=x.seats;setupSeat=x.setupSeat??0;
  covered=mode==='hotseat'&&g.phase!=='over';challengeOpen=false;notice=x.notice||'';lastMove=x.lastMove||null;return true;
  }catch{return false}}
+// A readable index for overlapped hands. The illustrated card image is untouched.
+const handShortNames=Object.freeze({reset:'RST',ghost:'GHO',under:'UND',skip:'SKP',burn:'BRN',dump:'DMP'});
+function handIndex(c){
+ const label=c.kind==='number'?String(c.rank):handShortNames[c.action];
+ return '<span class="ph-hand-index'+(c.kind==='action'?' ph-hand-index-action':'')+'" aria-hidden="true">'+label+'</span>';
+}
 function card(c,{interactive=false,selected=false,back=false,source='',small=false}={}){
  if(back)return '<button type="button" class="card back ph-card ph-back" '+(interactive?'draggable="true" data-card="'+c.id+'" data-source="'+source+'"':'disabled')+
   ' aria-label="Flip face-down card">'+A.back()+'</button>';
  const action=c.kind==='action',name=action?c.action.toUpperCase():String(c.rank);
  return '<button type="button" class="card ph-card '+(action?'ph-action action-card ':'ph-number ')+(interactive?'playable ':'')+(selected?'selected':'')+
   '" '+(action?'data-action="'+c.action+'" ':'')+(interactive?'draggable="true" data-card="'+c.id+'" data-source="'+source+'"':'disabled')+
-  ' aria-label="'+(action?name+' action: '+A.rules[c.action]:'Number '+c.rank)+'" aria-pressed="'+Boolean(selected)+'">'+A.face(c)+'</button>';
+  ' aria-label="'+(action?name+' action: '+A.rules[c.action]:'Number '+c.rank)+'" aria-pressed="'+Boolean(selected)+'">'+A.face(c)+(source==='hand'?handIndex(c):'')+'</button>';
 }
 function rowCards(cards,source,interact=false){return '<div class="card-row '+(source==='hand'?'hand':'')+'">'+
  (source==='hand'&&g?.phase==='play'?orderedHand(cards):cards).map(c=>card(c,{interactive:interact,selected:selection.includes(c.id),source})).join('')+
