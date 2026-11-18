@@ -40,7 +40,7 @@ assert.match(worker,/'pilehead\/playtest\.html'/,'Sites build must include playt
 assert.match(readme,/Official playtest kit/);
 assert.match(protocol,/Default OFF/,'Experimental rule must not silently affect canonical play');
 assert.match(protocol,/no personal/i,'Playtest scorecard must avoid PII');
-assert.match(design,/frozen 2026-11-18/);
+assert.match(design,/v1\.3, revised 2026-11-18/,'New targeted-DUMP rule supersedes the original playtest freeze');
 assert.match(design,/burn DUMP itself/i,'Canonical design must reflect current DUMP behavior');
 assert.match(design,/independent four/i,'Canonical design must reflect independent SLAM');
 assert.match(design,/LAST-HAND COMBO/);
