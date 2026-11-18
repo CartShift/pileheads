@@ -48,7 +48,7 @@ Find out whether unfamiliar players can learn PILEHEAD, choose to replay it, and
 - `wouldChooseOverShithead`: yes / no / undecided / not compared
 - `notes`: what was confusing, funny, unfair, or a reason not to replay
 
-The printable page exports a local JSON file; **nothing is automatically uploaded**. Collect the downloaded JSON files voluntarily and consolidate them offline.
+No personal data should be collected or entered into the scorecard. The printable page exports a local JSON file; **nothing is automatically uploaded**. Collect the downloaded JSON files voluntarily and consolidate them offline.
 
 ## Hypotheses and decision gates (pre-registered, not universal benchmarks)
 
