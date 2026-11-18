@@ -7,6 +7,7 @@ const html=read('dist/pilehead/index.html');
 const local=read('dist/pilehead/app.js');
 const online=read('dist/pilehead/online.js');
 const raster=read('dist/pilehead/deck-raster.js');
+const rasterCss=read('dist/pilehead/deck-raster.css');
 const workers=read('scripts/build.mjs');
 const vercel=read('scripts/build-vercel.mjs');
 let checks=0;
@@ -41,7 +42,7 @@ check('mobile uses the same accessible navigation menu even before a game starts
 });
 check('raster card art and multiplayer game flow are untouched',()=>{
  assert.match(raster,/assetMode:'raster-sheet'/);
- assert.match(raster,/stack-sheet\.webp/);
+ assert.match(rasterCss,/stack-sheet\.webp/);
  assert.match(online,/data-do="create"/);
  assert.match(online,/data-do="ready"/);
  assert.match(local,/data-do="play"/);
