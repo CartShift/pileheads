@@ -150,7 +150,11 @@ function legalMove(){
  const source=stageNow();
  const exact=data.game.legal.find(o=>o.type==='play'&&o.source===source&&
   Array.isArray(o.ids)&&o.ids.length===selection.length&&o.ids.every(id=>selection.includes(id)));
- return exact?{type:'play',source,ids:selection.slice()}:null;
+ if(!exact)return null;
+ // The engine's bridge move requires the final hand card to be first even
+ // when a player taps the matching face-up card before their hand.
+ const handIds=source==='hand'&&bridgeAvailable()?selection.filter(id=>current().hand?.some(c=>c.id===id)):[];
+ return {type:'play',source,ids:handIds.length?[...handIds,...selection.filter(id=>!handIds.includes(id))]:selection.slice()};
 }
 const effectInfo={
  reset:'RESET lifts the number restriction. Any number can follow.',
@@ -293,6 +297,12 @@ function render(){
 }
 async function command(action,more={}){
  if(!data)return;
+ if(action==='move'&&more.move?.source){
+  window.PileheadTableFX?.captureMove?.({
+   gameKey:room+':round:'+data.game.round,
+   seat:data.me,moveNo:data.game.moves+1,move:more.move
+  });
+ }
  await doAction({action,code:room,revision:data.revision,...more});
 }
 async function play(){const m=legalMove();if(m)await command('move',{move:m});else{notice='That group is not currently legal.';render()}}

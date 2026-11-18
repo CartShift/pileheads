@@ -231,7 +231,14 @@ function startGame(){endDismissed=false;g=E.create({players:seats,seed:Date.now(
 function afterMove(ev){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
  if(mode==='hotseat'&&g.phase!=='over')covered=g.followUp?.seat!==ev.seat;
  render()}
-function perform(choice,seat=viewSeat()){try{const ev=E.move(g,seat,choice);afterMove(ev)}catch(e){notice=e.message;render()}}
+function perform(choice,seat=viewSeat()){
+ try{
+  if(choice?.source)window.PileheadTableFX?.captureMove?.({
+   gameKey:'local:'+g.seed,seat,moveNo:g.moves+1,move:choice
+  });
+  const ev=E.move(g,seat,choice);afterMove(ev)
+ }catch(e){notice=e.message;render()}
+}
 function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat(),p=g.people[seat];
  if(g.phase==='setup'){
   if(swapFrom===null){swapFrom={id,source};selection=[id];render();return}
@@ -265,7 +272,11 @@ function execute(action,button){
  if(action==='cancel-challenge'){challengeOpen=false;render();return}
  if(action==='play'){
   if(!selection.length)return;
-  perform({type:'play',source:currentStage(),ids:selection.slice()});return;
+  const ids=bridgeAvailable()?[
+    ...selection.filter(id=>getPlayer().hand.some(c=>c.id===id)),
+    ...selection.filter(id=>!getPlayer().hand.some(c=>c.id===id))
+   ]:selection.slice();
+   perform({type:'play',source:currentStage(),ids});return;
  }
  if(action==='clear-selection'){selection=[];render();return}
  if(action==='sort'){sortMode=sortMode==='dealt'?'asc':sortMode==='asc'?'desc':'dealt';selection=[];
