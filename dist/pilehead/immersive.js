@@ -264,7 +264,7 @@ function snap(type='play'){
 /* PHYSICAL TABLE DIRECTOR
    Animate only public facts from authoritative move events. A rival's hand is
    represented by card backs; no private card IDs or ranks are inspected. */
-let motionGame=null,observedMove=0,motionQueue=[],motionPlaying=false,motionGeneration=0;
+let motionGame=null,observedMove=0,motionQueue=[],motionPlaying=false,motionGeneration=0,pendingTurn=null;
 let capturedMove=null;
 const motionGhosts=new Set(),motionTimers=new Set();
 function later(fn,delay){
@@ -274,7 +274,7 @@ function later(fn,delay){
  motionTimers.add(timer);return timer;
 }
 function clearMotion(){
- motionGeneration++;motionQueue.length=0;motionPlaying=false;
+ motionGeneration++;motionQueue.length=0;motionPlaying=false;pendingTurn=null;
  for(const timer of motionTimers)clearTimeout(timer);
  motionTimers.clear();
  for(const ghost of motionGhosts)ghost.remove();
@@ -516,8 +516,15 @@ function firstDeal(table,ownSeat){
  cue(table,'CARDS DEALT · PLAY BEGINS');
 }
 function animateQueue(ownSeat){
- if(motionPlaying||!motionQueue.length)return;
- if(!canMove()){motionQueue.length=0;return}
+ if(motionPlaying)return;
+ if(!motionQueue.length){
+  if(pendingTurn){
+   const lastTurn=pendingTurn;pendingTurn=null;
+   turnPulse($('#app .table'),lastTurn.seat,lastTurn.ownSeat);
+  }
+  return;
+ }
+ if(!canMove()){motionQueue.length=0;pendingTurn=null;return}
  const ev=motionQueue.shift(),table=$('#app .table');
  if(!table)return;
  const generation=motionGeneration;
@@ -559,8 +566,8 @@ function sync({event=null,events=[],identity=null,gameKey=null,ownSeat=0,active=
  observedMove=nextMove;
  // Prevent a reconnect after a long pause from replaying dozens of stale moves.
  motionQueue.push(...newEvents.slice(-4));if(motionQueue.length>6)motionQueue.splice(0,motionQueue.length-6);
+ if(turn!==null)pendingTurn={seat:turn,ownSeat};
  animateQueue(ownSeat);
- if(turn!==null&&!motionPlaying)turnPulse(table,turn,ownSeat);
 }
 
 document.addEventListener?.('visibilitychange',()=>{if(document.visibilityState==='hidden')clearMotion()});
