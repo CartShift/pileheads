@@ -49,8 +49,8 @@ check('six special cards each have a large unique inline illustration and rule',
 });
 check('card back is universal and carries the STACK identity',()=>{
  assert.equal(A.back(),A.back());
- assert.match(A.back(),/ph-back-plate/);assert.match(A.back(),/ph-back-title/);
- assert.match(A.back(),/ph-back-stack/);assert.match(A.back(),/ph-back-frame/);
+ assert.match(A.back(),/ph-back-plate/);assert.match(A.back(),/ph-art-back/);
+ assert.match(A.back(),/THE CARD GAME/);
  assert.match(A.back(),/>STACK</);
 });
 check('opponent miniatures use normal ranks and action identities',()=>{
@@ -123,8 +123,8 @@ check('STACK is the visible identity while keeping legacy URLs and logic',()=>{
  assert.match(css,/#f6f0e3/i);
 });
 check('approved infographic rank palettes, colored corners and 3D geometry',()=>{
- const corners=['#D44630','#16658D','#EDB632','#7B813E','#D44630',
-  '#7B813E','#16658D','#EDB632','#16658D','#EDB632'];
+ const corners=['#D34530','#15658C','#F4BA22','#777D38','#D34530',
+  '#777D38','#15658C','#F4BA22','#15658C','#F4BA22'];
  for(let n=1;n<=10;n++){
   const face=A.face({kind:'number',rank:n});
   assert.ok(face.includes('stack-rank-number'),'rank should have a stable graphic identity');
