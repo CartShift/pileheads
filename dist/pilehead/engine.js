@@ -112,7 +112,7 @@ function take(g,seat){
  assert(g.pile.length>0,'Cannot take an empty pile');
  const n=g.pile.length;g.people[seat].hand.push(...g.pile.splice(0));g.people[seat].pickups++;
  g.limit=null;g.slamOpen=false;g.followUp=null;g.moves++;g.turn=next(g,seat);
- const event={type:'take',seat,count:n};g.events.push(event);invariant(g);return event;
+ const event={type:'take',seat,count:n,move:g.moves};g.events.push(event);invariant(g);return event;
 }
 function move(g,seat,choice){
  assert(g.phase==='play','Game is not in progress');
@@ -168,7 +168,7 @@ function move(g,seat,choice){
   g.people[forcedTarget].pickups++;
   g.limit=null;g.slamOpen=false;
  }
- let burned=false,reason=choice.type==='slam'?'slam':isFollowup?'snap':'number';
+ let burned=false,burnedCount=0,reason=choice.type==='slam'?'slam':isFollowup?'snap':'number';
  if(choice.type==='slam'){burned=true}
  else if(card.kind==='action'){
   reason=card.action;
@@ -183,7 +183,7 @@ function move(g,seat,choice){
   if(burned)reason='four';
   else g.slamOpen=true;
  }
- if(burned){g.ashes.push(...g.pile.splice(0));g.limit=null;g.slamOpen=false}
+ if(burned){burnedCount=g.pile.length;g.ashes.push(...g.pile.splice(0));g.limit=null;g.slamOpen=false}
  // Only the cards physically drawn because of this numbered play may be snapped.
  // An opponent's subsequent move invalidates the invitation.
  const freshlyDrawn=[];
@@ -193,8 +193,9 @@ function move(g,seat,choice){
  g.followUp=!burned&&card.kind==='number'?
   (freshlyDrawn.some(c=>c.kind==='number'&&c.rank===card.rank)?
    {seat,rank:card.rank,ids:freshlyDrawn.filter(c=>c.kind==='number'&&c.rank===card.rank).map(c=>c.id)}:null):null;
- g.moves++;const event={type:choice.type,seat,reason,count:cards.length,burned,
-  rank:card.rank??null,action:card.action??null,target:forcedTarget,takenCount:forcedCount,drawnCount:freshlyDrawn.length,bridgeCount:bridge?cards.length-1:0};
+ g.moves++;const event={type:choice.type,seat,source:s,reason,count:cards.length,burned,burnedCount,
+  rank:card.rank??null,action:card.action??null,target:forcedTarget,takenCount:forcedCount,drawnCount:freshlyDrawn.length,bridgeCount:bridge?cards.length-1:0,
+  move:g.moves};
  g.events.push(event);
  const over=finish(g);
  if(!over)g.turn=burned||dump?(!p.out?seat:next(g,seat)):
