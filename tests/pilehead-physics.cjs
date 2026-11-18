@@ -66,6 +66,7 @@ function stage(reduced=false,mode=null){
   '[data-card="12"]':tapped
  };
  table.querySelector=s=>selectors[s]||null;
+ opponent.querySelector=s=>s==='.held-cards'?opponentHand:s==='.mini-cards'?opponentUp:null;
  table.querySelectorAll=s=>s==='.opponent[data-seat]'?[opponent]:[];
  opponents.querySelectorAll=()=>[opponent];
  hand.querySelectorAll=()=>[];
