@@ -1709,3 +1709,39 @@ body.pilehead-playing .table .pilehead-cue{
  .pilehead-impact-particles i{animation:none!important;display:none!important}
  .pilehead-physical-fx{animation:none!important;transition:none!important}
 }
+
+/* Motion presentation control, in the existing table navigation. */
+body.pilehead-playing .top .links .motion-toggle{
+ border-color:#c7a77784;background:#203b32;color:#f5dcaf;
+ min-height:37px;white-space:nowrap;
+}
+body.pilehead-playing .top .links .motion-toggle:focus-visible{
+ outline:3px solid #ffd18d;outline-offset:2px;
+}
+body.pilehead-playing .top .links .motion-toggle:disabled{opacity:.7;cursor:not-allowed}
+/* Cues live in viewport space so network rerenders never swallow them. */
+.pilehead-cue.pilehead-cue-fixed{
+ position:fixed!important;z-index:190!important;pointer-events:none!important;
+ max-width:min(78vw,440px);min-width:0;
+ white-space:normal;overflow-wrap:break-word;
+ font-size:clamp(19px,4vw,41px);line-height:1.14;
+ transform:translate(-50%,-50%);
+}
+.pilehead-quick-motion .pilehead-cue-fixed{animation-duration:.48s}
+.pilehead-was-skipped{
+ outline:3px solid #f0b4768a;outline-offset:3px;
+ filter:grayscale(.55) brightness(.9);
+ border-radius:12px;
+}
+@media(max-width:700px){
+ .pilehead-cue.pilehead-cue-fixed{
+  max-width:min(70vw,290px);padding:9px 12px;
+  border-width:1px;border-radius:12px;
+  font-size:clamp(14px,3.8vw,21px);
+  box-shadow:0 6px 22px #000b,0 0 0 5px #eeba702c;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ .pilehead-was-skipped{transition:none!important}
+ .pilehead-cue-fixed{animation:none!important}
+}
