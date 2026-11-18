@@ -199,7 +199,7 @@ function face(c){
 }
 function back(){
  const backBase='<rect width="240" height="344" fill="#17191A"/>'+
-  '<path d="M8 8H232V336H8Z" fill="none" stroke="#F6F0E3" stroke-width="2"/>'+
+  '<path class="ph-back-frame-vector" d="M8 8H232V336H8Z" fill="none" stroke="#F6F0E3" stroke-width="2"/>'+
   '<path d="M16 16H224V328H16Z" fill="none" stroke="#D44630" stroke-width="3"/>'+
   '<path d="M23 23H217V321H23Z" fill="none" stroke="#F6F0E3" stroke-opacity=".5" stroke-width="1"/>'+
   '<path d="M30 123H210M30 221H210" stroke="#F6F0E3" stroke-opacity=".5" stroke-width="2"/>'+
