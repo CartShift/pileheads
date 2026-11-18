@@ -2,7 +2,7 @@
    Rules v1.2: 40 ordinary numbers (1–10 x4) + 12 independent actions; identical action cards may be played together.
    All information lives in state; rendering never determines legality. */
 (function(root){'use strict';
-const VERSION='pilehead-1.2.0',DECK_SIZE=52,ACTIONS={reset:2,ghost:2,under:2,skip:2,burn:2,dump:2};
+const VERSION='pilehead-1.3.0',DECK_SIZE=52,ACTIONS={reset:2,ghost:2,under:2,skip:2,burn:2,dump:2};
 function assert(ok,message){if(!ok)throw new Error(message)}
 function random(g){g.rng=(Math.imul(g.rng,1664525)+1013904223)>>>0;return g.rng/4294967296}
 function shuffle(a,g){for(let i=a.length-1;i>0;i--){let j=Math.floor(random(g)*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -43,6 +43,19 @@ function autoSetup(g,seat){
  p.up=nine.slice(0,3);p.hand=nine.slice(3);return g;
 }
 function next(g,seat){for(let k=1;k<=g.people.length;k++){const i=(seat+k)%g.people.length;if(!g.people[i].out)return i}return seat}
+function dumpTargets(g,seat){return g.people.filter(p=>!p.out&&p.seat!==seat).map(p=>p.seat)}
+function botDumpTarget(g,seat){const targets=dumpTargets(g,seat);
+ assert(targets.length>0,'No DUMP recipient');
+ // Attack the rival who is closest to going out, not always the next seat.
+ return targets.sort((a,b)=>{
+  const remaining=i=>g.people[i].hand.length+g.people[i].up.length+g.people[i].down.length;
+  return remaining(a)-remaining(b)||a-b;
+ })[0];
+}
+function withBotTarget(g,seat,choice){if(choice?.type!=='play'||choice.source==='down')return choice;
+ const card=g.people[seat][choice.source]?.find(c=>c.id===choice.ids?.[0]);
+ return card?.action==='dump'?{...choice,target:botDumpTarget(g,seat)}:choice;
+}
 function finish(g){for(const p of g.people){if(!p.out&&!p.hand.length&&!p.up.length&&!p.down.length){
  p.out=true;g.finishedOrder.push(p.seat)}}const alive=g.people.filter(p=>!p.out);
  if(alive.length<=1){g.phase='over';g.loser=alive[0]?.seat??null;g.slamOpen=false;return true}return false}
@@ -52,7 +65,7 @@ function isLegal(g,c){if(c.kind==='action')return true;
  if(g.limit?.type==='min')return c.rank>=g.limit.value;
  return true;
 }
-function options(g,seat){if(g.phase!=='play'||g.turn!==seat)return[];
+function options(g,seat){if(g.phase!=='play'||g.pendingDump||g.turn!==seat)return[];
  const p=g.people[seat],s=stage(g,seat);if(s==='down')return p.down.map(c=>({type:'play',ids:[c.id],source:'down'}));
  const cards=p[s],legal=cards.filter(c=>isLegal(g,c)),opts=[];
  // Every subset is legal, not only the first copy of a rank or action.
@@ -88,7 +101,7 @@ function topRun(g){let n=0,rank=null;for(let i=g.pile.length-1;i>=0;i--){
  rank=c.rank;n++;
  }return{rank,count:n};
 }
-function slamOptions(g,seat){if(g.phase!=='play'||g.people[seat]?.out||!g.pile.length)return[];
+function slamOptions(g,seat){if(g.phase!=='play'||g.pendingDump||g.people[seat]?.out||!g.pile.length)return[];
  const s=stage(g,seat);if(s==='down'||s==='out')return[];
  const held=g.people[seat][s];
  // A complete four-of-a-kind can interrupt the table even without a top-rank match.
@@ -102,7 +115,7 @@ function slamOptions(g,seat){if(g.phase!=='play'||g.people[seat]?.out||!g.pile.l
  return eligible.length>=need?[{type:'slam',source:s,ids:eligible.slice(0,need).map(c=>c.id)}]:[];
 }
 function followUpOptions(g,seat){
- if(g.phase!=='play'||!g.followUp||g.followUp.seat!==seat||g.people[seat]?.out)return[];
+ if(g.phase!=='play'||g.pendingDump||!g.followUp||g.followUp.seat!==seat||g.people[seat]?.out)return[];
  if(g.followUp.expiresAt&&Date.now()>=g.followUp.expiresAt)return[];
  const {rank,ids}=g.followUp,held=g.people[seat].hand.filter(c=>ids.includes(c.id)&&c.kind==='number'&&c.rank===rank);
  if(!held.length||topRun(g).rank!==rank)return[];
@@ -116,6 +129,7 @@ function take(g,seat){
 }
 function move(g,seat,choice){
  assert(g.phase==='play','Game is not in progress');
+ assert(!g.pendingDump,'Choose the DUMP recipient before another move');
  assert(g.people[seat]&&!g.people[seat].out,'Invalid player');
  assert(choice&&['play','take','slam','followup'].includes(choice.type),'Invalid action');
  const isFollowup=choice.type==='followup',previousTurn=g.turn;
@@ -149,20 +163,34 @@ function move(g,seat,choice){
     'Only identical numbers or identical actions together');
   }
  }
+ const isDump=choice.type==='play'&&cards[0]?.kind==='action'&&cards[0]?.action==='dump';
+ const validTargets=isDump?dumpTargets(g,seat):[];
+ const selectedTarget=choice.target===undefined&&validTargets.length===1?validTargets[0]:choice.target;
+ if(isDump&&selectedTarget!==undefined)assert(validTargets.includes(selectedTarget),'Invalid DUMP target');
+ if(isDump&&selectedTarget===undefined&&s!=='down')assert(false,'Choose a DUMP target');
+ if(!isDump&&choice.target!==undefined)assert(false,'Unexpected target');
  p[s]=p[s].filter(c=>!ids.includes(c.id));
  if(bridge)p.up=p.up.filter(c=>!ids.includes(c.id));
  g.slamOpen=false;
  if(choice.type==='play'&&s==='down'&&!isLegal(g,cards[0])){
   g.pile.push(...cards);const ev=take(g,seat);ev.type='blind-fail';return ev;
  }
- const card=cards[0],dump=choice.type==='play'&&card.kind==='action'&&card.action==='dump';
+ const card=cards[0],dump=isDump;
+ if(dump&&selectedTarget===undefined){
+  // Reveal a blind DUMP before allowing the player to choose any live rival.
+  g.ashes.push(...cards);
+  g.pendingDump={seat,source:s,count:cards.length};
+  g.followUp=null;g.slamOpen=false;
+  invariant(g);
+  return {type:'dump-pending',seat,source:s,count:cards.length};
+ }
  // DUMP itself is spent immediately: only the pile already on the table is picked up.
  // Both DUMP copies burn if played together; each performs only one forced pickup.
  if(dump)g.ashes.push(...cards);
  else g.pile.push(...cards);
  let forcedTarget=null,forcedCount=0;
  if(dump){
-  forcedTarget=next(g,seat);
+  forcedTarget=selectedTarget;
   forcedCount=g.pile.length;
   g.people[forcedTarget].hand.push(...g.pile.splice(0));
   g.people[forcedTarget].pickups++;
@@ -204,10 +232,26 @@ function move(g,seat,choice){
  if(over)g.followUp=null;
  invariant(g);return event;
 }
+function resolveDump(g,seat,target){
+ assert(g.phase==='play'&&g.pendingDump?.seat===seat,'No DUMP awaiting your decision');
+ assert(dumpTargets(g,seat).includes(target),'Invalid DUMP target');
+ const pending=g.pendingDump;g.pendingDump=null;
+ const takenCount=g.pile.length;
+ g.people[target].hand.push(...g.pile.splice(0));
+ g.people[target].pickups++;
+ g.limit=null;g.slamOpen=false;g.followUp=null;
+ g.moves++;
+ const event={type:'play',seat,source:pending.source,reason:'dump',count:pending.count,
+  burned:false,burnedCount:0,rank:null,action:'dump',target,takenCount,drawnCount:0,bridgeCount:0,move:g.moves};
+ g.events.push(event);
+ const over=finish(g);
+ if(!over)g.turn=g.people[seat].out?next(g,seat):seat;
+ invariant(g);return event;
+}
 function sameIds(a,b){return Array.isArray(a)&&a.length===b.length&&a.every((x,i)=>x===b[i])}
 function choose(g,seat,style='greedy'){
  const opts=options(g,seat);assert(opts.length,'No moves');
- if(opts.length===1)return opts[0];
+ if(opts.length===1)return withBotTarget(g,seat,opts[0]);
  const p=g.people[seat],score=o=>{
   if(o.type==='take')return -1000;
   const c=p[o.source].find(x=>x.id===o.ids[0]);
@@ -225,8 +269,8 @@ function choose(g,seat,style='greedy'){
   // pair helps empty the hand but does not multiply SKIP/DUMP/BURN effects.
   return (style==='saver'?power-15:power)+(o.ids.length-1)*9;
  };
- if(style==='random')return opts[Math.floor(random(g)*opts.length)];
- return opts.slice().sort((a,b)=>score(b)-score(a))[0];
+ if(style==='random')return withBotTarget(g,seat,opts[Math.floor(random(g)*opts.length)]);
+ return withBotTarget(g,seat,opts.slice().sort((a,b)=>score(b)-score(a))[0]);
 }
 function autoSlam(g,style='greedy',exclude=-1){if(g.phase!=='play'||!g.pile.length)return null;
  for(let n=1;n<=g.people.length;n++){const seat=(g.turn+n)%g.people.length;
@@ -236,7 +280,7 @@ function autoSlam(g,style='greedy',exclude=-1){if(g.phase!=='play'||!g.pile.leng
  }return null;
 }
 const api={VERSION,DECK_SIZE,ACTIONS,deck,create,start,swap,autoSetup,stage,count,invariant,
- options,slamOptions,followUpOptions,topRun,isLegal,move,choose,autoSlam,next};
+ options,slamOptions,followUpOptions,topRun,isLegal,move,resolveDump,dumpTargets,botDumpTarget,choose,autoSlam,next};
 root.PileheadEngine=api;
 if(typeof module!=='undefined')module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
