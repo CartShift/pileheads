@@ -561,9 +561,7 @@ body.pilehead-playing .table .hand-area.hand-overflow .area-label>span:first-chi
 body.pilehead-playing .table .card-row.hand{
  scroll-padding-inline:44px;
 }
-body.pilehead-playing .table .card-row.hand>.card{
- touch-action:pan-x;
-}
+/* Existing pointer-driven hand swiping and card drag gestures are retained. */
 /* Keep playability and selection visual; the badge never captures input. */
 body.pilehead-playing .table .card-row.hand>.card.selected .ph-hand-index{
  box-shadow:0 0 0 2px #ffdf80,1px 2px 0 #121a1580;
