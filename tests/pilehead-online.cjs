@@ -302,7 +302,13 @@ async function run(){
  assert.equal(snapContinued.status,200,JSON.stringify(snapContinued));checks++;
 
  {
- // A live 1.2 room must survive the 1.3 deploy without changing its seat tokens.
+ // In-progress rooms from v1.3 remain readable after the v1.4 deploy.
+ const previous=await request({action:'create',humans:2,bots:0,name:'Previous release'});
+ rooms.get(previous.data.code).state.version='pilehead-1.3.0';
+ const previousRead=await request({action:'state',code:previous.data.code},previous.data.session);
+ assert.equal(previousRead.status,200);
+ assert.equal(previousRead.data.game.rulesVersion,'pilehead-1.3.0');checks++;
+ // A live 1.2 room must survive the v1.4 deploy without changing its seat tokens.
  const legacy=await request({action:'create',humans:2,bots:1,name:'Legacy host'});
  const legacyCode=legacy.data.code,legacyToken=legacy.data.session;
  const legacyGuest=await request({action:'join',code:legacyCode,name:'Friend'});
