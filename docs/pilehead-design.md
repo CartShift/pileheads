@@ -25,7 +25,7 @@ No suits, face cards, traditional jokers, scoring markers, chips, or extra board
 1. Shuffle one deck. Deal to each player 3 face-down cards (unseen), 3 face-up cards on top, 3 in hand.
 2. Each player may exchange cards between their own hand and face-up cards before the first turn. Do not look at face-down cards.
 3. Place the remaining cards into the face-down draw stock.
-4. Start at an agreed player and proceed clockwise. The digital playtest uses seat 1 as first player.
+4. The first player is chosen by a visible random draw. In later rounds, the first player to finish in the previous round starts; play proceeds clockwise.
 
 Maximum five players with one deck because six would require 54 opening cards. We are intentionally not adding a second deck.
 
@@ -38,12 +38,12 @@ Play **one** legal card or a group of matching numbered cards **or identical spe
 - While UNDER is active, only numbers 1–4 are legal.
 - Any action card is legal, at any time, even on an empty pile. Any two or more identical action cards may be played together; resolve the effect once.
 - Multiple number cards may be played simultaneously if they have the same rank and all are in the active layer. Matching action cards follow the same grouping rule.
-- If you have no legal move, take the entire pile into your hand and end your turn. Taking voluntarily when a legal move exists is not allowed.
+- **Strategic pickup:** on your turn, you may take the entire pile into your hand whenever it is nonempty, even when you have a legal play. Taking ends your turn and clears the active number restriction. This remains available in the hand, face-up and blind layers. You cannot take an empty pile, interrupt someone else's turn with pickup, or bypass an unresolved DUMP target or active SNAP priority.
 - After playing from the hand, draw back up to three cards from the stock if possible. Do not draw just because you had to take the pile.
 - Turns may be changed by SKIP, BURN, DUMP, or SLAM. BURN, DUMP and a successful four-of-a-kind or out-of-turn SLAM always grant the actor another turn while the actor remains in play.
 - Numeric four-of-a-kind burns the pile, clears the restriction, and grants the actor another turn.
 
-**Layer progression:** Play from hand until both stock and hand are empty. **Exception:** if the stock is empty and exactly one numeric card remains in the hand, it may be grouped in one move with matching face-up number cards (LAST-HAND COMBO). Otherwise, play from face-up only after the hand is empty. If blocked, collect the pile into the hand and return to hand play. Once the face-up cards are gone and the hand is empty, play face-down cards blindly, one per turn. If a revealed face-down card is illegal, add it to the pile and take that whole pile into your hand. The player returns to hand play. The original face-down slots are not replenished.
+**Layer progression:** Play from hand until both stock and hand are empty. **Exception:** if the stock is empty and all remaining hand cards are identical, they may be grouped in one move with matching face-up cards (LAST-HAND COMBO), including a four-of-a-kind SLAM. Otherwise, play from face-up only after the hand is empty. If blocked, collect the pile into the hand and return to hand play. Once the face-up cards are gone and the hand is empty, play face-down cards blindly, one per turn. If a revealed face-down card is illegal, add it to the pile and take that whole pile into your hand. The player returns to hand play. The original face-down slots are not replenished.
 
 Players whose hand, face-up and face-down cards all disappear finish immediately and sit out. There is no separate win-score. As soon as exactly one player remains, that player is the **PILEHEAD** (the loser).
 
