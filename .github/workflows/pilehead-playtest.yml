@@ -1,29 +1,33 @@
-name: PILEHEAD playtest gates
+name: STACK regression gates
 on:
   pull_request:
     paths:
-      - '.github/workflows/pilehead-playtest.yml'
-      - 'dist/pilehead/**'
-      - 'docs/pilehead*'
-      - 'tests/pilehead*'
-      - 'scripts/build*.mjs'
+      - '.github/workflows/**'
+      - 'api/**'
+      - 'dist/**'
+      - 'docs/**'
+      - 'scripts/**'
+      - 'tests/**'
       - 'package.json'
       - 'README.md'
+      - 'vercel.json'
   push:
     branches: [main]
     paths:
-      - '.github/workflows/pilehead-playtest.yml'
-      - 'dist/pilehead/**'
-      - 'docs/pilehead*'
-      - 'tests/pilehead*'
-      - 'scripts/build*.mjs'
+      - '.github/workflows/**'
+      - 'api/**'
+      - 'dist/**'
+      - 'docs/**'
+      - 'scripts/**'
+      - 'tests/**'
       - 'package.json'
       - 'README.md'
+      - 'vercel.json'
 permissions:
   contents: read
 jobs:
-  playtest:
-    name: Rules, API, UI contracts and static bundles
+  test:
+    name: STACK engine, room API, UI, art and build
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -35,16 +39,14 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24'
-      # Scope this workflow to PILEHEAD: unrelated legacy SPARK parity tests
-      # currently fail against the modified SPARK UI and need separate repair.
-      # PILEHEAD tests use built-in Node modules and a mocked Neon API.
-      - name: Run every PILEHEAD regression (engine, online, UI and playtest)
-        run: |
-          set -euo pipefail
-          for file in tests/pilehead-*.cjs; do
-            node "$file"
-          done
-      - name: Build static Vercel app
-        run: npm run build:vercel
-      - name: Build Sites/Worker bundle
+      - name: Run STACK regression suite
+        run: npm test
+      - name: Build static bundle
         run: npm run build
+      - name: Verify only STACK is published
+        run: |
+          test -f vercel-static/index.html
+          test -f vercel-static/pilehead/index.html
+          test -f vercel-static/pilehead/assets/stack-sheet.webp
+          test ! -e vercel-static/tilt
+          test ! -e vercel-static/engine-v5.js

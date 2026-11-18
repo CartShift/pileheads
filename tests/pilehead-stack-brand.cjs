@@ -8,14 +8,12 @@ const local=read('dist/pilehead/app.js');
 const online=read('dist/pilehead/online.js');
 const raster=read('dist/pilehead/deck-raster.js');
 const rasterCss=read('dist/pilehead/deck-raster.css');
-const workers=read('scripts/build.mjs');
 const vercel=read('scripts/build-vercel.mjs');
 let checks=0;
 function check(message,fn){fn();checks++;console.log('PASS '+message)}
 check('brand styling loads last, after the illustrated deck',()=>{
  assert.ok(html.indexOf('href="stack-brand.css"')>html.indexOf('href="deck-raster.css"'));
  assert.ok(html.indexOf('href="stack-brand.css"')<html.indexOf('</head>'));
- assert.match(workers,/pilehead\/stack-brand\.css/);
  assert.match(vercel,/['"]stack-brand\.css['"]/);
 });
 check('STACK identity is consistent across setup and room lobby',()=>{

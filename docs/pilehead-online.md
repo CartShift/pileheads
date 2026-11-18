@@ -36,11 +36,11 @@ The Vercel connector was denied permission to write project environment variable
 - Updates are optimistic concurrency-controlled via \`revision\`. A stale command gets HTTP 409 and the client refreshes. This prevents double moves and lost simultaneous SLAM updates.
 - Each room expires after 24 hours; tables retain expired rows until explicit cleanup is added. There is a per-network-hour limit for creating and joining rooms. This is a lightweight friend playtest, **not** account-grade identity, moderation, matchmaking or public-scale service.
 - Browser Origin + JSON Content-Type checks block ordinary cross-site requests. The session token is sent in an Authorization header, not a URL.
-- When Vercel Deployment Protection is active, friends need a share link with \`_vercel_share\`. The online UI preserves that parameter when it constructs invite links. Share links expire; for long-term frictionless invitations configure a deliberately public game deployment without accidentally exposing the original private SPARK friends backend.
+- When Vercel Deployment Protection is active, friends need a share link with \`_vercel_share\`. The online UI preserves that parameter when it constructs invite links. Share links expire; for long-term frictionless invitations configure a deliberately public game deployment without exposing or restoring an unrelated legacy backend.
 
 ## Limitations and validation
 
-- Existing SPARK/D1 online rooms are unchanged and not exposed on Vercel.
+- The retired SPARK/D1 backend is no longer shipped from this repo. STACK uses its own Vercel API and Neon database.
 - PILEHEAD online synchronization currently uses polling, not low-latency WebSocket transport. A technically first successful SLAM request wins, so real-world latency can matter; this is a known playtest limitation.
 - The game may be playable on a shared device locally without server credentials, via the older hotseat mode, but that is NOT online multiplayer.
 - Full live two-device QA cannot be claimed until at least two independent browser sessions join, play, reconnect and finish a game on the current deployment. A READY deployment or passing mocked API tests is insufficient.

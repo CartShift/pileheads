@@ -1,34 +1,26 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Vercel hosts PILEHEAD rooms through /api/pilehead with a dedicated Neon database;
-// SPARK's Sites/D1-only rooms remain excluded.
-// This does not alter the original ChatGPT Sites / Cloudflare Worker bundle.
-const source=path.resolve('dist');
-const target=path.resolve('vercel-static');
-const assets=['engine-v5.js','sim-core.js','simulation.worker.js','simulation-results.json','tilt-sim-core.js','tilt-simulation-results.json','pilehead-sim-core.js','pilehead-simulation-results.json','tabletop.css'];
-fs.rmSync(target,{recursive:true,force:true});
-fs.mkdirSync(target,{recursive:true});
-for(const name of assets)fs.copyFileSync(path.join(source,name),path.join(target,name));
-fs.mkdirSync(path.join(target,'tilt'),{recursive:true});
-for(const name of ['index.html','engine.js','app.js','print.html'])
-  fs.copyFileSync(path.join(source,'tilt',name),path.join(target,'tilt',name));
-fs.mkdirSync(path.join(target,'pilehead'),{recursive:true});
-for(const name of ['index.html','gallery.html','immersive.css','immersive.js','deck-art.css','deck-art.js','deck-raster.css','stack-brand.css','deck-raster.js','engine.js','app.js','online.js','print.html','playtest.html'])
- fs.copyFileSync(path.join(source,'pilehead',name),path.join(target,'pilehead',name));
-fs.mkdirSync(path.join(target,'pilehead','assets'),{recursive:true});
-for(const name of ['stack-sheet.webp','stack-back.webp'])
- fs.copyFileSync(path.join(source,'pilehead','assets',name),path.join(target,'pilehead','assets',name));
-let html=fs.readFileSync(path.join(source,'index.html'),'utf8');
-const removals=[
-  ['<link rel="stylesheet" href="online.css">',''],
-  ['<script src="online.js"></script>',''],
-  [",['friends',t('חברים','Friends')]",''],
-  ['PLAYTEST STUDIO','PHYSICAL PLAYTEST · SOLO PREVIEW'],
+// Only publish assets used by the current STACK game. The /api/pilehead
+// serverless function is discovered separately by Vercel.
+const root = path.resolve('dist');
+const output = path.resolve('vercel-static');
+const game = path.join(root, 'pilehead');
+const assets = [
+  'index.html', 'app.js', 'online.js', 'engine.js',
+  'immersive.css', 'immersive.js', 'deck-art.css', 'deck-art.js',
+  'deck-raster.css', 'deck-raster.js', 'stack-brand.css',
+  'gallery.html', 'print.html', 'playtest.html',
+  'assets/stack-sheet.webp', 'assets/stack-back.webp'
 ];
-for(const [from,to] of removals){
-  if(!html.includes(from))throw new Error(`Expected site token missing: ${from}`);
-  html=html.replace(from,to);
+
+fs.rmSync(output, { recursive: true, force: true });
+fs.mkdirSync(path.join(output, 'pilehead'), { recursive: true });
+for (const asset of assets) {
+  const source = path.join(game, asset);
+  const destination = path.join(output, 'pilehead', asset);
+  fs.mkdirSync(path.dirname(destination), { recursive: true });
+  fs.copyFileSync(source, destination);
 }
-fs.writeFileSync(path.join(target,'index.html'),html);
-console.log('Built Vercel playtest with PILEHEAD online client (API deployed separately by Vercel Functions).');
+fs.copyFileSync(path.join(root, 'index.html'), path.join(output, 'index.html'));
+console.log('Built STACK static site: ' + assets.length + ' game assets + root redirect');

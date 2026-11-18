@@ -10,7 +10,6 @@ const protocol=read('docs/pilehead-playtest-kit.md');
 const index=read('dist/pilehead/index.html');
 const print=read('dist/pilehead/print.html');
 const vercel=read('scripts/build-vercel.mjs');
-const worker=read('scripts/build.mjs');
 const readme=read('README.md');
 
 assert.match(kit,/<html lang="en" dir="ltr">/);
@@ -36,7 +35,6 @@ assert.doesNotThrow(()=>new vm.Script(scripts[0][1]),'Playtest inline JS must pa
 assert.match(index,/href="playtest\.html">Playtest kit/);
 assert.match(print,/href="playtest\.html">Playtest rules/);
 assert.match(vercel,/'playtest\.html'/,'Vercel build must include playtest.html');
-assert.match(worker,/'pilehead\/playtest\.html'/,'Sites build must include playtest.html');
 assert.match(readme,/Official playtest kit/);
 assert.match(protocol,/Default OFF/,'Experimental rule must not silently affect canonical play');
 assert.match(protocol,/no personal/i,'Playtest scorecard must avoid PII');

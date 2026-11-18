@@ -12,7 +12,6 @@ const css=read('dist/pilehead/immersive.css');
 const fx=read('dist/pilehead/immersive.js');
 const solo=read('dist/pilehead/app.js');
 const online=read('dist/pilehead/online.js');
-const sites=read('scripts/build.mjs');
 const vercel=read('scripts/build-vercel.mjs');
 let checks=0;
 function check(name,fn){fn();checks++;console.log('PASS '+name)}
@@ -69,11 +68,9 @@ check('large hands can scroll separately from drag-to-pile',()=>{
   assert.match(src,/scrollLeft=.*startScroll/);
  }
 });
-check('production and Sites builds contain both scene assets',()=>{
- for(const src of [vercel,sites]){
-  assert.match(src,/immersive\.css/);
-  assert.match(src,/immersive\.js/);
- }
+check('production build contains both scene assets',()=>{
+ assert.match(vercel,/immersive\.css/);
+ assert.match(vercel,/immersive\.js/);
 });
 check('end-game overlay includes winner/loser, rank order and retry action in both controllers',()=>{
  assert.match(online,/function endScreen\(/);

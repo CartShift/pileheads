@@ -1,4 +1,4 @@
-/* PILEHEAD · deterministic physical-card engine, separate from SPARK and TILT.
+/* PILEHEAD/STACK · deterministic physical-card engine.
    Rules v1.2: 40 ordinary numbers (1–10 x4) + 12 independent actions; identical action cards may be played together.
    All information lives in state; rendering never determines legality. */
 (function(root){'use strict';
