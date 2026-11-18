@@ -102,24 +102,26 @@ function actionArt(action){
    '</svg>';
  case 'burn':
   return svgStart+
-   '<path d="M19 129h122v11H19z" fill="'+C.ink+'"/>'+
-   '<path d="M75 93l-20 -50 18 -14 27 50Z" fill="'+C.red+'"/>'+
-   '<path d="M89 94l22 -63 18 12-18 62Z" fill="'+C.red+'"/>'+
-   '<path d="M57 100L15 66l13 -20 42 33Z" fill="'+C.red+'"/>'+
-   '<path d="M101 109l35-39 15 17-34 39Z" fill="'+C.red+'"/>'+
-   '<path d="M50 119l-31 -7 8 -19 34 10Z" fill="'+C.amber+'"/>'+
-   '<path d="M66 124l-23 -23 17 -16 24 24Z" fill="'+C.olive+'"/>'+
-   '<path d="M93 125l-2 -32 22 1 4 29Z" fill="'+C.amber+'"/>'+
-   '<path d="M70 24l-12-18M127 20l7-14M13 26L7 16" stroke="'+C.ink+'" stroke-width="3.3"/>'+
+   '<path d="M14 133H146" stroke="'+C.ink+'" stroke-width="6" stroke-linecap="square"/>'+
+   slab(27,113,107,4,13)+slab(33,99,97,0,11)+
+   '<path d="M53 100C37 76 61 58 52 39C75 56 76 39 75 18C98 36 113 61 115 82C119 97 111 107 99 112L63 112Z" fill="'+C.red+'"/>'+
+   '<path d="M69 101C60 85 76 74 72 59C92 68 99 85 96 97C94 107 83 111 75 112Z" fill="'+C.amber+'"/>'+
+   '<path d="M86 95C87 82 82 78 83 70C97 79 101 93 93 105Z" fill="'+C.paper+'"/>'+
+   '<path d="M18 88l-7 -9M139 76l9 -10M27 30l-5 -9M121 31l7 -11" stroke="'+C.ink+'" stroke-width="3.2" stroke-linecap="square"/>'+
+   '<path d="M30 138h22M113 138h16" stroke="'+C.red+'" stroke-width="3"/>'+
    '</svg>';
  case 'dump':
   return svgStart+
-   slab(15,65,66,3,11)+slab(18,52,68,2,11)+slab(23,39,68,1,11)+
-   '<path d="M86 63Q127 62 123 105" fill="none" stroke="'+C.ink+'" stroke-width="6" stroke-linecap="round"/>'+
-   '<path d="M109 95l14 20 14 -19Z" fill="'+C.ink+'"/>'+
-   '<circle cx="40" cy="119" r="10" fill="#9A9693"/><circle cx="78" cy="119" r="10" fill="#9A9693"/><circle cx="124" cy="119" r="10" fill="'+C.ink+'"/>'+
-   '<path d="M25 142q0-13 15-13t15 13M63 142q0-13 15-13t15 13" fill="#9A9693"/>'+
-   '<path d="M107 142q0-13 17-13t17 13" fill="'+C.ink+'"/>'+
+   slab(17,63,67,3,11)+slab(19,50,70,2,11)+slab(23,37,71,1,11)+
+   '<path d="M93 58C122 58 123 90 83 102" fill="none" stroke="'+C.ink+'" stroke-width="6" stroke-linecap="square"/>'+
+   '<path d="M69 91l11 21 13 -20Z" fill="'+C.red+'"/>'+
+   '<path d="M43 117h87" fill="none" stroke="'+C.ink+'" stroke-opacity=".22" stroke-width="2.5" stroke-dasharray="3 6"/>'+
+   '<circle cx="35" cy="118" r="10" fill="#A9A39B"/>'+
+   '<circle cx="80" cy="115" r="13" fill="'+C.red+'"/>'+
+   '<circle cx="127" cy="118" r="10" fill="#A9A39B"/>'+
+   '<path d="M20 141q0-13 15-13t15 13M112 141q0-13 15-13t15 13" fill="#A9A39B"/>'+
+   '<path d="M60 142q0-18 20-18t20 18" fill="'+C.red+'"/>'+
+   '<path d="M62 118l6 7M98 118l-6 7" fill="none" stroke="'+C.ink+'" stroke-width="2"/>'+
    '</svg>';
  default:throw Error('invalid action');
  }
