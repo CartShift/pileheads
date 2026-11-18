@@ -227,7 +227,7 @@ function choose(g,seat,style='greedy'){
  if(style==='random')return opts[Math.floor(random(g)*opts.length)];
  return opts.slice().sort((a,b)=>score(b)-score(a))[0];
 }
-function autoSlam(g,style='greedy',exclude=-1){if(g.phase!=='play'||!g.slamOpen)return null;
+function autoSlam(g,style='greedy',exclude=-1){if(g.phase!=='play'||!g.pile.length)return null;
  for(let n=1;n<=g.people.length;n++){const seat=(g.turn+n)%g.people.length;
   if(seat===exclude||g.people[seat].out)continue;
   const opts=slamOptions(g,seat);
