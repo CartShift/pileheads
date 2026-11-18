@@ -2072,3 +2072,26 @@ body.pilehead-focus .move-history{display:none!important}
  .online-lobby .lobby-seats{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
  .online-lobby .setup-choice-guide{font-size:12px;padding:11px 12px}
 }
+
+/* Permanent room problems are not connection failures. Keep a distinct action
+   and never imply that Retry can repair incompatible or expired game state. */
+.online-layout .room-issue{
+ display:flex;align-items:center;flex-wrap:wrap;gap:12px;
+ width:min(100%,840px);margin:12px auto;padding:14px 16px;
+ border-radius:13px;border:1px solid #ddac75;
+ background:linear-gradient(115deg,#4d3826,#372c24);
+ color:#f6e6c7;font:650 12px/1.5 system-ui,sans-serif;
+}
+.online-layout .room-issue strong{font-size:13px;color:#ffe1ab}
+.online-layout .room-issue span{flex:1 1 220px}
+.online-layout .room-issue a.action{
+ display:inline-flex;align-items:center;justify-content:center;
+ color:#2b2419;background:#f3cc88;border:1px solid #ffdfac;
+ text-decoration:none;min-height:44px;padding:9px 13px;
+}
+.online-layout .room-issue a.action:focus-visible{outline:3px solid #f9d29d;outline-offset:3px}
+@media(max-width:600px){
+ .online-layout .room-issue{align-items:flex-start;flex-direction:column;padding:12px}
+ .online-layout .room-issue span{flex:none}
+ .online-layout .room-issue a.action{width:100%}
+}

@@ -77,4 +77,18 @@ check('browser title, screen reader announcements and result dialog are present'
  assert.match(online,/announcer\.dataset\.lastKey/);
  assert.match(local,/announcer\.dataset\.lastKey/);
 });
+
+check('older compatible rooms do not turn into false connection warnings',()=>{
+ const api=read('api/pilehead.js'),engine=read('dist/pilehead/engine.js');
+ assert.match(api,/function compatibleLegacy\(/);
+ assert.match(api,/rulesVersion:g\.version/);
+ assert.match(engine,/const legacyDump=g\.version==='pilehead-1\.2\.0'/);
+ assert.match(online,/permanentRoomErrors\.has\(e\.message\)/);
+ assert.match(online,/roomIssue=e\.message/);
+ assert.match(online,/class="room-issue"/);
+ assert.match(online,/data\.game\.rulesVersion!=='pilehead-1\.2\.0'/);
+ assert.match(online,/hadError=!!networkError\|\|!!roomIssue/);
+ assert.match(css,/\.online-layout \.room-issue/);
+});
+
 console.log('PILEHEAD production UX: '+checks+' scenarios passed');

@@ -117,3 +117,9 @@ Canonical game rules are frozen in `docs/pilehead-design.md`. Participant-facing
 - The table menu offers Full, Quick and Off motion. Motion Off and OS-level reduced-motion preferences suppress card animations; a speed preference does not affect legal moves or server timing.
 - SKIP now carries the public skipped seat index and the table visibly marks that player's skipped turn. RESET and UNDER highlight the active number restriction.
 - Move cues live above the page, not inside the frequently re-rendered table subtree. Their mobile size is constrained to avoid covering hand controls. See `tests/pilehead-physics.cjs` for regression coverage.
+
+## Compatibility with pre-1.3 game rooms (November 18, 2026)
+
+The 1.3.0 rules release introduced free choice of DUMP recipient. A strict rules-version check initially blocked rooms still saved as 1.2.0, which the UI incorrectly described as a connection failure. The server now accepts **only** 1.2.0 states after validating full 52-card conservation and every card identity against the canonical deck. It retains the saved state version, room code, memberships and session tokens. While an older round is in progress, DUMP retains its original automatic next-active-player target. The server exposes a public `rulesVersion` field so the browser doesn't offer an incompatible DUMP picker. Rematching creates a fresh 1.3.0 round with full target selection and no replacement invitation link. This requires no direct database write or migration.
+
+Unsupported or corrupted states remain blocked with `room_rules_changed`. The UI classifies that, expiration and missing seat credentials as room issues with an explicit create-new-room action rather than a misleading connection retry. The compatibility workflow has API regression coverage in `tests/pilehead-online.cjs`.
