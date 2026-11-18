@@ -309,7 +309,8 @@ function welcome(){
  if(room)return '<section class="setup panel"><div class="eyebrow">PILEHEAD · INVITED TABLE</div><h2>Take your seat</h2>'+
   '<p>Room <strong>'+safe(room)+'</strong>. Play with your friends and any bots already at the table. Only your own hand will be visible; no account required.</p>'+
   '<label>Your name<input id="online-name" maxlength="24" autocomplete="nickname" value="'+nick+'" placeholder="Player name" aria-describedby="online-form-message"></label>'+
-  '<div class="toolbar"><button type="button" class="action primary" data-do="join" '+(busy?'disabled aria-busy="true"':'')+'>'+(busy?'Joining room…':'Join room')+'</button><a class="action secondary" href="?online=1">Create another room</a></div></section>';
+  '<div class="toolbar"><button type="button" class="action primary" data-do="join" '+(busy?'disabled aria-busy="true"':'')+'>'+(busy?'Joining room…':'Join room')+'</button><a class="action secondary" href="?online=1">Create another room</a></div>'+
+  (notice?'<p id="online-form-message" class="message online-form-message" role="alert">'+safe(notice)+'</p>':'')+'</section>';
  const total=draftHumans+draftBots,valid=total>=2&&total<=5;
  return '<section class="setup panel"><div class="eyebrow">PILEHEAD · REAL PLAYERS</div><h2>A real table, wherever your friends are.</h2>'+
   '<p>Create a private room, send the link, and play together. Everyone gets their own secret hand. SLAM works even during someone else’s turn.</p>'+
@@ -320,6 +321,7 @@ function welcome(){
   '<p id="online-seat-summary" class="online-seat-summary'+(valid?'':' is-invalid')+'" role="status">'+
   (valid?total+' players · '+draftHumans+' human'+(draftHumans===1?'':'s')+' + '+draftBots+' bot'+(draftBots===1?'':'s')+' (max 5)':total+' players selected · choose 2 to 5 total')+'</p>'+
   '<button type="button" class="action primary" data-do="create" '+(!valid||busy?'disabled':'')+(busy?' aria-busy="true"':'')+'>'+(busy?'Creating room…':'Create online room')+'</button>'+
+  (notice?'<p id="online-form-message" class="message online-form-message" role="alert">'+safe(notice)+'</p>':'')+
   '<p class="small">Rooms last for 24 hours. No sign-in required; keep this browser to retain your seat.</p></section>';
 }
 function dumpTargetOverlay(){
@@ -339,7 +341,7 @@ function render(){
   focused?.dataset?.do?{type:'action',name:focused.dataset.do}:
   focused?.id==='online-name'?{type:'name'}:null;
  root.innerHTML='<div class="online-layout">'+(!data?welcome():data.game.phase==='setup'?lobby():playView())+
-   (notice&&(!data||data?.game.phase==='setup')?'<div id="online-form-message" class="message online-form-message" role="alert" aria-live="assertive">'+safe(notice)+'</div>':'')+
+   (notice&&data?.game.phase==='setup'?'<div class="message" role="status">'+safe(notice)+'</div>':'')+
    (roomIssue?'<div class="room-issue" role="alert"><strong>Room unavailable</strong>'+
     '<span>'+safe(setMessage(roomIssue))+'</span>'+
     '<a class="action secondary" href="?online=1">Create a new room</a></div>':'')+
