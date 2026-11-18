@@ -8,8 +8,8 @@ function round(v){return Number(v.toFixed(2))}
 function one(seed,players){
  const g=E.create({seed,players});g.people.forEach(p=>E.autoSetup(g,p.seat));E.start(g);
  let steps=0;while(g.phase==='play'&&steps++<1200){
-  const slam=E.autoSlam(g,'greedy');
-  if(!slam)E.move(g,g.turn,E.choose(g,g.turn,POLICIES[(g.turn+seed)%POLICIES.length]));
+  if(g.pendingDump)E.resolveDump(g,g.pendingDump.seat,E.botDumpTarget(g,g.pendingDump.seat));
+  else if(!E.autoSlam(g,'greedy'))E.move(g,g.turn,E.choose(g,g.turn,POLICIES[(g.turn+seed)%POLICIES.length]));
  }
  E.invariant(g);
  const by=(fn)=>g.events.filter(fn).length;
