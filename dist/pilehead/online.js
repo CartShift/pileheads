@@ -89,11 +89,12 @@ async function refresh(quiet=false){
   const next=await api({action:'state',code:room});
   if(!data||next.revision!==data.revision||next.members.length!==data.members.length||
      next.game.followup?.length!==data.game.followup?.length||reconnecting)updateState(next);
-  else networkError='';
+  else {const hadError=!!networkError;networkError='';if(hadError)render()}
   reconnecting=false;
  }catch(e){
+  const hadError=!!networkError;
   networkError=setMessage(e.message);
-  if(!quiet||!data)render();
+  if(!hadError||!quiet||!data)render();
  }finally{polling=false}
 }
 function displayName(seat){
@@ -297,7 +298,9 @@ function welcome(){
 }
 function render(){
  const focused=root.contains(document.activeElement)?document.activeElement:null;
- const key=focused?.dataset?.card?{type:'card',id:focused.dataset.card,source:focused.dataset.source}:
+ const historyOpen=!!root.querySelector('.move-history')?.open;
+ const key=focused?.tagName==='SUMMARY'&&focused.parentElement?.classList.contains('move-history')?{type:'history'}:
+  focused?.dataset?.card?{type:'card',id:focused.dataset.card,source:focused.dataset.source}:
   focused?.dataset?.do?{type:'action',name:focused.dataset.do}:
   focused?.id==='online-name'?{type:'name'}:null;
  root.innerHTML='<div class="online-layout">'+(!data?welcome():data.game.phase==='setup'?lobby():playView())+
@@ -305,8 +308,10 @@ function render(){
    (networkError?'<div class="connection-banner" role="alert"><strong>Connection interrupted</strong>'+
     '<span>'+safe(networkError)+'</span><button class="action secondary" type="button" data-do="retry">Retry connection</button></div>':'')+
    '</div>'+endScreen();
+ if(historyOpen&&root.querySelector('.move-history'))root.querySelector('.move-history').open=true;
  if(key){
-  const next=key.type==='card'?root.querySelector('[data-card="'+key.id+'"][data-source="'+key.source+'"]'):
+  const next=key.type==='history'?root.querySelector('.move-history summary'):
+   key.type==='card'?root.querySelector('[data-card="'+key.id+'"][data-source="'+key.source+'"]'):
    key.type==='action'?root.querySelector('[data-do="'+key.name+'"]'):root.querySelector('#online-name');
   try{next?.focus({preventScroll:true})}catch{}
  }
@@ -356,7 +361,10 @@ root.addEventListener('click',async e=>{
    const opts=action==='create'?{humans,bots,name:nick}:{code:room,name:nick};
   await doAction({action,...opts});return;
  }
- if(action==='retry'){networkError='';await refresh(false);return}
+ if(action==='retry'){
+   if(!room||!session){location.reload();return}
+   networkError='';await refresh(false);return
+  }
   if(action==='dismiss-result'){endDismissed=true;render();return}
  if(action==='rematch'){endDismissed=false;await command('rematch');return}
   if(action==='ready'){swapCard=null;await command('ready',{ready:!data?.game.setupReady?.[data.me]});}

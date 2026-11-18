@@ -132,7 +132,7 @@ function tableHUD(){
  return '<div class="pilehead-table-hud '+(can?'is-my-turn':'is-waiting')+'" aria-label="Table status">'+
   '<div class="hud-main"><span class="hud-status"><i class="hud-dot" aria-hidden="true"></i>'+who+'</span>'+
   '<span class="hud-guidance">'+guide+'</span></div>'+
-  '<div class="hud-meta"><span>'+('ROUND 1')+'</span><span class="hud-rule">'+rule+'</span>'+
+  '<div class="hud-meta"><span>'+layer.toUpperCase()+'</span><span class="hud-rule">'+rule+'</span>'+
   (E.slamOptions(g,viewer).length?'<span class="hud-urgent">SLAM READY</span>':'')+
   (E.followUpOptions(g,viewer).length?'<span class="hud-urgent">SNAP READY</span>':'')+'</div></div>';
 }
@@ -209,11 +209,15 @@ function overlay(){
 }
 function render(){
  const focused=app.contains(document.activeElement)?document.activeElement:null;
- const key=focused?.dataset?.card?{type:'card',id:focused.dataset.card,source:focused.dataset.source}:
+ const historyOpen=!!app.querySelector('.move-history')?.open;
+ const key=focused?.tagName==='SUMMARY'&&focused.parentElement?.classList.contains('move-history')?{type:'history'}:
+  focused?.dataset?.card?{type:'card',id:focused.dataset.card,source:focused.dataset.source}:
   focused?.dataset?.do?{type:'action',name:focused.dataset.do}:null;
  app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay()+endScreen();
+ if(historyOpen&&app.querySelector('.move-history'))app.querySelector('.move-history').open=true;
  if(key){
-  const next=key.type==='card'?app.querySelector('[data-card="'+key.id+'"][data-source="'+key.source+'"]'):
+  const next=key.type==='history'?app.querySelector('.move-history summary'):
+   key.type==='card'?app.querySelector('[data-card="'+key.id+'"][data-source="'+key.source+'"]'):
    app.querySelector('[data-do="'+key.name+'"]');
   try{next?.focus({preventScroll:true})}catch{}
  }
