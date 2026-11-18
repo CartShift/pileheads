@@ -2,7 +2,7 @@
 (function(){'use strict';
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
 const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11';
-let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null,sortMode='dealt',endDismissed=false,dumpDraft=null;
+let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null,sortMode='dealt',endDismissed=false,dumpDraft=null,starterTimer=null;
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
  (a.kind==='number'?a.rank===b.rank:a.action===b.action)}
 function orderedHand(cards){
@@ -23,7 +23,7 @@ function currentStage(){return E.stage(g,viewSeat())}
 function isTurn(){return g.phase==='play'&&g.turn===viewSeat()}
 function save(){try{localStorage.setItem(KEY,JSON.stringify({g,mode,seats,setupSeat,covered,notice,lastMove}))}catch(e){console.warn('Save unavailable',e)}}
 function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
- if(!x||!['pilehead-1.1.0','pilehead-1.2.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
+ if(!x||!['pilehead-1.1.0','pilehead-1.2.0','pilehead-1.3.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
  // Keep the existing 1.2 DUMP behavior during saved games.
  // 1.1 sessions keep the prior upgrade behavior.
  if(x.g.version==='pilehead-1.1.0')x.g.version=E.VERSION;
@@ -65,9 +65,7 @@ function pile(){const top=E.topRun(g),a=g.pile.slice(-4);return '<div class="tab
  '<div class="stack-count">'+g.ashes.length+' removed</div></div></div>'}
 function bridgeAvailable(){
  if(!g||g.phase!=='play'||!isTurn())return false;
- const p=getPlayer();
- return g.stock.length===0&&p.hand.length===1&&p.hand[0].kind==='number'&&
-  p.up.some(c=>c.kind==='number'&&c.rank===p.hand[0].rank);
+ return !!E.finalHandBridge(g,viewSeat());
 }
 function upAndDown(p,allow){return '<div class="zone your-up"><div class="area-label"><span>FACE UP · '+p.up.length+'</span><span>BLIND · '+p.down.length+'</span></div>'+
  '<div class="card-row">'+Array.from({length:Math.max(p.up.length,p.down.length)},(_,i)=>{
@@ -159,7 +157,7 @@ function tableActions({turn,legal,pick,slams,snap,stage}){
    }
   }
   if(turn&&pick)buttons+='<button class="action secondary" data-do="take">Take pile · '+g.pile.length+'</button>';
-  if(mode==='hotseat'&&g.slamOpen)buttons+='<button class="action secondary" data-do="challenge">Other player SLAM</button>';
+  if(mode==='hotseat'&&g.people.some(p=>E.slamOptions(g,p.seat).length))buttons+='<button class="action secondary" data-do="challenge">Other player SLAM</button>';
   if(!buttons){
    const message=turn?(stage==='down'?'Choose a blind card':selection.length?'Choose a legal combination':'Select a card to play'):
     playerName(g.turn)+' is playing';
@@ -182,7 +180,7 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  '<button type="button" class="hand-sort-button" data-do="sort">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></span></div>'+
  rowCards(p.hand,'hand',selectable&&stage==='hand')+'</div></section>'+
  (snap.length?'<div class="pilehead-snap-choice">You just drew the same number you played. Throw it immediately, or <button class="action secondary" data-do="pass-snap">Let the next player go</button>.</div>':'')+
- (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP · The final card in your hand can be played together with matching exposed cards. Tap either to select the group.</p>':'')+
+ (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP · Your final matching hand cards can be played with matching exposed cards, including a four-card SLAM. Tap either to select the group.</p>':'')+
  (selectedEffect()||lastEffect())+tableActions({turn,legal,pick,slams,snap,stage})+
  '<details class="playtest-tools"><summary>Playtest tools</summary><button class="action secondary" data-do="export">Export QA state</button></details>'+
  (notice?'<div class="message" role="status" aria-live="polite">'+notice+'</div>':'')+
@@ -219,7 +217,7 @@ function overlay(){
  return '<div class="overlay"><div class="panel"><div class="eyebrow">PASS THE DEVICE</div><h2>'+name+'</h2>'+
  '<p>Only this player should reveal their cards. Other players can call SLAM while the screen is covered.</p>'+
  '<button class="action primary" data-do="reveal">Reveal '+name+' cards</button>'+
- (!isSetup&&g.slamOpen?'<hr style="border-color:#66857565;margin:16px 0"><p>Out-of-turn SLAM? Choose the player attempting it:</p>'+
+ (!isSetup&&g.people.some(p=>E.slamOptions(g,p.seat).length)?'<hr style="border-color:#66857565;margin:16px 0"><p>Out-of-turn SLAM? Choose the player attempting it:</p>'+
  g.people.filter(p=>!p.out).map(p=>'<button class="action secondary" data-do="hot-slam" data-seat="'+p.seat+'">'+playerName(p.seat)+'</button>').join(''):'')+
  '</div></div>';
 }
@@ -229,7 +227,16 @@ function render(){
  const key=focused?.tagName==='SUMMARY'&&focused.parentElement?.classList.contains('move-history')?{type:'history'}:
   focused?.dataset?.card?{type:'card',id:focused.dataset.card,source:focused.dataset.source}:
   focused?.dataset?.do?{type:'action',name:focused.dataset.do}:null;
- app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay()+endScreen();
+ app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay()+
+  (g&&g.phase==='play'?(window.PileheadTableFX?.starterHTML?.({
+   names:g.people.map(p=>playerName(p.seat)),seat:g.starterSeat??0,
+   reason:g.starterReason||'draw',startedAt:g.startedAt
+  })||''):'')+endScreen();
+ if(starterTimer!==null){clearTimeout(starterTimer);starterTimer=null}
+ if(g?.phase==='play'&&Number.isFinite(g.startedAt)){
+  const left=3300-(Date.now()-g.startedAt);
+  if(left>0)starterTimer=setTimeout(()=>{starterTimer=null;render()},left+25);
+ }
  if(historyOpen&&app.querySelector('.move-history'))app.querySelector('.move-history').open=true;
  if(key){
   const next=key.type==='history'?app.querySelector('.move-history summary'):
@@ -267,6 +274,8 @@ function celebrate(ev){
 }
 function queueBot(){if(timer!==null){clearTimeout(timer);timer=null}
  if(!g||g.phase!=='play'||mode!=='bots')return;
+ // Do not let bots act behind the visible first-turn lottery.
+ if(g.startedAt&&Date.now()-g.startedAt<3300)return;
  if(g.pendingDump?.seat===0)return;
   const botDump=!!g.pendingDump;
   const canSlam=g.people.some(p=>p.seat!==0&&E.slamOptions(g,p.seat).length);
@@ -280,7 +289,10 @@ function queueBot(){if(timer!==null){clearTimeout(timer);timer=null}
  }catch(e){notice='Bot error: '+e.message;render()}
  },g.followUp?.seat===0?4800:canSlam?780:600);
 }
-function startGame(){endDismissed=false;dumpDraft=null;g=E.create({players:seats,seed:Date.now()>>>0});setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
+function startGame(previousWinner=null){endDismissed=false;dumpDraft=null;g=E.create({players:seats,seed:Date.now()>>>0});
+ const starter=previousWinner===null?Math.floor(Math.random()*seats):previousWinner;
+ g.starterSeat=starter;g.starterReason=previousWinner===null?'draw':'winner';
+ setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
 function afterMove(ev){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
  if(mode==='hotseat'&&g.phase!=='over')covered=!g.pendingDump&&g.followUp?.seat!==ev.seat;
  render()}
@@ -320,7 +332,7 @@ function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat()
 function execute(action,button){
  if(action==='create'){seats=Number($('seat-count')?.value)||seats;mode=$('game-mode')?.value==='hotseat'?'hotseat':'bots';startGame();return}
  if(action==='dismiss-result'){endDismissed=true;render();return}
- if(action==='rematch'){startGame();return}
+ if(action==='rematch'){startGame(g?.finishedOrder?.[0]??null);return}
  if(action==='new'){g=null;dumpDraft=null;selection=[];swapFrom=null;covered=false;endDismissed=false;render();return}
  if(action==='ready'){
   selection=[];swapFrom=null;

@@ -1,6 +1,11 @@
 'use strict';
 const assert=require('node:assert/strict');
 const Module=require('node:module');
+const crypto=require('node:crypto'),originalRandomInt=crypto.randomInt;
+let chosenStarter=0;
+// Existing API fixtures stay deterministic; a separate scenario verifies
+// that the authoritative server can pick a nonzero starting seat.
+crypto.randomInt=max=>Math.min(chosenStarter,max-1);
 const Engine=require('../dist/pilehead/engine.js');
 const rooms=new Map(),members=new Map(),buckets=new Map();
 function conflict(){const e=Error('unique key');e.code='23505';throw e}
@@ -75,6 +80,19 @@ async function run(){
  assert.equal(guestReady.status,200);assert.equal(guestReady.data.game.setupReady[1],true);checks++;
  const start=await request({action:'start',code,revision:2},hostToken);
  assert.equal(start.status,200);assert.equal(start.data.game.phase,'play');checks++;
+ assert.equal(start.data.game.starterSeat,0);
+ assert.equal(start.data.game.starterReason,'draw');
+ assert.ok(start.data.game.startedAt>0);
+ chosenStarter=1;
+ const lottery=await request({action:'create',humans:2,bots:0,name:'Lottery host'});
+ const lotteryFriend=await request({action:'join',code:lottery.data.code,name:'Lottery guest'});
+ assert.equal(lottery.data.game.starterSeat,1);
+ assert.equal((await request({action:'ready',code:lottery.data.code,revision:0,ready:true},lottery.data.session)).status,200);
+ assert.equal((await request({action:'ready',code:lottery.data.code,revision:1,ready:true},lotteryFriend.data.session)).status,200);
+ const firstTurn=await request({action:'start',code:lottery.data.code,revision:2},lottery.data.session);
+ assert.equal(firstTurn.status,200);
+ assert.equal(firstTurn.data.game.turn,1);assert.equal(firstTurn.data.game.starterSeat,1);checks++;
+ chosenStarter=0;
  const wrong=await request({action:'move',code,revision:3,move:{type:'take'}},guestToken);
  assert.equal(wrong.status,400);checks++;
  const illegal=await request({action:'move',code,revision:3,move:{type:'play',source:'hand',ids:[999]}},hostToken);
@@ -224,6 +242,8 @@ async function run(){
  assert.equal(replay.data.game.round,2);
  assert.deepEqual(replay.data.game.botSeats,[2]);
  assert.deepEqual(replay.data.game.setupReady,[false,false,true]);
+ assert.equal(replay.data.game.starterSeat,0,'first player out gets the next start');
+ assert.equal(replay.data.game.starterReason,'winner');checks++;
  assert.equal(replay.data.game.players[2].hand,undefined);checks++;
  const oldTokenStillValid=await request({action:'state',code:hybridCode},hybridHost);
  assert.equal(oldTokenStillValid.status,200);
@@ -263,6 +283,16 @@ async function run(){
  const snapOtherMove=Engine.options(rooms.get(snapCode).state,1)[0];assert.ok(snapOtherMove);
  const snapBlocked=await request({action:'move',code:snapCode,revision:4,move:snapOtherMove},snapGuestToken);
  assert.equal(snapBlocked.status,409);assert.equal(snapBlocked.data.error,'snap_window_open');checks++;
+ const expiry=rooms.get(snapCode).state.followUp.expiresAt;
+ rooms.get(snapCode).state.followUp.expiresAt=Date.now()-10;
+ const unlocked=await request({action:'state',code:snapCode},snapGuestToken);
+ assert.equal(unlocked.status,200);
+ assert.equal(unlocked.data.revision,4,'SNAP expiry must not require database write');
+ assert.equal(unlocked.data.game.snapUntil,null);
+ assert.equal(unlocked.data.game.snapSeat,null);
+ assert.equal(unlocked.data.game.followup.length,0);
+ assert.ok(unlocked.data.game.legal.length>0);checks++;
+ rooms.get(snapCode).state.followUp.expiresAt=expiry;
  const snapPlayed=await request({action:'move',code:snapCode,revision:4,move:snapMade.data.game.followup[0]},snapHost);
  assert.equal(snapPlayed.status,200,JSON.stringify(snapPlayed));
  assert.equal(snapPlayed.data.game.events.at(-1).type,'followup');
@@ -272,7 +302,13 @@ async function run(){
  assert.equal(snapContinued.status,200,JSON.stringify(snapContinued));checks++;
 
  {
- // A live 1.2 room must survive the 1.3 deploy without changing its seat tokens.
+ // In-progress rooms from v1.3 remain readable after the v1.4 deploy.
+ const previous=await request({action:'create',humans:2,bots:0,name:'Previous release'});
+ rooms.get(previous.data.code).state.version='pilehead-1.3.0';
+ const previousRead=await request({action:'state',code:previous.data.code},previous.data.session);
+ assert.equal(previousRead.status,200);
+ assert.equal(previousRead.data.game.rulesVersion,'pilehead-1.3.0');checks++;
+ // A live 1.2 room must survive the v1.4 deploy without changing its seat tokens.
  const legacy=await request({action:'create',humans:2,bots:1,name:'Legacy host'});
  const legacyCode=legacy.data.code,legacyToken=legacy.data.session;
  const legacyGuest=await request({action:'join',code:legacyCode,name:'Friend'});
@@ -315,6 +351,8 @@ async function run(){
  assert.equal(newRound.status,200,JSON.stringify(newRound));
  assert.equal(newRound.data.game.rulesVersion,Engine.VERSION);
  assert.equal(newRound.data.game.round,2);
+ assert.equal(newRound.data.game.starterSeat,0);
+ assert.equal(newRound.data.game.starterReason,'winner');checks++;
  assert.equal((await request({action:'state',code:legacyCode},legacyGuest.data.session)).status,200);checks++;
  const unknown=await request({action:'create',humans:2,bots:0,name:'Old unsupported'});
  rooms.get(unknown.data.code).state.version='pilehead-1.1.0';
@@ -330,5 +368,5 @@ async function run(){
  console.log('PASS PILEHEAD online authoritative API: '+checks+' assertions (privacy, DUMP replay, auth, turns, CAS, room isolation)');
 }
 run().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>{
- Module._load=original;if(oldEnv===undefined)delete process.env.PILEHEAD_DATABASE_URL;else process.env.PILEHEAD_DATABASE_URL=oldEnv;
+ crypto.randomInt=originalRandomInt;Module._load=original;if(oldEnv===undefined)delete process.env.PILEHEAD_DATABASE_URL;else process.env.PILEHEAD_DATABASE_URL=oldEnv;
 });

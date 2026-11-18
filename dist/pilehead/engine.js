@@ -2,7 +2,7 @@
    Rules v1.2: 40 ordinary numbers (1–10 x4) + 12 independent actions; identical action cards may be played together.
    All information lives in state; rendering never determines legality. */
 (function(root){'use strict';
-const VERSION='pilehead-1.3.0',DECK_SIZE=52,ACTIONS={reset:2,ghost:2,under:2,skip:2,burn:2,dump:2};
+const VERSION='pilehead-1.4.0',DECK_SIZE=52,ACTIONS={reset:2,ghost:2,under:2,skip:2,burn:2,dump:2};
 function assert(ok,message){if(!ok)throw new Error(message)}
 function random(g){g.rng=(Math.imul(g.rng,1664525)+1013904223)>>>0;return g.rng/4294967296}
 function shuffle(a,g){for(let i=a.length-1;i>0;i--){let j=Math.floor(random(g)*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -32,7 +32,15 @@ function invariant(g){assert(count(g)===DECK_SIZE,'Card conservation failed: '+c
 }
 function stage(g,seat){const p=g.people[seat];assert(p,'Unknown seat');
  return p.hand.length||g.stock.length?'hand':p.up.length?'up':p.down.length?'down':'out'}
-function start(g){assert(g.phase==='setup','Game already started');g.phase='play';g.turn=0;return g}
+function start(g){
+ assert(g.phase==='setup','Game already started');
+ const seat=Number.isInteger(g.starterSeat)?g.starterSeat:0;
+ assert(seat>=0&&seat<g.people.length,'Invalid starting seat');
+ g.phase='play';g.turn=seat;g.starterSeat=seat;
+ g.starterReason=g.starterReason==='winner'?'winner':'draw';
+ g.startedAt=Date.now();
+ return g;
+}
 function swap(g,seat,handId,upId){assert(g.phase==='setup','Swaps only during setup');
  const p=g.people[seat],a=p?.hand.findIndex(c=>c.id===handId),b=p?.up.findIndex(c=>c.id===upId);
  assert(a>=0&&b>=0,'Invalid setup swap');[p.hand[a],p.up[b]]=[p.up[b],p.hand[a]];return g}
@@ -65,6 +73,16 @@ function isLegal(g,c){if(c.kind==='action')return true;
  if(g.limit?.type==='min')return c.rank>=g.limit.value;
  return true;
 }
+function finalHandBridge(g,seat){
+ const p=g.people[seat];
+ if(!p||g.stock.length||!p.hand.length||p.hand.length>=4||stage(g,seat)!=='hand')return null;
+ const first=p.hand[0];
+ if(!p.hand.every(c=>c.kind===first.kind&&
+  (first.kind==='number'?c.rank===first.rank:c.action===first.action)))return null;
+ const matching=p.up.filter(c=>c.kind===first.kind&&
+  (first.kind==='number'?c.rank===first.rank:c.action===first.action));
+ return matching.length?{hand:p.hand,up:matching,kind:first.kind,rank:first.rank,action:first.action}:null;
+}
 function options(g,seat){if(g.phase!=='play'||g.pendingDump||g.turn!==seat)return[];
  const p=g.people[seat],s=stage(g,seat);if(s==='down')return p.down.map(c=>({type:'play',ids:[c.id],source:'down'}));
  const cards=p[s],legal=cards.filter(c=>isLegal(g,c)),opts=[];
@@ -82,15 +100,14 @@ function options(g,seat){if(g.phase!=='play'||g.pendingDump||g.turn!==seat)retur
    opts.push({type:'play',source:s,ids});
   }
  }
- // Last hand card can land together with matching exposed cards, after stock empties.
- if(s==='hand'&&!g.stock.length&&p.hand.length===1){
-  const last=p.hand[0];
-  if(last.kind==='number'&&isLegal(g,last)){
-   const matching=p.up.filter(c=>c.kind==='number'&&c.rank===last.rank);
-   for(let mask=1;mask<(1<<matching.length);mask++){
-    const extra=matching.filter((_,i)=>mask&(1<<i));
-    if(extra.length+1<=4)opts.push({type:'play',source:'hand',ids:[last.id,...extra.map(c=>c.id)]});
-   }
+ // The final homogeneous hand (one or more matching copies) may combine
+ // with matching face-up cards once the stock is empty.
+ const bridge=s==='hand'?finalHandBridge(g,seat):null;
+ if(bridge&&isLegal(g,bridge.hand[0])){
+  for(let mask=1;mask<(1<<bridge.up.length);mask++){
+   const extra=bridge.up.filter((_,i)=>mask&(1<<i));
+   if(extra.length+bridge.hand.length<=4)
+    opts.push({type:'play',source:'hand',ids:[...bridge.hand,...extra].map(c=>c.id)});
   }
  }
  if(!opts.length&&g.pile.length)opts.push({type:'take'});
@@ -108,11 +125,22 @@ function slamOptions(g,seat){if(g.phase!=='play'||g.pendingDump||g.people[seat]?
  // It is always burned; never depend on the opponent's hidden hand.
  const four=held.find(c=>c.kind==='number'&&held.filter(x=>x.kind==='number'&&x.rank===c.rank).length===4);
  if(four)return [{type:'slam',source:s,ids:held.filter(c=>c.kind==='number'&&c.rank===four.rank).map(c=>c.id)}];
+ const bridge=s==='hand'?finalHandBridge(g,seat):null;
+ // Four matching cards across the entire final hand and face-up row can
+ // interrupt the table even when that number isn't the current pile rank.
+ if(bridge?.kind==='number'&&bridge.hand.length+bridge.up.length>=4){
+  return [{type:'slam',source:'hand',ids:[...bridge.hand,...bridge.up.slice(0,4-bridge.hand.length)].map(c=>c.id)}];
+ }
  if(!g.slamOpen)return[];
  const top=topRun(g),need=4-top.count;
  if(top.count===0||need<=0)return[];
  const eligible=held.filter(c=>c.kind==='number'&&c.rank===top.rank);
- return eligible.length>=need?[{type:'slam',source:s,ids:eligible.slice(0,need).map(c=>c.id)}]:[];
+ if(eligible.length>=need)return[{type:'slam',source:s,ids:eligible.slice(0,need).map(c=>c.id)}];
+ if(bridge?.kind==='number'&&bridge.rank===top.rank&&bridge.hand.length<need&&
+   bridge.hand.length+bridge.up.length>=need){
+  return [{type:'slam',source:'hand',ids:[...bridge.hand,...bridge.up.slice(0,need-bridge.hand.length)].map(c=>c.id)}];
+ }
+ return [];
 }
 function followUpOptions(g,seat){
  if(g.phase!=='play'||g.pendingDump||!g.followUp||g.followUp.seat!==seat||g.people[seat]?.out)return[];
@@ -149,11 +177,18 @@ function move(g,seat,choice){
  assert(s===choice.source,'Wrong card source');
  const ids=choice.ids;
  assert(Array.isArray(ids)&&ids.length>0&&ids.length<=4&&new Set(ids).size===ids.length,'Invalid card selection');
- const bridge=choice.type==='play'&&s==='hand'&&!g.stock.length&&p.hand.length===1&&
-  ids[0]===p.hand[0].id&&ids.length>1&&ids.slice(1).every(id=>p.up.some(c=>c.id===id));
+ const finalGroup=finalHandBridge(g,seat);
+ const bridges=(choice.type==='play'||choice.type==='slam')&&s==='hand'&&finalGroup&&
+  ids.some(id=>p.up.some(c=>c.id===id));
+ const bridge=!!bridges;
+ if(bridge)assert(finalGroup.hand.every(c=>ids.includes(c.id))&&
+  ids.slice(0,finalGroup.hand.length).every((id,i)=>id===finalGroup.hand[i].id),
+  'Final-hand combo must include the complete matching hand first');
  const cards=ids.map(id=>p[s].find(c=>c.id===id)||(bridge?p.up.find(c=>c.id===id):null));
  assert(cards.every(Boolean),'Selected card not owned');
- if(bridge)assert(cards.every(c=>c.kind==='number'&&c.rank===cards[0].rank),'Bridge requires equal numbers');
+ if(bridge)assert(cards.every(c=>c.kind===finalGroup.kind&&
+  (c.kind==='number'?c.rank===finalGroup.rank:c.action===finalGroup.action)),
+  'Bridge requires identical cards');
  if(choice.type==='play'){
   if(s==='down')assert(ids.length===1,'One blind card at a time');
   else{
@@ -163,6 +198,7 @@ function move(g,seat,choice){
     'Only identical numbers or identical actions together');
   }
  }
+ const bridgedCount=bridge?ids.length-finalGroup.hand.length:0;
  const isDump=choice.type==='play'&&cards[0]?.kind==='action'&&cards[0]?.action==='dump';
  const validTargets=isDump?dumpTargets(g,seat):[];
  // Existing 1.2 rooms must finish with the rules they started with:
@@ -227,7 +263,7 @@ function move(g,seat,choice){
   (freshlyDrawn.some(c=>c.kind==='number'&&c.rank===card.rank)?
    {seat,rank:card.rank,ids:freshlyDrawn.filter(c=>c.kind==='number'&&c.rank===card.rank).map(c=>c.id)}:null):null;
  g.moves++;const event={type:choice.type,seat,source:s,reason,count:cards.length,burned,burnedCount,
-  rank:card.rank??null,action:card.action??null,target:forcedTarget,takenCount:forcedCount,drawnCount:freshlyDrawn.length,bridgeCount:bridge?cards.length-1:0,
+  rank:card.rank??null,action:card.action??null,target:forcedTarget,takenCount:forcedCount,drawnCount:freshlyDrawn.length,bridgeCount:bridgedCount,
   move:g.moves};
  g.events.push(event);
  const over=finish(g);
@@ -284,7 +320,7 @@ function autoSlam(g,style='greedy',exclude=-1){if(g.phase!=='play'||!g.pile.leng
  }return null;
 }
 const api={VERSION,DECK_SIZE,ACTIONS,deck,create,start,swap,autoSetup,stage,count,invariant,
- options,slamOptions,followUpOptions,topRun,isLegal,move,resolveDump,dumpTargets,botDumpTarget,choose,autoSlam,next};
+ options,slamOptions,followUpOptions,finalHandBridge,topRun,isLegal,move,resolveDump,dumpTargets,botDumpTarget,choose,autoSlam,next};
 root.PileheadEngine=api;
 if(typeof module!=='undefined')module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
