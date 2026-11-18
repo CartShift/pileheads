@@ -16,8 +16,8 @@ function choices(g,two,source='hand'){
  second:opts.find(o=>o.ids.length===1&&o.ids[0]===two[1].id),
  pair:opts.find(o=>o.ids.length===2&&two.every(c=>o.ids.includes(c.id)))};
 }
-test('v1.3 with all 52 cards and unpowered numbers',()=>{
- assert.equal(E.VERSION,'pilehead-1.3.0');assert.equal(E.deck().length,52);
+test('v1.4 with all 52 cards and unpowered numbers',()=>{
+ assert.equal(E.VERSION,'pilehead-1.4.0');assert.equal(E.deck().length,52);
  assert.equal(E.deck().filter(c=>c.kind==='number').length,40);
  for(const n of Object.values(E.ACTIONS))assert.equal(n,2);
 });
