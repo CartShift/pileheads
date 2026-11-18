@@ -179,4 +179,15 @@ check('SKIP reports its public target seat for a visible skipped turn',()=>{
  assert.equal(g.turn,0);
  engine.invariant(g);
 });
+check('turn focus moves to the next player only after the card flight',()=>{
+ const s=stage();
+ s.sync({gameKey:'turn-A',identity:'turn-A:0',moveNo:0,ownSeat:0,events:[]});
+ s.sync({gameKey:'turn-A',identity:'turn-A:1',moveNo:1,ownSeat:0,turn:1,
+  events:[{type:'play',seat:0,source:'hand',rank:8,count:1,move:1}]});
+ const before=s.movements.filter(x=>x.kind==='animate'&&x.where==='opponent-hand').length;
+ assert.equal(before,0,'Do not announce the next turn while the throw is airborne');
+ s.flush();
+ const after=s.movements.filter(x=>x.kind==='animate'&&x.where==='opponent-hand').length;
+ assert.ok(after>before,'The next player should be highlighted after the throw resolves');
+});
 console.log('PILEHEAD physical motion: '+checks+' groups passed');
