@@ -14,7 +14,7 @@ function block(source,start,end){
 const onlineBlock=block(online,'function tableActions(){','function playView(){');
 const localBlock=block(local,'function tableActions({','function gameView(){');
 function renderOnline({phase='play',turn=true,selection=[10],legal=null,take=false,slam=[],snap=[],busy=false}={}){
- const game={phase,legal:take?[{type:'take'}]:[],slam,followup:snap,turn:turn?0:1};
+ const game={phase,legal:take?[{type:'take'}]:[],pile:[{rank:7},{rank:8},{rank:9}],slam,followup:snap,turn:turn?0:1};
  const data={game,me:0},current=()=>({hand:[{id:10,action:null}]});
  return new Function('data','active','legalMove','selection','busy','current','snapBlocked','displayName','safe',
    onlineBlock+'return tableActions();')(
@@ -22,7 +22,7 @@ function renderOnline({phase='play',turn=true,selection=[10],legal=null,take=fal
    );
 }
 function renderLocal({phase='play',turn=true,selection=[10],legal=[],pick=false,slams=[],snap=[],stage='hand',mode='bots'}={}){
- const game={phase,slamOpen:false,turn:turn?0:1};
+ const game={phase,slamOpen:false,pile:[{rank:7},{rank:8},{rank:9}],turn:turn?0:1};
  const props={turn,legal,pick,slams,snap,stage};
  return new Function('g','selection','getPlayer','mode','playerName',
    localBlock+'return tableActions('+JSON.stringify(props)+');')(
@@ -47,8 +47,8 @@ check('local legal selection reveals Play and bad selection explains itself',()=
  assert.doesNotMatch(invalid,/data-do="play"/);
 });
 check('a valid Take action is visible in either mode',()=>{
- assert.match(renderOnline({selection:[],take:true}),/data-do="take"/);
- assert.match(renderLocal({selection:[],pick:true}),/data-do="take"/);
+ assert.match(renderOnline({selection:[],take:true}),/Take pile · 3/);
+ assert.match(renderLocal({selection:[],pick:true}),/Take pile · 3/);
 });
 check('SLAM remains available outside your turn in both modes',()=>{
  assert.match(renderOnline({turn:false,slam:[{ids:[1,2,3,4]}]}),/SLAM · 4 cards/);

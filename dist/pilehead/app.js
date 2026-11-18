@@ -207,6 +207,17 @@ function overlay(){
 }
 function render(){
  app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay()+endScreen();
+ const announcer=document.getElementById('pilehead-announcer');
+ if(announcer&&g){
+  const key=g.seed+':'+g.moves+':'+g.phase+':'+covered+':'+setupSeat;
+  if(announcer.dataset.lastKey!==key){
+   announcer.dataset.lastKey=key;
+   announcer.textContent=g.phase==='over'?'Round finished. '+playerName(g.loser)+' is the Pilehead.':
+    covered?'Pass the device to '+playerName(g.phase==='setup'?setupSeat:g.turn)+'.':
+    g.phase==='setup'?'Choose your three face-up cards.':
+    isTurn()?'Your turn. Select a card.':playerName(g.turn)+' is playing.';
+  }
+ }
  window.PileheadTableFX?.sync({identity:g?g.seed+':'+g.moves:null,gameKey:g?'local:'+g.seed:null,
   event:g?.events?.[g.events.length-1]||null,events:g?.events||[],
   ownSeat:g?viewSeat():0,active:g?isTurn()&&!covered:false,turn:g?.turn??null,

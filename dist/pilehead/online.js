@@ -194,11 +194,15 @@ function events(){return data.game.events.slice(-7).reverse().map(e=>{
 function lobby(){
  const joined=data.members.length,humans=data.humanCount||data.capacity,bots=data.game.botSeats||[],me=current(),ready=data.game.setupReady||[];
  const myReady=!!ready[data.me],allReady=joined===humans&&Array.from({length:data.capacity},(_,i)=>ready[i]).every(Boolean);
+  const readyCount=ready.filter(Boolean).length;
  return '<section class="setup panel online-lobby"><div class="eyebrow">PRIVATE ONLINE ROOM · '+safe(room)+'</div>'+
   '<h2>Choose your opening cards</h2><p>'+humans+' human '+(humans===1?'player':'players')+' · '+bots.length+' '+(bots.length===1?'bot':'bots')+'. Share the link with your friends; computer players are ready automatically.</p>'+
   '<div class="online-code">'+safe(room)+'</div><div class="toolbar"><button class="action primary" data-do="copy">Copy invite link</button>'+
   '<button class="action secondary" data-do="share">Share</button></div>'+
-  '<div class="lobby-seats">'+Array.from({length:data.capacity},(_,i)=>'<div class="lobby-seat '+(i<joined||bots.includes(i)?'filled':'')+(bots.includes(i)?' is-bot':'')+'">'+
+  '<div class="lobby-progress" role="status"><strong>'+readyCount+' / '+data.capacity+' ready</strong>'+
+   '<span>'+(allReady?'Everyone is ready · the host can start':
+    myReady?'Your cards are locked in · waiting for the others':'Choose your face-up cards, then confirm')+'</span></div>'+
+   '<div class="lobby-seats">'+Array.from({length:data.capacity},(_,i)=>'<div class="lobby-seat '+(i<joined||bots.includes(i)?'filled':'')+(bots.includes(i)?' is-bot':'')+'">'+
   '<span>Seat '+(i+1)+(bots.includes(i)?' · CPU':'')+'</span><strong>'+safe(displayName(i))+'</strong><small>'+(bots.includes(i)?'Ready automatically':i<joined?(ready[i]?'Ready':'Choosing cards'):'Waiting to join')+'</small></div>').join('')+'</div>'+
   '<div class="setup-choice-guide"><strong>Step 1 · Choose your three face-up cards</strong><span>Tap a card in your hand, then tap the face-up card you want to replace. The host cannot start until everyone confirms.</span></div>'+
   '<div class="area-label"><span>FACE-UP CARDS</span></div><div class="card-row">'+me.up.map(c=>card(c,{can:!myReady,source:'up',selected:swapCard?.id===c.id})).join('')+'</div>'+
@@ -300,6 +304,16 @@ function render(){
   ((notice||networkError)&&data?.game.phase==='setup'?'<div class="message" role="status">'+safe(notice||networkError)+'</div>':'')+
   (networkError?'<p class="online-error" role="alert">'+safe(networkError)+'</p>':'')+
   '</div>'+dumpTargetOverlay()+endScreen();
+ const announcer=document.getElementById('pilehead-announcer');
+ if(announcer&&data){
+  const key=room+':'+data.revision+':'+data.game.phase;
+  if(announcer.dataset.lastKey!==key){
+   announcer.dataset.lastKey=key;
+   announcer.textContent=data.game.phase==='play'?statusTitle()+'. '+numberPolicy():
+    data.game.phase==='over'?'Round finished. '+displayName(data.game.loser)+' is the Pilehead.':
+    'Lobby. '+data.members.length+' players joined.';
+  }
+ }
  window.PileheadTableFX?.sync({identity:data?room+':'+data.game.moves:null,
   gameKey:data?room+':round:'+data.game.round:null,
   event:data?.game.events?.[data.game.events.length-1]||null,events:data?.game.events||[],
