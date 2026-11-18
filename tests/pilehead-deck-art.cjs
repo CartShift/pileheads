@@ -43,7 +43,7 @@ check('six special cards each have a large unique inline illustration and rule',
   assert.ok(html.includes('viewBox="0 0 160 142"'));
   assert.equal(A.face({kind:'action',action,id:12}),A.face({kind:'action',action,id:88}),
     'action copies must be visually identical');
-  svg.add(html.match(/<svg class="ph-illustration"[\s\S]*?<\/svg>/)[0]);
+  svg.add(A.art(action)); // Authoritative SVG; face nests a scaled, class-isolated copy.
  }
  assert.equal(svg.size,6);assert.throws(()=>A.face({kind:'action',action:'joker'}));
 });
@@ -142,6 +142,46 @@ check('phone setup is unclipped without changing the fan in active play',()=>{
  assert.match(css,/overflow:visible/);
  assert.match(css,/\.card-row\.hand:has/);
  assert.match(css,/@media print/);
+});
+
+
+check('STACK v3 renders each card as one self-scaling SVG surface',()=>{
+ for(const n of [1,2,5,9,10]){
+  const face=A.face({kind:'number',rank:n});
+  assert.match(face,/ph-composed-plate/);
+  assert.match(face,/ph-composed-face/);
+  assert.match(face,/viewBox="0 0 240 344"/);
+  assert.match(face,/ph-number-main-vector/);
+  assert.match(face,/ph-stack-illustration-vector/);
+  assert.ok(face.indexOf('ph-stack-illustration-vector')>face.indexOf('ph-number-main-vector'));
+  assert.equal((face.match(/ph-composed-face/g)||[]).length,1);
+ }
+ for(const action of Object.keys(engine.ACTIONS)){
+  const face=A.face({kind:'action',action});
+  assert.match(face,/ph-composed-face/);
+  assert.match(face,/ph-action-title-vector/);
+  assert.match(face,/ph-illustration-vector/);
+  assert.match(face,/ph-action-compact-rule/);
+  assert.ok(face.includes(A.rules[action]),'full text rule exists for '+action);
+ }
+ assert.match(A.back(),/ph-composed-face/);
+ assert.match(A.back(),/ph-back-stack-vector/);
+ assert.match(css,/STACK v3 · atomic artwork/);
+ assert.match(css,/\.ph-card \.ph-composed-face\{/);
+ assert.match(css,/@container \(max-width:76px\)/);
+ assert.match(css,/\.ph-action-long-rule\{display:none\}/);
+ assert.doesNotMatch(css,/\.ph-card \.ph-composed-face\{[^}]*transform:scale/);
+});
+check('STACK v3 rank geometry stays inside the source coordinates',()=>{
+ for(let n=1;n<=10;n++){
+  const art=A.numberArt(n);
+  assert.equal((art.match(/data-slab="1"/g)||[]).length,n);
+  assert.doesNotMatch(art,/\b(?:NaN|undefined|Infinity)\b/);
+  assert.match(art,/viewBox="0 0 160 142"/);
+ }
+ const dump=A.face({kind:'action',action:'dump'});
+ assert.match(dump,/CHOOSE A RIVAL/);
+ assert.doesNotMatch(dump,/NEXT PLAYER/);
 });
 
 console.log('STACK illustrated deck: '+count+' test groups passed');
