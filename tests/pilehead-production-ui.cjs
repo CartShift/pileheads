@@ -71,7 +71,7 @@ check('the UI stays narrow-screen safe and avoids idle card jitter',()=>{
  assert.match(css,/HAND STABILITY \/ NOV 2026/);
 });
 check('browser title, screen reader announcements and result dialog are present',()=>{
- assert.match(html,/PILEHEAD \| The Card Game/);
+ assert.match(html,/STACK \| The Card Game/);
  assert.match(html,/id="pilehead-announcer"/);
  assert.match(html,/aria-live="polite"/);
  assert.match(online,/announcer\.dataset\.lastKey/);
