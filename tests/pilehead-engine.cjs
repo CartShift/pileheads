@@ -157,6 +157,15 @@ test('DUMP cannot target self, finished player, or silently choose a rival',()=>
  assert.throws(()=>E.move(g,0,{type:'play',source:'hand',ids:[dump.id],target:2}),/Invalid DUMP target/);
  E.invariant(g);
 });
+test('Bot DUMP chooses a valid threat rather than blindly attacking next seat',()=>{
+ const g=opened(4,4526);
+ g.ashes.push(...g.people[2].hand.splice(0,2));
+ assert.equal(E.botDumpTarget(g,0),2);
+ g.people[2].out=true;
+ g.ashes.push(...g.people[2].hand.splice(0),...g.people[2].up.splice(0),...g.people[2].down.splice(0));
+ assert.ok(E.dumpTargets(g,0).every(i=>i!==2));
+ assert.ok(E.botDumpTarget(g,0)!==0);E.invariant(g);
+});
 test('Blind DUMP reveals first, then pauses until chosen target resolves',()=>{
  const g=opened(4,4277),dump=inject(g,0,'down',c=>c.action==='dump');
  g.ashes.push(...g.stock.splice(0),...g.people[0].hand.splice(0),...g.people[0].up.splice(0));
