@@ -229,115 +229,258 @@ function snap(type='play'){
   source.onended=()=>{source.disconnect();gain.disconnect()}
  }catch{/* Sound is optional. */}
 }
-function makeCard(ev,table){
- const visible=$('[data-play-target] .pile-card .card-wrap:last-child .card',table);
- if(visible&&!ev.burned&&ev.type!=='take'&&ev.type!=='blind-fail'){
-  const clone=visible.cloneNode(true);clone.removeAttribute('disabled');
-  clone.classList.remove('playable','selected');return clone;
+
+/* PHYSICAL TABLE DIRECTOR
+   Animate only public facts from authoritative move events. A rival's hand is
+   represented by card backs; no private card IDs or ranks are inspected. */
+let motionGame=null,observedMove=0,motionQueue=[],motionPlaying=false,motionGeneration=0;
+const canMove=()=>!motion.matches&&document.visibilityState!=='hidden'&&
+ typeof Element!=='undefined'&&typeof Element.prototype.animate==='function';
+function placeFor(table,seat,layer,ownSeat){
+ if(seat===ownSeat){
+  if(layer==='up')return $('.zone.your-up .card-row',table)||$('.zone.your-up',table);
+  if(layer==='down')return $('.zone.your-up .up-pair .card.back',table)||$('.zone.your-up',table);
+  return $('.hand-area .card-row.hand',table)||$('.hand-area',table);
  }
- const A=globalThis.PileheadCardArt,card=document.createElement('div');
- const hidden=ev.type==='take'||ev.type==='blind-fail';
- const action=ev.action&&A?.rules[ev.action]?ev.action:null;
- const rank=Number(ev.rank);
- const numbered=!hidden&&!action&&Number.isInteger(rank)&&rank>=1&&rank<=10;
- card.className='card ph-card '+(hidden?'back ph-back':action?'ph-action action-card':'ph-number');
- if(action)card.dataset.action=action;
- card.innerHTML=hidden||!action&&!numbered?A.back():A.face(action?{kind:'action',action}:{kind:'number',rank});
- return card;
+ const opponent=$('.opponent[data-seat="'+seat+'"]',table);
+ if(!opponent)return $('.opponents',table)||table;
+ return layer==='up'||layer==='down'?$('.mini-cards',opponent)||opponent:
+  $('.held-cards',opponent)||opponent;
 }
-function fly(table,ev,ownSeat){
- if(motion.matches||!table||typeof Element==='undefined'||typeof Element.prototype.animate!=='function')return;
- const target=$('[data-play-target] .pile-card',table);if(!target)return;
- const mine=ev.seat===ownSeat,isPickup=ev.type==='take'||ev.type==='blind-fail'||ev.action==='dump';
- const recipient=ev.action==='dump'?ev.target:ev.seat;
- const source=recipient===ownSeat?$('.hand-area .card-row.hand',table):
-  $('.opponent[data-seat="'+recipient+'"] .held-cards',table)||$('.opponent[data-seat="'+recipient+'"] .mini-cards',table)||$('.opponents',table);
- const from=(source||table).getBoundingClientRect(),to=target.getBoundingClientRect();
- const start=isPickup?to:from,dest=isPickup?from:to;
- const bridgeOrigin=ev.bridgeCount>0?(mine?$('.zone.your-up .card-row',table):
-  $('.opponent[data-seat="'+ev.seat+'"] .mini-cards',table)||$('.opponent[data-seat="'+ev.seat+'"]',table)):null;
- // Show an actual small stack when multiple equal cards land, or the pile is picked up.
- const count=Math.max(1,Math.min(isPickup?3:4,isPickup?Number(ev.takenCount??ev.count)||1:Number(ev.count)||1));
- for(let i=0;i<count;i++){
-  const piece=makeCard(ev,table);piece.classList.add('pilehead-physical-fx');
-  piece.style.left=(dest.left+dest.width/2-46+i*4)+'px';
-  piece.style.top=(dest.top+dest.height/2-66-i*3)+'px';
-  piece.style.width='92px';piece.style.height='132px';
-  piece.style.zIndex=String(110+i);
-  document.body.appendChild(piece);
-  const drift=i*7;
-  const origin=!isPickup&&bridgeOrigin&&i>=count-Number(ev.bridgeCount)?bridgeOrigin.getBoundingClientRect():start;
-  const x=origin.left+origin.width/2-(dest.left+dest.width/2),y=origin.top+origin.height/2-(dest.top+dest.height/2);
-  const anim=piece.animate([
-   {transform:'translate('+(x-drift)+'px,'+(y+drift)+'px) rotate('+(-16+i*3)+'deg) scale(.78)',opacity:.83},
-   {transform:'translate('+(x*.22)+'px,'+(y*.25)+'px) rotate(3deg) scale(1.12)',opacity:1,offset:.72},
-   {transform:'translate(0,0) rotate('+((i-(count-1)/2)*4)+'deg) scale(1)',opacity:ev.burned?0:1}
-  ],{duration:isPickup?460:390,delay:i*45,easing:'cubic-bezier(.2,.74,.28,1)',fill:'forwards'});
-  anim.onfinish=()=>piece.remove();anim.oncancel=()=>piece.remove();
-  setTimeout(()=>piece.remove(),1100);
- }
+function landmark(table,where){
+ return $(where==='pile'?'[data-play-target] .pile-card':
+  where==='stock'?'.table-center .stack:first-child .pile-card':
+  '.table-center .stack:last-child .pile-card',table)||table;
 }
-function drawCards(table,ev,ownSeat){
- if(motion.matches||!Number(ev.drawnCount)||typeof Element==='undefined'||typeof Element.prototype.animate!=='function')return;
- const stock=$('.table-center .stack:first-child .pile-card',table);
- const hand=ev.seat===ownSeat?$('.hand-area .card-row.hand',table):
-  $('.opponent[data-seat="'+ev.seat+'"] .held-cards',table);
- if(!stock||!hand)return;
- const from=stock.getBoundingClientRect(),to=hand.getBoundingClientRect();
- const x=from.left+from.width/2,y=from.top+from.height/2;
- const dx=to.left+to.width/2-x,dy=to.top+to.height/2-y;
- const artwork=globalThis.PileheadCardArt;
- for(let i=0;i<Math.min(Number(ev.drawnCount),3);i++){
-  const piece=document.createElement('div');piece.className='pilehead-physical-fx card back ph-card ph-back';
-  piece.innerHTML=artwork.back();
-  piece.style.left=x-38+'px';piece.style.top=y-51+'px';
-  piece.style.width='76px';piece.style.height='102px';document.body.appendChild(piece);
-  const animation=piece.animate([
-   {transform:'translate(0,0) scale(.84) rotate(-7deg)',opacity:1},
-   {transform:'translate('+dx*.65+'px,'+dy*.65+'px) scale(.92) rotate(8deg)',opacity:1,offset:.64},
-   {transform:'translate('+dx+'px,'+dy+'px) scale(.78) rotate('+(i*5-5)+'deg)',opacity:0}
-  ],{duration:440,delay:140+i*95,easing:'cubic-bezier(.22,.7,.35,1)',fill:'forwards'});
-  animation.onfinish=()=>piece.remove();animation.oncancel=()=>piece.remove();
-  setTimeout(()=>piece.remove(),1400);
+function center(el){
+ const r=(el||document.body).getBoundingClientRect();
+ return{x:r.left+r.width*.5,y:r.top+r.height*.5};
+}
+function physicalCard(ev,hidden=false){
+ const art=root.PileheadCardArt,piece=document.createElement('div');
+ const rank=Number(ev?.rank),action=ev?.action;
+ const known=Number.isInteger(rank)&&rank>=1&&rank<=10;
+ const hasAction=!!(action&&art?.rules?.[action]);
+ piece.className='card ph-card pilehead-physical-fx '+
+  (hidden||!hasAction&&!known?'back ph-back':hasAction?'ph-action action-card':'ph-number');
+ if(hasAction&&!hidden)piece.dataset.action=action;
+ piece.innerHTML=hidden||!hasAction&&!known?(art?.back?.()||''):
+  (art?.face?.(hasAction?{kind:'action',action}:{kind:'number',rank})||'');
+ return piece;
+}
+function moveCard(table,start,end,ev,opts={}){
+ if(!canMove()||!start||!end)return;
+ const a=center(start),b=center(end),size=Math.round(Math.min(90,Math.max(64,(root.innerWidth||390)*.19)));
+ const piece=physicalCard(ev,opts.hidden);
+ piece.style.left=(a.x-size*.5)+'px';piece.style.top=(a.y-size*.70)+'px';
+ piece.style.width=size+'px';piece.style.height=Math.round(size*1.4)+'px';
+ document.body.appendChild(piece);
+ const dx=b.x-a.x+(opts.spreadX||0),dy=b.y-a.y+(opts.spreadY||0);
+ const middle=opts.via?center(opts.via):null;
+ const duration=opts.duration||440,delay=opts.delay||0;
+ const rotate=opts.rotate??(opts.index||0)*5-8;
+ const frames=[{transform:'translate3d(0,0,0) rotate('+(-11+rotate*.3)+'deg) scale(.84)',opacity:.96,offset:0}];
+ if(middle)frames.push({transform:'translate3d('+(middle.x-a.x)+'px,'+(middle.y-a.y-17)+'px,0) rotate('+(rotate*.45)+'deg) scale(1.06)',opacity:1,offset:.57});
+ else frames.push({transform:'translate3d('+(dx*.57)+'px,'+(dy*.57-20)+'px,0) rotate('+(rotate*.35)+'deg) scale(1.1)',opacity:1,offset:.6});
+ frames.push({transform:'translate3d('+dx+'px,'+dy+'px,0) rotate('+rotate+'deg) scale(.92)',opacity:opts.fade?0:1,offset:1});
+ if(opts.reveal){
+  // A blind card flies face down and only turns into the public card on landing.
+  setTimeout(()=>{if(piece.isConnected){const art=root.PileheadCardArt;
+   piece.className='card ph-card pilehead-physical-fx '+(ev.action?'ph-action action-card':'ph-number');
+   piece.innerHTML=art?.face?.(ev.action?{kind:'action',action:ev.action}:{kind:'number',rank:Number(ev.rank)})||'';
+  }},delay+Math.floor(duration*.63));
  }
+ try{
+  const animation=piece.animate(frames,{duration,delay,easing:'cubic-bezier(.23,.73,.25,1)',fill:'forwards'});
+  animation.onfinish=()=>piece.remove();
+  animation.oncancel=()=>piece.remove();
+ }catch{piece.remove();return}
+ setTimeout(()=>piece.remove(),delay+duration+160);
+}
+function pulse(el,type='hit'){
+ if(!el||!canMove())return;
+ try{el.animate(type==='turn'?[
+  {filter:'brightness(1)',offset:0},{filter:'brightness(1.55)',offset:.4},{filter:'brightness(1)',offset:1}
+ ]:[
+  {filter:'brightness(1)',transform:'scale(1)'},{filter:'brightness(1.25)',transform:'scale(1.045)',offset:.42},
+  {filter:'brightness(1)',transform:'scale(1)'}
+ ],{duration:type==='turn'?470:340,easing:'ease-out'})}catch{}
+}
+function particles(where,type='burn'){
+ if(!canMove()||!where)return;
+ const p=center(where),group=document.createElement('div');
+ group.className='pilehead-impact-particles '+(type==='burn'?'is-burn':'is-slam');
+ group.style.left=p.x+'px';group.style.top=p.y+'px';
+ for(let i=0;i<12;i++){
+  const spark=document.createElement('i');
+  spark.style.setProperty('--angle',(i*30)+'deg');
+  spark.style.setProperty('--radius',(25+(i%4)*13)+'px');
+  spark.style.setProperty('--delay',(i%3*26)+'ms');
+  group.appendChild(spark);
+ }
+ document.body.appendChild(group);
+ setTimeout(()=>group.remove(),830);
 }
 function cue(table,text){
- if(!table||motion.matches)return;
- const el=document.createElement('div');el.className='pilehead-cue';el.textContent=text;
- table.appendChild(el);setTimeout(()=>el.remove(),790)
+ if(!table||document.visibilityState==='hidden')return;
+ const el=document.createElement('div');el.className='pilehead-cue';
+ el.setAttribute('aria-hidden','true');el.textContent=text;
+ table.appendChild(el);setTimeout(()=>el.remove(),1050);
+}
+function playCards(table,ev,ownSeat,options={}){
+ const source=placeFor(table,ev.seat,ev.source||'hand',ownSeat);
+ const pile=landmark(table,'pile');
+ const total=Math.max(1,Math.min(4,Number(ev.count)||1));
+ const bridge=Math.min(total-1,Math.max(0,Number(ev.bridgeCount)||0));
+ const fast=ev.type==='slam'||ev.type==='followup';
+ for(let i=0;i<total;i++){
+  const from=i>=total-bridge?placeFor(table,ev.seat,'up',ownSeat):source;
+  moveCard(table,from,options.to||pile,ev,{
+   index:i,hidden:ev.source==='down'&&i===0,delay:i*(fast?52:67),
+   duration:fast?300:410,rotate:(i-(total-1)/2)*7,
+   spreadX:(i-(total-1)/2)*7,spreadY:-i*3,
+   fade:Boolean(options.fade),via:options.via||null,reveal:ev.source==='down'&&i===0
+  });
+ }
+ pulse(pile,'hit');
+}
+function pickupCards(table,ev,ownSeat,recipient,delay=0,countOverride=null){
+ const pile=landmark(table,'pile'),hand=placeFor(table,recipient,'hand',ownSeat);
+ const count=Math.max(0,Number(countOverride??ev.takenCount??ev.count)||0);
+ if(!count)return;
+ const shown=Math.min(4,count);
+ for(let i=0;i<shown;i++)moveCard(table,pile,hand,ev,{
+  hidden:true,delay:delay+i*58,duration:470,index:i,
+  spreadX:(i-(shown-1)/2)*14,spreadY:-(i%2)*8
+ });
+ setTimeout(()=>pulse(hand,'turn'),delay+370);
+}
+function burnPile(table,ev,delay=320){
+ const pile=landmark(table,'pile'),ashes=landmark(table,'ashes');
+ const n=Math.max(1,Math.min(5,Number(ev.burnedCount)||Number(ev.count)||1));
+ setTimeout(()=>{
+  if(!canMove())return;
+  particles(pile,ev.reason==='slam'?'slam':'burn');
+  for(let i=0;i<n;i++)moveCard(table,pile,ashes,ev,{
+   hidden:true,delay:i*42,duration:390,index:i,rotate:i*16-29,
+   spreadX:i*4,spreadY:-i*2,fade:true
+  });
+  pulse(ashes,'hit');snap('burn');
+ },delay);
+}
+function drawCards(table,ev,ownSeat,delay=0){
+ const total=Math.min(3,Math.max(0,Number(ev.drawnCount)||0));
+ if(!total||!canMove())return;
+ const stock=landmark(table,'stock'),hand=placeFor(table,ev.seat,'hand',ownSeat);
+ for(let i=0;i<total;i++)moveCard(table,stock,hand,ev,{
+  hidden:true,delay:delay+i*105,duration:460,index:i,
+  spreadX:(i-(total-1)/2)*14,spreadY:-i*7
+ });
+ setTimeout(()=>pulse(hand,'turn'),delay+340);
 }
 function celebrate(table,ev,ownSeat){
- if(!ev)return;
- if(ev.burned){table.classList.remove('just-burned');void table.offsetWidth;table.classList.add('just-burned');
-  cue(table,ev.bridgeCount?'TWO LAYERS · FOUR BURN':ev.reason==='slam'?'SLAM · FOUR CARDS':ev.reason==='four'?'FOUR · PILE BURNS':'BURN · PILE REMOVED');
-  snap('burn');setTimeout(()=>table.classList.remove('just-burned'),550)}
- else if(ev.action==='dump'){cue(table,'DUMP · TAKE PILE');snap('pickup')}
- else if(ev.type==='take'||ev.type==='blind-fail'){cue(table,'PICK UP PILE');snap('pickup')}
- else if(ev.type==='followup'){cue(table,'SNAP · MATCHING DRAW');snap('play')}
- else if(ev.bridgeCount){cue(table,'HAND + FACE UP · COMBO');snap('play')}
- else if(ev.type==='play'){
-  snap();
-  if(ev.action==='skip')cue(table,'SKIP · LOSE A TURN');
-  if(ev.action==='under')cue(table,'UNDER · NUMBERS 1–4');
-  if(ev.action==='reset')cue(table,'RESET · ANY NUMBER');
-  if(ev.action==='ghost')cue(table,'GHOST · RULE STAYS');
+ if(!table||!ev||!canMove())return 0;
+ const pickup=ev.type==='take'||ev.type==='blind-fail';
+ if(pickup){
+  if(ev.type==='blind-fail'){
+   cue(table,'BLIND CARD · PICK UP');
+   moveCard(table,placeFor(table,ev.seat,'down',ownSeat),landmark(table,'pile'),ev,
+    {hidden:true,duration:260,fade:true});
+  }else cue(table,'TAKE THE PILE · '+ev.count+' CARDS');
+  snap('pickup');pickupCards(table,ev,ownSeat,ev.seat,ev.type==='blind-fail'?250:50,ev.count);
+  return 720;
  }
- fly(table,ev,ownSeat);
- drawCards(table,ev,ownSeat);
+ if(ev.action==='dump'){
+  cue(table,'DUMP · PILE TO NEXT PLAYER');
+  // DUMP itself is burned: it must NEVER enter the recipient's hand.
+  playCards(table,ev,ownSeat,{to:landmark(table,'ashes'),via:landmark(table,'pile'),fade:true});
+  setTimeout(()=>particles(landmark(table,'ashes'),'burn'),330);
+  pickupCards(table,ev,ownSeat,ev.target,370,ev.takenCount);
+  snap('pickup');
+  drawCards(table,ev,ownSeat,530);
+  return 1050;
+ }
+ playCards(table,ev,ownSeat);
+ if(ev.burned){
+  cue(table,ev.type==='slam'?'SLAM! · FOUR OF A KIND':
+   ev.reason==='four'?'FOUR MATCHING · PILE BURNS':'BURN · PILE REMOVED');
+  burnPile(table,ev,ev.type==='slam'?350:390);
+ }else if(ev.type==='followup'){cue(table,'SNAP! · MATCHING DRAW');snap('play');particles(landmark(table,'pile'),'slam')}
+ else if(ev.bridgeCount){cue(table,'HAND + FACE UP · COMBO');snap('play')}
+ else if(ev.action){
+  const messages={skip:'SKIP · NEXT PLAYER MISSES TURN',under:'UNDER · PLAY 1–4',
+   reset:'RESET · ANY NUMBER',ghost:'GHOST · RESTRICTION STAYS'};
+  if(messages[ev.action])cue(table,messages[ev.action]);
+  snap('play');
+ }else snap('play');
+ drawCards(table,ev,ownSeat,ev.burned?530:310);
+ return ev.burned?1050:Math.max(650,Number(ev.drawnCount)?910:620);
 }
-function sync({event=null,identity=null,ownSeat=0,active=false,selected=0,moveNo=0,online=false}={}){
+function turnPulse(table,seat,ownSeat){
+ if(!table||!canMove()||seat===null||seat===undefined)return;
+ const el=placeFor(table,seat,'hand',ownSeat);
+ pulse(el,'turn');
+}
+function firstDeal(table,ownSeat){
+ if(!canMove())return;
+ const deck=landmark(table,'stock'),opponents=Array.from(table.querySelectorAll('.opponent[data-seat]'));
+ const recipients=[...opponents.map(el=>({el,own:false})),
+  {el:$('.hand-area .card-row.hand',table),own:true}].filter(x=>x.el);
+ recipients.forEach((r,seat)=>{
+  for(let i=0;i<(r.own?3:2);i++)moveCard(table,deck,r.el,{type:'deal'},{
+   hidden:true,delay:seat*95+i*80,duration:530,index:i,
+   spreadX:(i-1)*19,spreadY:-i*5
+  });
+ });
+ cue(table,'CARDS DEALT · PLAY BEGINS');
+}
+function animateQueue(ownSeat){
+ if(motionPlaying||!motionQueue.length)return;
+ if(!canMove()){motionQueue.length=0;return}
+ const ev=motionQueue.shift(),table=$('#app .table');
+ if(!table)return;
+ const generation=motionGeneration;
+ motionPlaying=true;
+ const duration=celebrate(table,ev,ownSeat)||300;
+ setTimeout(()=>{
+  if(generation!==motionGeneration)return;
+  motionPlaying=false;animateQueue(ownSeat);
+ },Math.max(280,duration));
+}
+function sync({event=null,events=[],identity=null,gameKey=null,ownSeat=0,active=false,selected=0,moveNo=0,turn=null,online=false}={}){
  const table=$('#app .table');
  document.body.classList.toggle('pilehead-playing',!!table);
  document.body.classList.toggle('pilehead-focus',!!table&&focusMode);
  document.body.classList.toggle('pilehead-online',Boolean(online));
  controls();
- if(!table){seen=false;last=null;syncResult();return}
- decor(table);fan(table);hint(table,active,selected,moveNo);
-  syncResult();
+ if(!table){
+  seen=false;last=null;motionGame=null;motionQueue.length=0;
+  motionPlaying=false;motionGeneration++;syncResult();return;
+ }
+ decor(table);fan(table);hint(table,active,selected,moveNo);syncResult();
  table.classList.toggle('is-active-turn',Boolean(active));
  table.querySelector('[data-play-target]')?.classList.toggle('is-armed',Boolean(selected));
- if(!seen){seen=true;last=identity;table.classList.add('scene-entering');setTimeout(()=>table.classList.remove('scene-entering'),480);return}
- if(identity!==null&&last!==identity){last=identity;if(event)celebrate(table,event,ownSeat)}
+ const stableKey=gameKey||String(identity||'').replace(/:\d+$/,'');
+ const changed=motionGame!==stableKey||!seen;
+ if(changed){
+  seen=true;last=identity;motionGame=stableKey;observedMove=Number(moveNo)||0;
+  motionQueue.length=0;motionPlaying=false;motionGeneration++;
+  table.classList.add('scene-entering');
+  setTimeout(()=>table.classList.remove('scene-entering'),480);
+  if(!Number(moveNo))firstDeal(table,ownSeat);
+  return;
+ }
+ if(last===identity)return;last=identity;
+ const nextMove=Number(moveNo)||0;
+ if(nextMove<=observedMove){observedMove=nextMove;return}
+ let newEvents=Array.isArray(events)?events.filter(x=>Number.isInteger(x.move)&&x.move>observedMove&&x.move<=nextMove):[];
+ if(!newEvents.length&&event)newEvents=[event];
+ observedMove=nextMove;
+ // Prevent a reconnect after a long pause from replaying dozens of stale moves.
+ motionQueue.push(...newEvents.slice(-4));if(motionQueue.length>6)motionQueue.splice(0,motionQueue.length-6);
+ animateQueue(ownSeat);
+ if(turn!==null)turnPulse(table,turn,ownSeat);
 }
+
 root.PileheadTableFX={sync,handLayout,resultHTML,resetHandScroll(){handScroll=0}};
 })(typeof window!=='undefined'?window:globalThis);
