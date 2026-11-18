@@ -198,6 +198,7 @@ function move(g,seat,choice){
     'Only identical numbers or identical actions together');
   }
  }
+ const bridgedCount=bridge?ids.length-finalGroup.hand.length:0;
  const isDump=choice.type==='play'&&cards[0]?.kind==='action'&&cards[0]?.action==='dump';
  const validTargets=isDump?dumpTargets(g,seat):[];
  // Existing 1.2 rooms must finish with the rules they started with:
@@ -262,7 +263,7 @@ function move(g,seat,choice){
   (freshlyDrawn.some(c=>c.kind==='number'&&c.rank===card.rank)?
    {seat,rank:card.rank,ids:freshlyDrawn.filter(c=>c.kind==='number'&&c.rank===card.rank).map(c=>c.id)}:null):null;
  g.moves++;const event={type:choice.type,seat,source:s,reason,count:cards.length,burned,burnedCount,
-  rank:card.rank??null,action:card.action??null,target:forcedTarget,takenCount:forcedCount,drawnCount:freshlyDrawn.length,bridgeCount:bridge?cards.length-1:0,
+  rank:card.rank??null,action:card.action??null,target:forcedTarget,takenCount:forcedCount,drawnCount:freshlyDrawn.length,bridgeCount:bridgedCount,
   move:g.moves};
  g.events.push(event);
  const over=finish(g);
