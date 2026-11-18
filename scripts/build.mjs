@@ -1,9 +1,0 @@
-import fs from 'node:fs';
-const assets={};for(const name of ['index.html','engine-v5.js','sim-core.js','simulation.worker.js','simulation-results.json','tilt-sim-core.js','tilt-simulation-results.json','pilehead-sim-core.js','pilehead-simulation-results.json','pilehead/index.html','pilehead/gallery.html','pilehead/immersive.css','pilehead/immersive.js','pilehead/deck-art.css','pilehead/deck-art.js','pilehead/deck-raster.css','pilehead/stack-brand.css','pilehead/deck-raster.js','pilehead/engine.js','pilehead/app.js','pilehead/online.js','pilehead/print.html','pilehead/playtest.html','tilt/index.html','tilt/engine.js','tilt/app.js','tilt/print.html','online.js','online.css','tabletop.css']){assets['/'+name]={content:fs.readFileSync('dist/'+name,'utf8'),type:name.endsWith('.html')?'text/html; charset=utf-8':name.endsWith('.css')?'text/css; charset=utf-8':name.endsWith('.json')?'application/json':'text/javascript; charset=utf-8'}}
-for(const name of ['pilehead/assets/stack-sheet.webp','pilehead/assets/stack-back.webp']){
- assets['/'+name]={content:fs.readFileSync('dist/'+name).toString('base64'),encoding:'base64',type:'image/webp'};
-}
-const engine=fs.readFileSync('dist/engine-v5.js','utf8').replace("if(typeof module!=='undefined')module.exports=globalThis.SparkEngine;",'');
-const rooms=fs.readFileSync('worker/rooms.mjs','utf8').replace('export function roomService','function roomService');
-fs.mkdirSync('dist/server',{recursive:true});fs.writeFileSync('dist/server/package.json',JSON.stringify({type:'module'}));fs.writeFileSync('dist/server/index.js',engine+'\nconst Engine=globalThis.SparkEngine;\n'+rooms+'\nconst ASSETS='+JSON.stringify(assets)+';\n'+fs.readFileSync('worker/index.mjs','utf8'));
-console.log('Built authoritative rooms Worker and existing game assets.');

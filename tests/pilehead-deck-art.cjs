@@ -5,7 +5,7 @@ const engine=require('../dist/pilehead/engine.js');
 const artCode=read('dist/pilehead/deck-art.js'),css=read('dist/pilehead/deck-art.css');
 const index=read('dist/pilehead/index.html'),gallery=read('dist/pilehead/gallery.html'),print=read('dist/pilehead/print.html');
 const local=read('dist/pilehead/app.js'),online=read('dist/pilehead/online.js'),fx=read('dist/pilehead/immersive.js');
-const sites=read('scripts/build.mjs'),vercel=read('scripts/build-vercel.mjs');
+const vercel=read('scripts/build-vercel.mjs');
 const sandbox={};new vm.Script(artCode,{filename:'deck-art.js'}).runInNewContext(sandbox);
 const A=sandbox.PileheadCardArt;
 let count=0;function check(label,fn){fn();count++;console.log('PASS '+label)}
@@ -85,9 +85,8 @@ check('gallery includes ten numerical and six action designs plus one back',()=>
  assert.match(gallery,/A\.face\(c\)/);assert.match(gallery,/A\.back\(\)/);
  assert.match(index,/href="gallery\.html"/);
 });
-check('Sites Worker and Vercel both include all new assets',()=>{
- for(const script of [sites,vercel])for(const name of ['deck-art.js','deck-art.css','gallery.html'])
-  assert.ok(script.includes(name),name);
+check('Vercel includes shared deck assets',()=>{
+ for(const name of ['deck-art.js','deck-art.css','gallery.html'])assert.ok(vercel.includes(name),name);
 });
 check('CSS supports printed illustration, readable small cards and responsive gallery',()=>{
  for(const k of ['ph-number-main','ph-stack-art','ph-action-art','ph-action-rule','ph-back-plate','ph-mini','@container','print-color-adjust'])

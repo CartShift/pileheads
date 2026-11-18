@@ -1,6 +1,6 @@
 # PILEHEAD — Official external playtest rules (v1.3, revised 2026-11-18)
 
-Status: **canonical rules for the controlled external playtest**, not a retail-approved ruleset. Rule changes require a documented variant and a new playtest cohort. See `docs/pilehead-playtest-kit.md` and the printable `/pilehead/playtest.html` for facilitators. Lives alongside SPARK and TILT in `yotamon/spark-card-game`; does not share their rules or browser storage.
+Status: **canonical rules for the controlled external playtest**, not a retail-approved ruleset. Rule changes require a documented variant and a new playtest cohort. See `docs/pilehead-playtest-kit.md` and the printable `/pilehead/playtest.html` for facilitators. STACK is now the only maintained game in `yotamon/spark-card-game`; the internal PILEHEAD name and existing browser storage keys remain for compatibility.
 
 ## Design target
 
@@ -91,7 +91,7 @@ For online play, simultaneous response ordering requires server-authoritative ti
 - \`dist/pilehead/engine.js\`: pure deterministic authoritative game engine. Seeded Fisher–Yates shuffle, immutable card identity and 52-card conservation check.
 - \`dist/pilehead/app.js\` / \`index.html\`: visually physical felt table, turn controls, local setup, local bot play and pass-and-play, persistent local session, replayable seed in exported QA state.
 - \`dist/pilehead/print.html\`: 52-card cut-and-play physical prototype; printable backs optional.
-- \`dist/pilehead-sim-core.js\`: adapter for existing \`dist/simulation.worker.js\`. Renders results under the **PILEHEAD** tab in main Simulate screen.
+- \`dist/pilehead-sim-core.js\`: standalone diagnostic simulator, invoked with \`npm run simulate\`.
 - \`dist/pilehead-simulation-results.json\`: deterministic starting bot baseline.
 - \`tests/pilehead-engine.cjs\`, \`tests/pilehead-smoke.cjs\`: rules, conservation, UI source, build registration and simulator smoke regression checks.
 

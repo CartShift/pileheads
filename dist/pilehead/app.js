@@ -1,4 +1,4 @@
-/* PILEHEAD physical playtest UI. No SPARK or TILT persistence keys touched. */
+/* STACK physical playtest UI; preserve its existing local storage key. */
 (function(){'use strict';
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
 const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11';

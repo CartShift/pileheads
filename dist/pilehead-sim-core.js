@@ -1,4 +1,4 @@
-/* PILEHEAD simulator, run inside the EXISTING SPARK simulation worker.
+/* PILEHEAD/STACK standalone diagnostic simulation.
    This is bot diagnostic evidence, never a proxy for human enjoyment. */
 (function(root){'use strict';
 const E=root.PileheadEngine;if(!E)throw Error('PILEHEAD engine is required');

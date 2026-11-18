@@ -69,12 +69,9 @@ test('every display surface selects the raster art after compatibility module',(
  assert.match(css,/assets\/stack-sheet\.webp/);
  assert.match(css,/print-color-adjust:exact/);
 });
-test('Vercel and Sites include raster script, style and both binary assets',()=>{
- for(const script of ['scripts/build.mjs','scripts/build-vercel.mjs']){
-  const text=read(script);
-  for(const name of ['deck-raster.js','deck-raster.css','stack-sheet.webp','stack-back.webp'])
-   assert.ok(text.includes(name),script+' must include '+name);
- }
- assert.match(read('worker/index.mjs'),/asset\.encoding==='base64'/);
+test('Vercel includes raster scripts, styles and original binary assets',()=>{
+ const script='scripts/build-vercel.mjs',text=read(script);
+ for(const name of ['deck-raster.js','deck-raster.css','stack-sheet.webp','stack-back.webp'])
+  assert.ok(text.includes(name),script+' must include '+name);
 });
 console.log('STACK raster assets: '+count+' checks passed');
