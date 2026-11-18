@@ -213,8 +213,8 @@ function lobby(){
  const joined=data.members.length,humans=data.humanCount||data.capacity,bots=data.game.botSeats||[],me=current(),ready=data.game.setupReady||[];
  const myReady=!!ready[data.me],allReady=joined===humans&&Array.from({length:data.capacity},(_,i)=>ready[i]).every(Boolean);
   const readyCount=ready.filter(Boolean).length;
- return '<section class="setup panel online-lobby"><div class="eyebrow">PRIVATE ONLINE ROOM · '+safe(room)+'</div>'+
-  '<h2>Choose your opening cards</h2><p>'+humans+' human '+(humans===1?'player':'players')+' · '+bots.length+' '+(bots.length===1?'bot':'bots')+'. Share the link with your friends; computer players are ready automatically.</p>'+
+ return '<section class="setup panel online-lobby"><div class="eyebrow">STACK / ROOM '+safe(room)+'</div>'+
+  '<h2>SET YOUR OPENING HAND.</h2><p>'+humans+' human '+(humans===1?'player':'players')+' · '+bots.length+' '+(bots.length===1?'bot':'bots')+'. Share the link with your friends; computer players are ready automatically.</p>'+
   '<div class="online-code">'+safe(room)+'</div><div class="toolbar"><button class="action primary" data-do="copy">Copy invite link</button>'+
   '<button class="action secondary" data-do="share">Share</button></div>'+
   '<div class="lobby-progress" role="status"><strong>'+readyCount+' / '+data.capacity+' ready</strong>'+
@@ -306,14 +306,14 @@ function endScreen(){
 }
 function welcome(){
  const nick=safe(draftName);
- if(room)return '<section class="setup panel"><div class="eyebrow">PILEHEAD · INVITED TABLE</div><h2>Take your seat</h2>'+
+ if(room)return '<section class="setup panel"><div class="eyebrow">STACK / PRIVATE TABLE</div><h2>Take your seat</h2>'+
   '<p>Room <strong>'+safe(room)+'</strong>. Play with your friends and any bots already at the table. Only your own hand will be visible; no account required.</p>'+
   '<label>Your name<input id="online-name" maxlength="24" autocomplete="nickname" value="'+nick+'" placeholder="Player name" aria-describedby="online-form-message"></label>'+
   '<div class="toolbar"><button type="button" class="action primary" data-do="join" '+(busy?'disabled aria-busy="true"':'')+'>'+(busy?'Joining room…':'Join room')+'</button><a class="action secondary" href="?online=1">Create another room</a></div>'+
   (notice?'<p id="online-form-message" class="message online-form-message" role="alert">'+safe(notice)+'</p>':'')+'</section>';
  const total=draftHumans+draftBots,valid=total>=2&&total<=5;
- return '<section class="setup panel"><div class="eyebrow">PILEHEAD · REAL PLAYERS</div><h2>A real table, wherever your friends are.</h2>'+
-  '<p>Create a private room, send the link, and play together. Everyone gets their own secret hand. SLAM works even during someone else’s turn.</p>'+
+ return '<section class="setup panel"><div class="eyebrow">STACK / PLAY TOGETHER</div><h2>BRING YOUR FRIENDS.</h2>'+
+  '<p>One deck, one shared pile, and plenty of trouble. Invite friends, add bots, then play STACK together from anywhere.</p>'+
   '<div class="fields"><label>Your name (optional)<input id="online-name" maxlength="24" autocomplete="nickname" value="'+nick+'" placeholder="Player 1" aria-describedby="online-name-hint online-form-message">'+
   '<span class="small" id="online-name-hint">Leave blank to play as Player 1.</span></label>'+
   '<label>Human players (including you)<select id="online-humans">'+[1,2,3,4,5].map(n=>'<option value="'+n+'" '+(n===draftHumans?'selected':'')+'>'+n+' '+(n===1?'human':'humans')+'</option>').join('')+'</select></label>'+
