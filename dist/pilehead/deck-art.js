@@ -1,166 +1,135 @@
-/* STACK · one authoritative vector deck for simulator, online rooms, gallery and print.
- * Illustration is presentation-only: numeric cards have NO powers.
- * No card ID, game engine state or rules depend on these drawings.
+/* STACK approved art direction · artwork is independent of rules and card IDs.
+ * Fully composed SVG faces are one coordinate system, ensuring fidelity at
+ * tabletop, gallery and printed sizes. No separate CSS positions for art.
  */
 (function(root){'use strict';
-const C=Object.freeze({
- ink:'#18191A',cream:'#F6F0E3',red:'#D44630',blue:'#16658D',amber:'#EDB632',
- olive:'#7B813E',paper:'#FFFBF2',pale:'#D5CBB5'
-});
-const rules=Object.freeze({
- reset:'ANY NUMBER NEXT',
- ghost:'KEEP THE LIMIT',
- under:'NEXT NUMBER 1–4',
- skip:'SKIP NEXT PLAYER',
- burn:'CLEAR PILE · PLAY AGAIN',
- dump:'CHOOSE A RIVAL · TAKE PILE · PLAY AGAIN'
-});
-const glyph=Object.freeze({reset:'↶',ghost:'□',under:'↓4',skip:'↷',burn:'✦',dump:'↗'});
-const actions=Object.freeze(['reset','ghost','under','skip','burn','dump']);
-const svgStart='<svg class="ph-illustration" viewBox="0 0 160 142" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">';
-const numberStart='<svg class="ph-stack-illustration" viewBox="0 0 160 142" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">';
-const palette=[C.blue,C.red,C.amber,C.olive,C.ink];
-const topPalette=['#4391B8','#F17960','#F7D367','#A5AB63','#535454'];
-const sidePalette=['#10455F','#A43125','#C6911D','#575D2B','#101112'];
-/* All illustration geometry is expressed in SVG units and shared by screen/print.
- * Fixed rank recipes mirror the approved STACK overview. Every numbered card is
- * ordinary in the rules; the height, color and count only communicate its rank.
- */
-const rankPalettes=Object.freeze({
- 1:[0],2:[1,0],3:[2,0,1],4:[3,2,0,1],5:[1,3,2,0,4],
- 6:[0,2,1,3,0,4],7:[2,0,3,1,0,2,4],
- 8:[1,0,2,3,1,0,2,4],9:[0,2,1,3,0,2,1,3,4],
- 10:[3,0,2,1,0,3,2,1,0,4]
-});
-const rankCorners=Object.freeze([
- C.red,C.blue,C.amber,C.olive,C.red,C.olive,C.blue,C.amber,C.blue,C.amber
-]);
-function slab(x,y,width,colorIndex,height=12){
- const c=palette[colorIndex%5],light=topPalette[colorIndex%5],dark=sidePalette[colorIndex%5];
- const depth=8,tip=5, x2=x+width;
- return '<g class="ph-slab" data-slab="1">'+
-  '<path d="M'+x+' '+y+'l'+depth+' -'+tip+'h'+width+'l-'+depth+' '+tip+'Z" fill="'+light+'"/>'+
-  '<path d="M'+x+' '+y+'h'+width+'v'+height+'h-'+width+'Z" fill="'+c+'"/>'+
-  '<path d="M'+x2+' '+y+'l'+depth+' -'+tip+'v'+height+'l-'+depth+' '+tip+'Z" fill="'+dark+'"/>'+
-  '<path d="M'+x+' '+(y+height-1.8)+'h'+width+'" stroke="'+dark+'" stroke-opacity=".35" stroke-width="1.8"/>'+
- '</g>';
+const C={ink:'#161719',cream:'#F7EEDF',blue:'#15658C',red:'#D34530',yellow:'#F4BA22',olive:'#777D38',black:'#202123',muted:'#97928A'};
+const PALETTE=[C.blue,C.red,C.yellow,C.olive,C.black];
+const CORNERS=[C.red,C.blue,C.yellow,C.olive,C.red,C.olive,C.blue,C.yellow,C.blue,C.yellow];
+// Ordered top-to-bottom. The same number always has the same artwork.
+const LAYERS=[null,[0],[1,0],[2,0,1],[3,2,0,1],[1,3,2,0,4],[0,2,1,3,0,4],[2,0,3,1,0,2,4],[1,0,2,3,1,0,2,4],[0,2,1,3,0,2,1,3,4],[3,0,2,1,0,3,2,1,0,4]];
+const ACTIONS=['reset','ghost','under','skip','burn','dump'];
+const rules={reset:'ANY NUMBER NEXT',ghost:'KEEP THE LIMIT',under:'NEXT NUMBER 1–4',skip:'SKIP NEXT PLAYER',burn:'CLEAR PILE · PLAY AGAIN',dump:'CHOOSE A RIVAL · TAKE PILE · PLAY AGAIN'};
+const glyph={reset:'↶',ghost:'□',under:'↓4',skip:'↷',burn:'✦',dump:'↗'};
+const actionAccents={reset:C.blue,ghost:C.olive,under:C.red,skip:C.blue,burn:C.olive,dump:C.red};
+const shadow=['#104765','#9D3329','#B17D0C','#4A5025','#0D0E10'];
+const light=['#5197B5','#EC735C','#FFD66A','#A7A96A','#646668'];
+function z(v){return Math.round(v*100)/100}
+function slab(x,y,w,h,color,depth=9){
+ const i=typeof color==='number'?color:PALETTE.indexOf(color);const front=PALETTE[i<0?0:i],top=light[i<0?0:i],side=shadow[i<0?0:i];
+ return `<g class="ph-slab" data-slab="1">
+  <path d="M${x} ${y} l${depth} -${z(depth*.68)} h${w} l-${depth} ${z(depth*.68)} Z" fill="${top}"/>
+  <path d="M${x} ${y} h${w} v${h} h-${w}Z" fill="${front}"/>
+  <path d="M${x+w} ${y} l${depth} -${z(depth*.68)} v${h} l-${depth} ${z(depth*.68)}Z" fill="${side}"/>
+  <path d="M${x+2} ${y+h-2}h${w-4}" stroke="${side}" stroke-opacity=".35" stroke-width="1"/>
+ </g>`;
 }
+function paper(){return `<defs>
+ <linearGradient id="stock" x1="0" x2="1" y1="0" y2=".95"><stop offset="0" stop-color="#FFF9EF"/><stop offset=".52" stop-color="#F7EDE0"/><stop offset="1" stop-color="#EDE0CF"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#FFF9ED" stop-opacity=".5"/><stop offset="1" stop-color="#E7D6BF" stop-opacity=".25"/></radialGradient>
+ <pattern id="grain" patternUnits="userSpaceOnUse" width="13" height="11"><circle cx="2" cy="4" r=".45" fill="#6B4D2C" opacity=".28"/><circle cx="9" cy="8" r=".4" fill="#745437" opacity=".2"/><path d="M6 2h1M12 6h1" stroke="#826346" opacity=".18" stroke-width=".7"/></pattern>
+ <filter id="dimshadow" x="-10%" y="-15%" width="130%" height="150%"><feGaussianBlur stdDeviation="1.5"/></filter>
+ </defs>
+ <rect x=".75" y=".75" width="198.5" height="286.5" rx="13" fill="url(#stock)" stroke="#E5DAC9" stroke-width="1.5"/>
+ <rect x="2" y="2" width="196" height="284" rx="12" fill="url(#glow)"/>
+ <rect x="6" y="6" width="188" height="276" rx="9" fill="none" stroke="#FFFFFF" stroke-opacity=".65" stroke-width="1.4"/>
+ <rect x="3" y="3" width="194" height="282" rx="11" fill="url(#grain)" opacity=".25"/>`}
+function svg(content,klass=''){return `<svg class="ph-full-face ${klass}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 288" preserveAspectRatio="xMidYMid meet" aria-hidden="true" focusable="false">${paper()}${content}</svg>`}
 function numberArt(n){
  if(!Number.isInteger(n)||n<1||n>10)throw Error('invalid rank');
- const recipe=rankPalettes[n], step=n<=2?26:n<=4?20:n<=6?17:n<=8?14:12;
- const thickness=n<=2?20:n<=4?16:n<=6?13:n<=8?11:9.5;
- let art='';
- // Draw bottom to top to make the staggered paper slabs read as a real stack.
- for(let i=n-1;i>=0;i--){
-  const offset=[0,5,-4,3,-2,7,-3,2,-1,4][i];
-  const width=n<=3?112:n<=6?117:119;
-  const x=17+offset;
-  const baseline=n<=2?116:n<=4?121:126;
-  const y=baseline-(n-1-i)*step;
-  art+=slab(x,y,width,recipe[i],thickness);
+ const cols=LAYERS[n];const steps=[0,0,42,39,30,24,20,17,14,12,11];
+ const heights=[0,31,29,25,21,18,17,14,13,12,11];
+ const tops=[0,225,191,165,156,153,148,151,156,158,157];
+ const step=steps[n],ht=heights[n],top=tops[n],baseW=n<=2?145:n<=4?147:148;
+ let parts='';
+ // Slightly staggered, hand-composed silhouettes, not rotated copies of one tile.
+ const drift=[0,8,-4,6,-7,4,-3,7,-5,2];
+ // Overlapping draw order is top-to-bottom so the front surfaces stay dimensional.
+ for(let j=0;j<n;j++){
+  const width=baseW-([0,2,5,3][j%4]);const x=19+drift[j];
+  parts+=slab(x,z(top+j*step),width,ht,cols[j],n<=2?17:11);
  }
- const tally=n===1?'<path d="M12 79h27M12 87h27M12 95h27M12 103h27" stroke="'+C.ink+'" stroke-width="2.3"/>':'';
- return numberStart+
-  '<ellipse cx="82" cy="136" rx="64" ry="4" fill="#3D3023" opacity=".13"/>'+
-  tally+art+'</svg>';
+ const tally=n===1?'<path d="M12 145h31M12 155h31M12 165h31M12 175h31" stroke="#161719" stroke-width="2.6"/>':'';
+ return `<g class="stack-rank-bars">${tally}<ellipse cx="95" cy="265" rx="77" ry="4" fill="#393025" opacity=".09"/>${parts}</g>`;
 }
 function actionArt(action){
  switch(action){
- case 'reset':
-  return svgStart+
-   slab(28,115,105,4,13)+slab(30,100,102,1,13)+slab(37,85,90,0,12)+
-   '<path d="M117 85C145 24 62 15 46 56" fill="none" stroke="'+C.red+'" stroke-width="15" stroke-linecap="square"/>'+
-   '<path d="M24 52l28 -26 10 38Z" fill="'+C.red+'"/>'+
-   '<path d="M49 76h68" stroke="'+C.ink+'" stroke-opacity=".14" stroke-width="3"/>'+
-   '</svg>';
- case 'ghost':
-  return svgStart+
-   slab(24,115,112,4,13)+
-   '<path d="M34 109l13 -53h81l-14 53Z" fill="#AAC6D8" fill-opacity=".46" stroke="'+C.blue+'" stroke-width="2.3"/>'+
-   '<path d="M50 91l14 -52h76l-14 52Z" fill="#C6DDE7" fill-opacity=".37" stroke="'+C.blue+'" stroke-width="2.3"/>'+
-   '<path d="M68 73l13 -51h65l-13 51Z" fill="#E1ECED" fill-opacity=".32" stroke="'+C.blue+'" stroke-width="2.3"/>'+
-   '<path d="M22 132h115" stroke="'+C.ink+'" stroke-width="4" opacity=".14"/>'+
-   '</svg>';
- case 'under':
-  return svgStart+
-   '<path d="M80 15v57" stroke="'+C.ink+'" stroke-width="17" stroke-linecap="square"/>'+
-   '<path d="M53 61l27 30 27 -30Z" fill="'+C.ink+'"/>'+
-   '<path d="M29 88v38M131 88v38" stroke="'+C.ink+'" stroke-width="12"/>'+
-   slab(46,102,68,1,12)+
-   '<path d="M25 122h110v19H25Z" fill="'+C.blue+'"/>'+
-   '<text x="80" y="137" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="20" font-style="italic" font-weight="900" fill="'+C.paper+'">1–4</text>'+
-   '</svg>';
- case 'skip':
-  return svgStart+
-   '<path d="M26 76C34 18 118 17 131 75" fill="none" stroke="'+C.red+'" stroke-width="12" stroke-linecap="butt"/>'+
-   '<path d="M109 57l24 26 14 -31Z" fill="'+C.red+'"/>'+
-   '<circle cx="29" cy="110" r="13" fill="'+C.ink+'"/><circle cx="81" cy="110" r="13" fill="#96938E"/><circle cx="132" cy="110" r="13" fill="'+C.ink+'"/>'+
-   '<path d="M10 140q0-17 19-17t19 17M62 140q0-17 19-17t19 17M113 140q0-17 19-17t19 17" fill="'+C.ink+'"/>'+
-   '<path d="M62 140q0-17 19-17t19 17" fill="#96938E"/>'+
-   '</svg>';
- case 'burn':
-  return svgStart+
-   '<path d="M19 129h122v11H19z" fill="'+C.ink+'"/>'+
-   '<path d="M75 93l-20 -50 18 -14 27 50Z" fill="'+C.red+'"/>'+
-   '<path d="M89 94l22 -63 18 12-18 62Z" fill="'+C.red+'"/>'+
-   '<path d="M57 100L15 66l13 -20 42 33Z" fill="'+C.red+'"/>'+
-   '<path d="M101 109l35-39 15 17-34 39Z" fill="'+C.red+'"/>'+
-   '<path d="M50 119l-31 -7 8 -19 34 10Z" fill="'+C.amber+'"/>'+
-   '<path d="M66 124l-23 -23 17 -16 24 24Z" fill="'+C.olive+'"/>'+
-   '<path d="M93 125l-2 -32 22 1 4 29Z" fill="'+C.amber+'"/>'+
-   '<path d="M70 24l-12-18M127 20l7-14M13 26L7 16" stroke="'+C.ink+'" stroke-width="3.3"/>'+
-   '</svg>';
- case 'dump':
-  return svgStart+
-   slab(15,65,66,3,11)+slab(18,52,68,2,11)+slab(23,39,68,1,11)+
-   '<path d="M86 63Q127 62 123 105" fill="none" stroke="'+C.ink+'" stroke-width="6" stroke-linecap="round"/>'+
-   '<path d="M109 95l14 20 14 -19Z" fill="'+C.ink+'"/>'+
-   '<circle cx="40" cy="119" r="10" fill="#9A9693"/><circle cx="78" cy="119" r="10" fill="#9A9693"/><circle cx="124" cy="119" r="10" fill="'+C.ink+'"/>'+
-   '<path d="M25 142q0-13 15-13t15 13M63 142q0-13 15-13t15 13" fill="#9A9693"/>'+
-   '<path d="M107 142q0-13 17-13t17 13" fill="'+C.ink+'"/>'+
-   '</svg>';
+ case 'reset':return `<g class="stack-illustration">${slab(32,205,128,16,4)}${slab(25,185,139,17,1)}${slab(34,164,119,18,0)}
+ <path d="M150 164 C183 124 148 98 107 103 C74 107 55 121 47 137" fill="none" stroke="${C.red}" stroke-width="18" stroke-linecap="square"/>
+ <path d="M22 130L58 110L57 153Z" fill="${C.red}"/></g>`;
+ case 'ghost':return `<g class="stack-illustration">${slab(26,212,142,19,4)}
+ <path d="M36 203L53 135H164L147 203Z" fill="#91BCCB" fill-opacity=".3" stroke="${C.blue}" stroke-width="2"/>
+ <path d="M57 183L75 110H170L153 183Z" fill="#E3EFF1" fill-opacity=".42" stroke="${C.blue}" stroke-width="2.3"/>
+ <path d="M40 205L57 153H153L137 205Z" fill="#81AAB9" fill-opacity=".24" stroke="${C.blue}" stroke-width="2"/>
+ <path d="M69 149h76v7H69z" fill="#C7DCE5" opacity=".5"/></g>`;
+ case 'under':return `<g class="stack-illustration">
+ <path d="M99 107v55" stroke="${C.ink}" stroke-width="21" stroke-linecap="square"/>
+ <path d="M65 155L99 191L133 155Z" fill="${C.ink}"/>
+ <path d="M32 180v51M169 180v51" stroke="${C.ink}" stroke-width="15"/>
+ ${slab(58,202,86,15,1,8)}
+ <rect x="23" y="231" width="155" height="27" fill="${C.blue}"/>
+ <text x="100" y="245" text-anchor="middle" fill="#fff9e9" font-family="Arial,sans-serif" font-weight="900" font-style="italic" font-size="23">1–4</text></g>`;
+ case 'skip':return `<g class="stack-illustration"><path d="M27 169C35 105 142 109 163 161" fill="none" stroke="${C.red}" stroke-width="14"/>
+ <path d="M142 146l24 28 9-34Z" fill="${C.red}"/>
+ <circle cx="40" cy="207" r="17" fill="${C.ink}"/><circle cx="99" cy="207" r="17" fill="${C.muted}"/><circle cx="158" cy="207" r="17" fill="${C.ink}"/>
+ <path d="M14 247q0-26 26-26t26 26ZM73 247q0-26 26-26t26 26ZM132 247q0-26 26-26t26 26Z" fill="${C.ink}"/>
+ <path d="M73 247q0-26 26-26t26 26Z" fill="${C.muted}"/></g>`;
+ case 'burn':return `<g class="stack-illustration">
+ <path d="M90 158L71 108l22-12 18 57Z" fill="${C.red}"/>
+ <path d="M108 160l24-66 18 12-25 65Z" fill="${C.red}"/>
+ <path d="M66 177l-43-34 12-20 45 32Z" fill="${C.red}"/>
+ <path d="M138 174l44-30 9 23-41 25Z" fill="${C.red}"/>
+ <path d="M52 198L13 184l6-24 47 17Z" fill="${C.red}"/>
+ <path d="M76 217l-29-34 20-13 28 33Z" fill="${C.yellow}"/>
+ <path d="M111 218l16-40 23 10-17 33Z" fill="${C.olive}"/>
+ <path d="M25 245h152v15H25z" fill="${C.ink}"/>
+ <path d="M41 100L30 84M168 105l11-14M94 89L94 75" stroke="${C.ink}" stroke-width="3"/></g>`;
+ case 'dump':return `<g class="stack-illustration">${slab(22,161,99,17,3)}${slab(25,141,100,17,0)}${slab(31,121,100,17,1)}
+ <path d="M133 154C175 147 176 198 175 211" fill="none" stroke="${C.ink}" stroke-width="6"/>
+ <path d="M161 198l14 21 14-20Z" fill="${C.ink}"/>
+ <circle cx="44" cy="237" r="11" fill="${C.muted}"/><circle cx="100" cy="237" r="11" fill="${C.muted}"/><circle cx="161" cy="237" r="11" fill="${C.ink}"/>
+ <path d="M24 266q0-18 20-18t20 18ZM80 266q0-18 20-18t20 18Z" fill="${C.muted}"/>
+ <path d="M140 266q0-18 21-18t21 18Z" fill="${C.ink}"/></g>`;
  default:throw Error('invalid action');
  }
 }
-function art(action){return actionArt(String(action||''))}
+function numberFace(n){
+ const a=CORNERS[n-1],bottom=[C.blue,C.olive,C.blue,C.red,C.olive,C.blue,C.red,C.olive,C.yellow,C.blue][n-1];
+ const topType=n===10?96:123,y=n===10?118:126;
+ return '<span class="ph-plate ph-ref-face ph-number-plate" aria-hidden="true">'+svg(`
+  <path d="M159 2H198V42Z" fill="${a}"/>
+  <path d="M2 253L30 285H2Z" fill="${bottom}"/>
+  <g class="stack-rank-number" fill="${C.ink}" font-family="Inter Display,Arial Black,DejaVu Sans,sans-serif" font-weight="950" font-size="${topType}" letter-spacing="-6">
+   <text x="100" y="${y}" text-anchor="middle">${n}</text>
+  </g>${numberArt(n)}
+ `,'ph-art-number')+'</span>';
+}
+const labelLines={reset:['ANY NUMBER','NEXT'],ghost:['KEEP','THE LIMIT'],under:['NEXT','NUMBER 1–4'],skip:['SKIP','NEXT PLAYER'],burn:['CLEAR PILE ·','PLAY AGAIN'],dump:['CHOOSE A RIVAL','TAKE PILE · PLAY AGAIN']};
+function actionFace(action){
+ const accent=actionAccents[action],lines=labelLines[action];
+ const titleSize=action==='reset'?36:action==='ghost'?35:action==='under'?35:action==='skip'?41:action==='burn'?37:action==='dump'?38:35;
+ const captionSize=action==='dump'?13.5:20;
+ return '<span class="ph-plate ph-ref-face ph-action-plate" aria-hidden="true">'+svg(`
+ <g class="stack-action-name"><text x="100" y="51" font-family="Inter Display,Arial Black,DejaVu Sans,sans-serif" font-size="${titleSize}" font-weight="950" font-style="italic" letter-spacing="-1.7" text-anchor="middle" fill="${C.ink}">${action.toUpperCase()}</text></g>
+ <path d="M25 60H175" stroke="${accent}" stroke-width="6"/>
+ <g transform="translate(10 22) scale(.90 .72)">${actionArt(action)}</g>
+ <g class="stack-action-foot"><path d="M9 226H191V280H9Z" fill="${C.ink}"/>
+ <text x="100" y="245" fill="#FFF7EB" font-family="Inter Display,Arial Black,DejaVu Sans,sans-serif" font-size="${captionSize}" font-weight="900" font-style="italic" text-anchor="middle"><tspan x="100" dy="0">${lines[0]}</tspan><tspan x="100" dy="22">${lines[1]}</tspan></text>
+ </g>
+ `,'ph-art-action')+'</span>';
+}
 function face(c){
  if(!c||typeof c!=='object')throw Error('card required');
- if(c.kind==='number'){
-  const n=Number(c.rank);
-  if(!Number.isInteger(n)||n<1||n>10)throw Error('invalid rank');
-  return '<span class="ph-plate ph-number-plate" data-rank="'+n+'" style="--rank-accent:'+rankCorners[n-1]+'" aria-hidden="true">'+
-   '<span class="ph-number-corner"></span><span class="ph-number-corner-bottom"></span>'+
-   '<span class="ph-index ph-index-top">'+n+'</span>'+
-   '<span class="ph-number-main">'+n+'</span>'+
-   '<span class="ph-stack-art">'+numberArt(n)+'</span>'+
-   '<span class="ph-index ph-index-bottom">'+n+'</span>'+
-   '</span>';
- }
- const action=String(c.action||'');
- if(!actions.includes(action))throw Error('invalid action');
- return '<span class="ph-plate ph-action-plate" aria-hidden="true">'+
-  '<span class="ph-action-title">'+action.toUpperCase()+'</span>'+
-  '<span class="ph-action-art">'+actionArt(action)+'</span>'+
-  '<span class="ph-action-rule">'+rules[action]+'</span>'+
-  '<span class="ph-action-index">'+glyph[action]+'</span>'+
-  '</span>';
+ if(c.kind==='number'){const n=Number(c.rank);if(!Number.isInteger(n)||n<1||n>10)throw Error('invalid rank');return numberFace(n)}
+ const a=String(c.action||'');if(!ACTIONS.includes(a))throw Error('invalid action');return actionFace(a);
 }
-function back(){
- return '<span class="ph-plate ph-back-plate" aria-hidden="true">'+
-  '<span class="ph-back-frame"></span>'+
-  '<span class="ph-back-title">STACK</span>'+
-  '<svg class="ph-back-stack" viewBox="0 0 140 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'+
-  slab(18,18,98,0,12)+slab(24,37,88,2,12)+slab(18,56,98,1,12)+slab(24,75,88,3,12)+'</svg>'+
-  '<span class="ph-back-subtitle">THE CARD GAME</span></span>';
+function back(){return '<span class="ph-plate ph-ref-face ph-back-plate" aria-hidden="true">'+svg(`<rect width="200" height="288" rx="12" fill="#18191B"/><path d="M9 9H191V279H9Z" fill="none" stroke="#E5D6BA" stroke-width="2"/>
+ <path d="M27 56h152" stroke="#D34530" stroke-width="9"/><text x="100" y="116" text-anchor="middle" font-family="Inter Display,Arial Black,sans-serif" font-style="italic" font-weight="950" font-size="53" letter-spacing="-4" fill="#F7EEDF">STACK</text>
+ ${slab(29,179,129,18,0)}${slab(38,207,116,16,1)}${slab(30,234,127,17,3)}<text x="100" y="271" text-anchor="middle" font-family="Arial,sans-serif" letter-spacing="4" font-weight="900" font-size="11" fill="#FFF9EA">THE CARD GAME</text>`,'ph-art-back')+'</span>'}
+function mini(c){if(!c)return '<span class="mini back ph-mini ph-mini-back" aria-hidden="true">'+back()+'</span>';
+ if(c.kind==='number'){const n=Number(c.rank);if(!Number.isInteger(n)||n<1||n>10)throw Error('invalid miniature number');return '<span class="mini ph-mini ph-mini-number" title="Number '+n+'">'+n+'</span>'}
+ const a=String(c.action||'');if(!ACTIONS.includes(a))throw Error('invalid miniature action');return '<span class="mini ph-mini ph-mini-action" data-action="'+a+'" title="'+a.toUpperCase()+'">'+glyph[a]+'</span>';
 }
-function mini(c){
- if(!c)return '<span class="mini back ph-mini ph-mini-back" aria-hidden="true">'+back()+'</span>';
- if(c.kind==='number'){
-  const n=Number(c.rank);if(!Number.isInteger(n)||n<1||n>10)throw Error('invalid miniature number');
-  return '<span class="mini ph-mini ph-mini-number" title="Number '+n+'">'+n+'</span>';
- }
- const action=String(c.action||'');if(!actions.includes(action))throw Error('invalid miniature action');
- return '<span class="mini ph-mini ph-mini-action" data-action="'+action+'" title="'+action.toUpperCase()+'">'+glyph[action]+'</span>';
-}
-root.PileheadCardArt=Object.freeze({face,back,mini,art,numberArt,rules,glyph,palette:C});
+function art(action){return '<svg class="ph-illustration" viewBox="0 0 200 288" xmlns="http://www.w3.org/2000/svg">'+actionArt(String(action||''))+'</svg>'}
+root.PileheadCardArt=Object.freeze({face,back,mini,art,numberArt,actionArt,rules,glyph,palette:C});
 })(typeof window!=='undefined'?window:globalThis);
