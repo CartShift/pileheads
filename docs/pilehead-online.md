@@ -101,3 +101,7 @@ A matching card drawn immediately after a numbered play opens a seven-second SNA
 
 ## Mobile play UI
 The phone table now sizes to its content rather than forcing a viewport-sized felt area; opponent thumbnails, pile, exposed cards and hand remain visible in one compact sequence. Play, Take, SLAM and SNAP controls only appear when relevant; a brief instructional prompt replaces disabled buttons. Small hands are fanned wider, with Sort and Clear selection available. The teaching pill no longer covers cards on phones. Existing desktop, landscape and multiplayer rules remain unchanged.
+
+## Physical-motion director (November 2026)
+
+The shared immersive controller now animates real physical trajectories using safe move metadata from the authoritative engine: `source` (hand/up/down), monotonically increasing `move`, and `burnedCount`. The same public event data is used in online play without exposing opponents' private hands. Animations include a first-round deal, one-by-one throws, blind reveal, draws, pickups, DUMP burning itself while sending the prior pile to the next seat, BURN/SLAM/four-of-a-kind combustion to the ash area, SNAP, and action explanations. Consecutive server events are queued (up to four unseen moves per refresh) so intermediate actions remain visible. Short durations, limited animated cards, opt-in audio and reduced-motion support keep the experience responsive. The card movement is purely presentational; the game engine remains authoritative. Browser/device screenshot QA remains a separate step.
