@@ -88,6 +88,9 @@ async function run(){
 
  // Force a deterministic DUMP action into the active player's hand without changing card ownership.
  const seeded=rooms.get(code).state,actor=seeded.turn,receiver=(actor+1)%2;
+ // This fixture explicitly stages a DUMP; a randomly matched draw may have
+ // opened the unrelated, time-limited SNAP invitation on the preceding turn.
+ seeded.followUp=null;
  const zones=[seeded.stock,seeded.pile,seeded.ashes,...seeded.people.flatMap(p=>[p.hand,p.up,p.down])];
  const source=zones.find(z=>z.some(c=>c.action==='dump'));assert.ok(source);
  const ix=source.findIndex(c=>c.action==='dump'),dump=source[ix],prior=seeded.people[actor].hand[0];
