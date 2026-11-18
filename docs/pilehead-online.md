@@ -109,3 +109,11 @@ The shared immersive controller now animates real physical trajectories using sa
 ## Official controlled playtest (2026-11-18)
 
 Canonical game rules are frozen in `docs/pilehead-design.md`. Participant-facing printable rules, session records, and controlled final-duel experiment are described in `docs/pilehead-playtest-kit.md` and `/pilehead/playtest.html`. These playtest tools collect data **locally only** and do not upload ratings to the room database. A full-four independent SLAM may occur even when `slamOpen` is false; automated bot SLAM checks must honor this rule. Do not treat polling-based SLAM as latency-neutral.
+
+## Quality pass: exact card origin and motion settings
+
+- On human actions, the client captures the clicked card's DOM center **before** the authoritative state re-renders. The motion director matches the public server move index and uses that precise starting location, including hand-to-face-up combinations. It never sends coordinate data to the server.
+- Physics now cleans up orphaned card ghosts, cue overlays, and delayed effects on round changes and when the page is hidden. Replayed revisions are deduplicated and batched events are sorted by move index.
+- The table menu offers Full, Quick and Off motion. Motion Off and OS-level reduced-motion preferences suppress card animations; a speed preference does not affect legal moves or server timing.
+- SKIP now carries the public skipped seat index and the table visibly marks that player's skipped turn. RESET and UNDER highlight the active number restriction.
+- Move cues live above the page, not inside the frequently re-rendered table subtree. Their mobile size is constrained to avoid covering hand controls. See `tests/pilehead-physics.cjs` for regression coverage.
