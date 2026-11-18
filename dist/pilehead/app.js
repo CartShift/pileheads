@@ -105,13 +105,13 @@ function eventName(e){const who=playerName(e.seat);if(e.type==='take')return who
  if(e.burned)return who+' burned the pile';
  if(e.action)return who+' played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase();
  return who+' played '+e.count+' × '+e.rank}
-function setupView(){if(!g)return '<section class="setup panel"><div class="eyebrow">One deck. One pile. Last player loses.</div>'+
- '<h2>Welcome to PILEHEAD</h2><p>A standalone Shithead-inspired card game with independent action cards, three layers and out-of-turn SLAM burns. The physical rules are identical for humans and bots.</p>'+
+function setupView(){if(!g)return '<section class="setup panel"><div class="eyebrow">STACK / THE CARD GAME</div>'+
+ '<h2>ONE PILE. ONE LOSER.</h2><p>Make your move, stack the pressure, and be the first to lose every card. Six action cards can turn the table. The last player holding cards loses.</p>'+
  '<div class="fields"><label>Players<select id="seat-count">'+[2,3,4,5].map(n=>'<option value="'+n+'" '+(seats===n?'selected':'')+'>'+n+' players</option>').join('')+'</select></label>'+
  '<label>Play against<select id="game-mode"><option value="bots" '+(mode==='bots'?'selected':'')+'>Computer opponents</option><option value="hotseat" '+(mode==='hotseat'?'selected':'')+'>Local pass-and-play</option></select></label></div>'+
  '<div class="toolbar"><button class="action primary" data-do="create">Deal cards</button><a class="action secondary" href="?online=1">Play with friends online</a></div></section>';
  const p=g.people[setupSeat],had=swapFrom!==null;
- return '<section class="setup panel"><div class="eyebrow">Before the first turn · '+playerName(setupSeat)+'</div><h2>Choose your face-up cards</h2>'+
+ return '<section class="setup panel"><div class="eyebrow">STACK / OPENING HAND · '+playerName(setupSeat)+'</div><h2>SET THE TABLE.</h2>'+
  '<p>Tap a card in your hand, then a face-up card to swap them. Face-up cards become playable after your draw deck and hand are gone. Three blind cards stay hidden.</p>'+
  '<div class="area-label"><span>YOUR FACE-UP CARDS</span></div>'+rowCards(p.up,'up',true)+
  '<div class="area-label"><span>YOUR HAND</span><span>'+(had?'Now tap the card to exchange':'Tap any card to select')+'</span></div>'+
