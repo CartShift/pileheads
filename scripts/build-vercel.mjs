@@ -14,7 +14,7 @@ fs.mkdirSync(path.join(target,'tilt'),{recursive:true});
 for(const name of ['index.html','engine.js','app.js','print.html'])
   fs.copyFileSync(path.join(source,'tilt',name),path.join(target,'tilt',name));
 fs.mkdirSync(path.join(target,'pilehead'),{recursive:true});
-for(const name of ['index.html','gallery.html','immersive.css','immersive.js','deck-art.css','deck-art.js','engine.js','app.js','online.js','print.html'])
+for(const name of ['index.html','gallery.html','immersive.css','immersive.js','deck-art.css','deck-art.js','engine.js','app.js','online.js','print.html','playtest.html'])
  fs.copyFileSync(path.join(source,'pilehead',name),path.join(target,'pilehead',name));
 let html=fs.readFileSync(path.join(source,'index.html'),'utf8');
 const removals=[

@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PILEHEAD · Official Playtest Kit</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#18352c;background:#f4f0e7;line-height:1.5}
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:1030px;padding:18px clamp(12px,3vw,38px) 40px}
+a{color:#075f50}button,input,select,textarea{font:inherit}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #a9502b;outline-offset:2px}
+.top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.brand{font:900 clamp(27px,4vw,42px)/1 Georgia,serif;color:#185b48;letter-spacing:-.05em}
+.small{font-size:13px;color:#55665d}
+.actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.actions button,.actions a,.export{border:1px solid #c1b08e;background:#fff7e8;color:#173a30;padding:9px 12px;border-radius:10px;cursor:pointer;text-decoration:none;font-weight:700}
+.actions .export{background:#1b654f;color:#fff;border-color:#1b654f}
+header h1{font:900 clamp(25px,4vw,36px)/1.1 Georgia,serif;margin:18px 0 3px}
+header p{max-width:740px;margin:7px 0 18px}
+.sheet{background:white;border:1px solid #ded3bc;border-radius:18px;padding:clamp(15px,3vw,26px);margin:14px 0;box-shadow:0 2px 15px #18352c0c}
+h2{font:900 24px Georgia,serif;color:#12523f;margin:0 0 15px}
+h3{margin:14px 0 7px;font-size:16px;color:#214c3d}
+.columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 23px}
+.columns p{margin:0}
+.action-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.action-card{border:1px solid #d1c8b8;border-radius:10px;padding:10px;background:#f8f5ed}
+.action-card b{display:block;font-size:15px}
+.action-card p{font-size:13px;margin:4px 0 0}
+.action-card[data-action="dump"]{background:#f8e1e9}.action-card[data-action="burn"]{background:#f8e3d8}
+.action-card[data-action="under"]{background:#faedcc}.action-card[data-action="reset"]{background:#deedf7}
+.action-card[data-action="ghost"]{background:#efe3f7}.action-card[data-action="skip"]{background:#e3f2dd}
+ul{padding-inline-start:23px}li{margin:5px 0}
+.notice{padding:12px;background:#f6efd9;border-inline-start:4px solid #b88c46;border-radius:7px}
+code{font-size:12px}
+form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+label{font-size:13px;font-weight:700;display:flex;flex-direction:column;gap:4px}
+input,select,textarea{min-width:0;width:100%;padding:10px 11px;border:1px solid #acb7aa;border-radius:8px;background:white;color:#17352c}
+textarea{min-height:95px;resize:vertical}.full{grid-column:1/-1}
+.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.lang-he{display:none}
+html[lang="he"] .lang-he{display:block}
+html[lang="he"] .lang-en{display:none}
+html[lang="he"] .actions{direction:ltr}
+footer{margin-top:14px;font-size:12px;color:#53655a}
+@media(max-width:640px){.columns,.action-grid,form{grid-template-columns:1fr}.sheet{padding:15px}.top{align-items:flex-start}}
+@media print{
+ @page{size:A4;margin:12mm}
+ :root{background:white}body{max-width:none;padding:0;color:#000}
+ .no-print,.top .actions,footer,.form-actions{display:none!important}
+ .sheet{break-inside:avoid;box-shadow:none;margin:8mm 0;border-radius:0;padding:4mm;border:1px solid #bbb}
+ .columns{grid-template-columns:repeat(2,minmax(0,1fr));gap:9mm}
+ .action-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ h2{font-size:18px}h3{font-size:13px}body,li,.action-card p{font-size:11px}
+ header h1{font-size:24px}header p{font-size:11px}
+ input,select,textarea{padding:4px 5px;border:0;border-bottom:1px solid #aaa;border-radius:0}
+ label{font-size:10px}
+ form{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+}
+</style>
+</head>
+<body>
+<div class="top">
+ <div class="brand">PILEHEAD</div>
+ <div class="actions no-print">
+  <a href="index.html">Play game</a>
+  <a href="print.html">Print cards</a>
+  <button type="button" id="language">עברית / English</button>
+  <button type="button" id="print">Print this sheet</button>
+ </div>
+</div>
+<header>
+ <div class="lang-en"><h1>Official playtest · frozen rules</h1><p>52-card physical game for 2–5 players. First to lose all cards escapes. <strong>The last player holding cards is the PILEHEAD.</strong> This is a human playtest, not a published retail game.</p></div>
+ <div class="lang-he"><h1>ערכת בדיקה רשמית · חוקים מוקפאים</h1><p>משחק קלפים פיזי ל־2–5 שחקנים, עם 52 קלפים. מי שנפטר מכל הקלפים יוצא מהמשחק. <strong>האחרון שנשאר עם קלפים הוא ה־PILEHEAD ומפסיד.</strong> זו גרסת בדיקה, לא מוצר מסחרי מוגמר.</p></div>
+</header>
+<section class="sheet" aria-label="Rules">
+ <div class="lang-en">
+  <h2>How to play</h2>
+  <div class="columns">
+   <div><h3>1 · Deal and choose</h3><p>Deal each player <strong>3 face-down</strong> (do not peek), <strong>3 face-up</strong> on top, and <strong>3 in hand</strong>. Swap your hand cards with your face-up cards before the round begins. The rest is the draw stock.</p></div>
+   <div><h3>2 · Play or pick up</h3><p>On your turn play one card, matching numbers, or identical special cards from your active layer (never mixed). A number must be <strong>equal to or higher</strong> than the current requirement. Any special card is always playable. If nothing is legal, pick up the pile. You cannot voluntarily pick up when a legal move exists.</p></div>
+   <div><h3>3 · Three layers</h3><p>While stock remains, refill your hand to <strong>3 cards</strong> after playing. When stock and hand are empty, use face-up cards. When those are gone, flip one blind card per turn. If a blind card is illegal, put it on the pile and pick up the whole pile.</p></div>
+   <div><h3>4 · Get rid of everything</h3><p>Finish your hand, face-up and blind cards to leave the round. Continue until only one player has cards. That final player loses. <strong>Numbers 1–10 have no special powers.</strong></p></div>
+  </div>
+  <h3>The six special cards · two copies each</h3>
+ </div>
+ <div class="lang-he">
+  <h2>איך משחקים?</h2>
+  <div class="columns">
+   <div><h3>1 · חלוקה והחלפה</h3><p>כל שחקן מקבל <strong>3 קלפים הפוכים</strong> (אסור להציץ), <strong>3 קלפים גלויים</strong> מעליהם ו־<strong>3 קלפים ביד</strong>. לפני שמתחילים מותר להחליף קלפים בין היד לקלפים הגלויים. שאר הקלפים הם חבילת המשיכה.</p></div>
+   <div><h3>2 · משחקים או מרימים</h3><p>בתורכם מניחים קלף, כמה קלפי מספר זהים או כמה קלפים מיוחדים זהים מאותה שכבה, אך לא מערבבים ביניהם. מספר חייב להיות <strong>שווה למספר הנדרש או גבוה ממנו</strong>. קלף מיוחד תמיד חוקי. אם אין מהלך חוקי, מרימים את כל הערימה; אסור להרים מרצון כשאפשר לשחק.</p></div>
+   <div><h3>3 · שלוש שכבות</h3><p>כל עוד יש חבילת משיכה, משלימים עד <strong>3 קלפים ביד</strong> אחרי מהלך. כשהחבילה והיד מתרוקנות, משחקים את הקלפים הגלויים. לאחר מכן הופכים קלף סגור אחד בכל תור. אם הוא לא חוקי, מוסיפים אותו לערימה ומרימים את כולה.</p></div>
+   <div><h3>4 · נפטרים מכל הקלפים</h3><p>מי שסיים את כל הקלפים ביד, את הגלויים ואת הסגורים, יוצא מהמשחק. האחרון שנשאר עם קלפים מפסיד. <strong>לקלפי המספרים 1–10 אין כוח מיוחד.</strong></p></div>
+  </div>
+  <h3>ששת הקלפים המיוחדים · שניים מכל סוג</h3>
+ </div>
+ <div class="action-grid">
+  <div class="action-card" data-action="reset"><b>RESET</b><p class="lang-en">Remove the numeric restriction. Any next number is legal; pile stays.</p><p class="lang-he">מבטל את הגבלת המספר. המספר הבא יכול להיות כל מספר. הערימה נשארת.</p></div>
+  <div class="action-card" data-action="ghost"><b>GHOST</b><p class="lang-en">Transparent. Keep the existing numeric or UNDER restriction.</p><p class="lang-he">קלף שקוף: הגבלת המספר או UNDER ממשיכה לחול.</p></div>
+  <div class="action-card" data-action="under"><b>UNDER</b><p class="lang-en">The next played number must be 1–4. GHOST and SKIP preserve it; RESET and BURN clear it.</p><p class="lang-he">המספר הבא חייב להיות בין 1 ל־4. קלפים מיוחדים לא מבטלים זאת, למעט RESET או BURN.</p></div>
+  <div class="action-card" data-action="skip"><b>SKIP</b><p class="lang-en">Skip the next active player. In a 2-player game, you play again.</p><p class="lang-he">השחקן הבא מפסיד תור. במשחק זוגי תשחקו שוב.</p></div>
+  <div class="action-card" data-action="burn"><b>BURN</b><p class="lang-en">Burn the entire pile, including BURN. Play again immediately.</p><p class="lang-he">שורפים את כל הערימה, כולל BURN, ומשחקים שוב מיד.</p></div>
+  <div class="action-card" data-action="dump"><b>DUMP</b><p class="lang-en">Burn DUMP itself; the next player takes the <strong>existing pile only</strong>. You play again.</p><p class="lang-he">שורפים את קלף ה־DUMP עצמו; השחקן הבא מרים <strong>רק את הערימה שהייתה לפניו</strong>. אתם משחקים שוב.</p></div>
+ </div>
+ <div class="lang-en">
+  <p class="notice"><strong>SLAM:</strong> Complete four consecutive equal numbers at the top of the pile, even out of turn, <em>or</em> throw all four copies of any one number from your active visible layer onto a nonempty pile. Burn it and play again. You cannot use blind cards. <strong>SNAP:</strong> If you draw a matching number immediately after playing a number from hand, you may throw only that freshly drawn matching number immediately, before the next move. In online play there is a 7-second window; SNAP alone does not steal a turn. <strong>LAST-HAND COMBO:</strong> Once stock is empty, your final numeric hand card may be played together with matching face-up numbers if legal. Matching specials can be played together, but their effect happens only once.</p>
+  <p class="small">This ruleset is the canonical playtest version. The optional final-duel triple rule is a separately recorded <em>physical</em> experiment, not part of the normal game.</p>
+ </div>
+ <div class="lang-he">
+  <p class="notice"><strong>SLAM:</strong> אם אתם יכולים להשלים רצף של ארבעה מספרים זהים בראש הערימה, מותר להתפרץ גם לא בתורכם. אפשר גם לזרוק רביעייה מלאה של אותו מספר מהשכבה הפעילה שלכם על כל ערימה שאינה ריקה, גם בלי התאמה למספר העליון. שורפים את הערימה ומקבלים את התור. אסור להשתמש בקלפים סגורים. <strong>SNAP:</strong> אם שלפתם מיד אחרי ששיחקתם מספר קלף חדש עם אותו מספר, מותר להניח אותו מיד לפני התור הבא. רק קלפים שזה עתה נשלפו מתאימים. באונליין יש חלון של 7 שניות; SNAP לבדו לא גונב תור. <strong>שילוב אחרון:</strong> כשחבילת המשיכה ריקה ונשאר קלף מספרי אחד ביד, אפשר להניח אותו יחד עם קלפים גלויים זהים, אם המהלך חוקי. שני קלפים מיוחדים זהים מופעלים כפעולה אחת בלבד.</p>
+  <p class="small">אלה החוקים הרשמיים לגרסת הבדיקה. שלישייה בדו־קרב האחרון היא ניסוי פיזי נפרד בלבד, ואינה חלק מהחוקים הרגילים.</p>
+ </div>
+</section>
+<section class="sheet" aria-label="Round feedback">
+ <div class="lang-en"><h2>Round scorecard</h2><p class="small">One form per completed round. No personal details. Export JSON and send it to the organizer voluntarily; nothing uploads automatically.</p></div>
+ <div class="lang-he"><h2>טופס משוב לסיבוב</h2><p class="small">ממלאים טופס לכל סיבוב שהסתיים. בלי פרטים אישיים. מייצאים קובץ JSON ומעבירים אותו למארגן. הנתונים אינם נשלחים אוטומטית לשום שרת.</p></div>
+ <form id="scorecard">
+  <label>Session ID / מזהה מפגש<input name="sessionId" placeholder="e.g. 4PK8" maxlength="24" required></label>
+  <label>Players / שחקנים<select name="players"><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
+  <label>Experience / ניסיון<select name="experience"><option value="none">Never played Shithead</option><option value="some">Some experience</option><option value="regular">Shithead regulars</option></select></label>
+  <label>Medium / סוג המשחק<select name="medium"><option value="physical">Physical cards</option><option value="digital-local">Digital local</option><option value="digital-online">Digital online</option></select></label>
+  <label>Rule variant / גרסת חוקים<select name="variant"><option value="canonical">Canonical / רגילה</option><option value="final-duel-triple">Experiment: final duel triple / ניסוי</option></select></label>
+  <label>Learn time (min) / זמן לימוד<input type="number" name="learnMinutes" min="0" max="180" step="1" placeholder="minutes"></label>
+  <label>Round duration (min) / משך סיבוב<input type="number" name="roundMinutes" min="1" max="240" step="1" required></label>
+  <label>Rule clarifications / שאלות על החוקים<input type="number" name="ruleClarifications" min="0" max="99" step="1" value="0"></label>
+  <label>SLAMs seen / סלאמים שקרו<input type="number" name="slamsObserved" min="0" max="99" step="1"></label>
+  <label>Missed SLAMs / פספוסי סלאם<input type="number" name="slamsMissed" min="0" max="99" step="1"></label>
+  <label>DUMP moments / אירועי דאמפ<input type="number" name="dumpMoments" min="0" max="99" step="1"></label>
+  <label>Endgame stalls / תקיעות בסיום<input type="number" name="endgameStalls" min="0" max="99" step="1"></label>
+  <label>Spontaneous replay? / ביקשו עוד משחק?<select name="spontaneousReplay"><option value="">Not recorded / לא נרשם</option><option value="yes">Yes / כן</option><option value="no">No / לא</option></select></label>
+  <label>Choose over Shithead? / מעדיפים על שיטהד?<select name="wouldChooseOverShithead"><option value="not-compared">Not compared / לא השווינו</option><option value="yes">Yes / כן</option><option value="no">No / לא</option><option value="undecided">Undecided / לא בטוחים</option></select></label>
+  <label>Fun / כיף (1–5)<select name="fun"><option value="">Choose…</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
+  <label>Clarity / בהירות (1–5)<select name="clarity"><option value="">Choose…</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
+  <label>Agency / השפעה של החלטות (1–5)<select name="agency"><option value="">Choose…</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
+  <label>Tension / מתח (1–5)<select name="tension"><option value="">Choose…</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></label>
+  <label class="full">What was funny, confusing or unfair? / מה היה מצחיק, מבלבל או לא הוגן?<textarea name="notes" maxlength="2500" placeholder="Actual player comments, especially reasons not to replay"></textarea></label>
+  <div class="full controls form-actions no-print">
+   <button class="export" type="submit">Download feedback JSON / יצוא משוב</button>
+   <span id="status" class="small" role="status" aria-live="polite">Saved only when you download a file / נשמר רק אחרי הורדת הקובץ</span>
+  </div>
+ </form>
+</section>
+<footer>PILEHEAD · Frozen rules: 2026-11-18 · Core engine: pilehead-1.2.0 · Research, not retail certification</footer>
+<script>
+(function(){
+'use strict';
+var doc=document.documentElement;
+document.getElementById('language').addEventListener('click',function(){
+ var he=doc.lang!=='he';doc.lang=he?'he':'en';doc.dir=he?'rtl':'ltr';
+});
+document.getElementById('print').addEventListener('click',function(){window.print()});
+document.getElementById('scorecard').addEventListener('submit',function(e){
+ e.preventDefault();
+ if(!this.reportValidity())return;
+ var data=new FormData(this),row={schema:'pilehead-playtest-2026-11-18',exportedAt:new Date().toISOString()};
+ ['sessionId','experience','medium','variant','spontaneousReplay','wouldChooseOverShithead','notes'].forEach(function(k){row[k]=String(data.get(k)||'').trim()});
+ ['players','learnMinutes','roundMinutes','ruleClarifications','slamsObserved','slamsMissed','dumpMoments','endgameStalls','fun','clarity','agency','tension'].forEach(function(k){
+  var value=String(data.get(k)||'');row[k]=value===''?null:Number(value);
+ });
+ var blob=new Blob([JSON.stringify(row,null,2)],{type:'application/json'});
+ var href=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=href;a.download='pilehead-playtest-'+(row.sessionId.replace(/[^a-z0-9_-]/gi,'_')||'session')+'-'+Date.now()+'.json';
+ document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(href)},1000);
+ document.getElementById('status').textContent='Downloaded locally. Share the JSON file manually / הקובץ הורד למכשיר';
+});
+})();
+</script>
+</body>
+</html>

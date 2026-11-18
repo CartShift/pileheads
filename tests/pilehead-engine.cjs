@@ -230,6 +230,20 @@ test('last hand and matching face-up cards can be played together',()=>{
  const event=E.move(g,0,combo);assert.equal(event.bridgeCount,1);
  assert.equal(p.hand.length,0);assert.ok(!p.up.some(c=>c.id===ids[1]));E.invariant(g);
 });
+test('automatic SLAM catches four of a kind even when the top run is closed',()=>{
+ const g=opened(2,3207),four=Array.from({length:4},()=>extract(g,c=>c.kind==='number'&&c.rank===8));
+ g.stock.push(...g.people[1].hand.splice(0));g.people[1].hand.push(...four);
+ g.pile.push(extract(g,c=>c.kind==='number'&&c.rank===2));
+ g.turn=0;g.slamOpen=false; // A special card can close the top-run SLAM window.
+ assert.equal(E.autoSlam(g,'greedy',1),null,'excluded seat cannot interrupt');
+ const event=E.autoSlam(g,'greedy',0);
+ assert.equal(event?.reason,'slam','bot must recognize the independent four-card SLAM');
+ assert.equal(event.burned,true);assert.equal(g.pile.length,0);assert.equal(g.turn,1);
+ E.invariant(g);
+ const empty=opened(2,3210);empty.slamOpen=false;
+ assert.equal(E.autoSlam(empty),null,'no SLAM on an empty pile');
+});
+
 test('seeded bots conserve every card across whole games for 2–5 players',()=>{
  for(let players=2;players<=5;players++)for(let seed=1;seed<=16;seed++){
   const g=E.create({players,seed});g.people.forEach(p=>E.autoSetup(g,p.seat));E.start(g);
