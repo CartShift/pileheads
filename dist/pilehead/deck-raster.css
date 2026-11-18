@@ -10,7 +10,7 @@
 .ph-card .ph-raster-cell{
  display:block;position:absolute;inset:0;
  width:100%;height:100%;
- background-image:url("assets/stack-sheet.webp");
+ background-image:url("assets/stack-sheet.webp?v=corner-index-20261118");
  background-size:400% 400%;background-repeat:no-repeat;
  background-position:var(--stack-x) var(--stack-y);
  background-color:#f8f0e4;
@@ -24,7 +24,7 @@
 .mini.ph-raster-mini{position:relative;overflow:hidden;isolation:isolate}
 .mini.ph-raster-mini .ph-raster-cell{
  display:block;position:absolute;inset:0;width:100%;height:100%;
- background-image:url("assets/stack-sheet.webp");
+ background-image:url("assets/stack-sheet.webp?v=corner-index-20261118");
  background-size:400% 400%;background-repeat:no-repeat;
  background-position:var(--stack-x) var(--stack-y);
 }
