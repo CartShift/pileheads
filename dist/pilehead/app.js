@@ -23,7 +23,7 @@ function currentStage(){return E.stage(g,viewSeat())}
 function isTurn(){return g.phase==='play'&&g.turn===viewSeat()}
 function save(){try{localStorage.setItem(KEY,JSON.stringify({g,mode,seats,setupSeat,covered,notice,lastMove}))}catch(e){console.warn('Save unavailable',e)}}
 function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
- if(!x||!['pilehead-1.1.0','pilehead-1.2.0','pilehead-1.3.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
+ if(!x||!['pilehead-1.1.0','pilehead-1.2.0','pilehead-1.3.0','pilehead-1.4.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
  // Keep the existing 1.2 DUMP behavior during saved games.
  // 1.1 sessions keep the prior upgrade behavior.
  if(x.g.version==='pilehead-1.1.0')x.g.version=E.VERSION;

@@ -14,7 +14,7 @@ function name(v){const x=typeof v==='string'?v.trim().replace(/[\u0000-\u001f\u0
  // Legacy 1.2 games remain playable without rewriting stored state.
  // Validate the complete card identity and conservation before accepting them.
 function compatibleLegacy(g){
- if(!['pilehead-1.2.0','pilehead-1.3.0'].includes(g?.version))return false;
+ if(!['pilehead-1.2.0','pilehead-1.3.0','pilehead-1.4.0'].includes(g?.version))return false;
  try{
   E.invariant(g);
   if(!['setup','play','over'].includes(g.phase)||g.people.length<2||g.people.length>5)return false;

@@ -93,6 +93,34 @@ async function run(){
  assert.equal(firstTurn.status,200);
  assert.equal(firstTurn.data.game.turn,1);assert.equal(firstTurn.data.game.starterSeat,1);checks++;
  chosenStarter=0;
+
+ // A voluntary pickup is valid on a normal turn even with playable cards.
+ // This is a separate room to keep the original turn/CAS fixtures intact.
+ const strategy=await request({action:'create',humans:2,bots:0,name:'Strategy host'});
+ const strategyCode=strategy.data.code,strategyToken=strategy.data.session;
+ const strategyFriend=await request({action:'join',code:strategyCode,name:'Strategy friend'});
+ assert.equal((await request({action:'ready',code:strategyCode,revision:0,ready:true},strategyToken)).status,200);
+ assert.equal((await request({action:'ready',code:strategyCode,revision:1,ready:true},strategyFriend.data.session)).status,200);
+ assert.equal((await request({action:'start',code:strategyCode,revision:2},strategyToken)).status,200);
+ const strategyRoom=rooms.get(strategyCode),strategyGame=strategyRoom.state;
+ strategyGame.pile.push(strategyGame.stock.pop());strategyGame.limit={type:'min',value:1};
+ Engine.invariant(strategyGame);
+ const strategicView=await request({action:'state',code:strategyCode},strategyToken);
+ assert.equal(strategicView.status,200);
+ assert.ok(strategicView.data.game.legal.some(o=>o.type==='play'));
+ assert.ok(strategicView.data.game.legal.some(o=>o.type==='take'));checks++;
+ const handBefore=strategyGame.people[0].hand.length;
+ const strategicTake=await request({action:'move',code:strategyCode,revision:3,move:{type:'take'}},strategyToken);
+ assert.equal(strategicTake.status,200,JSON.stringify(strategicTake));
+ assert.equal(strategicTake.data.game.turn,1);
+ assert.equal(strategicTake.data.game.pile.length,0);
+ assert.equal(strategyRoom.state.people[0].hand.length,handBefore+1);
+ assert.equal(strategyRoom.state.people[0].pickups,1);
+ assert.equal(strategyRoom.state.limit,null);
+ Engine.invariant(strategyRoom.state);checks++;
+ const repeatStrategicTake=await request({action:'move',code:strategyCode,revision:4,move:{type:'take'}},strategyToken);
+ assert.equal(repeatStrategicTake.status,400);
+ assert.equal(repeatStrategicTake.data.error,'illegal_move');checks++;
  const wrong=await request({action:'move',code,revision:3,move:{type:'take'}},guestToken);
  assert.equal(wrong.status,400);checks++;
  const illegal=await request({action:'move',code,revision:3,move:{type:'play',source:'hand',ids:[999]}},hostToken);
@@ -354,6 +382,12 @@ async function run(){
  assert.equal(newRound.data.game.starterSeat,0);
  assert.equal(newRound.data.game.starterReason,'winner');checks++;
  assert.equal((await request({action:'state',code:legacyCode},legacyGuest.data.session)).status,200);checks++;
+
+ const old14=await request({action:'create',humans:2,bots:0,name:'Previous v1.4 room'});
+ rooms.get(old14.data.code).state.version='pilehead-1.4.0';
+ const read14=await request({action:'state',code:old14.data.code},old14.data.session);
+ assert.equal(read14.status,200);
+ assert.equal(read14.data.game.rulesVersion,'pilehead-1.4.0');checks++;
  const unknown=await request({action:'create',humans:2,bots:0,name:'Old unsupported'});
  rooms.get(unknown.data.code).state.version='pilehead-1.1.0';
  const blocked=await request({action:'state',code:unknown.data.code},unknown.data.session);
