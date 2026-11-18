@@ -1,10 +1,16 @@
 /* First-person tabletop presentation. Does not alter game rules or hidden state. */
 (function(root){'use strict';
-const STORE='pilehead-table-sound-v1';
+const STORE='pilehead-table-sound-v1',MOTION_STORE='pilehead-table-motion-v1';
 const motion=typeof matchMedia==='function'?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
 const $=(sel,el=document)=>el.querySelector(sel);
-let last=null,seen=false,ctx=null,sound=false,btn=null,focusButton=null,focusMode=false,menuButton=null,handScroll=0;
-try{sound=localStorage.getItem(STORE)==='on';focusMode=localStorage.getItem('pilehead-table-focus-v1')==='on'}catch{}
+let last=null,seen=false,ctx=null,sound=false,btn=null,focusButton=null,motionButton=null,
+ focusMode=false,motionMode='full',menuButton=null,handScroll=0;
+try{
+ sound=localStorage.getItem(STORE)==='on';
+ focusMode=localStorage.getItem('pilehead-table-focus-v1')==='on';
+ const saved=localStorage.getItem(MOTION_STORE);
+ if(['full','quick','off'].includes(saved))motionMode=saved;
+}catch{}
 function controls(){
  const nav=$('.top .links');if(!nav)return;
  if(!menuButton){
@@ -30,6 +36,20 @@ function controls(){
   btn.addEventListener('click',()=>{sound=!sound;try{localStorage.setItem(STORE,sound?'on':'off')}catch{};updateButton();snap()});
   nav.appendChild(btn)}
  updateButton();
+ if(!motionButton){
+  motionButton=document.createElement('button');motionButton.type='button';
+  motionButton.className='motion-toggle';motionButton.dataset.fxMotion='1';
+  motionButton.addEventListener('click',()=>{
+   if(motion.matches)return;
+   motionMode=motionMode==='full'?'quick':motionMode==='quick'?'off':'full';
+   try{localStorage.setItem(MOTION_STORE,motionMode)}catch{}
+   clearMotion();updateMotionButton();
+   const table=$('#app .table');
+   if(table){seen=false;motionGame=null}
+  });
+  nav.appendChild(motionButton);
+ }
+ updateMotionButton();
  if(!focusButton){
   focusButton=document.createElement('button');focusButton.type='button';
   focusButton.dataset.fxFocus='1';focusButton.title='Hide distractions and focus on the card table';
@@ -50,6 +70,17 @@ function controls(){
 }
 function updateButton(){if(btn){btn.setAttribute('aria-pressed',String(sound));btn.innerHTML='<span class="sound-led" aria-hidden="true"></span> '+(sound?'Sound on':'Sound off')}}
 function updateFocusButton(){if(focusButton){focusButton.setAttribute('aria-pressed',String(focusMode));focusButton.textContent=focusMode?'✕ Exit focus':'◎ Focus table'}}
+function updateMotionButton(){
+ if(!motionButton)return;
+ const label=motion.matches?'Motion off · system preference':
+  motionMode==='full'?'Motion: Full':motionMode==='quick'?'Motion: Quick':'Motion: Off';
+ motionButton.textContent=label;
+ motionButton.title=motion.matches?'Reduced motion is enabled on this device':
+  'Cycle full physical motion, quick motion, and off';
+ motionButton.disabled=Boolean(motion.matches);
+ motionButton.setAttribute('aria-label',label+(motion.matches?'':'. Change animation speed.'));
+ document.body?.classList.toggle('pilehead-quick-motion',motionMode==='quick');
+}
 function handLayout(n,rowWidth,cardWidth,mobile){
  const budget=Math.max(0,rowWidth-24),maxStep=mobile?(n<=4?Math.min(cardWidth*.94,94):54):80,minStep=mobile?28:38;
  const step=n<=1?cardWidth:Math.min(maxStep,Math.max(minStep,(budget-cardWidth)/(n-1)));
@@ -238,7 +269,8 @@ let capturedMove=null;
 const motionGhosts=new Set(),motionTimers=new Set();
 function later(fn,delay){
  const generation=motionGeneration;
- const timer=setTimeout(()=>{motionTimers.delete(timer);if(generation===motionGeneration)fn()},delay);
+ const timer=setTimeout(()=>{motionTimers.delete(timer);if(generation===motionGeneration)fn()},
+  Math.max(0,Math.round(delay*motionScale())));
  motionTimers.add(timer);return timer;
 }
 function clearMotion(){
@@ -264,7 +296,8 @@ function captureMove({gameKey,seat,moveNo,move}={}){
  }
  capturedMove={gameKey,seat,moveNo,points,stamp:Date.now()};
 }
-const canMove=()=>!motion.matches&&document.visibilityState!=='hidden'&&
+const motionScale=()=>motionMode==='quick'?.62:1;
+const canMove=()=>!motion.matches&&motionMode!=='off'&&document.visibilityState!=='hidden'&&
  typeof Element!=='undefined'&&typeof Element.prototype.animate==='function';
 function placeFor(table,seat,layer,ownSeat){
  if(seat===ownSeat){
@@ -321,7 +354,8 @@ function moveCard(table,start,end,ev,opts={}){
   }},delay+Math.floor(duration*.63));
  }
  try{
-  const animation=piece.animate(frames,{duration,delay,easing:'cubic-bezier(.23,.73,.25,1)',fill:'forwards'});
+  const animation=piece.animate(frames,{duration:Math.round(duration*motionScale()),
+   delay:Math.round(delay*motionScale()),easing:'cubic-bezier(.23,.73,.25,1)',fill:'forwards'});
   animation.onfinish=()=>{piece.remove();motionGhosts.delete(piece)};
   animation.oncancel=()=>{piece.remove();motionGhosts.delete(piece)};
  }catch{piece.remove();motionGhosts.delete(piece);return}
@@ -334,7 +368,7 @@ function pulse(el,type='hit'){
  ]:[
   {filter:'brightness(1)',transform:'scale(1)'},{filter:'brightness(1.25)',transform:'scale(1.045)',offset:.42},
   {filter:'brightness(1)',transform:'scale(1)'}
- ],{duration:type==='turn'?470:340,easing:'ease-out'})}catch{}
+ ],{duration:Math.round((type==='turn'?470:340)*motionScale()),easing:'ease-out'})}catch{}
 }
 function particles(where,type='burn'){
  if(!canMove()||!where)return;
@@ -449,6 +483,15 @@ function celebrate(table,ev,ownSeat){
   const messages={skip:'SKIP · NEXT PLAYER MISSES TURN',under:'UNDER · PLAY 1–4',
    reset:'RESET · ANY NUMBER',ghost:'GHOST · RESTRICTION STAYS'};
   if(messages[ev.action])cue(table,messages[ev.action]);
+  if(ev.action==='skip'&&Number.isInteger(ev.target)){
+   const skipped=placeFor(table,ev.target,'hand',ownSeat);
+   skipped?.classList.add('pilehead-was-skipped');
+   later(()=>skipped?.classList.remove('pilehead-was-skipped'),610);
+   pulse(skipped,'turn');
+  }
+  if(ev.action==='under'||ev.action==='reset')
+   pulse($('[data-play-target] .stack-count:last-child',table),'hit');
+  if(ev.action==='ghost')pulse(landmark(table,'pile'),'turn');
   snap('play');
  }else snap('play');
  drawCards(table,ev,ownSeat,ev.burned?530:310);
