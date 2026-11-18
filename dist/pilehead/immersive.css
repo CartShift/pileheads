@@ -1760,3 +1760,28 @@ body.pilehead-motion-off .pilehead-result-panel .result-wreath{
  animation:none!important;transition:none!important;
 }
 body.pilehead-motion-off .result-confetti{display:none!important}
+
+/* HAND STABILITY / NOV 2026
+   The app reconstructs card DOM after authoritative moves. Never tween a
+   newly mounted card from the un-fanned default transform to its settled fan:
+   it looks like shaking, especially during bot turns and live polling.
+   Motion is reserved for explicit plays, drags and the physical FX director. */
+body.pilehead-playing .table .card-row.hand > .card{
+ transition-property:box-shadow,filter!important;
+ transition-duration:120ms!important;
+ transition-timing-function:ease-out!important;
+ animation:none!important;
+}
+@media (hover:none), (pointer:coarse){
+ /* Mobile browsers may retain :hover after a tap. Do not lift an unselected
+    card simply because its old DOM position is still under a finger. */
+ body.pilehead-playing .table .card-row.hand > .card.playable:not(.selected):hover:not(:active){
+  transform:translateY(var(--fan-rise,0px)) rotate(var(--fan-angle,0deg))!important;
+  box-shadow:0 1px 0 #ffffffbd inset,0 3px 0 #a89a7d,0 8px 16px #021913b3!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ body.pilehead-playing .table .card-row.hand > .card{
+  transition:none!important;animation:none!important;
+ }
+}
