@@ -95,7 +95,7 @@ async function refresh(quiet=false){
   const next=await api({action:'state',code:room});
   if(!data||next.revision!==data.revision||next.members.length!==data.members.length||
      next.game.followup?.length!==data.game.followup?.length||reconnecting)updateState(next);
-  else {const hadError=!!networkError;networkError='';if(hadError)render()}
+  else {const hadError=!!networkError||!!roomIssue;networkError='';roomIssue='';if(hadError)render()}
   reconnecting=false;
  }catch(e){
   if(permanentRoomErrors.has(e.message)){
