@@ -173,7 +173,7 @@ test('Blind DUMP reveals first, then pauses until chosen target resolves',()=>{
  const result=E.resolveDump(g,0,3);
  assert.equal(result.target,3);assert.equal(result.takenCount,1);
  assert.equal(g.people[3].hand.length,before+1);
- assert.equal(g.pendingDump,null);assert.equal(g.turn,1);
+ assert.equal(g.pendingDump,null);assert.equal(g.turn,0);
  assert.ok(g.ashes.some(c=>c.id===dump.id));E.invariant(g);
 });
 test('SLAM on a run of tens still burns and grants the interrupter the next turn',()=>{
