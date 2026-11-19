@@ -42,21 +42,18 @@ check('fan uses correct overlap layer order and stabilizes dense cards',()=>{
  assert.match(fxCode,/--fan-z',String\(i\+1\)/);
  assert.match(fxCode,/const spread=dense\?0:/);
 });
-check('hand index is displayed for both local and online games',()=>{
+check('the card artwork supplies the value instead of an extra corner badge',()=>{
  for(const script of [local,online]){
-  assert.match(script,/ph-hand-index/);
-  assert.match(script,/handShortNames=Object\.freeze/);
-  assert.match(script,/RST.*GHO.*UND.*SKP.*BRN.*DMP/);
-  assert.match(script,/handIndex\(c\)/);
-  assert.match(script,/==='hand'\?handIndex\(c\):''/);
+  assert.ok(!script.includes('ph-hand-index'));
+  assert.ok(!script.includes('handIndex('));
+  assert.ok(script.includes("+A.face(c)+'</button>'"));
+  assert.match(script,/aria-label=/);
  }
 });
-check('labels never alter the illustrated sprite and cannot intercept touch',()=>{
- assert.match(css,/\.ph-card \.ph-hand-index\{/);
- assert.match(css,/z-index:12/);
- assert.match(css,/pointer-events:none/);
- assert.match(css,/\.ph-hand-index-action/);
+check('dense hands retain readable card faces and swipe affordance without badge styles',()=>{
+ assert.ok(!css.includes('ph-hand-index'));
+ assert.ok(css.includes('.card-row.hand.hand-dense'));
  assert.doesNotMatch(css,/touch-action:pan-x/);
- assert.match(css,/hand-overflow.*SWIPE|SWIPE \\2194/s);
+ assert.match(css,/SWIPE/);
 });
 console.log('STACK large-hand readability: '+checks+' checks passed');
