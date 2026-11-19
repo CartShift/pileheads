@@ -16,6 +16,16 @@ check('8+ cards scroll inside the hand rather than hide their numbers',()=>{
  assert.ok(x.span>296,'8 card identities need a wider scrollable rail');
  assert.ok(72+x.overlap>=38,'each card must expose its index');
 });
+check('hand cards use only their original illustrated faces without value-badge overlays',()=>{
+ for(const source of [local,online]){
+  assert.doesNotMatch(source,/ph-hand-index|handIndex\\(/);
+  assert.match(source,/\\+A\\.face\\(c\\)\\+'<\\/button>'/);
+  assert.match(source,/aria-label=/);
+ }
+ const brand=read('dist/pilehead/stack-brand.css');
+ assert.doesNotMatch(brand,/ph-hand-index/);
+ assert.match(brand,/card-row\\.hand\\.hand-dense/);
+});
 check('a pickup of 20 cards scrolls independently instead of becoming unreadably narrow',()=>{
  const x=layout(20,320,72,true);assert.equal(x.fits,false);
  assert.ok(x.span>296);assert.ok(x.overlap<=-30);
