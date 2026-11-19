@@ -5,6 +5,13 @@ STACK (internally still named **PILEHEAD**) is a physical-first, 52-card game wi
 **Play:** `/pilehead/index.html` (site root redirects here).
 **Deck gallery:** `/pilehead/gallery.html` · **Print:** `/pilehead/print.html` · **Official playtest kit:** `/pilehead/playtest.html`.
 
+## Deck themes
+
+Use the **Deck style** selector in the tabletop header, the deck gallery, or the print preview. Choose **STACK Original** (existing geometric sprite artwork), **STACK Characters** (the approved illustrated character deck), or **STACK Studio** (the original minimal vector illustrations). The selection persists per browser using `stack-deck-theme-v1` and also works in private online rooms without changing any shared game state or rules. Players may choose independently.
+
+All 16 unique card faces use one 4 × 4 sprite index, with each illustrated character cell exactly 252 × 355 pixels. The default card back is shared between styles. Both raster sheets are kept as source assets under `dist/pilehead/assets`; `deck-theme.js` contains only preference/UI logic, while `deck-raster.css` selects the appropriate sprite. `npm run build` includes all themes.
+
+
 ## Development
 
 Requires Node.js 24.
@@ -28,7 +35,8 @@ The static build goes to `vercel-static/`, which is gitignored. Vercel serves `a
 | `dist/pilehead/online.js` | Private multiplayer UI |
 | `dist/pilehead/immersive.{js,css}` | Shared physical presentation and motion |
 | `dist/pilehead/deck-art.{js,css}` | Card semantics and SVG compatibility layer |
-| `dist/pilehead/deck-raster.{js,css}` + `assets/` | Approved raster faces and back |
+| `dist/pilehead/deck-raster.{js,css}` + `assets/` | Original and Characters 4 × 4 raster sprites and shared back |
+| `dist/pilehead/deck-theme.{js,css}` | Persistent per-browser theme selector shared by game, gallery and print |
 | `dist/pilehead/{gallery,print,playtest}.html` | Gallery, printing and controlled playtests |
 | `api/pilehead.js` | Authoritative multiplayer room API |
 | `dist/pilehead-sim-core.js` | Retained bot diagnostics, not a deployed browser dependency |
