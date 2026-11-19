@@ -1,0 +1,24 @@
+/* STACK deck theme selector. The game's layout and engine are intentionally unchanged. */
+.stack-deck-picker{
+ display:inline-flex;align-items:center;gap:8px;
+ margin-inline-start:auto;flex:0 0 auto;
+ color:#f1e5ce;font:800 11px/1.2 system-ui,sans-serif;
+}
+.stack-deck-picker-label{white-space:nowrap;letter-spacing:.03em}
+.stack-deck-picker select{
+ appearance:auto;min-height:40px;max-width:190px;min-width:138px;
+ padding:7px 9px;border-radius:7px;border:1px solid #cfaa6b;
+ background:#1a2926;color:#fff4db;
+ font:800 12px/1.25 system-ui,sans-serif;cursor:pointer;
+}
+.stack-deck-picker select:focus-visible{outline:3px solid #ffc86d;outline-offset:3px}
+@media(max-width:750px){
+ .stack-deck-picker{margin-inline-start:auto;gap:5px}
+ .stack-deck-picker-label{font-size:10px}
+ .stack-deck-picker select{min-width:120px;max-width:147px;min-height:43px;font-size:11px}
+}
+@media(max-width:410px){
+ .stack-deck-picker-label{display:none}
+ .stack-deck-picker select{min-width:118px;max-width:136px}
+}
+@media print{.stack-deck-picker{display:none!important}}

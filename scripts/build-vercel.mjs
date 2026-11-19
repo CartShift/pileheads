@@ -10,8 +10,9 @@ const assets = [
   'index.html', 'app.js', 'online.js', 'engine.js',
   'immersive.css', 'immersive.js', 'deck-art.css', 'deck-art.js',
   'deck-raster.css', 'deck-raster.js', 'stack-brand.css',
+  'deck-theme.js', 'deck-theme.css',
   'gallery.html', 'print.html', 'playtest.html',
-  'assets/stack-sheet.webp', 'assets/stack-back.webp'
+  'assets/stack-sheet.webp', 'assets/stack-back.webp', 'assets/stack-characters.webp'
 ];
 
 fs.rmSync(output, { recursive: true, force: true });

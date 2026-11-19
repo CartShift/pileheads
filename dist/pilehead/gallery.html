@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#18191a">
 <title>STACK · Complete Deck Gallery</title>
-<link rel="stylesheet" href="deck-art.css"><link rel="stylesheet" href="deck-raster.css">
+<link rel="stylesheet" href="deck-art.css"><link rel="stylesheet" href="deck-raster.css"><link rel="stylesheet" href="deck-theme.css">
 <style>
 :root{color-scheme:light;--deep:#1b1b1b;--cream:#f6f0e3;--gold:#d44630;--ink:#1b1b1b}
 *{box-sizing:border-box}body{margin:0;min-height:100dvh;background:repeating-linear-gradient(27deg,#7b5e3005 0 1px,transparent 1px 7px),#f4ebd9;color:var(--ink);font:15px/1.5 system-ui,sans-serif}
@@ -49,7 +49,7 @@ footer{text-align:center;font-size:12px;color:#687563;margin-top:25px}
 <section class="back-section"><div class="section-title"><h2>CARD BACK</h2><p>One universal back · symmetrical pattern</p></div><div id="backs" class="gallery-grid"></div></section>
 <div class="summary"><strong>52</strong><span>CARDS TOTAL</span><span class="divider"></span><span>40 NUMBER CARDS · 1–10 × 4</span><span>12 ACTION CARDS · 6 × 2</span></div>
 <footer>STACK is the visual brand. PILEHEAD remains the internal simulator and rules-engine identifier.</footer>
-</main><script src="engine.js"></script><script src="deck-art.js"></script><script src="deck-raster.js"></script><script>
+</main><script src="engine.js"></script><script src="deck-art.js"></script><script src="deck-raster.js"></script><script src="deck-theme.js"></script><script>
 (function(){
  const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt;
  const card=(c)=>'<div class="card ph-card '+(c.kind==="number"?"ph-number":"ph-action")+'" '+(c.kind==="action"?'data-action="'+c.action+'"':'')+' aria-label="'+(c.kind==="number"?'Number '+c.rank:c.action.toUpperCase())+'">'+A.face(c)+'</div>';
@@ -58,4 +58,4 @@ footer{text-align:center;font-size:12px;color:#687563;margin-top:25px}
  document.getElementById("actions").innerHTML=Object.keys(E.ACTIONS).map(action=>'<div class="gallery-item">'+card({kind:"action",action})+'<span class="qty">×'+E.ACTIONS[action]+'</span><div class="gallery-rule">'+A.rules[action]+'</div></div>').join("");
  document.getElementById("backs").innerHTML='<div class="gallery-item"><div class="card ph-card back ph-back">'+A.back()+'</div><span class="gallery-rule">Shared across all 52 cards</span></div>';
 })();
-</script></body></html>
+ window.addEventListener("stack-deck-theme-change",()=>location.reload()); </script></body></html>

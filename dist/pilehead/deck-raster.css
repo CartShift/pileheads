@@ -39,3 +39,11 @@
   -webkit-print-color-adjust:exact;print-color-adjust:exact
  }
 }
+/* The same 4×4 slots are used for both raster themes.
+   If a characters asset is temporarily unavailable, the original image remains readable. */
+html[data-stack-deck-theme="characters"] .ph-card .ph-raster-cell,
+html[data-stack-deck-theme="characters"] .mini.ph-raster-mini .ph-raster-cell {
+ background-image:url("assets/stack-characters.webp?v=uniform-20261119"),url("assets/stack-sheet.webp?v=corner-index-20261118");
+ background-size:400% 400%,400% 400%;
+ background-position:var(--stack-x) var(--stack-y),var(--stack-x) var(--stack-y);
+}

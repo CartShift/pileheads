@@ -446,5 +446,6 @@ window.addEventListener('pointercancel',e=>{const d=touchGesture;touchGesture=nu
 
 
 $('new').addEventListener('click',()=>{if(g&&!confirm('Start a new game and replace the current local save?'))return;g=null;notice='';selection=[];challengeOpen=false;covered=false;render()});
+window.addEventListener('stack-deck-theme-change',()=>render());
 restore();render();
 })();
