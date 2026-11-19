@@ -52,7 +52,7 @@ check('the card artwork supplies the value instead of an extra corner badge',()=
 });
 check('dense hands retain readable card faces and swipe affordance without badge styles',()=>{
  assert.ok(!css.includes('ph-hand-index'));
- assert.match(css,/card-row\\.hand\\.hand-dense/);
+ assert.ok(css.includes('.card-row.hand.hand-dense'));
  assert.doesNotMatch(css,/touch-action:pan-x/);
  assert.match(css,/SWIPE/);
 });
