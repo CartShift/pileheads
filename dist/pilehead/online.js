@@ -576,6 +576,7 @@ function startPolling(){
  },1750);
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&session)refresh(true)});
 }
+window.addEventListener('stack-deck-theme-change',()=>render());
 render();startPolling();
 if(room&&session){reconnecting=true;refresh(false)}
 })();
