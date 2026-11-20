@@ -3,6 +3,7 @@
 STACK (internally still named **PILEHEAD**) is a physical-first, 54-card game with a browser tabletop, bot opponents, private multiplayer rooms, a deck gallery and printable playtest materials.
 
 **Play:** `/pilehead/index.html` (site root redirects here).
+**3D beta (opt-in):** `/pilehead/3d-beta.html` · `/pilehead/3d-beta.html?online=1` for private multiplayer. The classic entry remains the default and the beta uses exactly the same game engine, rooms, and save keys. Three.js is loaded from a pinned CDN; if unavailable, the beta leaves the classic DOM cards playable. The Studio deck theme uses the classic 2D presentation inside beta.
 **Deck gallery:** `/pilehead/gallery.html` · **Print:** `/pilehead/print.html` · **Official playtest kit:** `/pilehead/playtest.html`.
 
 ## Deck themes
