@@ -61,3 +61,7 @@ These guarantees are covered in `tests/pilehead-simulator-quality.cjs` alongside
 This repo now builds only STACK. Experimental SPARK and TILT apps, the separate Sites/Cloudflare Worker, and their tests were retired from current source. Historical sources remain recoverable via Git history. Existing ChatGPT Sites deployments are **not changed** by this cleanup.
 
 The game retains its `/pilehead/` URLs, browser save keys, `/api/pilehead`, database schema and backward-compatible room handling. This v1.6 release changes the production deck from 52 to 54 cards by adding two BURN copies. Other action counts and all number-card counts remain unchanged. Existing 52-card rooms continue with their historical deck until rematch. Passing source tests alone does not certify production multiplayer; test real devices, reconnect and rematch. See `docs/repository.md`.
+
+## Mobile UX clarity pass (21 November 2026)
+
+The STACK table includes a compact mobile layout, safe-area-aware action controls, on-table quick rules, and a real **Learn with a bot** practice round. Active online rooms poll slightly faster while preserving authoritative validation. See `docs/ux-clarity-20261121.md` for acceptance tests and remaining push-transport/reactions work.
