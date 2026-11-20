@@ -21,13 +21,20 @@ async function query(sql,args=[]){
   assert.match(sql,/ON CONFLICT \(code,seat\) DO NOTHING/,'simultaneous join should be conflict-safe');
   const [code,name,token,capacity]=args;const current=members.get(code)||[];
   const seat=Array.from({length:capacity},(_,i)=>i).find(i=>!current.some(m=>m.seat===i));
-  if(seat===undefined)return [];current.push({seat,display_name:name,token_hash:token});members.set(code,current);
+  if(seat===undefined)return [];current.push({seat,display_name:name,token_hash:token,last_seen_at:new Date(),is_away:false});members.set(code,current);
   return [{seat}]
  }
  if(sql.startsWith('INSERT INTO pilehead_members')){const [code,name,token]=args,seat=0;const current=members.get(code)||[];
-  if(current.some(x=>x.seat===seat))conflict();current.push({seat,display_name:name,token_hash:token});members.set(code,current);return []}
+  if(current.some(x=>x.seat===seat))conflict();current.push({seat,display_name:name,token_hash:token,last_seen_at:new Date(),is_away:false});members.set(code,current);return []}
  if(sql.startsWith('SELECT code,capacity'))return rooms.has(args[0])?[structuredClone(rooms.get(args[0]))]:[];
- if(sql.startsWith('SELECT seat,display_name'))return (members.get(args[0])||[]).map(m=>({seat:m.seat,display_name:m.display_name}));
+ if(sql.startsWith('SELECT seat,display_name'))return (members.get(args[0])||[]).map(m=>({
+  seat:m.seat,display_name:m.display_name,last_seen_at:m.last_seen_at,is_away:m.is_away
+ }));
+ if(sql.startsWith('UPDATE pilehead_members SET last_seen_at')){
+  const [code,seat,away]=args,member=(members.get(code)||[]).find(m=>m.seat===seat);
+  assert.ok(member,'presence writes require a joined player');
+  member.last_seen_at=new Date();member.is_away=away===true;return [];
+ }
  if(sql.startsWith('SELECT seat FROM pilehead_members')&&sql.includes('token_hash'))return (members.get(args[0])||[]).filter(x=>x.token_hash===args[1]).map(m=>({seat:m.seat}));
  if(sql.startsWith('SELECT seat FROM pilehead_members'))return (members.get(args[0])||[]).map(m=>({seat:m.seat}));
  if(sql.startsWith('UPDATE pilehead_rooms')){const [state,status,code,rev]=args,r=rooms.get(code);
@@ -61,6 +68,20 @@ async function run(){
  const guest=await request({action:'join',code,name:'Guest'});
  assert.equal(guest.status,201);assert.equal(guest.data.me,1);checks++;
  const guestToken=guest.data.session;
+ assert.equal(guest.data.members.find(m=>m.seat===0).presence,'online');checks++;
+ const away=await request({action:'presence',code,away:true},guestToken);
+ assert.equal(away.status,200);
+ assert.equal(rooms.get(code).revision,0,'presence must not advance room revision');
+ const awayView=await request({action:'state',code},hostToken);
+ assert.equal(awayView.data.members.find(m=>m.seat===1).presence,'away');checks++;
+ const guestMember=members.get(code).find(m=>m.seat===1);
+ guestMember.last_seen_at=new Date(Date.now()-30000);
+ const offlineView=await request({action:'state',code},hostToken);
+ assert.equal(offlineView.data.members.find(m=>m.seat===1).presence,'offline');checks++;
+ const heart=await request({action:'state',code,heartbeat:true},guestToken);
+ assert.equal(heart.status,200);
+ assert.equal(heart.data.members.find(m=>m.seat===1).presence,'online');
+ assert.equal(rooms.get(code).revision,0);checks++;
  const state=await request({action:'state',code},guestToken);
  assert.equal(state.status,200);
  assert.equal(state.data.game.players[0].hand,undefined);
@@ -202,6 +223,11 @@ async function run(){
   move:{type:'play',source:'down',index:0}},choiceToken);
  assert.equal(blind.status,200,JSON.stringify(blind));
  assert.equal(blind.data.game.pendingDump.seat,0);
+ assert.equal(blind.data.game.blindReveal.seat,0);
+ assert.equal(blind.data.game.blindReveal.card.action,'dump');
+ assert.equal(blind.data.game.blindReveal.card.id,undefined,'never expose flipped card identity');
+ const anotherView=await request({action:'state',code:choiceCode},choiceToken);
+ assert.equal(anotherView.data.game.blindReveal.card.action,'dump');checks++;
  const blocked=await request({action:'move',code:choiceCode,revision:4,
   move:{type:'take'}},choiceToken);
  assert.equal(blocked.status,400);
