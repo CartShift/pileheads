@@ -318,7 +318,7 @@ async function run(){
  assert.equal(tooMany.status,400);assert.equal(tooMany.data.error,'invalid_capacity');checks++;
 
 
- // The freshly drawn matching number has server-enforced priority over other turns.
+ // SNAP is a genuine race: the next player can act without waiting.
  const snapRoom=await request({action:'create',humans:2,bots:0,name:'Snap host'});
  const snapCode=snapRoom.data.code,snapHost=snapRoom.data.session;
  const snapGuest=await request({action:'join',code:snapCode,name:'Snap guest'});
@@ -333,27 +333,51 @@ async function run(){
  Engine.invariant(snapGame);
  const snapMade=await request({action:'move',code:snapCode,revision:3,move:{type:'play',source:'hand',ids:[snapIDs[0]]}},snapHost);
  assert.equal(snapMade.status,200,JSON.stringify(snapMade));
- assert.equal(snapMade.data.game.snapSeat,0);assert.ok(snapMade.data.game.snapUntil>Date.now());checks++;
- const snapOtherMove=Engine.options(rooms.get(snapCode).state,1)[0];assert.ok(snapOtherMove);
- const snapBlocked=await request({action:'move',code:snapCode,revision:4,move:snapOtherMove},snapGuestToken);
- assert.equal(snapBlocked.status,409);assert.equal(snapBlocked.data.error,'snap_window_open');checks++;
- const expiry=rooms.get(snapCode).state.followUp.expiresAt;
- rooms.get(snapCode).state.followUp.expiresAt=Date.now()-10;
- const unlocked=await request({action:'state',code:snapCode},snapGuestToken);
- assert.equal(unlocked.status,200);
- assert.equal(unlocked.data.revision,4,'SNAP expiry must not require database write');
- assert.equal(unlocked.data.game.snapUntil,null);
- assert.equal(unlocked.data.game.snapSeat,null);
- assert.equal(unlocked.data.game.followup.length,0);
- assert.ok(unlocked.data.game.legal.length>0);checks++;
- rooms.get(snapCode).state.followUp.expiresAt=expiry;
+ assert.equal(snapMade.data.game.snapUntil,undefined);
+ assert.equal(snapMade.data.game.snapSeat,undefined);
+ assert.equal(snapMade.data.game.followup.length,1);
+ assert.ok(snapMade.data.game.legal.length===0,'actor has no normal turn after drawing');
+ const guestCanAct=await request({action:'state',code:snapCode},snapGuestToken);
+ assert.ok(guestCanAct.data.game.legal.length,'other player can act immediately during SNAP opportunity');checks++;
+ // No artificial time limit: stale legacy deadline has no effect.
+ rooms.get(snapCode).state.followUp.expiresAt=Date.now()-60000;
  const snapPlayed=await request({action:'move',code:snapCode,revision:4,move:snapMade.data.game.followup[0]},snapHost);
  assert.equal(snapPlayed.status,200,JSON.stringify(snapPlayed));
  assert.equal(snapPlayed.data.game.events.at(-1).type,'followup');
- assert.equal(snapPlayed.data.game.players[1].hand,undefined);checks++;
+ assert.equal(snapPlayed.data.game.players[1].hand,undefined);
+ assert.equal(snapPlayed.data.game.turn,1,'SNAP does not steal the next turn');checks++;
  const snapAfterMove=Engine.options(rooms.get(snapCode).state,1)[0];
  const snapContinued=await request({action:'move',code:snapCode,revision:5,move:snapAfterMove},snapGuestToken);
  assert.equal(snapContinued.status,200,JSON.stringify(snapContinued));checks++;
+
+ // If the next player gets their move committed first, SNAP is lost immediately.
+ const raceRoom=await request({action:'create',humans:2,bots:0,name:'Race host'});
+ const raceCode=raceRoom.data.code,raceHost=raceRoom.data.session;
+ const raceGuest=await request({action:'join',code:raceCode,name:'Race guest'});
+ assert.equal((await request({action:'ready',code:raceCode,revision:0,ready:true},raceHost)).status,200);
+ assert.equal((await request({action:'ready',code:raceCode,revision:1,ready:true},raceGuest.data.session)).status,200);
+ assert.equal((await request({action:'start',code:raceCode,revision:2},raceHost)).status,200);
+ const raceGame=rooms.get(raceCode).state;
+ const raceZones=[raceGame.stock,raceGame.pile,raceGame.ashes,...raceGame.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const reposition=(dest,i,id)=>{
+  const zone=raceZones.find(z=>z.some(c=>c.id===id)),j=zone.findIndex(c=>c.id===id),old=dest[i];
+  dest[i]=zone[j];zone[j]=old;
+ };
+ const raceIDs=Engine.deck().filter(c=>c.kind==='number'&&c.rank===6).slice(0,2).map(c=>c.id);
+ reposition(raceGame.people[0].hand,0,raceIDs[0]);
+ reposition(raceGame.stock,raceGame.stock.length-1,raceIDs[1]);
+ Engine.invariant(raceGame);
+ const raceOpen=await request({action:'move',code:raceCode,revision:3,move:{type:'play',source:'hand',ids:[raceIDs[0]]}},raceHost);
+ assert.equal(raceOpen.status,200);
+ assert.equal(raceOpen.data.game.followup.length,1);
+ const raceMove=Engine.options(rooms.get(raceCode).state,1)[0];
+ const guestWins=await request({action:'move',code:raceCode,revision:4,move:raceMove},raceGuest.data.session);
+ assert.equal(guestWins.status,200,JSON.stringify(guestWins));
+ assert.equal(guestWins.data.game.followup.length,0,'next action ends previous SNAP opportunity');
+ const outdatedSnap=await request({action:'move',code:raceCode,revision:4,move:raceOpen.data.game.followup[0]},raceHost);
+ assert.equal(outdatedSnap.status,409,'concurrent SNAP must respect revision race');
+ const tooLateSnap=await request({action:'move',code:raceCode,revision:5,move:raceOpen.data.game.followup[0]},raceHost);
+ assert.equal(tooLateSnap.status,400,'SNAP cannot be played after the next action');checks++;
 
  {
  // In-progress rooms from v1.3 remain readable after the v1.4 deploy.
