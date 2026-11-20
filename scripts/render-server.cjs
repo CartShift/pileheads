@@ -104,7 +104,7 @@ const server = http.createServer(async (req, res) => {
   });
   try {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    if (url.pathname === '/livez') respond(res, 200, JSON.stringify({ ok: true, service: 'stack' }), 'application/json; charset=utf-8');
+    if (url.pathname === '/livez') respond(res, 200, JSON.stringify({ ok: true, service: 'stack', websocket: Boolean(liveHub) }), 'application/json; charset=utf-8');
     else if (url.pathname === '/readyz') {
       // Existing DB-aware API health check, not just an HTTP process liveness check.
       url.searchParams.set('health', '1');
