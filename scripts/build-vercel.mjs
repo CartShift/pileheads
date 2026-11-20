@@ -8,7 +8,7 @@ const root = path.resolve('dist');
 const output = path.resolve('vercel-static');
 const game = path.join(root, 'pilehead');
 const assets = [
-  'index.html', '3d-beta.html', '3d-beta.css', '3d-beta.js', 'app.js', 'online.js', 'online-polish.css', 'ux-clarity.css', 'ux-clarity.js', 'live.css', 'live.js', 'engine.js',
+  'index.html', '3d-beta.html', '3d-beta.css', '3d-beta.js', '3d-beta-v2.css', '3d-beta-v2.js', 'app.js', 'online.js', 'online-polish.css', 'ux-clarity.css', 'ux-clarity.js', 'live.css', 'live.js', 'engine.js',
   'immersive.css', 'immersive.js', 'deck-art.css', 'deck-art.js',
   'deck-raster.css', 'deck-raster.js', 'stack-brand.css',
   'deck-theme.js', 'deck-theme.css',
