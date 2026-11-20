@@ -48,6 +48,9 @@ async function query(sql,args=[]){
  if(sql.startsWith('INSERT INTO pilehead_members')){const [code,name,token]=args,seat=0;const current=members.get(code)||[];
   if(current.some(x=>x.seat===seat))conflict();current.push({seat,display_name:name,token_hash:token,last_seen_at:new Date(),is_away:false});members.set(code,current);return []}
  if(sql.startsWith('SELECT code,capacity'))return rooms.has(args[0])?[structuredClone(rooms.get(args[0]))]:[];
+ if(sql.startsWith("SELECT revision,state->'reactionEvents'")){
+  const r=rooms.get(args[0]);return r?[{revision:r.revision,reaction_events:r.state.reactionEvents||[],expires_at:r.expires_at}]:[];
+ }
  if(sql.startsWith('SELECT seat,display_name'))return (members.get(args[0])||[]).map(m=>({
   seat:m.seat,display_name:m.display_name,last_seen_at:m.last_seen_at,is_away:m.is_away
  }));
@@ -58,6 +61,12 @@ async function query(sql,args=[]){
  }
  if(sql.startsWith('SELECT seat FROM pilehead_members')&&sql.includes('token_hash'))return (members.get(args[0])||[]).filter(x=>x.token_hash===args[1]).map(m=>({seat:m.seat}));
  if(sql.startsWith('SELECT seat FROM pilehead_members'))return (members.get(args[0])||[]).map(m=>({seat:m.seat}));
+ if(sql.startsWith('UPDATE pilehead_rooms')&&sql.includes("state=jsonb_set(state,'{reactionEvents}'")){
+  const [code,payload]=args,r=rooms.get(code);
+  if(!r)return [];
+  r.state.reactionEvents=[...(r.state.reactionEvents||[]),JSON.parse(payload)].slice(-24);
+  return [{code}];
+ }
  if(sql.startsWith('UPDATE pilehead_rooms')){const [state,status,code,rev]=args,r=rooms.get(code);
   if(!r||r.revision!==rev)return [];
   r.state=JSON.parse(state);r.status=status;r.revision++;return [structuredClone(r)]}
@@ -122,6 +131,25 @@ async function run(){
  assert.equal(guestReady.status,200);assert.equal(guestReady.data.game.setupReady[1],true);checks++;
  const start=await request({action:'start',code,revision:2},hostToken);
  assert.equal(start.status,200);assert.equal(start.data.game.phase,'play');checks++;
+ // Social reactions are authenticated, redacted and never consume a move revision.
+ const reactionRevision=rooms.get(code).revision;
+ const reaction=await request({action:'react',code,kind:'fire'},guestToken);
+ assert.equal(reaction.status,200,JSON.stringify(reaction));
+ assert.equal(reaction.data.reaction.seat,1);
+ assert.equal(reaction.data.reaction.kind,'fire');
+ assert.equal(rooms.get(code).revision,reactionRevision);
+ const reacted=await request({action:'state',code},hostToken);
+ assert.ok(reacted.data.game.reactions.some(r=>r.id===reaction.data.reaction.id));
+ const synced=await handler.realtimeSnapshot(code);
+ assert.equal(synced.revision,reactionRevision);
+ assert.equal(synced.reactions.length,1);
+ const wsSeat=await handler.realtimeAuth(code,hostToken);
+ assert.equal(wsSeat.seat,0);
+ assert.deepEqual(wsSeat.reactions.map(r=>r.id),[reaction.data.reaction.id]);
+ const invalidReaction=await request({action:'react',code,kind:'script'},guestToken);
+ assert.equal(invalidReaction.status,400);
+ assert.equal((await request({action:'react',code,kind:'fire'})).status,401);
+ checks++;
  assert.equal(start.data.game.starterSeat,0);
  assert.equal(start.data.game.starterReason,'draw');
  assert.ok(start.data.game.startedAt>0);
