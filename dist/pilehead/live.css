@@ -1,0 +1,49 @@
+/* STACK real-time social reactions. Never overlay playable buttons. */
+.stack-live-social{
+ display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+ width:min(100%,840px);margin:0 auto 7px;padding:3px 8px;
+}
+.stack-reaction-buttons{display:flex;align-items:center;gap:6px}
+.stack-reaction-buttons button{
+ display:grid;place-items:center;width:42px;height:40px;border-radius:11px;
+ background:#204b3f;border:1px solid #d2b98676;box-shadow:0 2px 8px #0004;
+ color:#fff2dc;font-size:21px;line-height:1;touch-action:manipulation;
+}
+.stack-reaction-buttons button:active{background:#385b4d;transform:scale(.97)}
+.stack-reaction-buttons button:focus-visible{outline:3px solid #ffe0a1;outline-offset:3px}
+.stack-live-status{display:inline-flex;align-items:center;gap:5px;min-width:72px;color:#bcd0be;font:700 10px system-ui;white-space:nowrap}
+.stack-live-status:before{content:'';display:block;width:7px;height:7px;border-radius:50%;background:#c39e74}
+.stack-live-status.is-live:before{background:#71d5a1;box-shadow:0 0 0 3px #71d5a125}
+.table .opponent,.table .hand-area{position:relative}
+.stack-reaction-bubble{
+ position:absolute!important;z-index:180!important;pointer-events:none;
+ left:50%;top:-26px;transform:translateX(-50%);
+ display:flex;gap:5px;align-items:center;justify-content:center;
+ border:1px solid #f3d29b;background:#16392fea;color:#fff0d4;
+ padding:6px 10px;border-radius:99px;box-shadow:0 5px 15px #0009;
+ max-width:150px;white-space:nowrap;animation:stack-reaction-float 2.4s ease-out forwards
+}
+.stack-reaction-bubble span:first-child{max-width:75px;overflow:hidden;text-overflow:ellipsis;font:800 11px system-ui}
+.stack-reaction-bubble span:last-child{font-size:21px}
+.table .hand-area>.stack-reaction-bubble{top:-25px}
+@keyframes stack-reaction-float{
+ 0%{opacity:0;transform:translate(-50%,8px) scale(.9)}
+ 14%{opacity:1;transform:translate(-50%,-9px) scale(1.04)}
+ 65%{opacity:1}
+ 100%{opacity:0;transform:translate(-50%,-48px) scale(.96)}
+}
+@media(max-width:700px){
+ .stack-live-social{justify-content:space-between;gap:3px;padding:1px 4px;margin-bottom:5px}
+ .stack-reaction-buttons{gap:4px}
+ .stack-reaction-buttons button{height:44px;width:44px;font-size:19px}
+ .stack-live-status{font-size:9px;min-width:52px}
+ .stack-reaction-bubble{padding:5px 7px;max-width:115px;top:-20px}
+ .stack-reaction-bubble span:first-child{max-width:54px;font-size:9px}
+}
+@media(max-width:360px){
+ .stack-reaction-buttons button{height:42px;width:40px;font-size:18px}
+}
+@media(prefers-reduced-motion:reduce){
+ .stack-reaction-bubble{animation:none!important;top:-36px}
+ .stack-reaction-buttons button{transition:none!important}
+}

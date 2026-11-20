@@ -6,6 +6,11 @@ function query(s,args=[]){return db().query(s,args)}
 function error(status,code){return Object.assign(Error(code),{status,code})}
 function fail(status,code){throw error(status,code)}
 const h=s=>crypto.createHash('sha256').update(s).digest('hex');
+const REACTION_TYPES=new Set(['fire','wow','laugh','ouch','gg']);
+const recentReactions=g=>(Array.isArray(g?.reactionEvents)?g.reactionEvents:[])
+ .filter(x=>x&&typeof x.id==='string'&&REACTION_TYPES.has(x.kind)&&
+  Number.isInteger(x.seat)&&Number.isFinite(x.at)&&Date.now()-x.at<20000);
+
 const secret=()=>crypto.randomBytes(32).toString('base64url');
 function code(x){if(typeof x!=='string'||!/^[A-HJ-NP-Z2-9]{8}$/.test(x.toUpperCase()))fail(400,'invalid_code');return x.toUpperCase()}
 function makeCode(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from(crypto.randomBytes(8),n=>a[n%a.length]).join('')}
@@ -56,6 +61,7 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
   // Public boolean only, not a disclosure of bot rank or private card IDs.
   botSlamReady:botSeats(g).some(bot=>E.slamOptions(g,bot).length>0),
  pile:g.pile,ashesCount:g.ashes.length,limit:g.limit,slamOpen:g.slamOpen,pendingDump:g.pendingDump?{seat:g.pendingDump.seat}:null,setupReady:g.setupReady||g.people.map(()=>false),loser:g.loser,finishedOrder:g.finishedOrder,
+ reactions:recentReactions(g),
  players:g.people.map((p,i)=>({seat:i,out:p.out,up:p.up,handCount:p.hand.length,downCount:p.down.length,pickups:p.pickups,
  ...(i===seat?{hand:p.hand,blindSlots:p.down.map((_,j)=>j)}:{})})),
  events:g.events.slice(-24).map(({type,seat,source,reason,count,burned,burnedCount,rank,action,target,takenCount,drawnCount,bridgeCount,move})=>({type,seat,source,reason,count,burned,burnedCount,rank,action,target,takenCount,drawnCount,bridgeCount,move})),
@@ -153,8 +159,28 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
   // Online clients use the recent 24 events; bound persisted history to avoid JSONB growth.
   if(g.events.length>96)g.events.splice(0,g.events.length-96);
   const status=g.phase==='over'?'finished':g.phase==='play'?'playing':'lobby';
- const rows=await query('UPDATE pilehead_rooms SET state=$1::jsonb,status=$2,revision=revision+1,updated_at=now() WHERE code=$3 AND revision=$4 AND expires_at>now() RETURNING code,capacity,revision,status,state,expires_at',[JSON.stringify(g),status,r.code,r.revision]);
+ const rows=await query(`UPDATE pilehead_rooms SET state=jsonb_set($1::jsonb,'{reactionEvents}',COALESCE(pilehead_rooms.state->'reactionEvents','[]'::jsonb)),status=$2,revision=revision+1,updated_at=now() WHERE code=$3 AND revision=$4 AND expires_at>now() RETURNING code,capacity,revision,status,state,expires_at`,[JSON.stringify(g),status,r.code,r.revision]);
  if(!rows.length)fail(409,'stale_revision');return view(rows[0],seat)}
+// Ephemeral reactions live in bounded room JSON rather than adding a schema
+// migration. SQL appends atomically without changing the gameplay revision.
+async function realtimeReact(room,seat,kind){
+ if(!REACTION_TYPES.has(kind))fail(400,'invalid_reaction');
+ const id=code(room),r=await load(id);
+ if(r.state.phase==='setup')fail(409,'not_started');
+ if(!Number.isInteger(seat)||seat<0||seat>=humanCount(r.state))fail(403,'not_member');
+ const bucket=h(['react',id,seat,Math.floor(Date.now()/10000)].join(':'));
+ const hits=await query("INSERT INTO pilehead_rate_limits(bucket,hits,expires_at) VALUES($1,1,now()+interval '10 minutes') ON CONFLICT(bucket) DO UPDATE SET hits=pilehead_rate_limits.hits+1 RETURNING hits",[bucket]);
+ if(Number(hits[0]?.hits)>4)fail(429,'rate_limited');
+ const reaction={id:crypto.randomUUID(),seat,kind,at:Date.now()};
+ const rows=await query(`UPDATE pilehead_rooms SET
+ state=jsonb_set(state,'{reactionEvents}',
+ (SELECT COALESCE(jsonb_agg(event ORDER BY ord),'[]'::jsonb) FROM
+ (SELECT event,ord FROM jsonb_array_elements(COALESCE(pilehead_rooms.state->'reactionEvents','[]'::jsonb) || $2::jsonb)
+  WITH ORDINALITY AS x(event,ord) ORDER BY ord DESC LIMIT 24) recent)),
+ updated_at=now() WHERE code=$1 AND expires_at>now() RETURNING code`,[id,JSON.stringify(reaction)]);
+ if(!rows.length)fail(410,'room_expired');
+ return reaction;
+}
 module.exports=async function handler(req,res){const send=(status,data)=>{res.status(status);res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');return res.json(data)};
  try{if(req.method==='GET'&&req.query?.health==='1'){
   const rows=await query('SELECT 1 AS ready');return send(200,{ok:rows[0]?.ready===1,service:'pilehead-rooms'});
@@ -173,6 +199,7 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
     [r.code,seat,b.away]);
    return send(200,{ok:true});
   }
+  if(b.action==='react')return send(200,{ok:true,code:r.code,reaction:await realtimeReact(r.code,seat,b.kind)});
   if(b.action==='state'){
    if(b.heartbeat===true)await query('UPDATE pilehead_members SET last_seen_at=now(),is_away=false WHERE code=$1 AND seat=$2',[r.code,seat]);
    return send(200,await view(r,seat));
@@ -180,3 +207,18 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
   return send(200,await mutation(r,seat,b))
  }catch(e){if(e.status)return send(e.status,{ok:false,error:e.code});if(e.code==='23505')return send(409,{ok:false,error:'room_conflict_retry'});
   console.error('PILEHEAD backend error:',e.message);return send(503,{ok:false,error:'service_unavailable'})}}
+
+module.exports.realtimeAuth=async function realtimeAuth(room,token){
+ const r=await load(code(room));
+ const seat=await auth(r,{headers:{authorization:'Bearer '+token}});
+ await query('UPDATE pilehead_members SET last_seen_at=now(),is_away=false WHERE code=$1 AND seat=$2',[r.code,seat]);
+ return{code:r.code,seat,revision:Number(r.revision),reactions:recentReactions(r.state)};
+};
+module.exports.realtimeSnapshot=async function realtimeSnapshot(room){
+ // Lightweight cross-instance check; do not transfer the hidden game state.
+ const rows=await query("SELECT revision,state->'reactionEvents' AS reaction_events,expires_at FROM pilehead_rooms WHERE code=$1",[code(room)]);
+ if(!rows.length)fail(404,'room_not_found');
+ if(new Date(rows[0].expires_at)<=new Date())fail(410,'room_expired');
+ return{revision:Number(rows[0].revision),reactions:recentReactions({reactionEvents:rows[0].reaction_events})};
+};
+module.exports.realtimeReact=realtimeReact;
