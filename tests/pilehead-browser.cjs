@@ -72,6 +72,22 @@ async function run(browser,width,height,mobile){
   const after=await state(page);
   assert.equal(after.turn,1,'out-of-turn SNAP does not steal next turn');
   assert.equal(after.events.at(-1).reason,'snap');
+  // A first-time player can learn in a real two-player bot round, not a modal tutorial.
+  await page.evaluate(()=>localStorage.removeItem('pilehead-playtest-v11'));
+  await page.reload({waitUntil:'domcontentloaded'});
+  await page.locator('[data-do="practice"]').click();
+  assert.ok(await page.locator('.stack-practice-setup').count(),'practice explains the real opening-hand swap');
+  await page.locator('[data-do="ready"]').click();
+  await page.locator('.stack-practice-coach').waitFor();
+  assert.ok(await page.locator('.stack-rules-peek summary').count(),'in-game quick rules are available');
+  if(mobile){
+   const dock=await page.locator('.table-actions').evaluate(el=>getComputedStyle(el).position);
+   assert.equal(dock,'fixed','phone actions stay reachable while navigating the table');
+   const overlay=await page.evaluate(()=>getComputedStyle(document.querySelector('.stack-rules-peek')).position);
+   assert.equal(overlay,'relative','the rules menu anchors to its own summary');
+  }
+  await page.locator('[data-stack-dismiss-coach]').click();
+  assert.equal(await page.locator('.stack-practice-coach').count(),0,'coaching can be dismissed');
   assert.ok(errors.length===0,'browser errors: '+errors.join('; '));
   console.log('PASS browser '+width+'x'+height+' '+(mobile?'touch':'desktop')+
    ': deal, tap/pile, drag, hotseat SNAP/turn/privacy');
