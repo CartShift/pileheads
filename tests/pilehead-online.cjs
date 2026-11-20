@@ -373,7 +373,7 @@ async function run(){
  const raceMove=Engine.options(rooms.get(raceCode).state,1)[0];
  const guestWins=await request({action:'move',code:raceCode,revision:4,move:raceMove},raceGuest.data.session);
  assert.equal(guestWins.status,200,JSON.stringify(guestWins));
- assert.equal(guestWins.data.game.followup.length,0,'next action ends previous SNAP opportunity');
+ assert.notEqual(rooms.get(raceCode).state.followUp?.seat,0,'next action ends the previous actor’s SNAP, even if the next action opens its own');
  const outdatedSnap=await request({action:'move',code:raceCode,revision:4,move:raceOpen.data.game.followup[0]},raceHost);
  assert.equal(outdatedSnap.status,409,'concurrent SNAP must respect revision race');
  const tooLateSnap=await request({action:'move',code:raceCode,revision:5,move:raceOpen.data.game.followup[0]},raceHost);
