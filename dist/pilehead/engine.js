@@ -149,7 +149,7 @@ function slamOptions(g,seat){if(g.phase!=='play'||g.pendingDump||g.people[seat]?
 }
 function followUpOptions(g,seat){
  if(g.phase!=='play'||g.pendingDump||!g.followUp||g.followUp.seat!==seat||g.people[seat]?.out)return[];
- if(g.followUp.expiresAt&&Date.now()>=g.followUp.expiresAt)return[];
+ // SNAP is a natural race: the opportunity remains until the next move commits.
  const {rank,ids}=g.followUp,held=g.people[seat].hand.filter(c=>ids.includes(c.id)&&c.kind==='number'&&c.rank===rank);
  if(!held.length||topRun(g).rank!==rank)return[];
  return [{type:'followup',source:'hand',ids:held.map(c=>c.id)}];
