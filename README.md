@@ -65,3 +65,9 @@ The game retains its `/pilehead/` URLs, browser save keys, `/api/pilehead`, data
 ## Mobile UX clarity pass (21 November 2026)
 
 The STACK table includes a compact mobile layout, safe-area-aware action controls, on-table quick rules, and a real **Learn with a bot** practice round. Active online rooms poll slightly faster while preserving authoritative validation. See `docs/ux-clarity-20261121.md` for acceptance tests and remaining push-transport/reactions work.
+
+## Live rooms and social reactions
+
+On Render, STACK now pushes room changes through a same-origin authenticated WebSocket while keeping game moves server-authoritative. Players can send five synchronized, rate-limited reactions. On reconnect or when WebSockets are unavailable, HTTP polling still restores the correct state; multiple Render instances reconcile using only shared room revisions and recent public reactions. The system does not require a new database or migration. See [the online protocol and operational limits](docs/pilehead-online.md).
+
+The browser acceptance workflow runs **two independent mobile browser contexts** against the actual HTTP/WebSocket server and game engine with an isolated Neon test fixture. It checks seat privacy, socket auth, SNAP race, reaction delivery, reconnect and rematch. Live Render/Neon and physical-device QA remain separate from that automated test.
