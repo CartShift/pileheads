@@ -16,8 +16,8 @@ const localHud=block(local,'function tableHUD(){','function tableActions({');
 const escape=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function onlineStatus({turn=true,layer='hand',selection=[],legal=null,limit=null,slam=[],snap=[],name='Bot 1'}={}){
  const data={game:{phase:'play',round:2,limit,slam,followup:snap,turn:turn?0:1}};
- return new Function('data','active','stageNow','selection','legalMove','displayName','snapBlocked','safe',
-  onlineHud+'return tableHUD()')(data,()=>turn,()=>layer,selection,()=>legal,()=>name,()=>false,escape);
+ return new Function('data','active','stageNow','selection','legalMove','displayName','snapBlocked','safe','presenceStatus',
+  onlineHud+'return tableHUD()')(data,()=>turn,()=>layer,selection,()=>legal,()=>name,()=>false,escape,()=> 'online');
 }
 function localStatus({turn=true,layer='hand',selection=[],limit=null}={}){
  const g={phase:'play',limit,turn:turn?0:1};
