@@ -12,12 +12,12 @@ let count=0;function check(label,fn){fn();count++;console.log('PASS '+label)}
 check('deck art exports all expected functions',()=>{
  for(const k of ['face','back','mini','rules','glyph'])assert.ok(A[k],k);
 });
-check('engine still has 52 cards and no powers on numbered tens',()=>{
+check('engine has 54 cards and no powers on numbered tens',()=>{
  const deck=engine.deck();
- assert.equal(deck.length,52);
+ assert.equal(deck.length,54);
  assert.equal(deck.filter(c=>c.kind==='number').length,40);
  for(let n=1;n<=10;n++)assert.equal(deck.filter(c=>c.rank===n).length,4);
- for(const n of Object.values(engine.ACTIONS))assert.equal(n,2);
+ for(const [action,n] of Object.entries(engine.ACTIONS))assert.equal(n,action==='burn'?4:2);
 });
 check('ten numbered cards use STACK paper layout and precisely matching structural layers',()=>{
  for(let n=1;n<=10;n++){
