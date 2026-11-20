@@ -56,6 +56,7 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
  // redact it as absent after the deadline so polling clients can repaint.
  snapUntil:g.followUp?.expiresAt>Date.now()?g.followUp.expiresAt:null,
  snapSeat:g.followUp?.expiresAt>Date.now()?g.followUp.seat:null,
+ blindReveal:g.blindReveal?.expiresAt>Date.now()?g.blindReveal:null,
  botFollowupReady:botSeats(g).some(bot=>E.followUpOptions(g,bot).length>0),
  pile:g.pile,ashesCount:g.ashes.length,limit:g.limit,slamOpen:g.slamOpen,pendingDump:g.pendingDump?{seat:g.pendingDump.seat}:null,setupReady:g.setupReady||g.people.map(()=>false),loser:g.loser,finishedOrder:g.finishedOrder,
  players:g.people.map((p,i)=>({seat:i,out:p.out,up:p.up,handCount:p.hand.length,downCount:p.down.length,pickups:p.pickups,
@@ -65,11 +66,13 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
  slam:g.phase==='play'?E.slamOptions(g,seat):[],
  followup:g.phase==='play'?E.followUpOptions(g,seat):[]
 }}
-async function view(r,seat){const members=await query('SELECT seat,display_name FROM pilehead_members WHERE code=$1 ORDER BY seat',[r.code]);
+async function view(r,seat){const members=await query('SELECT seat,display_name,last_seen_at,is_away FROM pilehead_members WHERE code=$1 ORDER BY seat',[r.code]);
  return {ok:true,code:r.code,revision:r.revision,capacity:r.capacity,
  humanCount:humanCount(r.state),botCount:botSeats(r.state).length,
  status:r.status,expiresAt:r.expires_at,me:seat,host:seat===0,
- members:members.map(m=>({seat:m.seat,name:m.display_name})),game:redacted(r.state,seat)}}
+ members:members.map(m=>({seat:m.seat,name:m.display_name,
+  presence:Date.now()-new Date(m.last_seen_at).getTime()>25000?'offline':m.is_away?'away':'online'})),
+ game:redacted(r.state,seat)}}
 async function auth(r,req){const match=/^Bearer ([A-Za-z0-9_-]{32,128})$/.exec(req.headers.authorization||'');if(!match)fail(401,'session_required');
  const rows=await query('SELECT seat FROM pilehead_members WHERE code=$1 AND token_hash=$2',[r.code,h(match[1])]);if(!rows.length)fail(403,'not_member');return Number(rows[0].seat)}
 async function create(req,b){
@@ -167,7 +170,16 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
   let b=req.body;if(typeof b==='string'){try{b=JSON.parse(b)}catch{fail(400,'bad_json')}}if(!b||typeof b!=='object'||Array.isArray(b))fail(400,'bad_json');
   db();if(b.action==='create')return send(201,await create(req,b));if(b.action==='join')return send(201,await join(req,b));
   const r=await load(code(b.code)),seat=await auth(r,req);
-  if(b.action==='state')return send(200,await view(r,seat));
+  if(b.action==='presence'){
+   if(typeof b.away!=='boolean')fail(400,'bad_presence');
+   await query('UPDATE pilehead_members SET last_seen_at=now(),is_away=$3 WHERE code=$1 AND seat=$2',
+    [r.code,seat,b.away]);
+   return send(200,{ok:true});
+  }
+  if(b.action==='state'){
+   if(b.heartbeat===true)await query('UPDATE pilehead_members SET last_seen_at=now(),is_away=false WHERE code=$1 AND seat=$2',[r.code,seat]);
+   return send(200,await view(r,seat));
+  }
   return send(200,await mutation(r,seat,b))
  }catch(e){if(e.status)return send(e.status,{ok:false,error:e.code});if(e.code==='23505')return send(409,{ok:false,error:'room_conflict_retry'});
   console.error('PILEHEAD backend error:',e.message);return send(503,{ok:false,error:'service_unavailable'})}}
