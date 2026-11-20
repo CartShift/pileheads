@@ -26,8 +26,9 @@ function selectMatching(cards,id){
  const picked=cards.find(c=>c.id===id);if(!picked)return;
  if(selection.includes(id)){selection=selection.filter(x=>x!==id);return}
  const prior=selection.map(x=>cards.find(c=>c.id===x)).filter(Boolean);
- selection=prior.length&&prior.every(c=>sameFace(c,picked))?[...selection,id]:
-  cards.filter(c=>sameFace(c,picked)).map(c=>c.id);
+ // First tap picks one card. Further taps build a matching group; tapping
+ // another rank changes the selection rather than silently playing all copies.
+ selection=prior.length&&prior.every(c=>sameFace(c,picked))?[...selection,id]:[id];
 }
 function label(c){return c.kind==='action'?c.action.toUpperCase():String(c.rank)}
 function card(c,opts={}){
@@ -560,6 +561,10 @@ root.addEventListener('input',e=>{
  if(notice&&!data){notice='';const message=$('online-form-message');if(message)message.remove()}
 });
 root.addEventListener('keydown',e=>{
+ if(e.key==='Escape'){
+  if(dumpDraft){e.preventDefault();dumpDraft=null;render();return}
+  if(selection.length){e.preventDefault();selection=[];render();return}
+ }
  if(e.key==='Enter'&&e.target?.id==='online-name'){
   e.preventDefault();root.querySelector('[data-do="'+(room?'join':'create')+'"]')?.click();
  }
