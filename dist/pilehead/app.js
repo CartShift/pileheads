@@ -23,10 +23,10 @@ function currentStage(){return E.stage(g,viewSeat())}
 function isTurn(){return g.phase==='play'&&g.turn===viewSeat()}
 function save(){try{localStorage.setItem(KEY,JSON.stringify({g,mode,seats,setupSeat,covered,notice,lastMove}))}catch(e){console.warn('Save unavailable',e)}}
 function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
- if(!x||!['pilehead-1.1.0','pilehead-1.2.0','pilehead-1.3.0','pilehead-1.4.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
+ if(!x||!['pilehead-1.1.0','pilehead-1.2.0','pilehead-1.3.0','pilehead-1.4.0','pilehead-1.5.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
  // Keep the existing 1.2 DUMP behavior during saved games.
- // 1.1 sessions keep the prior upgrade behavior.
- if(x.g.version==='pilehead-1.1.0')x.g.version=E.VERSION;
+ // 1.1 sessions stay on the 52-card rules rather than acquiring non-dealt cards.
+ if(x.g.version==='pilehead-1.1.0')x.g.version='pilehead-1.2.0';
  E.invariant(x.g);g=x.g;mode=x.mode;seats=x.seats;setupSeat=x.setupSeat??0;
  covered=mode==='hotseat'&&g.phase!=='over';challengeOpen=false;notice=x.notice||'';lastMove=x.lastMove||null;return true;
  }catch{return false}}
@@ -166,7 +166,7 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  const top=E.topRun(g),summary=g.phase==='over'?'Game over. '+playerName(g.loser)+' is the PILEHEAD.':
   turn?'Your turn · '+(stage==='down'?'Flip one blind card':stage==='up'?'Play from your face-up row':'Choose cards from your hand'):
   playerName(g.turn)+' is playing · watch for a SLAM!';
- return '<div class="pitch"><h1>'+summary+'</h1><p>52 custom cards · 40 numbers · 12 actions · '+g.people.length+' players</p></div>'+
+ return '<div class="pitch"><h1>'+summary+'</h1><p>'+E.deck(g.version).length+' custom cards · 40 numbers · '+(E.deck(g.version).length-40)+' actions · '+g.people.length+' players</p></div>'+
  tableHUD()+'<section class="table" aria-label="PILEHEAD physical table">'+opponents()+pile()+
  upAndDown(p,selectable)+
  '<div class="hand-area"><div class="area-label"><span>YOUR HAND <b>· '+p.hand.length+'</b></span><span class="hand-controls">'+

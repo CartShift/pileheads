@@ -7,13 +7,13 @@ This is the actual PILEHEAD engine in \`dist/pilehead/engine.js\`, with server-a
 - \`/pilehead/index.html\`: local bot/hotseat and online entry; same physical-card styling, hand fan, touch drag, desktop drag, pile-drop gestures, action badges, and SLAM burn motion. There is a reduced-motion fallback.
 - \`/pilehead/index.html?online=1\`: create a hosted private room for 2–5 humans.
 - \`/pilehead/index.html?room=XXXXXXXX\`: join a room by invite.
-- \`/api/pilehead\`: same-origin Vercel Node 24 Function, dynamic import of pinned \`@neondatabase/serverless\` driver and dedicated Postgres database.
+- \`/api/pilehead\`: same-origin Node 24 API served by Render using \`scripts/render-server.cjs\`, with the pinned \`@neondatabase/serverless\` driver and existing dedicated Neon Postgres database.
 - \`dist/pilehead/online.js\`: online client, local private seat storage, seat-specific views, lobby setup swapping, host-controlled start, revisioned turns, and out-of-turn SLAM. Polls while visible (1.75s), and refreshes after returning to the tab.
 
 ## Multiplayer presence, shared blind flips and mobile refinements (Nov 2026)
 
 - Visible players send throttled 11-second heartbeats, and send a best-effort **Away** signal when switching tabs, closing the page, or leaving the app. Players become **Offline** if no signal arrives within 25 seconds. Presence is a member property, *not* a game revision, so heartbeats never invalidate moves or SLAM actions. Seat tokens stay private and reconnect using the existing saved session.
-- Polling is non-overlapping and adaptive (1.1–1.65 seconds in play, 3 seconds in lobby or finished rooms), stops while hidden, and backs off up to 18 seconds on network errors. The lowest-numbered visible human coordinates bot advancement to reduce duplicate server commands. Vercel HTTP polling is not a WebSocket; network latency still affects live turns.
+- Polling is non-overlapping and adaptive (1.1–1.65 seconds in play, 3 seconds in lobby or finished rooms), stops while hidden, and backs off up to 18 seconds on network errors. The lowest-numbered visible human coordinates bot advancement to reduce duplicate server commands. Render HTTP polling is not a WebSocket; network latency still affects live turns.
 - A flipped face-down card is publicly displayed for 5.5 seconds, including on failed flips that immediately pick up the pile and on blind DUMP target selection. The public payload contains only the *face* (rank/action), never card identity, hidden stock or other hand cards; the server stops returning the reveal on expiration.
 - The hosted table now shows **Online**, **Away**, **Offline** or **Bot** on seats, makes a disconnected current player unmistakable, and moves the reveal strip above the card table to avoid covering phone controls. The entire experience respects reduced-motion.
 - One-time additive Neon migration required before deploying this version (safe for existing rows/rooms):
@@ -34,11 +34,11 @@ The following tables already exist in that project:
 - \`pilehead_members\` (one unique seat and hashed session token per player)
 - \`pilehead_rate_limits\` (hashed network-hour buckets to limit unauthenticated room creation/joining)
 
-**Required environment variable on the existing Vercel project** (\`spark-card-game\`, team \`CartShift\`):
+**Required environment variable on the Render STACK web service**:
 
 \`PILEHEAD_DATABASE_URL\` = the Neon Postgres connection string for this dedicated project (set as **encrypted**, for **production + preview**).
 
-Retrieve the value in Neon Console and enter it through Vercel Settings → Environment Variables. Never commit it, put it in the browser bundle, append it to a URL, or paste it into chat. Vercel must rebuild/redeploy after saving the variable. If connector permissions allow, configure it via the Vercel integration without displaying its value.
+Retrieve the value in Neon Console and enter it through Render → Environment. Never commit it, put it in the browser bundle, append it to a URL, or paste it into chat. Render must redeploy after saving the variable. Keep the value private and use the existing Render secret configuration.
 
 The Vercel connector was denied permission to write project environment variables (403) during this implementation. **Historical activation note:** this credential was not available during the original implementation. The current deployment and environment must be checked independently before claiming a room is live. The client displays an explicit error when the database is not configured.
 
@@ -54,7 +54,7 @@ The Vercel connector was denied permission to write project environment variable
 
 ## Limitations and validation
 
-- The retired SPARK/D1 backend is no longer shipped from this repo. STACK uses its own Vercel API and Neon database.
+- The retired SPARK/D1 backend is no longer shipped from this repo. STACK uses its own same-origin Render API and Neon database.
 - PILEHEAD online synchronization currently uses polling, not low-latency WebSocket transport. A technically first successful SLAM request wins, so real-world latency can matter; this is a known playtest limitation.
 - The game may be playable on a shared device locally without server credentials, via the older hotseat mode, but that is NOT online multiplayer.
 - Full live two-device QA cannot be claimed until at least two independent browser sessions join, play, reconnect and finish a game on the current deployment. A READY deployment or passing mocked API tests is insufficient.
@@ -62,7 +62,7 @@ The Vercel connector was denied permission to write project environment variable
 
 ## Activation smoke test
 
-1. Configure encrypted \`PILEHEAD_DATABASE_URL\` on the existing Vercel project, redeploy the latest main commit and verify the deployment says READY.
+1. Configure encrypted \`PILEHEAD_DATABASE_URL\` on the existing Render service, deploy the latest main commit and verify the service is live.
 2. Open \`https://spark-card-game.vercel.app/pilehead/index.html?online=1\` (or a permitted share link if protected) in browser A. Create a room.
 3. Copy the resulting invitation link into an **independent** browser B. Join with a different name, inspect that B cannot see A's hand or blind cards.
 4. As host, verify the two-person lobby fills, exchange face-up cards, and Start.
@@ -83,7 +83,7 @@ A printed deck remains mandatory for design decisions. The graphical hand/felt i
 ## Result screen
 All online participants receive the end state from the server; the winner/last-place overlay is derived solely from finishedOrder and loser. **Current behavior:** Play again in the same room deals a fresh round while retaining member seats, room code and sessions. Local games have a Play again action.
 
-BURN already exists as two dedicated action cards in the 52-card deck. Its action burns the entire played pile, including BURN, and awards another turn; the controls and rules now make this explicit.
+BURN now has four dedicated action cards in the 54-card deck (v1.6). The five other actions retain two copies each. Its action burns the entire played pile, including BURN, and awards another turn; the controls and rules now make this explicit.
 
 ## Immersive tabletop and result stage (Nov 2026)
 - Both the local simulator and private-seat online rooms use one common resultHTML presentation in `dist/pilehead/immersive.js`; finish states remain engine/server authoritative, never inferred from animations.
@@ -98,7 +98,7 @@ BURN already exists as two dedicated action cards in the 52-card deck. Its actio
 - Humans occupy contiguous seats starting at seat 0; the remaining seats are server-owned bots and cannot be claimed through invitation URLs or member tokens. Old rooms with no `humanCount` remain all-human.
 - Bots automatically choose their face-up cards and are ready from the lobby. Only humans have to join and confirm their cards before the host can start.
 - Bot actions are simulated **authoritatively on the server**, one at a time, through the revision-controlled `advance` action. Clients automatically ask for another bot move when the current turn belongs to a bot; no bot hand or deck information is sent to browsers.
-- After `phase=over`, any authenticated human can select **Play again · same room**. The server shuffles a fresh 52-card deck, increments the round, retains the room code, human seats/sessions and bot composition, and returns everyone to the face-up-selection lobby. The first seat remains the host for starting the next round.
+- After `phase=over`, any authenticated human can select **Play again · same room**. The server shuffles a fresh 54-card deck, increments the round, retains the room code, human seats/sessions and bot composition, and returns everyone to the face-up-selection lobby. The first seat remains the host for starting the next round.
 - If the host is away, human participants can trigger the rematch, but starting the round still requires the host and every human seat to confirm readiness. Rematch requests use optimistic concurrency control to avoid two competing resets.
 - The live table remains polling-based; browsers advance bot turns approximately every 1.75 seconds while visible. When all humans leave the page, bot turns pause until a participant reconnects. Bots use the existing engine strategy, not an AI language model.
 
@@ -134,6 +134,6 @@ Canonical game rules are frozen in `docs/pilehead-design.md`. Participant-facing
 
 ## Compatibility with pre-1.3 game rooms (November 18, 2026)
 
-The 1.3.0 rules release introduced free choice of DUMP recipient. A strict rules-version check initially blocked rooms still saved as 1.2.0, which the UI incorrectly described as a connection failure. The server now accepts **only** 1.2.0 states after validating full 52-card conservation and every card identity against the canonical deck. It retains the saved state version, room code, memberships and session tokens. While an older round is in progress, DUMP retains its original automatic next-active-player target. The server exposes a public `rulesVersion` field so the browser doesn't offer an incompatible DUMP picker. Rematching creates a fresh 1.3.0 round with full target selection and no replacement invitation link. This requires no direct database write or migration.
+The 1.3.0 rules release introduced free choice of DUMP recipient. A strict rules-version check initially blocked rooms still saved as 1.2.0, which the UI incorrectly described as a connection failure. The v1.6 server accepts existing 52-card rooms from v1.2 through v1.5 after validating their version-specific deck size, physical IDs, and card identities. New rooms and rematches use v1.6 (54 cards). It retains the saved state version, room code, memberships and session tokens. While an older round is in progress, DUMP retains its original automatic next-active-player target. The server exposes a public `rulesVersion` field so the browser doesn't offer an incompatible DUMP picker. Rematching creates a fresh 1.3.0 round with full target selection and no replacement invitation link. This requires no direct database write or migration.
 
 Unsupported or corrupted states remain blocked with `room_rules_changed`. The UI classifies that, expiration and missing seat credentials as room issues with an explicit create-new-room action rather than a misleading connection retry. The compatibility workflow has API regression coverage in `tests/pilehead-online.cjs`.

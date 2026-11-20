@@ -10,15 +10,14 @@ const secret=()=>crypto.randomBytes(32).toString('base64url');
 function code(x){if(typeof x!=='string'||!/^[A-HJ-NP-Z2-9]{8}$/.test(x.toUpperCase()))fail(400,'invalid_code');return x.toUpperCase()}
 function makeCode(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from(crypto.randomBytes(8),n=>a[n%a.length]).join('')}
 function name(v){const x=typeof v==='string'?v.trim().replace(/[\u0000-\u001f\u007f<>]/g,'').slice(0,24):'';if(!x)fail(400,'name_required');return x}
-// The 1.3 update changed the DUMP target rule but not its 52-card deck.
- // Legacy 1.2 games remain playable without rewriting stored state.
- // Validate the complete card identity and conservation before accepting them.
+// Preserve active 52-card rooms from releases 1.2–1.5 after the 54-card v1.6 update.
+// Validate old card identities and conservation before accepting saved room state.
 function compatibleLegacy(g){
- if(!['pilehead-1.2.0','pilehead-1.3.0','pilehead-1.4.0'].includes(g?.version))return false;
+ if(!['pilehead-1.2.0','pilehead-1.3.0','pilehead-1.4.0','pilehead-1.5.0'].includes(g?.version))return false;
  try{
   E.invariant(g);
   if(!['setup','play','over'].includes(g.phase)||g.people.length<2||g.people.length>5)return false;
-  const expected=E.deck(),cards=[...g.stock,...g.pile,...g.ashes,
+  const expected=E.deck(g.version),cards=[...g.stock,...g.pile,...g.ashes,
    ...g.people.flatMap(p=>[...p.hand,...p.up,...p.down])];
   return cards.every(c=>{const reference=expected[c.id];
    return reference&&c.kind===reference.kind&&c.rank===reference.rank&&c.action===reference.action});

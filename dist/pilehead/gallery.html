@@ -42,12 +42,12 @@ footer{text-align:center;font-size:12px;color:#687563;margin-top:25px}
 @media print{header nav,.navlinks,footer{display:none!important}header{padding:10mm}main{max-width:100%;padding:10mm}.gallery-grid{grid-template-columns:repeat(5,1fr);gap:8px}.gallery-item .ph-card{width:115px}.back-section{break-before:page}.gallery-item{break-inside:avoid}}
 </style></head><body>
 <header><nav><span class="brand">STACK / DECK LAB</span><span class="navlinks"><a href="index.html">Play the game</a><a href="print.html">Print the deck</a><a href="../index.html">STACK home</a></span></nav>
-<div class="hero"><div class="eyebrow">STACK CARD SYSTEM · 52 CARDS / 16 UNIQUE FRONTS</div><h1>EVERY CARD<br>HAS A ROLE.</h1><p>One distinctive geometric composition for each rank, six rule-specific action illustrations, and a universal STACK card back. Same art in the simulator and on paper.</p></div></header>
+<div class="hero"><div class="eyebrow">STACK CARD SYSTEM · 54 CARDS / 16 UNIQUE FRONTS</div><h1>EVERY CARD<br>HAS A ROLE.</h1><p>One distinctive geometric composition for each rank, six rule-specific action illustrations, and a universal STACK card back. Same art in the simulator and on paper.</p></div></header>
 <main>
 <section><div class="section-title"><h2>NUMBERED CARDS</h2><p>10 ranks · four copies each</p></div><div id="numbers" class="gallery-grid"></div></section>
-<section><div class="section-title"><h2>ACTION CARDS</h2><p>6 actions · two copies each</p></div><div id="actions" class="gallery-grid actions"></div></section>
+<section><div class="section-title"><h2>ACTION CARDS</h2><p>6 actions · BURN ×4, others ×2</p></div><div id="actions" class="gallery-grid actions"></div></section>
 <section class="back-section"><div class="section-title"><h2>CARD BACK</h2><p>One universal back · symmetrical pattern</p></div><div id="backs" class="gallery-grid"></div></section>
-<div class="summary"><strong>52</strong><span>CARDS TOTAL</span><span class="divider"></span><span>40 NUMBER CARDS · 1–10 × 4</span><span>12 ACTION CARDS · 6 × 2</span></div>
+<div class="summary"><strong>54</strong><span>CARDS TOTAL</span><span class="divider"></span><span>40 NUMBER CARDS · 1–10 × 4</span><span>14 ACTION CARDS · BURN ×4, OTHERS ×2</span></div>
 <footer>STACK is the visual brand. PILEHEAD remains the internal simulator and rules-engine identifier.</footer>
 </main><script src="engine.js"></script><script src="deck-art.js"></script><script src="deck-raster.js"></script><script src="deck-theme.js"></script><script>
 (function(){
@@ -56,6 +56,6 @@ footer{text-align:center;font-size:12px;color:#687563;margin-top:25px}
  const numbers=Array.from({length:10},(_,i)=>({kind:"number",rank:i+1}));
  document.getElementById("numbers").innerHTML=numbers.map(c=>'<div class="gallery-item">'+card(c)+'<span class="qty">×4</span></div>').join("");
  document.getElementById("actions").innerHTML=Object.keys(E.ACTIONS).map(action=>'<div class="gallery-item">'+card({kind:"action",action})+'<span class="qty">×'+E.ACTIONS[action]+'</span><div class="gallery-rule">'+A.rules[action]+'</div></div>').join("");
- document.getElementById("backs").innerHTML='<div class="gallery-item"><div class="card ph-card back ph-back">'+A.back()+'</div><span class="gallery-rule">Shared across all 52 cards</span></div>';
+ document.getElementById("backs").innerHTML='<div class="gallery-item"><div class="card ph-card back ph-back">'+A.back()+'</div><span class="gallery-rule">Shared across all 54 cards</span></div>';
 })();
  window.addEventListener("stack-deck-theme-change",()=>location.reload()); </script></body></html>

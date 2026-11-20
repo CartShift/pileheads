@@ -2,12 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 // Only publish assets used by the current STACK game. The /api/pilehead
-// serverless function is discovered separately by Vercel.
+// Render serves the resulting files through scripts/render-server.cjs;
+// the historical Vercel builder name remains for compatibility.
 const root = path.resolve('dist');
 const output = path.resolve('vercel-static');
 const game = path.join(root, 'pilehead');
 const assets = [
-  'index.html', 'app.js', 'online.js', 'engine.js',
+  'index.html', 'app.js', 'online.js', 'online-polish.css', 'engine.js',
   'immersive.css', 'immersive.js', 'deck-art.css', 'deck-art.js',
   'deck-raster.css', 'deck-raster.js', 'stack-brand.css',
   'deck-theme.js', 'deck-theme.css',
