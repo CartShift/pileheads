@@ -165,15 +165,14 @@ function blindRevealBanner(){
   '<div class="blind-reveal-face">'+card({...c,id:-1})+'</div></div>';
 }
 function current(){return data?.game?.players?.[data.me]}
-function snapBlocked(){const g=data?.game;return !!g?.snapUntil&&Date.now()<g.snapUntil&&g.snapSeat!==data.me;}
-function active(){return data?.game?.turn===data.me&&data?.game?.phase==='play'&&!data?.game?.pendingDump&&!snapBlocked()}
+function active(){return data?.game?.turn===data.me&&data?.game?.phase==='play'&&!data?.game?.pendingDump}
+function canTouchHand(){return active()||Boolean(data?.game?.phase==='play'&&data.game.followup?.length)}
 function statusTitle(){
  const g=data.game;if(g.phase==='setup')return data.members.length+' of '+data.capacity+' players joined';
  if(g.phase==='over')return displayName(g.loser)+' is the PILEHEAD!';
  if(g.phase==='play'&&g.turn!==data.me&&presenceStatus(g.turn)==='offline')return 'Waiting for '+displayName(g.turn)+' to reconnect';
  if(g.phase==='play'&&g.turn!==data.me&&presenceStatus(g.turn)==='away')return displayName(g.turn)+' is away';
  return g.pendingDump?displayName(g.pendingDump.seat)+' is choosing a DUMP target':
- snapBlocked()?displayName(g.snapSeat)+' has a matching-draw SNAP chance':
    active()?'Your turn · place a card':displayName(g.turn)+' is playing · watch for SLAM';
 }
 function numberPolicy(){const l=data.game.limit;return l?.type==='under'?'NEXT: 1–4':l?.type==='min'?'NEXT: '+l.value+' or higher':'ANY NUMBER'}
@@ -212,7 +211,14 @@ function upDown(){
 }
 function stageNow(){const p=current(),g=data.game;return p.handCount||g.stockCount?'hand':p.up.length?'up':p.downCount?'down':'out'}
 function legalMove(){
- if(!active()||!selection.length)return null;
+ if(!selection.length)return null;
+ if(!active()){
+  // No automatic SNAP assistance. A drawn card can be placed like any other
+  // card, until another move commits first (revision-controlled on server).
+  const exact=data?.game?.followup?.find(o=>o.source==='hand'&&
+   o.ids.length===selection.length&&o.ids.every(id=>selection.includes(id)));
+  return exact?{type:'followup',source:'hand',ids:selection.slice()}:null;
+ }
  const source=stageNow();
  const exact=data.game.legal.find(o=>o.type==='play'&&o.source===source&&
   Array.isArray(o.ids)&&o.ids.length===selection.length&&o.ids.every(id=>selection.includes(id)));
@@ -281,13 +287,11 @@ function tableHUD(){
  const g=data.game,can=active(),layer=stageNow();
  const who=g.phase==='over'?'ROUND COMPLETE':can?'YOUR TURN':displayName(g.turn)+' TURN';
  const guide=g.phase==='over'?'Round finished · view results':
-  g.followup?.length?'SNAP now, or let the next player continue':
   g.slam?.length?'SLAM available · interrupt any turn':
   can?(layer==='down'?'Choose one blind card to flip':
    layer==='up'?'Choose a face-up card':
    selection.length?(legalMove()?'Ready to place '+selection.length+' selected card'+(selection.length===1?'':'s'):'Choose a legal combination'):
    'Tap a card to select matching copies'):
-  snapBlocked()?'Waiting for matching-draw reaction':
   presenceStatus(g.turn)==='offline'?'Waiting for '+displayName(g.turn)+' to reconnect':
   presenceStatus(g.turn)==='away'?'Waiting for '+displayName(g.turn)+' to return':
    'Waiting for '+displayName(g.turn)+' · watch for SLAM';
@@ -297,18 +301,16 @@ function tableHUD(){
   '<div class="hud-main"><span class="hud-status"><i class="hud-dot" aria-hidden="true"></i>'+safe(who)+'</span>'+
   '<span class="hud-guidance">'+safe(guide)+'</span></div>'+
   '<div class="hud-meta"><span>ROUND '+(g.round||1)+'</span><span class="hud-rule">'+safe(rule)+'</span>'+
-  (g.slam?.length?'<span class="hud-urgent">SLAM READY</span>':'')+
-  (g.followup?.length?'<span class="hud-urgent">SNAP READY</span>':'')+'</div></div>';
+  (g.slam?.length?'<span class="hud-urgent">SLAM READY</span>':'')+'</div></div>';
 }
 function tableActions(){
  const g=data.game,can=active(),legal=legalMove(),take=can&&g.legal?.some(m=>m.type==='take');
- const slam=g.slam?.length>0,snap=g.followup?.length>0;
+ const slam=g.slam?.length>0;
  let buttons='';
  if(g.phase==='over')buttons='<button class="action primary" data-do="rematch">Play again · same room</button>';
  else {
-  if(snap)buttons+='<button class="action snap" data-do="snap" '+(busy?'disabled':'')+'>SNAP · matching draw</button>';
   if(slam)buttons+='<button class="action slam" data-do="slam" '+(busy?'disabled':'')+'>SLAM · '+g.slam[0].ids.length+' cards</button>';
-  if(can&&legal){
+  if(legal){
    const burn=current().hand?.some(c=>selection.includes(c.id)&&c.action==='burn');
    buttons+='<button class="action primary" data-do="play" '+(busy?'disabled':'')+'>'+
     (burn?'BURN PILE':'Play '+selection.length+' card'+(selection.length===1?'':'s'))+
@@ -317,7 +319,7 @@ function tableActions(){
   if(take)buttons+='<button class="action secondary" data-do="take" '+(busy?'disabled':'')+'>Take pile · '+g.pile.length+'</button>';
   if(!buttons){
    const message=can?(selection.length?'Choose a legal combination':'Select a card to play'):
-    (snapBlocked()?'SNAP in progress':displayName(g.turn)+' is playing');
+    displayName(g.turn)+' is playing';
    buttons='<span class="table-action-prompt" role="status">'+safe(message)+
     '<small>'+(can?'Tap cards to select · drag onto pile':'Watch the table · SLAM is still possible')+'</small></span>';
   }
@@ -334,9 +336,8 @@ function playView(){
   '<div class="hand-area"><div class="area-label"><span>YOUR HAND <b>· '+p.handCount+'</b></span><span class="hand-controls">'+
  (selection.length?'<button type="button" class="hand-clear-button" data-do="clear-selection" aria-label="Clear selected cards">'+selection.length+' selected · Clear</button>':'')+
  '<button type="button" class="hand-sort-button" data-do="sort" title="Sort cards by rank">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></span></div>'+
-  '<div class="card-row hand">'+(p.hand?.length?orderedHand(p.hand).map(c=>card(c,{can:can&&source==='hand',source:'hand',selected:selection.includes(c.id)})).join(''):
+  '<div class="card-row hand">'+(p.hand?.length?orderedHand(p.hand).map(c=>card(c,{can:canTouchHand()&&source==='hand',source:'hand',selected:selection.includes(c.id)})).join(''):
   '<span style="font-size:12px;color:#b8cfba">No cards in hand</span>')+'</div></div></section>'+
- (g.followup?.length?'<div class="pilehead-snap-choice">You just drew a matching number. Throw it now, or <button class="action secondary" data-do="decline">Let the next player go</button>.</div>':'')+
  (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP: Your last matching hand cards can combine with matching face-up cards. Four numbers can also SLAM. Tap either one to select the group.</p>':'')+
  (selectedEffect()||lastEffect())+tableActions()+
   (notice?'<div class="message" role="status" aria-live="polite">'+safe(notice)+'</div>':'')+
@@ -405,7 +406,7 @@ function render(){
  // unchanged. Otherwise a live phone can display "SNAP in progress" forever.
  if(transitionTimer!==null){clearTimeout(transitionTimer);transitionTimer=null}
  if(data?.game.phase==='play'){
-  const deadlines=[data.game.snapUntil,data.game.startedAt?data.game.startedAt+3300:null,data.game.blindReveal?.expiresAt]
+  const deadlines=[data.game.startedAt?data.game.startedAt+3300:null,data.game.blindReveal?.expiresAt]
    .filter(t=>Number.isFinite(t)&&t>Date.now());
   if(deadlines.length)transitionTimer=setTimeout(()=>{
    transitionTimer=null;render();
@@ -463,7 +464,8 @@ async function selectCard(c){
   swapCard=null;await command('swap',{handId,upId});return;
  }
  const bridge=bridgeAvailable()&&stageNow()==='hand'&&['up','hand'].includes(c.source);
- if(!active()||(c.source!==stageNow()&&!bridge))return;
+ if(!(c.source==='hand'&&canTouchHand())&&!active())return;
+ if(c.source!==stageNow()&&!bridge)return;
  const my=current()[c.source],card=my?.find(x=>x.id===c.id);if(!card)return;
  selectMatching(bridge?[...current().hand,...current().up]:my,c.id);
  if(selection.includes(c.id)){try{navigator.vibrate?.(8)}catch{}}
@@ -511,8 +513,6 @@ root.addEventListener('click',async e=>{
  if(action==='play')await play();
  if(action==='take')await command('move',{move:{type:'take'}});
  if(action==='slam'){const m=data?.game.slam?.[0];if(m)await command('move',{move:m})}
- if(action==='snap'){const m=data?.game.followup?.[0];if(m)await command('move',{move:m})}
- if(action==='decline')await command('decline');
  if(action==='copy'){try{await navigator.clipboard.writeText(invite());notice='Invite link copied.'}catch{notice='Copy this link: '+invite()}render()}
  if(action==='share'){try{if(navigator.share)await navigator.share({title:'PILEHEAD',url:invite(),text:'Join my PILEHEAD card game'});else await navigator.clipboard.writeText(invite())}catch{}}
 });
@@ -543,7 +543,7 @@ root.addEventListener('keydown',e=>{
  if((e.key==='Enter'||e.key===' ')&&e.target.closest('[data-play-target]')){e.preventDefault();play()}
 });
 root.addEventListener('dragstart',e=>{
- const b=e.target.closest('[data-card]');if(!b||!active())return;
+ const b=e.target.closest('[data-card]');if(!b||(!active()&&!(b.dataset.source==='hand'&&canTouchHand())))return;
  drag={id:Number(b.dataset.card),source:b.dataset.source};
  if(!selection.includes(drag.id))selectMatching(current()[drag.source]||[],drag.id);
  if(e.dataTransfer){e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(drag.id))}
@@ -556,7 +556,7 @@ root.addEventListener('dragend',()=>drag=null);
 let touchGesture=null,ignoreNextClick=false;
 root.addEventListener('click',e=>{if(ignoreNextClick){e.preventDefault();e.stopImmediatePropagation();ignoreNextClick=false}},true);
 root.addEventListener('pointerdown',e=>{
- if(e.pointerType==='mouse'||!active()||busy||data.game.phase!=='play')return;
+ if(e.pointerType==='mouse'||!canTouchHand()||busy||data.game.phase!=='play')return;
  const b=e.target.closest('[data-card]');if(!b)return;
  touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,moving:false,scrolling:false,ghost:null,row:b.closest('.card-row.hand'),startScroll:b.closest('.card-row.hand')?.scrollLeft||0};
 });
@@ -587,7 +587,7 @@ window.addEventListener('pointerup',e=>{
  if(!t.moving&&!t.scrolling)return;
  ignoreNextClick=true;setTimeout(()=>ignoreNextClick=false,350);
  if(t.scrolling)return;
- if(zone&&active()&&stageNow()===t.source){
+ if(zone&&canTouchHand()&&stageNow()===t.source){
   if(!selection.includes(t.id))selectMatching(current()[t.source]||[],t.id);play()}
 });
 window.addEventListener('pointercancel',()=>{
@@ -611,9 +611,6 @@ async function pollOnce(){
   // Only one visible participant coordinates server-authoritative bot turns.
   const onlineHumans=data.members.filter(m=>m.presence==='online').map(m=>m.seat);
   if(onlineHumans.length&&Math.min(...onlineHumans)!==data.me)return;
-  if(data.game.followup?.length&&Date.now()-lastChangeAt<4700)return;
-  if(data.game.snapUntil&&Date.now()<data.game.snapUntil&&!data.game.botFollowupReady)return;
-  if(snapBlocked())return;
   if((bots.includes(data.game.turn)||data.game.botFollowupReady||
      data.game.pendingDump&&bots.includes(data.game.pendingDump.seat))&&Date.now()-botTickAt>=1250){
    botTickAt=Date.now();await command('advance');
