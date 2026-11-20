@@ -8,12 +8,12 @@ This is the actual PILEHEAD engine in \`dist/pilehead/engine.js\`, with server-a
 - \`/pilehead/index.html?online=1\`: create a hosted private room for 2–5 humans.
 - \`/pilehead/index.html?room=XXXXXXXX\`: join a room by invite.
 - \`/api/pilehead\`: same-origin Node 24 API served by Render using \`scripts/render-server.cjs\`, with the pinned \`@neondatabase/serverless\` driver and existing dedicated Neon Postgres database.
-- \`dist/pilehead/online.js\`: online client, local private seat storage, seat-specific views, lobby setup swapping, host-controlled start, revisioned turns, and out-of-turn SLAM. Polls while visible (1.75s), and refreshes after returning to the tab.
+- `dist/pilehead/online.js` and `dist/pilehead/live.js`: online controller plus authenticated WebSocket invalidations, reactions, fallback polling, private seat storage and server-authoritative turns.
 
 ## Multiplayer presence, shared blind flips and mobile refinements (Nov 2026)
 
 - Visible players send throttled 11-second heartbeats, and send a best-effort **Away** signal when switching tabs, closing the page, or leaving the app. Players become **Offline** if no signal arrives within 25 seconds. Presence is a member property, *not* a game revision, so heartbeats never invalidate moves or SLAM actions. Seat tokens stay private and reconnect using the existing saved session.
-- Polling is non-overlapping and adaptive (1.1–1.65 seconds in play, 3 seconds in lobby or finished rooms), stops while hidden, and backs off up to 18 seconds on network errors. The lowest-numbered visible human coordinates bot advancement to reduce duplicate server commands. Render HTTP polling is not a WebSocket; network latency still affects live turns.
+- WebSockets deliver immediate same-instance room updates and synchronized reactions. When connected, the browser polls for presence/recovery about every 9.5 seconds; when disconnected, active-play HTTP polling runs at approximately 0.85–1.25 seconds with backoff. Bot-turn coordination remains near 1 second. Across scaled Render instances, room revisions and reactions reconcile from Neon about every 1.2 seconds.
 - A flipped face-down card is publicly displayed for 5.5 seconds, including on failed flips that immediately pick up the pile and on blind DUMP target selection. The public payload contains only the *face* (rank/action), never card identity, hidden stock or other hand cards; the server stops returning the reveal on expiration.
 - The hosted table now shows **Online**, **Away**, **Offline** or **Bot** on seats, makes a disconnected current player unmistakable, and moves the reveal strip above the card table to avoid covering phone controls. The entire experience respects reduced-motion.
 - One-time additive Neon migration required before deploying this version (safe for existing rows/rooms):
@@ -55,7 +55,7 @@ The Vercel connector was denied permission to write project environment variable
 ## Limitations and validation
 
 - The retired SPARK/D1 backend is no longer shipped from this repo. STACK uses its own same-origin Render API and Neon database.
-- PILEHEAD online synchronization currently uses polling, not low-latency WebSocket transport. A technically first successful SLAM request wins, so real-world latency can matter; this is a known playtest limitation.
+- Gameplay moves remain authoritative HTTP requests and real-world network latency still matters for SLAM/SNAP first-committed races. The WebSocket channel notifies clients of updates but does not process card plays.
 - The game may be playable on a shared device locally without server credentials, via the older hotseat mode, but that is NOT online multiplayer.
 - Full live two-device QA cannot be claimed until at least two independent browser sessions join, play, reconnect and finish a game on the current deployment. A READY deployment or passing mocked API tests is insufficient.
 - Validate portrait + landscape phones, tablet, desktop, keyboard, screen reader and prefers-reduced-motion on actual hardware. Code-level and simulation tests alone are not sufficient.
@@ -137,3 +137,13 @@ Canonical game rules are frozen in `docs/pilehead-design.md`. Participant-facing
 The 1.3.0 rules release introduced free choice of DUMP recipient. A strict rules-version check initially blocked rooms still saved as 1.2.0, which the UI incorrectly described as a connection failure. The v1.6 server accepts existing 52-card rooms from v1.2 through v1.5 after validating their version-specific deck size, physical IDs, and card identities. New rooms and rematches use v1.6 (54 cards). It retains the saved state version, room code, memberships and session tokens. While an older round is in progress, DUMP retains its original automatic next-active-player target. The server exposes a public `rulesVersion` field so the browser doesn't offer an incompatible DUMP picker. Rematching creates a fresh 1.3.0 round with full target selection and no replacement invitation link. This requires no direct database write or migration.
 
 Unsupported or corrupted states remain blocked with `room_rules_changed`. The UI classifies that, expiration and missing seat credentials as room issues with an explicit create-new-room action rather than a misleading connection retry. The compatibility workflow has API regression coverage in `tests/pilehead-online.cjs`.
+
+## WebSocket transport and social reactions (November 2026)
+
+The Render Node service upgrades `/api/pilehead/live` on the existing HTTPS port. Browsers send room-code and seat-token authentication in the **first encrypted WebSocket message**, never in a URL. The server rejects invalid credentials and origins; each connection is subject to room/instance caps, a payload limit, ping/pong and reconnect support. WebSockets carry room invalidations and emoji reactions, not private hands, seeds, or authoritative moves. All plays retain HTTPS revision checks.
+
+Five short, pre-defined reactions (fire, wow, laugh, ouch, gg) are accepted from authenticated human seats. The server enforces a DB-backed 2-reactions-per-2.5-second quota and persists at most 24 events in the existing room JSONB. This **does not advance gameplay revision**, and move updates preserve concurrent reactions atomically. Seat views expose only recent events (20 seconds); transient bubbles last roughly 2.4 seconds.
+
+The in-process WebSocket hub immediately pushes local changes. When Render has more than one instance, each connected instance reconciles the existing Neon room state every 1.2 seconds per active room. This is eventually consistent, not a low-latency Redis pub/sub system. At higher scale, replace the Neon reconciliation query with an explicit shared broker and measure latency/cost. No database schema migration or new Render environment variable is required; `ws@8.23.0` is a pinned runtime dependency.
+
+Automated two-context Chromium integration exercises the real server, engine and API with a separate test-only mocked Neon backend: room creation, independently authenticated seats, reaction delivery without consuming a move revision, SNAP vs the next player's immediate move, reconnect, invalid socket credentials and rematch. It does not establish the behavior of the live Neon database or actual physical phones. Validate those separately against the Render deployment.
