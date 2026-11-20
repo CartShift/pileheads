@@ -104,7 +104,7 @@ function eventName(e){const who=playerName(e.seat);if(e.type==='take')return who
  if(e.action)return who+' played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase();
  return who+' played '+e.count+' × '+e.rank}
 function setupView(){if(!g)return '<section class="setup panel"><div class="eyebrow">STACK / THE CARD GAME</div>'+
- '<h2>ONE PILE. ONE LOSER.</h2><p>Make your move, stack the pressure, and be the first to lose every card. Six action cards can turn the table. The last player holding cards loses.</p>'+
+ '<h2>ONE PILE. ONE LOSER.</h2><p>Make your move, stack the pressure, and be the first to lose every card. Six action types can turn the table, including four BURN cards. The last player holding cards loses.</p>'+
  '<div class="fields"><label>Players<select id="seat-count">'+[2,3,4,5].map(n=>'<option value="'+n+'" '+(seats===n?'selected':'')+'>'+n+' players</option>').join('')+'</select></label>'+
  '<label>Play against<select id="game-mode"><option value="bots" '+(mode==='bots'?'selected':'')+'>Computer opponents</option><option value="hotseat" '+(mode==='hotseat'?'selected':'')+'>Local pass-and-play</option></select></label></div>'+
  '<div class="toolbar"><button class="action primary" data-do="create">Deal cards</button><a class="action secondary" href="?online=1">Play with friends online</a></div></section>';
@@ -121,7 +121,6 @@ function tableHUD(){
  const viewer=viewSeat(),layer=currentStage(),turn=isTurn(),can=turn&&!covered;
  const who=g.phase==='over'?'ROUND COMPLETE':can?'YOUR TURN':playerName(g.turn)+' TO PLAY';
  const guide=g.phase==='over'?'Round finished · view results':
- E.followUpOptions(g,viewer).length?'SNAP now or let the next player continue':
  E.slamOptions(g,viewer).length?'SLAM available · interrupt any turn':
  can?(layer==='down'?'Choose one blind card to flip':
   layer==='up'?'Choose a face-up card':
@@ -134,7 +133,7 @@ function tableHUD(){
   '<span class="hud-guidance">'+guide+'</span></div>'+
   '<div class="hud-meta"><span>'+layer.toUpperCase()+'</span><span class="hud-rule">'+rule+'</span>'+
   (E.slamOptions(g,viewer).length?'<span class="hud-urgent">SLAM READY</span>':'')+
-  (E.followUpOptions(g,viewer).length?'<span class="hud-urgent">SNAP READY</span>':'')+'</div></div>';
+  '</div></div>';
 }
 function tableActions({turn,legal,pick,slams,snap,stage}){
  let buttons='';
@@ -173,7 +172,6 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  (selection.length?'<button type="button" class="hand-clear-button" data-do="clear-selection" aria-label="Clear selected cards">'+selection.length+' selected · Clear</button>':'')+
  '<button type="button" class="hand-sort-button" data-do="sort">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></span></div>'+
  rowCards(p.hand,'hand',selectable&&stage==='hand')+'</div></section>'+
- (snap.length?'<div class="pilehead-snap-choice">You just drew the same number you played. Throw it immediately, or <button class="action secondary" data-do="pass-snap">Let the next player go</button>.</div>':'')+
  (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP · Your final matching hand cards can be played with matching exposed cards, including a four-card SLAM. Tap either to select the group.</p>':'')+
  (selectedEffect()||lastEffect())+tableActions({turn,legal,pick,slams,snap,stage})+
  '<details class="playtest-tools"><summary>Playtest tools</summary><button class="action secondary" data-do="export">Export QA state</button></details>'+
@@ -281,7 +279,7 @@ function queueBot(){if(timer!==null){clearTimeout(timer);timer=null}
   if(!ev&&g.turn!==0)ev=E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));
   if(ev){lastMove=ev;notice=eventName(ev);selection=[];render()}
  }catch(e){notice='Bot error: '+e.message;render()}
- },g.followUp?.seat===0?4800:canSlam?780:600);
+ },canSlam?780:600);
 }
 function startGame(previousWinner=null){endDismissed=false;dumpDraft=null;g=E.create({players:seats,seed:Date.now()>>>0});
  const starter=previousWinner===null?Math.floor(Math.random()*seats):previousWinner;
@@ -290,6 +288,16 @@ function startGame(previousWinner=null){endDismissed=false;dumpDraft=null;g=E.cr
 function afterMove(ev){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
  if(mode==='hotseat'&&g.phase!=='over')covered=!g.pendingDump&&g.followUp?.seat!==ev.seat;
  render()}
+// A final-hand bridge requires the complete hand to precede face-up copies.
+// Every input path (button, pile tap, keyboard and drag) must use this order.
+function selectedPlay(){
+ const source=currentStage(),p=getPlayer(),ids=selection.slice();
+ if(bridgeAvailable()&&source==='hand'){
+  const fromHand=ids.filter(id=>p.hand.some(c=>c.id===id));
+  return {type:'play',source:'hand',ids:[...fromHand,...ids.filter(id=>!fromHand.includes(id))]};
+ }
+ return {type:'play',source,ids};
+}
 function submitPlay(choice){
  const p=g.people[viewSeat()];
  const first=[...p.hand,...p.up].find(c=>choice.ids?.includes(c.id));
@@ -349,11 +357,7 @@ function execute(action,button){
  }
  if(action==='play'){
   if(!selection.length)return;
-  const ids=bridgeAvailable()?[
-    ...selection.filter(id=>getPlayer().hand.some(c=>c.id===id)),
-    ...selection.filter(id=>!getPlayer().hand.some(c=>c.id===id))
-   ]:selection.slice();
-   submitPlay({type:'play',source:currentStage(),ids});return;
+  submitPlay(selectedPlay());return;
  }
  if(action==='clear-selection'){selection=[];render();return}
  if(action==='sort'){sortMode=sortMode==='dealt'?'asc':sortMode==='asc'?'desc':'dealt';selection=[];
@@ -374,11 +378,11 @@ app.addEventListener('click',e=>{
  const b=e.target.closest('button');
  if(b?.dataset.card){handleCard(Number(b.dataset.card),b.dataset.source);return}
  if(b?.dataset.do){execute(b.dataset.do,b);return}
- if(e.target.closest('[data-play-target]')&&selection.length&&isTurn())submitPlay({type:'play',source:currentStage(),ids:selection.slice()});
+ if(e.target.closest('[data-play-target]')&&selection.length&&isTurn())submitPlay(selectedPlay());
 });
 app.addEventListener('keydown',e=>{
  if(e.target.closest('[data-play-target]')&&(e.key==='Enter'||e.key===' ')&&selection.length&&isTurn()){
-  e.preventDefault();submitPlay({type:'play',source:currentStage(),ids:selection.slice()});
+  e.preventDefault();submitPlay(selectedPlay());
  }
 });
 let dragCard=null;
@@ -392,7 +396,7 @@ app.addEventListener('dragover',e=>{if(dragCard&&e.target.closest('[data-play-ta
 app.addEventListener('drop',e=>{
  if(!dragCard||!e.target.closest('[data-play-target]'))return;
  e.preventDefault();const move=dragCard;dragCard=null;
- if(isTurn()&&(currentStage()===move.source||bridgeAvailable()))submitPlay({type:'play',source:currentStage(),ids:selection.slice()});
+ if(isTurn()&&(currentStage()===move.source||bridgeAvailable()))submitPlay(selectedPlay());
 });
 app.addEventListener('dragend',()=>{dragCard=null});
 
@@ -433,7 +437,7 @@ function endTouch(e){
  if(d.scrolling)return;
  if(target&&isTurn()&&(currentStage()===d.source||bridgeAvailable())){
   if(!selection.includes(d.id))selectMatching(getPlayer()[d.source]||[],d.id);
-  submitPlay({type:'play',source:currentStage(),ids:selection.slice()})}
+  submitPlay(selectedPlay())}
 }
 window.addEventListener('pointerup',endTouch);
 window.addEventListener('pointercancel',e=>{const d=touchGesture;touchGesture=null;d?.el?.remove();app.querySelector('[data-play-target]')?.classList.remove('drop-hover')});
