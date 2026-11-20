@@ -104,17 +104,17 @@ BURN already exists as two dedicated action cards in the 52-card deck. Its actio
 
 ## Physical follow-up rules and explainable card effects
 
-- `SNAP!`: after a number play, only matching numbers **freshly replenished from stock in that exact move** can be thrown immediately, out of turn, as `type=followup`. This option expires after another move, including a pickup; a successful non-burning SNAP does not steal the next player's turn. A 4-of-a-kind still burns normally. Players can explicitly decline the SNAP opportunity.
+- `SNAP!`: after a number play, only matching numbers **freshly replenished from stock in that exact move** can be thrown immediately, out of turn, as `type=followup`. This option expires after another move, including a pickup; a successful non-burning SNAP does not steal the next player's turn. A 4-of-a-kind still burns normally. The online SNAP button is available while eligible, without a countdown or protected reaction window.
 - `LAST-HAND COMBO`: when the stock is completely empty and a player has exactly one numeric hand card, any identical face-up cards may be placed together with that last card. The engine validates ownership and removes cards from both layers in the same atomic move.
 - All SNAP and bridge checks are validated on the authoritative engine; exposed-card combinations and only the owner's possible SNAP are sent to the relevant seat.
 - `drawnCount` is a non-sensitive count added to public events for the stock-to-hand animation. A DUMP pickup animates the pile moving to its intended recipient, and special cards display the outcome in plain language.
 
-## Server-authoritative drawn-match priority
+## Server-authoritative SNAP race
 
-A matching card drawn immediately after a numbered play opens a seven-second SNAP priority window online. Other normal turns, including bot turns, are delayed until SNAP, decline, or expiry. Four-card SLAM may still interrupt. On a shared device the reaction is untimed. The deadline belongs to the room state and is not based on client clocks.
+A matching number freshly drawn after a play may be SNAPped through the SNAP action button, out of turn. There is **no time-based priority, no countdown, and no blocking of the next player**. The first server-accepted revision wins. If the next player commits an action first, the earlier SNAP disappears. Four-card SLAM remains independent. This also applies to bot turn advancement.
 
 ## Mobile play UI
-The phone table now sizes to its content rather than forcing a viewport-sized felt area; opponent thumbnails, pile, exposed cards and hand remain visible in one compact sequence. Play, Take, SLAM and SNAP controls only appear when relevant; a brief instructional prompt replaces disabled buttons. Small hands are fanned wider, with Sort and Clear selection available. The teaching pill no longer covers cards on phones. Existing desktop, landscape and multiplayer rules remain unchanged.
+The phone table now sizes to its content rather than forcing a viewport-sized felt area; opponent thumbnails, pile, exposed cards and hand remain visible in one compact sequence. Play, Take, SLAM and the restored SNAP button only appear when relevant; a brief instructional prompt replaces disabled buttons. Small hands are fanned wider, with Sort and Clear selection available. The teaching pill no longer covers cards on phones. Existing desktop, landscape and multiplayer rules remain unchanged.
 
 ## Physical-motion director (November 2026)
 
