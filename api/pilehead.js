@@ -168,9 +168,9 @@ async function realtimeReact(room,seat,kind){
  const id=code(room),r=await load(id);
  if(r.state.phase==='setup')fail(409,'not_started');
  if(!Number.isInteger(seat)||seat<0||seat>=humanCount(r.state))fail(403,'not_member');
- const bucket=h(['react',id,seat,Math.floor(Date.now()/2500)].join(':'));
+ const bucket=h(['react',id,seat,Math.floor(Date.now()/10000)].join(':'));
  const hits=await query("INSERT INTO pilehead_rate_limits(bucket,hits,expires_at) VALUES($1,1,now()+interval '10 minutes') ON CONFLICT(bucket) DO UPDATE SET hits=pilehead_rate_limits.hits+1 RETURNING hits",[bucket]);
- if(Number(hits[0]?.hits)>2)fail(429,'rate_limited');
+ if(Number(hits[0]?.hits)>4)fail(429,'rate_limited');
  const reaction={id:crypto.randomUUID(),seat,kind,at:Date.now()};
  const rows=await query(`UPDATE pilehead_rooms SET
  state=jsonb_set(state,'{reactionEvents}',
