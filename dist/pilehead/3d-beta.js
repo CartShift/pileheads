@@ -18,6 +18,7 @@
   let sheetImages = {}, textures = new Map(), cards = new Map();
   let table = null, drawWidth = 0, drawHeight = 0, lastTime = 0, frameId = 0;
   let refreshing = false, isReady = false, shadowTexture = null, observer = null;
+  let previousEffect = '', lastDraw = 0;
   const MAX_DPR = matchMedia('(max-width: 700px)').matches ? 1.3 : 1.65;
   const faceNames = Array.from({length: 10}, (_, i) => 'number-' + (i + 1))
     .concat(['reset', 'ghost', 'under', 'skip', 'burn', 'dump']);
@@ -119,15 +120,20 @@
         depthWrite: false, polygonOffset: true, polygonOffsetFactor: 1}));
     shadow.position.z = -6;
     shadow.renderOrder = 1;
-    scene.add(shadow); scene.add(mesh);
-    return {id, element, mesh, shadow, face, width: 1, height: 1, seen: true, new: true};
+    const rim = new THREE.Mesh(new THREE.PlaneGeometry(1,1), new THREE.MeshBasicMaterial({
+      color:0xb987ff, transparent:true, opacity:0, depthWrite:false
+    }));
+    rim.position.z = 0;
+    scene.add(shadow); scene.add(rim); scene.add(mesh);
+    return {id, element, mesh, shadow, rim, face, width: 1, height: 1, seen: true, new: true};
   }
   function discardCard(card) {
-    scene.remove(card.mesh); scene.remove(card.shadow);
+    scene.remove(card.mesh); scene.remove(card.shadow); scene.remove(card.rim);
     card.mesh.geometry.dispose();
     card.mesh.material.forEach(material => material.dispose());
     card.shadow.geometry.dispose();
     card.shadow.material.dispose();
+    card.rim.geometry.dispose(); card.rim.material.dispose();
   }
   function mount() {
     const next = app.querySelector('.table');
@@ -205,14 +211,40 @@
       entry.shadow.position.y = entry.mesh.position.y - 9;
       entry.shadow.scale.set(bounds.width * 1.3, bounds.height * 1.32, 1);
       entry.shadow.material.opacity = selected ? .82 : .46;
+      const focused = document.activeElement === element;
+      entry.rim.position.set(entry.mesh.position.x, entry.mesh.position.y, 0);
+      entry.rim.scale.set(bounds.width + 10, bounds.height + 11, 1);
+      entry.rim.material.opacity = focused ? .95 : selected ? .78 : hovering ? .23 : 0;
+      entry.rim.material.color.setHex(focused ? 0xffdc60 : 0xb987ff);
     }
     for (const [id, card] of cards) {
       if (!seen.has(id)) {discardCard(card); cards.delete(id);}
     }
   }
+  function checkEffect() {
+    if (!table) return;
+    const note = table.querySelector('.pilehead-effect-note');
+    const text = (note?.textContent || '').trim();
+    if (!text || text === previousEffect) return;
+    const initialized = !!previousEffect;
+    previousEffect = text;
+    if (!initialized) return;
+    const type = /\bSLAM\b/i.test(text) ? 'slam' :
+      /\bBURN\b/i.test(text) ? 'burn' : /\bDUMP\b/i.test(text) ? 'dump' : '';
+    if (!type || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    const banner = document.createElement('div');
+    banner.className = 'stack-beta-effect stack-beta-effect-' + type;
+    banner.textContent = type === 'slam' ? 'SLAM!' : type === 'burn' ? 'BURN!' : 'DUMP!';
+    banner.setAttribute('aria-hidden', 'true');
+    table.appendChild(banner);
+    setTimeout(() => banner.remove(), 850);
+  }
   function animate(time) {
     frameId = requestAnimationFrame(animate);
     if (document.hidden || !table || !table.isConnected) return;
+    if (time - lastDraw < (matchMedia('(max-width:700px)').matches ? 32 : 16)) return;
+    lastDraw = time;
+    checkEffect();
     const dt = Math.max(.001, Math.min(.06, (time - (lastTime || time)) / 1000));
     lastTime = time;
     updateCards(dt);
