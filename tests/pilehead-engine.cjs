@@ -94,6 +94,11 @@ test('illegal blind flip joins the pile and is picked up to the hand',()=>{
  assert.equal(E.stage(g,0),'down');
  const ev=E.move(g,0,{type:'play',source:'down',ids:[replacement.id]});
  assert.equal(ev.type,'blind-fail');assert.equal(g.people[0].hand.length,2);
+ assert.equal(g.blindReveal.seat,0);
+ assert.deepEqual(g.blindReveal.card,{kind:'number',rank:1,action:null});
+ assert.equal(g.blindReveal.move,g.moves);
+ assert.ok(g.blindReveal.expiresAt>Date.now());
+ assert.equal(g.blindReveal.card.id,undefined);
  assert.equal(g.pile.length,0);E.invariant(g);
 });
 test('numeric groups cannot mix ranks; empty pile cannot be taken',()=>{

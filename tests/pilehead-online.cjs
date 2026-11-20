@@ -21,13 +21,20 @@ async function query(sql,args=[]){
   assert.match(sql,/ON CONFLICT \(code,seat\) DO NOTHING/,'simultaneous join should be conflict-safe');
   const [code,name,token,capacity]=args;const current=members.get(code)||[];
   const seat=Array.from({length:capacity},(_,i)=>i).find(i=>!current.some(m=>m.seat===i));
-  if(seat===undefined)return [];current.push({seat,display_name:name,token_hash:token});members.set(code,current);
+  if(seat===undefined)return [];current.push({seat,display_name:name,token_hash:token,last_seen_at:new Date(),is_away:false});members.set(code,current);
   return [{seat}]
  }
  if(sql.startsWith('INSERT INTO pilehead_members')){const [code,name,token]=args,seat=0;const current=members.get(code)||[];
-  if(current.some(x=>x.seat===seat))conflict();current.push({seat,display_name:name,token_hash:token});members.set(code,current);return []}
+  if(current.some(x=>x.seat===seat))conflict();current.push({seat,display_name:name,token_hash:token,last_seen_at:new Date(),is_away:false});members.set(code,current);return []}
  if(sql.startsWith('SELECT code,capacity'))return rooms.has(args[0])?[structuredClone(rooms.get(args[0]))]:[];
- if(sql.startsWith('SELECT seat,display_name'))return (members.get(args[0])||[]).map(m=>({seat:m.seat,display_name:m.display_name}));
+ if(sql.startsWith('SELECT seat,display_name'))return (members.get(args[0])||[]).map(m=>({
+  seat:m.seat,display_name:m.display_name,last_seen_at:m.last_seen_at,is_away:m.is_away
+ }));
+ if(sql.startsWith('UPDATE pilehead_members SET last_seen_at')){
+  const [code,seat,away]=args,member=(members.get(code)||[]).find(m=>m.seat===seat);
+  assert.ok(member,'presence writes require a joined player');
+  member.last_seen_at=new Date();member.is_away=away===true;return [];
+ }
  if(sql.startsWith('SELECT seat FROM pilehead_members')&&sql.includes('token_hash'))return (members.get(args[0])||[]).filter(x=>x.token_hash===args[1]).map(m=>({seat:m.seat}));
  if(sql.startsWith('SELECT seat FROM pilehead_members'))return (members.get(args[0])||[]).map(m=>({seat:m.seat}));
  if(sql.startsWith('UPDATE pilehead_rooms')){const [state,status,code,rev]=args,r=rooms.get(code);
@@ -61,6 +68,20 @@ async function run(){
  const guest=await request({action:'join',code,name:'Guest'});
  assert.equal(guest.status,201);assert.equal(guest.data.me,1);checks++;
  const guestToken=guest.data.session;
+ assert.equal(guest.data.members.find(m=>m.seat===0).presence,'online');checks++;
+ const away=await request({action:'presence',code,away:true},guestToken);
+ assert.equal(away.status,200);
+ assert.equal(rooms.get(code).revision,0,'presence must not advance room revision');
+ const awayView=await request({action:'state',code},hostToken);
+ assert.equal(awayView.data.members.find(m=>m.seat===1).presence,'away');checks++;
+ const guestMember=members.get(code).find(m=>m.seat===1);
+ guestMember.last_seen_at=new Date(Date.now()-30000);
+ const offlineView=await request({action:'state',code},hostToken);
+ assert.equal(offlineView.data.members.find(m=>m.seat===1).presence,'offline');checks++;
+ const heart=await request({action:'state',code,heartbeat:true},guestToken);
+ assert.equal(heart.status,200);
+ assert.equal(heart.data.members.find(m=>m.seat===1).presence,'online');
+ assert.equal(rooms.get(code).revision,0);checks++;
  const state=await request({action:'state',code},guestToken);
  assert.equal(state.status,200);
  assert.equal(state.data.game.players[0].hand,undefined);
@@ -202,6 +223,11 @@ async function run(){
   move:{type:'play',source:'down',index:0}},choiceToken);
  assert.equal(blind.status,200,JSON.stringify(blind));
  assert.equal(blind.data.game.pendingDump.seat,0);
+ assert.equal(blind.data.game.blindReveal.seat,0);
+ assert.equal(blind.data.game.blindReveal.card.action,'dump');
+ assert.equal(blind.data.game.blindReveal.card.id,undefined,'never expose flipped card identity');
+ const anotherView=await request({action:'state',code:choiceCode},choiceToken);
+ assert.equal(anotherView.data.game.blindReveal.card.action,'dump');checks++;
  const blocked=await request({action:'move',code:choiceCode,revision:4,
   move:{type:'take'}},choiceToken);
  assert.equal(blocked.status,400);
@@ -292,7 +318,7 @@ async function run(){
  assert.equal(tooMany.status,400);assert.equal(tooMany.data.error,'invalid_capacity');checks++;
 
 
- // The freshly drawn matching number has server-enforced priority over other turns.
+ // SNAP is a genuine race: the next player can act without waiting.
  const snapRoom=await request({action:'create',humans:2,bots:0,name:'Snap host'});
  const snapCode=snapRoom.data.code,snapHost=snapRoom.data.session;
  const snapGuest=await request({action:'join',code:snapCode,name:'Snap guest'});
@@ -307,27 +333,51 @@ async function run(){
  Engine.invariant(snapGame);
  const snapMade=await request({action:'move',code:snapCode,revision:3,move:{type:'play',source:'hand',ids:[snapIDs[0]]}},snapHost);
  assert.equal(snapMade.status,200,JSON.stringify(snapMade));
- assert.equal(snapMade.data.game.snapSeat,0);assert.ok(snapMade.data.game.snapUntil>Date.now());checks++;
- const snapOtherMove=Engine.options(rooms.get(snapCode).state,1)[0];assert.ok(snapOtherMove);
- const snapBlocked=await request({action:'move',code:snapCode,revision:4,move:snapOtherMove},snapGuestToken);
- assert.equal(snapBlocked.status,409);assert.equal(snapBlocked.data.error,'snap_window_open');checks++;
- const expiry=rooms.get(snapCode).state.followUp.expiresAt;
- rooms.get(snapCode).state.followUp.expiresAt=Date.now()-10;
- const unlocked=await request({action:'state',code:snapCode},snapGuestToken);
- assert.equal(unlocked.status,200);
- assert.equal(unlocked.data.revision,4,'SNAP expiry must not require database write');
- assert.equal(unlocked.data.game.snapUntil,null);
- assert.equal(unlocked.data.game.snapSeat,null);
- assert.equal(unlocked.data.game.followup.length,0);
- assert.ok(unlocked.data.game.legal.length>0);checks++;
- rooms.get(snapCode).state.followUp.expiresAt=expiry;
+ assert.equal(snapMade.data.game.snapUntil,undefined);
+ assert.equal(snapMade.data.game.snapSeat,undefined);
+ assert.equal(snapMade.data.game.followup.length,1);
+ assert.ok(snapMade.data.game.legal.length===0,'actor has no normal turn after drawing');
+ const guestCanAct=await request({action:'state',code:snapCode},snapGuestToken);
+ assert.ok(guestCanAct.data.game.legal.length,'other player can act immediately during SNAP opportunity');checks++;
+ // No artificial time limit: stale legacy deadline has no effect.
+ rooms.get(snapCode).state.followUp.expiresAt=Date.now()-60000;
  const snapPlayed=await request({action:'move',code:snapCode,revision:4,move:snapMade.data.game.followup[0]},snapHost);
  assert.equal(snapPlayed.status,200,JSON.stringify(snapPlayed));
  assert.equal(snapPlayed.data.game.events.at(-1).type,'followup');
- assert.equal(snapPlayed.data.game.players[1].hand,undefined);checks++;
+ assert.equal(snapPlayed.data.game.players[1].hand,undefined);
+ assert.equal(snapPlayed.data.game.turn,1,'SNAP does not steal the next turn');checks++;
  const snapAfterMove=Engine.options(rooms.get(snapCode).state,1)[0];
  const snapContinued=await request({action:'move',code:snapCode,revision:5,move:snapAfterMove},snapGuestToken);
  assert.equal(snapContinued.status,200,JSON.stringify(snapContinued));checks++;
+
+ // If the next player gets their move committed first, SNAP is lost immediately.
+ const raceRoom=await request({action:'create',humans:2,bots:0,name:'Race host'});
+ const raceCode=raceRoom.data.code,raceHost=raceRoom.data.session;
+ const raceGuest=await request({action:'join',code:raceCode,name:'Race guest'});
+ assert.equal((await request({action:'ready',code:raceCode,revision:0,ready:true},raceHost)).status,200);
+ assert.equal((await request({action:'ready',code:raceCode,revision:1,ready:true},raceGuest.data.session)).status,200);
+ assert.equal((await request({action:'start',code:raceCode,revision:2},raceHost)).status,200);
+ const raceGame=rooms.get(raceCode).state;
+ const raceZones=[raceGame.stock,raceGame.pile,raceGame.ashes,...raceGame.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const reposition=(dest,i,id)=>{
+  const zone=raceZones.find(z=>z.some(c=>c.id===id)),j=zone.findIndex(c=>c.id===id),old=dest[i];
+  dest[i]=zone[j];zone[j]=old;
+ };
+ const raceIDs=Engine.deck().filter(c=>c.kind==='number'&&c.rank===6).slice(0,2).map(c=>c.id);
+ reposition(raceGame.people[0].hand,0,raceIDs[0]);
+ reposition(raceGame.stock,raceGame.stock.length-1,raceIDs[1]);
+ Engine.invariant(raceGame);
+ const raceOpen=await request({action:'move',code:raceCode,revision:3,move:{type:'play',source:'hand',ids:[raceIDs[0]]}},raceHost);
+ assert.equal(raceOpen.status,200);
+ assert.equal(raceOpen.data.game.followup.length,1);
+ const raceMove=Engine.options(rooms.get(raceCode).state,1)[0];
+ const guestWins=await request({action:'move',code:raceCode,revision:4,move:raceMove},raceGuest.data.session);
+ assert.equal(guestWins.status,200,JSON.stringify(guestWins));
+ assert.notEqual(rooms.get(raceCode).state.followUp?.seat,0,'next action ends the previous actor’s SNAP, even if the next action opens its own');
+ const outdatedSnap=await request({action:'move',code:raceCode,revision:4,move:raceOpen.data.game.followup[0]},raceHost);
+ assert.equal(outdatedSnap.status,409,'concurrent SNAP must respect revision race');
+ const tooLateSnap=await request({action:'move',code:raceCode,revision:5,move:raceOpen.data.game.followup[0]},raceHost);
+ assert.equal(tooLateSnap.status,400,'SNAP cannot be played after the next action');checks++;
 
  {
  // In-progress rooms from v1.3 remain readable after the v1.4 deploy.

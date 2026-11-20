@@ -12,6 +12,7 @@ let room=params.get('room')?.toUpperCase()||'',session=room?safeSessionRead(STOR
 let draftName=safeSessionRead(NAME)||'',draftHumans=2,draftBots=0;
 let data=null,busy=false,polling=false,selection=[],swapCard=null,dumpDraft=null,notice='',networkError='',roomIssue='',drag=null;
 let lastRevision=-1,lastEvent=null,pollTimer=null,transitionTimer=null,reconnecting=false,sortMode='dealt',endDismissed=false,botTickAt=0,lastChangeAt=0;
+let lastHeartbeatAt=0,lastSyncAt=0,pollFailures=0,markedAway=false;
 const A=globalThis.PileheadCardArt;const symbols=A.glyph;
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
@@ -57,9 +58,9 @@ function setMessage(e){const map={
  invalid_dump_target:'Choose an active rival for DUMP.',dump_target_not_pending:'This DUMP has already resolved.',dump_target_pending:'The player must choose a DUMP target first.',
  bad_cards:'That group of cards is not legal.',wrong_layer:'Finish your current card layer first.'
  };return map[e]||String(e||'Unexpected room error').replaceAll('_',' ');}
-async function api(payload,auth=session){
+async function api(payload,auth=session,options={}){
  const res=await fetch('/api/pilehead',{method:'POST',headers:{'Content-Type':'application/json',...(auth?{Authorization:'Bearer '+auth}:{})},
-  body:JSON.stringify(payload),cache:'no-store',credentials:'same-origin'});
+  body:JSON.stringify(payload),cache:'no-store',credentials:'same-origin',...options});
  let json;try{json=await res.json()}catch{throw Error('Invalid response from game server')}
  if(!res.ok)throw Error(json.error||'server_error');
  return json;
@@ -73,7 +74,8 @@ function updateState(next){
  if(!data||next.revision!==data.revision)lastChangeAt=Date.now();
  if(data&&next.revision!==data.revision){selection=[];swapCard=null;dumpDraft=null}
  if(data&&next.game?.round!==data.game?.round){endDismissed=false;sortMode='dealt';selection=[];swapCard=null;dumpDraft=null}
- data=next;lastRevision=data.revision;networkError='';roomIssue='';render();
+ data=next;lastRevision=data.revision;lastSyncAt=Date.now();networkError='';roomIssue='';render();
+ if(session&&!pollTimer)schedulePoll();
 }
 async function doAction(payload){
  if(busy)return;busy=true;notice='';render();
@@ -94,24 +96,32 @@ async function doAction(payload){
   }
  }finally{busy=false;render()}
 }
-async function refresh(quiet=false){
+async function refresh(quiet=false,forceHeartbeat=false){
  if(!room||!session||polling)return;
  polling=true;
  try{
-  const next=await api({action:'state',code:room});
+  const heartbeat=forceHeartbeat||Date.now()-lastHeartbeatAt>11000;
+  const next=await api({action:'state',code:room,...(heartbeat?{heartbeat:true}:{})});
+  if(heartbeat){lastHeartbeatAt=Date.now();markedAway=false}
+  lastSyncAt=Date.now();pollFailures=0;
   // A SNAP deadline is time-dependent, not a room revision. The response
   // can change from blocked to unblocked without an UPDATE to the room.
   const timeGateChanged=!!data&&(
    next.game.snapUntil!==data.game.snapUntil||
    next.game.snapSeat!==data.game.snapSeat||
-   next.game.startedAt!==data.game.startedAt
+   next.game.startedAt!==data.game.startedAt||
+   next.game.blindReveal?.move!==data.game.blindReveal?.move||
+   next.game.blindReveal?.expiresAt!==data.game.blindReveal?.expiresAt
   );
-  if(!data||next.revision!==data.revision||next.members.length!==data.members.length||
+  const presenceChanged=!!data&&(next.members.length!==data.members.length||
+   next.members.some((m,i)=>m.presence!==data.members[i]?.presence||m.name!==data.members[i]?.name));
+  if(!data||next.revision!==data.revision||presenceChanged||
      next.game.followup?.length!==data.game.followup?.length||
      timeGateChanged||reconnecting)updateState(next);
   else {const hadError=!!networkError||!!roomIssue;networkError='';roomIssue='';if(hadError)render()}
   reconnecting=false;
  }catch(e){
+  pollFailures=Math.min(6,pollFailures+1);
   if(permanentRoomErrors.has(e.message)){
    const changed=roomIssue!==e.message;
    roomIssue=e.message;notice='';networkError='';
@@ -128,21 +138,48 @@ function displayName(seat){
  if(bots.includes(seat))return 'Bot '+(bots.indexOf(seat)+1);
  return data?.members?.find(m=>m.seat===seat)?.name||'Waiting for player';
 }
+function presenceStatus(seat){
+ if((data?.game?.botSeats||[]).includes(seat))return 'bot';
+ return data?.members?.find(m=>m.seat===seat)?.presence||'offline';
+}
+function presenceBadge(seat){
+ const state=presenceStatus(seat);
+ const label=state==='bot'?'Bot':state==='online'?'Online':state==='away'?'Away':'Offline';
+ return '<span class="player-presence is-'+state+'"><i aria-hidden="true"></i>'+label+'</span>';
+}
+function playerWaitingAlert(){
+ const g=data?.game;if(!g||g.phase!=='play'||g.turn===data.me)return '';
+ const state=presenceStatus(g.turn);if(state!=='offline'&&state!=='away')return '';
+ return '<div class="room-presence-alert is-'+state+'" role="status"><strong>'+
+  safe(displayName(g.turn))+(state==='offline'?' disconnected':' is away')+'</strong><span>'+
+  (state==='offline'?'Their turn is waiting for them to reconnect. The table will update automatically.':
+   'They have switched away from the game. Their turn is still waiting.')+'</span></div>';
+}
+function blindRevealBanner(){
+ const reveal=data?.game?.blindReveal;
+ if(!reveal||!reveal.card||Date.now()>=reveal.expiresAt)return '';
+ const c=reveal.card,face=c.kind==='number'?'Number '+c.rank:(c.action||'action').toUpperCase();
+ return '<div class="blind-reveal-banner" role="status" aria-live="polite">'+
+  '<div class="blind-reveal-copy"><span>FACE-DOWN CARD FLIPPED</span><strong>'+safe(displayName(reveal.seat))+
+  ' revealed '+safe(face)+'</strong><small>Shown to everyone, even if the pile is picked up.</small></div>'+
+  '<div class="blind-reveal-face">'+card({...c,id:-1})+'</div></div>';
+}
 function current(){return data?.game?.players?.[data.me]}
-function snapBlocked(){const g=data?.game;return !!g?.snapUntil&&Date.now()<g.snapUntil&&g.snapSeat!==data.me;}
-function active(){return data?.game?.turn===data.me&&data?.game?.phase==='play'&&!data?.game?.pendingDump&&!snapBlocked()}
+function active(){return data?.game?.turn===data.me&&data?.game?.phase==='play'&&!data?.game?.pendingDump}
+function canTouchHand(){return active()||Boolean(data?.game?.phase==='play'&&data.game.followup?.length)}
 function statusTitle(){
  const g=data.game;if(g.phase==='setup')return data.members.length+' of '+data.capacity+' players joined';
  if(g.phase==='over')return displayName(g.loser)+' is the PILEHEAD!';
+ if(g.phase==='play'&&g.turn!==data.me&&presenceStatus(g.turn)==='offline')return 'Waiting for '+displayName(g.turn)+' to reconnect';
+ if(g.phase==='play'&&g.turn!==data.me&&presenceStatus(g.turn)==='away')return displayName(g.turn)+' is away';
  return g.pendingDump?displayName(g.pendingDump.seat)+' is choosing a DUMP target':
- snapBlocked()?displayName(g.snapSeat)+' has a matching-draw SNAP chance':
    active()?'Your turn · place a card':displayName(g.turn)+' is playing · watch for SLAM';
 }
 function numberPolicy(){const l=data.game.limit;return l?.type==='under'?'NEXT: 1–4':l?.type==='min'?'NEXT: '+l.value+' or higher':'ANY NUMBER'}
 function opponentCards(){const g=data.game;
  return '<div class="opponents">'+g.players.filter(p=>p.seat!==data.me).map(p=>'<div data-seat="'+p.seat+'" class="opponent '+
   (g.turn===p.seat&&g.phase==='play'?'current ':'')+(p.out?'finished ':'')+((g.botSeats||[]).includes(p.seat)?'is-bot':'')+'"><strong>'+safe(displayName(p.seat))+
-  (g.turn===p.seat&&g.phase==='play'?' · TURN':'')+(p.out?' · OUT':'')+'</strong><small>'+p.handCount+
+  (g.turn===p.seat&&g.phase==='play'?' · TURN':'')+(p.out?' · OUT':'')+'</strong>'+presenceBadge(p.seat)+'<small>'+p.handCount+
   ' in hand · '+p.up.length+' up · '+p.downCount+' blind</small><div class="held-cards" aria-label="Opponent holds '+p.handCount+' private cards">'+Array.from({length:Math.min(p.handCount,8)},(_,i)=>'<span class="held-back" aria-hidden="true" style="--hold-angle:'+((i-(Math.min(p.handCount,8)-1)/2)*5)+'deg"></span>').join('')+'</div><div class="mini-cards">'+
   p.up.map(c=>A.mini(c)).join('')+
   Array.from({length:p.downCount},()=>A.mini(null)).join('')+'</div></div>').join('')+'</div>';
@@ -174,7 +211,14 @@ function upDown(){
 }
 function stageNow(){const p=current(),g=data.game;return p.handCount||g.stockCount?'hand':p.up.length?'up':p.downCount?'down':'out'}
 function legalMove(){
- if(!active()||!selection.length)return null;
+ if(!selection.length)return null;
+ if(!active()){
+  // No automatic SNAP assistance. A drawn card can be placed like any other
+  // card, until another move commits first (revision-controlled on server).
+  const exact=data?.game?.followup?.find(o=>o.source==='hand'&&
+   o.ids.length===selection.length&&o.ids.every(id=>selection.includes(id)));
+  return exact?{type:'followup',source:'hand',ids:selection.slice()}:null;
+ }
  const source=stageNow();
  const exact=data.game.legal.find(o=>o.type==='play'&&o.source===source&&
   Array.isArray(o.ids)&&o.ids.length===selection.length&&o.ids.every(id=>selection.includes(id)));
@@ -229,7 +273,7 @@ function lobby(){
    '<span>'+(allReady?'Everyone is ready · the host can start':
     myReady?'Your cards are locked in · waiting for the others':'Choose your face-up cards, then confirm')+'</span></div>'+
    '<div class="lobby-seats">'+Array.from({length:data.capacity},(_,i)=>'<div class="lobby-seat '+(i<joined||bots.includes(i)?'filled':'')+(bots.includes(i)?' is-bot':'')+'">'+
-  '<span>Seat '+(i+1)+(bots.includes(i)?' · CPU':'')+'</span><strong>'+safe(displayName(i))+'</strong><small>'+(bots.includes(i)?'Ready automatically':i<joined?(ready[i]?'Ready':'Choosing cards'):'Waiting to join')+'</small></div>').join('')+'</div>'+
+  '<span>Seat '+(i+1)+(bots.includes(i)?' · CPU':'')+'</span><strong>'+safe(displayName(i))+'</strong>'+((bots.includes(i)||i<joined)?presenceBadge(i):'')+'<small>'+(bots.includes(i)?'Ready automatically':i<joined?(ready[i]?'Ready':'Choosing cards'):'Waiting to join')+'</small></div>').join('')+'</div>'+
   '<div class="setup-choice-guide"><strong>Step 1 · Choose your three face-up cards</strong><span>Tap a card in your hand, then tap the face-up card you want to replace. The host cannot start until everyone confirms.</span></div>'+
   '<div class="area-label"><span>FACE-UP CARDS</span></div><div class="card-row">'+me.up.map(c=>card(c,{can:!myReady,source:'up',selected:swapCard?.id===c.id})).join('')+'</div>'+
   '<div class="area-label"><span>YOUR HAND</span></div><div class="card-row hand">'+me.hand.map(c=>card(c,{can:!myReady,source:'hand',selected:swapCard?.id===c.id})).join('')+'</div>'+
@@ -243,13 +287,13 @@ function tableHUD(){
  const g=data.game,can=active(),layer=stageNow();
  const who=g.phase==='over'?'ROUND COMPLETE':can?'YOUR TURN':displayName(g.turn)+' TURN';
  const guide=g.phase==='over'?'Round finished · view results':
-  g.followup?.length?'SNAP now, or let the next player continue':
   g.slam?.length?'SLAM available · interrupt any turn':
   can?(layer==='down'?'Choose one blind card to flip':
    layer==='up'?'Choose a face-up card':
    selection.length?(legalMove()?'Ready to place '+selection.length+' selected card'+(selection.length===1?'':'s'):'Choose a legal combination'):
    'Tap a card to select matching copies'):
-  snapBlocked()?'Waiting for matching-draw reaction':
+  presenceStatus(g.turn)==='offline'?'Waiting for '+displayName(g.turn)+' to reconnect':
+  presenceStatus(g.turn)==='away'?'Waiting for '+displayName(g.turn)+' to return':
    'Waiting for '+displayName(g.turn)+' · watch for SLAM';
  const rule=g.limit?.type==='under'?'NUMBERS 1–4':
   g.limit?.type==='min'?'NUMBERS '+g.limit.value+'+':'ANY NUMBER';
@@ -257,18 +301,17 @@ function tableHUD(){
   '<div class="hud-main"><span class="hud-status"><i class="hud-dot" aria-hidden="true"></i>'+safe(who)+'</span>'+
   '<span class="hud-guidance">'+safe(guide)+'</span></div>'+
   '<div class="hud-meta"><span>ROUND '+(g.round||1)+'</span><span class="hud-rule">'+safe(rule)+'</span>'+
-  (g.slam?.length?'<span class="hud-urgent">SLAM READY</span>':'')+
-  (g.followup?.length?'<span class="hud-urgent">SNAP READY</span>':'')+'</div></div>';
+  (g.slam?.length?'<span class="hud-urgent">SLAM READY</span>':'')+'</div></div>';
 }
 function tableActions(){
  const g=data.game,can=active(),legal=legalMove(),take=can&&g.legal?.some(m=>m.type==='take');
- const slam=g.slam?.length>0,snap=g.followup?.length>0;
+ const slam=g.slam?.length>0;
  let buttons='';
  if(g.phase==='over')buttons='<button class="action primary" data-do="rematch">Play again · same room</button>';
  else {
-  if(snap)buttons+='<button class="action snap" data-do="snap" '+(busy?'disabled':'')+'>SNAP · matching draw</button>';
+  if(g.followup?.length)buttons+='<button class="action snap" data-do="snap" '+(busy?'disabled':'')+'>SNAP · matching draw</button>';
   if(slam)buttons+='<button class="action slam" data-do="slam" '+(busy?'disabled':'')+'>SLAM · '+g.slam[0].ids.length+' cards</button>';
-  if(can&&legal){
+  if(legal){
    const burn=current().hand?.some(c=>selection.includes(c.id)&&c.action==='burn');
    buttons+='<button class="action primary" data-do="play" '+(busy?'disabled':'')+'>'+
     (burn?'BURN PILE':'Play '+selection.length+' card'+(selection.length===1?'':'s'))+
@@ -277,7 +320,7 @@ function tableActions(){
   if(take)buttons+='<button class="action secondary" data-do="take" '+(busy?'disabled':'')+'>Take pile · '+g.pile.length+'</button>';
   if(!buttons){
    const message=can?(selection.length?'Choose a legal combination':'Select a card to play'):
-    (snapBlocked()?'SNAP in progress':displayName(g.turn)+' is playing');
+    displayName(g.turn)+' is playing';
    buttons='<span class="table-action-prompt" role="status">'+safe(message)+
     '<small>'+(can?'Tap cards to select · drag onto pile':'Watch the table · SLAM is still possible')+'</small></span>';
   }
@@ -288,14 +331,14 @@ function playView(){
  const p=current(),g=data.game,can=active(),source=stageNow(),legal=legalMove(),canSlam=g.slam?.length>0;
  return '<div class="pitch"><h1>'+safe(statusTitle())+'</h1><p>ROUND '+(g.round||1)+' · ROOM '+safe(room)+' · '+(data.humanCount||data.capacity)+' humans · '+(data.botCount||0)+' bots</p></div>'+
   '<div class="online-room-tools"><span class="room-identity"><span class="online-pulse" aria-hidden="true"></span> Room <strong>'+safe(room)+'</strong></span>'+
-  '<button class="action secondary room-invite" data-do="copy" aria-label="Copy room invitation link">Copy invite</button><span class="my-seat">Seat '+(data.me+1)+' · '+safe(displayName(data.me))+'</span></div>'+tableHUD()+
+  '<button class="action secondary room-invite" data-do="copy" aria-label="Copy room invitation link">Copy invite</button><span class="my-seat">Seat '+(data.me+1)+' · '+safe(displayName(data.me))+'</span></div>'+
+  playerWaitingAlert()+tableHUD()+blindRevealBanner()+
   '<section class="table" aria-label="Live physical PILEHEAD table">'+opponentCards()+stack()+upDown()+
   '<div class="hand-area"><div class="area-label"><span>YOUR HAND <b>· '+p.handCount+'</b></span><span class="hand-controls">'+
  (selection.length?'<button type="button" class="hand-clear-button" data-do="clear-selection" aria-label="Clear selected cards">'+selection.length+' selected · Clear</button>':'')+
  '<button type="button" class="hand-sort-button" data-do="sort" title="Sort cards by rank">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></span></div>'+
-  '<div class="card-row hand">'+(p.hand?.length?orderedHand(p.hand).map(c=>card(c,{can:can&&source==='hand',source:'hand',selected:selection.includes(c.id)})).join(''):
+  '<div class="card-row hand">'+(p.hand?.length?orderedHand(p.hand).map(c=>card(c,{can:canTouchHand()&&source==='hand',source:'hand',selected:selection.includes(c.id)})).join(''):
   '<span style="font-size:12px;color:#b8cfba">No cards in hand</span>')+'</div></div></section>'+
- (g.followup?.length?'<div class="pilehead-snap-choice">You just drew a matching number. Throw it now, or <button class="action secondary" data-do="decline">Let the next player go</button>.</div>':'')+
  (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP: Your last matching hand cards can combine with matching face-up cards. Four numbers can also SLAM. Tap either one to select the group.</p>':'')+
  (selectedEffect()||lastEffect())+tableActions()+
   (notice?'<div class="message" role="status" aria-live="polite">'+safe(notice)+'</div>':'')+
@@ -364,7 +407,7 @@ function render(){
  // unchanged. Otherwise a live phone can display "SNAP in progress" forever.
  if(transitionTimer!==null){clearTimeout(transitionTimer);transitionTimer=null}
  if(data?.game.phase==='play'){
-  const deadlines=[data.game.snapUntil,data.game.startedAt?data.game.startedAt+3300:null]
+  const deadlines=[data.game.startedAt?data.game.startedAt+3300:null,data.game.blindReveal?.expiresAt]
    .filter(t=>Number.isFinite(t)&&t>Date.now());
   if(deadlines.length)transitionTimer=setTimeout(()=>{
    transitionTimer=null;render();
@@ -422,7 +465,8 @@ async function selectCard(c){
   swapCard=null;await command('swap',{handId,upId});return;
  }
  const bridge=bridgeAvailable()&&stageNow()==='hand'&&['up','hand'].includes(c.source);
- if(!active()||(c.source!==stageNow()&&!bridge))return;
+ if(!(c.source==='hand'&&canTouchHand())&&!active())return;
+ if(c.source!==stageNow()&&!bridge)return;
  const my=current()[c.source],card=my?.find(x=>x.id===c.id);if(!card)return;
  selectMatching(bridge?[...current().hand,...current().up]:my,c.id);
  if(selection.includes(c.id)){try{navigator.vibrate?.(8)}catch{}}
@@ -471,7 +515,6 @@ root.addEventListener('click',async e=>{
  if(action==='take')await command('move',{move:{type:'take'}});
  if(action==='slam'){const m=data?.game.slam?.[0];if(m)await command('move',{move:m})}
  if(action==='snap'){const m=data?.game.followup?.[0];if(m)await command('move',{move:m})}
- if(action==='decline')await command('decline');
  if(action==='copy'){try{await navigator.clipboard.writeText(invite());notice='Invite link copied.'}catch{notice='Copy this link: '+invite()}render()}
  if(action==='share'){try{if(navigator.share)await navigator.share({title:'PILEHEAD',url:invite(),text:'Join my PILEHEAD card game'});else await navigator.clipboard.writeText(invite())}catch{}}
 });
@@ -502,7 +545,7 @@ root.addEventListener('keydown',e=>{
  if((e.key==='Enter'||e.key===' ')&&e.target.closest('[data-play-target]')){e.preventDefault();play()}
 });
 root.addEventListener('dragstart',e=>{
- const b=e.target.closest('[data-card]');if(!b||!active())return;
+ const b=e.target.closest('[data-card]');if(!b||(!active()&&!(b.dataset.source==='hand'&&canTouchHand())))return;
  drag={id:Number(b.dataset.card),source:b.dataset.source};
  if(!selection.includes(drag.id))selectMatching(current()[drag.source]||[],drag.id);
  if(e.dataTransfer){e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(drag.id))}
@@ -515,7 +558,7 @@ root.addEventListener('dragend',()=>drag=null);
 let touchGesture=null,ignoreNextClick=false;
 root.addEventListener('click',e=>{if(ignoreNextClick){e.preventDefault();e.stopImmediatePropagation();ignoreNextClick=false}},true);
 root.addEventListener('pointerdown',e=>{
- if(e.pointerType==='mouse'||!active()||busy||data.game.phase!=='play')return;
+ if(e.pointerType==='mouse'||!canTouchHand()||busy||data.game.phase!=='play')return;
  const b=e.target.closest('[data-card]');if(!b)return;
  touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,moving:false,scrolling:false,ghost:null,row:b.closest('.card-row.hand'),startScroll:b.closest('.card-row.hand')?.scrollLeft||0};
 });
@@ -546,29 +589,55 @@ window.addEventListener('pointerup',e=>{
  if(!t.moving&&!t.scrolling)return;
  ignoreNextClick=true;setTimeout(()=>ignoreNextClick=false,350);
  if(t.scrolling)return;
- if(zone&&active()&&stageNow()===t.source){
+ if(zone&&canTouchHand()&&stageNow()===t.source){
   if(!selection.includes(t.id))selectMatching(current()[t.source]||[],t.id);play()}
 });
 window.addEventListener('pointercancel',()=>{
  touchGesture?.ghost?.remove();touchGesture=null;root.querySelector('[data-play-target]')?.classList.remove('drop-hover');
 });
 
-function startPolling(){
- if(pollTimer)return;pollTimer=setInterval(async()=>{
-  if(document.visibilityState==='hidden'||busy||!session||!data)return;
-  await refresh(true);
-  if(busy||polling||!data||data.game.phase!=='play')return;
+function schedulePoll(delay){
+ if(pollTimer){clearTimeout(pollTimer);pollTimer=null}
+ if(!session||!data||document.visibilityState==='hidden'||roomIssue)return;
+ const base=data.game.phase==='play'?(active()||data.game.followup?.length?1100:1650):3000;
+ const backoff=pollFailures?Math.min(18000,base*2**Math.min(pollFailures,4)):base;
+ pollTimer=setTimeout(pollOnce,delay??(backoff+Math.floor(Math.random()*220)));
+}
+async function pollOnce(){
+ pollTimer=null;
+ if(!session||!data||document.visibilityState==='hidden')return;
+ try{
+  if(!busy)await refresh(true);
+  if(busy||polling||!data||data.game.phase!=='play'||pollFailures)return;
   const bots=data.game.botSeats||[];
-  // Allow a brief physical reaction window for a freshly drawn matching card.
-  if(data.game.followup?.length&&Date.now()-lastChangeAt<4700)return;
-  if(data.game.snapUntil&&Date.now()<data.game.snapUntil&&!data.game.botFollowupReady)return;
-   if(snapBlocked())return;
-   if((bots.includes(data.game.turn)||data.game.botFollowupReady||data.game.pendingDump&&bots.includes(data.game.pendingDump.seat))&&Date.now()-botTickAt>=1250){
-   botTickAt=Date.now();
-   await command('advance');
+  // Only one visible participant coordinates server-authoritative bot turns.
+  const onlineHumans=data.members.filter(m=>m.presence==='online').map(m=>m.seat);
+  if(onlineHumans.length&&Math.min(...onlineHumans)!==data.me)return;
+  if((bots.includes(data.game.turn)||data.game.botFollowupReady||
+     data.game.pendingDump&&bots.includes(data.game.pendingDump.seat))&&Date.now()-botTickAt>=1250){
+   botTickAt=Date.now();await command('advance');
   }
- },1750);
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&session)refresh(true)});
+ }finally{schedulePoll()}
+}
+function sendAway(){
+ if(!room||!session||!data||markedAway)return;
+ markedAway=true;
+ api({action:'presence',code:room,away:true},session,{keepalive:true}).catch(()=>{});
+}
+function startPolling(){
+ schedulePoll();
+ document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){
+   if(pollTimer){clearTimeout(pollTimer);pollTimer=null}
+   sendAway();
+  }else if(session){
+   pollFailures=0;refresh(true,true).finally(()=>schedulePoll());
+  }
+ });
+ window.addEventListener('pagehide',sendAway);
+ window.addEventListener('online',()=>{if(session&&document.visibilityState==='visible'){
+  pollFailures=0;refresh(true,true).finally(()=>schedulePoll());
+ }});
 }
 window.addEventListener('stack-deck-theme-change',()=>render());
 render();startPolling();

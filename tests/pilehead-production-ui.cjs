@@ -16,8 +16,8 @@ const localHud=block(local,'function tableHUD(){','function tableActions({');
 const escape=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function onlineStatus({turn=true,layer='hand',selection=[],legal=null,limit=null,slam=[],snap=[],name='Bot 1'}={}){
  const data={game:{phase:'play',round:2,limit,slam,followup:snap,turn:turn?0:1}};
- return new Function('data','active','stageNow','selection','legalMove','displayName','snapBlocked','safe',
-  onlineHud+'return tableHUD()')(data,()=>turn,()=>layer,selection,()=>legal,()=>name,()=>false,escape);
+ return new Function('data','active','stageNow','selection','legalMove','displayName','snapBlocked','safe','presenceStatus',
+  onlineHud+'return tableHUD()')(data,()=>turn,()=>layer,selection,()=>legal,()=>name,()=>false,escape,()=> 'online');
 }
 function localStatus({turn=true,layer='hand',selection=[],limit=null}={}){
  const g={phase:'play',limit,turn:turn?0:1};
@@ -40,7 +40,7 @@ check('opponents and urgent reactions get correct state hints and escaped names'
  const s=onlineStatus({turn:false,name:'<Other & Co>'});
  assert.match(s,/&lt;Other &amp; Co&gt;/);
  assert.match(onlineStatus({turn:false,slam:[{ids:[1,2,3,4]}]}),/SLAM READY/);
- assert.match(onlineStatus({snap:[{ids:[8]}]}),/SNAP READY/);
+ assert.doesNotMatch(onlineStatus({snap:[{ids:[8]}]}),/SNAP READY/,'HUD should not announce SNAP; only the action button does');
 });
 check('move history is an expandable disclosure preserved on rerender',()=>{
  for(const code of [online,local]){
