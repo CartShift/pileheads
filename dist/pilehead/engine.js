@@ -1,13 +1,16 @@
 /* PILEHEAD/STACK · deterministic physical-card engine.
-   Rules v1.2: 40 ordinary numbers (1–10 x4) + 12 independent actions; identical action cards may be played together.
+   Rules v1.6: 40 ordinary numbers (1–10 x4) + 14 independent actions (BURN x4, others x2).
    All information lives in state; rendering never determines legality. */
 (function(root){'use strict';
-const VERSION='pilehead-1.5.0',DECK_SIZE=52,ACTIONS={reset:2,ghost:2,under:2,skip:2,burn:2,dump:2};
+const VERSION='pilehead-1.6.0',DECK_SIZE=54,ACTIONS={reset:2,ghost:2,under:2,skip:2,burn:4,dump:2};
 function assert(ok,message){if(!ok)throw new Error(message)}
 function random(g){g.rng=(Math.imul(g.rng,1664525)+1013904223)>>>0;return g.rng/4294967296}
 function shuffle(a,g){for(let i=a.length-1;i>0;i--){let j=Math.floor(random(g)*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function deck(){const a=[];let id=0;for(let n=1;n<=10;n++)for(let k=0;k<4;k++)a.push({id:id++,kind:'number',rank:n});
- for(const [action,n] of Object.entries(ACTIONS))for(let k=0;k<n;k++)a.push({id:id++,kind:'action',action});
+function deck(version=VERSION){const a=[];let id=0;for(let n=1;n<=10;n++)for(let k=0;k<4;k++)a.push({id:id++,kind:'number',rank:n});
+ // Keep all original 52 card IDs intact for active rooms from older releases.
+ // Additional BURN copies are IDs 52 and 53; DUMP stays at IDs 50 and 51.
+ for(const [action,n] of Object.entries(ACTIONS))for(let k=0;k<(action==='burn'?2:n);k++)a.push({id:id++,kind:'action',action});
+ if(version===VERSION)for(let k=2;k<ACTIONS.burn;k++)a.push({id:id++,kind:'action',action:'burn'});
  return a;
 }
 function create({seed=20261113,players=4}={}){
@@ -24,9 +27,12 @@ function create({seed=20261113,players=4}={}){
 }
 function count(g){return g.stock.length+g.pile.length+g.ashes.length+
  g.people.reduce((n,p)=>n+p.hand.length+p.up.length+p.down.length,0)}
-function invariant(g){assert(count(g)===DECK_SIZE,'Card conservation failed: '+count(g));
- const ids=[...g.stock,...g.pile,...g.ashes,...g.people.flatMap(p=>[...p.hand,...p.up,...p.down])].map(c=>c.id);
- assert(new Set(ids).size===DECK_SIZE,'Duplicate card identity');
+function invariant(g){const expected=deck(g.version);
+ assert(count(g)===expected.length,'Card conservation failed: '+count(g));
+ const cards=[...g.stock,...g.pile,...g.ashes,...g.people.flatMap(p=>[...p.hand,...p.up,...p.down])];
+ const ids=cards.map(c=>c.id);
+ assert(new Set(ids).size===expected.length,'Duplicate card identity');
+ assert(cards.every(c=>{const ref=expected[c.id];return !!ref&&c.kind===ref.kind&&c.rank===ref.rank&&c.action===ref.action}), 'Invalid card identity');
  assert(g.people.every(p=>!(p.out&&(p.hand.length||p.up.length||p.down.length))),'Finished player has cards');
  return true;
 }
@@ -97,7 +103,7 @@ function options(g,seat){if(g.phase!=='play'||g.pendingDump||g.turn!==seat)retur
   if(seen.has(key))continue;seen.add(key);
   const same=legal.filter(x=>x.kind===c.kind&&
     (c.kind==='number'?x.rank===c.rank:x.action===c.action));
-  // A physical deck has at most four copies of a number and two of an action.
+  // A physical deck has at most four copies of a rank or BURN, and two of any other action.
   for(let mask=1;mask<(1<<same.length);mask++){
    const ids=same.filter((_,i)=>mask&(1<<i)).map(x=>x.id);
    opts.push({type:'play',source:s,ids});
