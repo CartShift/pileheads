@@ -30,7 +30,7 @@ assert(!/data-do="draw"/.test(beta), 'manual draw is not a STACK action');
 // The WebGL renderer is purely presentational. All actions must still flow
 // through the original semantic buttons and server-authoritative code.
 new vm.Script(renderer, {filename:'3d-beta.js'});
-assert(renderer.includes('pointer-events:none'), 'WebGL must not intercept game actions');
+assert(css.includes('pointer-events:none!important'), 'WebGL must not intercept game actions');
 assert(renderer.includes('MutationObserver'), 'renderer must handle authoritative rerenders');
 assert(renderer.includes('WebGLRenderer'), 'actual Three.js renderer required');
 assert(renderer.includes('CanvasTexture'), 'actual game artwork must be used');
