@@ -50,6 +50,9 @@ async function query(sql,args=[]){
   return[];
  }
  if(sql.startsWith('SELECT code,capacity'))return rooms.has(args[0])?[structuredClone(rooms.get(args[0]))]:[];
+ if(sql.startsWith("SELECT revision,state->'reactionEvents'")){
+  const r=rooms.get(args[0]);return r?[{revision:r.revision,reaction_events:structuredClone(r.state.reactionEvents||[]),expires_at:r.expires_at}]:[];
+ }
  if(sql.startsWith('SELECT seat,display_name')){
   return (members.get(args[0])||[]).map(m=>structuredClone(m));
  }
