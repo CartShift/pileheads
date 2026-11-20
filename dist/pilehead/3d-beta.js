@@ -165,7 +165,8 @@
     if (!canvasRect.width || !canvasRect.height) return;
     const seen = new Set();
     const elements = table.querySelectorAll('.card.ph-card:not(.card-ghost)');
-    const interpolant = 1 - Math.exp(-Math.min(.075, dt) * 15);
+    const interpolant = matchMedia('(prefers-reduced-motion:reduce)').matches ? 1 :
+      1 - Math.exp(-Math.min(.075, dt) * 15);
     for (const element of elements) {
       const face = cardFace(element);
       if (!face || !makeTexture(face)) continue;
@@ -263,6 +264,10 @@
       canvas = document.createElement('canvas');
       canvas.className = 'stack-beta-three-canvas';
       canvas.setAttribute('aria-hidden', 'true');
+      canvas.addEventListener('webglcontextlost', event => {
+        event.preventDefault();
+        fallback('3D graphics interrupted · classic game remains playable');
+      });
       renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true, powerPreference:'low-power'});
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_DPR));
       renderer.setClearColor(0x000000, 0);
