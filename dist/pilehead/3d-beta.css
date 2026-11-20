@@ -66,6 +66,21 @@ body.stack-3d-beta.pilehead-playing .table:after{
   inset:17px;border:1px solid #f8bd7b3d;border-radius:35px;
   box-shadow:inset 0 0 45px #2a0e1161;
 }
+/* Do not tint WebGL cards behind the classic transparent interaction layout. */
+body.stack-3d-beta.pilehead-playing .table .hand-area{
+  background:transparent!important;box-shadow:none!important;
+}
+body.stack-3d-beta.pilehead-playing .table .opponent{
+  background:#17101edb;border:1px solid #f6e0c57a;
+  box-shadow:0 8px 23px #0009;border-radius:15px;
+  backdrop-filter:blur(10px);padding:5px;
+}
+body.stack-3d-beta.pilehead-playing .table .opponent.current{
+  border-color:#ffdb56;box-shadow:0 0 0 2px #ffd75b91,0 8px 23px #000b;
+}
+body.stack-3d-beta.pilehead-playing .table .opponent strong{
+  background:#eec347;color:#28151a;border-radius:999px;text-shadow:none;
+}
 .stack-3d-beta .stack-beta-three-canvas{
   position:absolute!important;inset:0!important;display:block;
   width:100%;height:100%;pointer-events:none!important;
