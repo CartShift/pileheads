@@ -2,7 +2,7 @@
 (function(){'use strict';
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
 const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11';
-let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,notice='',lastMove=null,sortMode='dealt',endDismissed=false,dumpDraft=null,starterTimer=null;
+let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,botQueuedFor=null,notice='',lastMove=null,sortMode='dealt',endDismissed=false,dumpDraft=null,starterTimer=null;
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
  (a.kind==='number'?a.rank===b.rank:a.action===b.action)}
 function orderedHand(cards){
@@ -14,7 +14,8 @@ function selectMatching(cards,id){
  const picked=cards.find(c=>c.id===id);if(!picked)return;
  if(selection.includes(id)){selection=selection.filter(x=>x!==id);return}
  const prev=selection.map(x=>cards.find(c=>c.id===x)).filter(Boolean);
- selection=prev.length&&prev.every(c=>sameFace(c,picked))?[...selection,id]:cards.filter(c=>sameFace(c,picked)).map(c=>c.id);
+ // One tap selects one physical card. Matching copies can be added deliberately.
+ selection=prev.length&&prev.every(c=>sameFace(c,picked))?[...selection,id]:[id];
 }
 function playerName(i){return mode==='bots'?(i===0?'You':'Bot '+i):'Player '+(i+1)}
 function viewSeat(){return mode==='bots'?0:g?.followUp?.seat??g?.turn??0}
@@ -264,16 +265,28 @@ function celebrate(ev){
  }
  setTimeout(()=>table.classList.remove('just-burned'),550);
 }
-function queueBot(){if(timer!==null){clearTimeout(timer);timer=null}
- if(!g||g.phase!=='play'||mode!=='bots')return;
+function queueBot(){
+ if(!g||g.phase!=='play'||mode!=='bots'){
+  if(timer!==null)clearTimeout(timer);
+  timer=null;botQueuedFor=null;return;
+ }
  // Do not let bots act behind the visible first-turn lottery.
  if(g.startedAt&&Date.now()-g.startedAt<3300)return;
  if(g.pendingDump?.seat===0)return;
   const botDump=!!g.pendingDump;
   const canSlam=g.people.some(p=>p.seat!==0&&E.slamOptions(g,p.seat).length);
  const botSnap=g.followUp&&g.followUp.seat!==0&&E.followUpOptions(g,g.followUp.seat).length;
- if(g.turn===0&&!canSlam&&!botSnap&&!botDump)return;
- timer=setTimeout(()=>{timer=null;if(!g||g.phase!=='play')return;
+ if(g.turn===0&&!canSlam&&!botSnap&&!botDump){
+  if(timer!==null)clearTimeout(timer);
+  timer=null;botQueuedFor=null;return;
+ }
+ // Sorting cards, switching focus and normal table renders cannot restart the
+ // bot's thinking delay. The SNAP race stays open only until the next play.
+ const key=[g.seed,g.moves,g.turn,g.followUp?.seat??'',g.pendingDump?.seat??''].join(':');
+ if(timer!==null&&botQueuedFor===key)return;
+ if(timer!==null)clearTimeout(timer);
+ botQueuedFor=key;
+ timer=setTimeout(()=>{timer=null;botQueuedFor=null;if(!g||g.phase!=='play')return;
  try{let ev=botDump?E.resolveDump(g,g.pendingDump.seat,E.botDumpTarget(g,g.pendingDump.seat)):
     botSnap?E.move(g,g.followUp.seat,E.followUpOptions(g,g.followUp.seat)[0]):E.autoSlam(g,'greedy',0);
   if(!ev&&g.turn!==0)ev=E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));
@@ -363,10 +376,6 @@ function execute(action,button){
  if(action==='sort'){sortMode=sortMode==='dealt'?'asc':sortMode==='asc'?'desc':'dealt';selection=[];
   window.PileheadTableFX?.resetHandScroll?.();render();return}
  if(action==='snap'){const move=E.followUpOptions(g,viewSeat())[0];if(move)perform(move);return}
- if(action==='pass-snap'){
-  if(g.followUp?.seat===viewSeat()){g.followUp=null;covered=mode==='hotseat';notice='Passed on the matching draw.';render()}
-  return;
- }
  if(action==='take'){perform({type:'take'});return}
  if(action==='slam'){const choice=E.slamOptions(g,viewSeat())[0];if(choice)perform(choice);return}
  if(action==='hot-slam'){const seat=Number(button.dataset.seat);const choice=E.slamOptions(g,seat)[0];
@@ -381,6 +390,9 @@ app.addEventListener('click',e=>{
  if(e.target.closest('[data-play-target]')&&selection.length&&isTurn())submitPlay(selectedPlay());
 });
 app.addEventListener('keydown',e=>{
+ if(e.key==='Escape'&&!e.target.closest('[role="dialog"]')&&selection.length){
+  e.preventDefault();selection=[];render();return;
+ }
  if(e.target.closest('[data-play-target]')&&(e.key==='Enter'||e.key===' ')&&selection.length&&isTurn()){
   e.preventDefault();submitPlay(selectedPlay());
  }
