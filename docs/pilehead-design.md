@@ -27,7 +27,7 @@ No suits, face cards, traditional jokers, scoring markers, chips, or extra board
 3. Place the remaining cards into the face-down draw stock.
 4. The first player is chosen by a visible random draw. In later rounds, the first player to finish in the previous round starts; play proceeds clockwise.
 
-Maximum five players with one deck because six would require 54 opening cards. We are intentionally not adding a second deck.
+Maximum five players. Six would consume all 54 cards in the opening deal, leaving no draw stock, so six-player games are intentionally not supported.
 
 ## On a turn
 
