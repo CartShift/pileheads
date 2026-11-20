@@ -54,7 +54,6 @@ function setMessage(e){const map={
  room_expired:'The room expired after 24 hours.',game_not_finished:'Finish the round before starting another.',not_bot_turn:'Waiting for a player move.',no_snap_available:'The matching-draw opportunity has already passed.',room_rules_changed:'This room uses an unsupported rules version. The saved cards have not been changed.',unready_to_swap:'Choose Change cards first.',bad_ready:'Invalid ready status.',full:'The room is full.',
  already_started:'The game already started.',waiting_for_players:'Waiting for everyone to join.',
  stale_revision:'Someone played at the same time. Refreshing the table.',
-  snap_window_open:'A matching number was just drawn. That player gets a moment to SNAP it.',
  rate_limited:'Too many requests from this network. Please try again later.',
  invalid_dump_target:'Choose an active rival for DUMP.',dump_target_not_pending:'This DUMP has already resolved.',dump_target_pending:'The player must choose a DUMP target first.',
  bad_cards:'That group of cards is not legal.',wrong_layer:'Finish your current card layer first.'
@@ -248,6 +247,9 @@ function upDown(){
 }
 function stageNow(){const p=current(),g=data.game;return p.handCount||g.stockCount?'hand':p.up.length?'up':p.downCount?'down':'out'}
 function legalMove(){
+ // A face-up drag must include the final matching hand, just like a tap.
+ if(bridgeAvailable()&&selection.some(id=>current().up.some(c=>c.id===id)))
+  selection=[...current().hand.map(c=>c.id),...selection.filter(id=>current().up.some(c=>c.id===id))];
  if(!selection.length)return null;
  if(!active()){
   // No automatic SNAP assistance. A drawn card can be placed like any other
@@ -635,7 +637,7 @@ window.addEventListener('pointerup',e=>{
  if(!t.moving&&!t.scrolling)return;
  ignoreNextClick=true;setTimeout(()=>ignoreNextClick=false,350);
  if(t.scrolling)return;
- if(zone&&canTouchHand()&&stageNow()===t.source){
+ if(zone&&canTouchHand()&&(stageNow()===t.source||(t.source==='up'&&bridgeAvailable()))){
   if(!selection.includes(t.id))selectMatching(current()[t.source]||[],t.id);play()}
 });
 window.addEventListener('pointercancel',()=>{
@@ -659,7 +661,7 @@ async function pollOnce(){
   // Only one visible participant coordinates server-authoritative bot turns.
   const onlineHumans=data.members.filter(m=>m.presence==='online').map(m=>m.seat);
   if(onlineHumans.length&&Math.min(...onlineHumans)!==data.me)return;
-  if((bots.includes(data.game.turn)||data.game.botFollowupReady||
+  if((bots.includes(data.game.turn)||data.game.botFollowupReady||data.game.botSlamReady||
      data.game.pendingDump&&bots.includes(data.game.pendingDump.seat))&&Date.now()-botTickAt>=1250){
    botTickAt=Date.now();await command('advance');
   }

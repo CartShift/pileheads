@@ -18,7 +18,8 @@ function selectMatching(cards,id){
  selection=prev.length&&prev.every(c=>sameFace(c,picked))?[...selection,id]:[id];
 }
 function playerName(i){return mode==='bots'?(i===0?'You':'Bot '+i):'Player '+(i+1)}
-function viewSeat(){return mode==='bots'?0:g?.followUp?.seat??g?.turn??0}
+// The next player can use the shared screen even while the prior SNAP is available.
+function viewSeat(){return mode==='bots'?0:g?.turn??0}
 function getPlayer(){return g.people[viewSeat()]}
 function currentStage(){return E.stage(g,viewSeat())}
 function isTurn(){return g.phase==='play'&&g.turn===viewSeat()}
@@ -151,6 +152,7 @@ function tableActions({turn,legal,pick,slams,snap,stage}){
    }
   }
   if(turn&&pick)buttons+='<button class="action secondary" data-do="take">Take pile · '+g.pile.length+'</button>';
+  if(mode==='hotseat')buttons+='<button class="action secondary" data-do="hot-snap" aria-label="Attempt SNAP">SNAP!</button>';
   if(mode==='hotseat'&&g.people.some(p=>E.slamOptions(g,p.seat).length))buttons+='<button class="action secondary" data-do="challenge">Other player SLAM</button>';
   if(!buttons){
    const message=turn?(stage==='down'?'Choose a blind card':selection.length?'Choose a legal combination':'Select a card to play'):
@@ -210,6 +212,7 @@ function overlay(){
  return '<div class="overlay"><div class="panel"><div class="eyebrow">PASS THE DEVICE</div><h2>'+name+'</h2>'+
  '<p>Only this player should reveal their cards. Other players can call SLAM while the screen is covered.</p>'+
  '<button class="action primary" data-do="reveal">Reveal '+name+' cards</button>'+
+ (!isSetup?'<button class="action secondary" data-do="hot-snap">SNAP!</button>':'')+
  (!isSetup&&g.people.some(p=>E.slamOptions(g,p.seat).length)?'<hr style="border-color:#66857565;margin:16px 0"><p>Out-of-turn SLAM? Choose the player attempting it:</p>'+
  g.people.filter(p=>!p.out).map(p=>'<button class="action secondary" data-do="hot-slam" data-seat="'+p.seat+'">'+playerName(p.seat)+'</button>').join(''):'')+
  '</div></div>';
@@ -299,11 +302,14 @@ function startGame(previousWinner=null){endDismissed=false;dumpDraft=null;g=E.cr
  g.starterSeat=starter;g.starterReason=previousWinner===null?'draw':'winner';
  setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
 function afterMove(ev){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
- if(mode==='hotseat'&&g.phase!=='over')covered=!g.pendingDump&&g.followUp?.seat!==ev.seat;
+ if(mode==='hotseat'&&g.phase!=='over')covered=!g.pendingDump&&g.turn!==ev.seat;
  render()}
 // A final-hand bridge requires the complete hand to precede face-up copies.
 // Every input path (button, pile tap, keyboard and drag) must use this order.
 function selectedPlay(){
+ // Normalize any tap, drag, keyboard or touch bridge to the complete hand-first group.
+ if(bridgeAvailable()&&selection.some(id=>getPlayer().up.some(c=>c.id===id)))
+  selection=[...getPlayer().hand.map(c=>c.id),...selection.filter(id=>getPlayer().up.some(c=>c.id===id))];
  const source=currentStage(),p=getPlayer(),ids=selection.slice();
  if(bridgeAvailable()&&source==='hand'){
   const fromHand=ids.filter(id=>p.hand.some(c=>c.id===id));
@@ -381,6 +387,12 @@ function execute(action,button){
  if(action==='sort'){sortMode=sortMode==='dealt'?'asc':sortMode==='asc'?'desc':'dealt';selection=[];
   window.PileheadTableFX?.resetHandScroll?.();render();return}
  if(action==='snap'){const move=E.followUpOptions(g,viewSeat())[0];if(move)perform(move);return}
+ if(action==='hot-snap'&&mode==='hotseat'){
+  const seat=g.followUp?.seat,choice=seat===undefined?null:E.followUpOptions(g,seat)[0];
+  if(choice)perform(choice,seat);
+  else{notice='No SNAP is currently available.';render()}
+  return;
+ }
  if(action==='take'){perform({type:'take'});return}
  if(action==='slam'){const choice=E.slamOptions(g,viewSeat())[0];if(choice)perform(choice);return}
  if(action==='hot-slam'){const seat=Number(button.dataset.seat);const choice=E.slamOptions(g,seat)[0];
