@@ -50,4 +50,10 @@
  .pilehead-online .room-invite{margin-left:auto}
  .pilehead-online .my-seat{width:100%;text-align:center}
 }
+/* Keep action feedback visible without reconstructing the game table while
+   a move is being committed over the network. */
+.pilehead-online .table-actions.is-submitting{
+ border-color:#f1d39f;box-shadow:0 0 0 1px #f1d39f55,0 7px 24px #0008;
+}
+.pilehead-online .table-actions.is-submitting .action{opacity:.67;cursor:progress}
 @media(prefers-reduced-motion:reduce){.pilehead-online .opponent{transition:none}}
