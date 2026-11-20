@@ -18,3 +18,11 @@ The new `scripts/render-server.cjs` adapter maps the existing `/api/pilehead` ha
 - Render Free web services spin down after inactivity and can take time to wake; this is a beta/playtest fallback, not a production uptime commitment.
 - The client currently polls for room state roughly every 1.75 seconds while visible. Before moving production traffic, measure server usage and optimize fetching. Do not assume STACK caused the entire CartShift-wide CPU overage without checking Vercel Usage.
 - Avoid changing DNS/production domains until a working two-device online game has been verified.
+
+## Operational probes and release monitoring
+
+- `GET /livez`: process alive; does not certify multiplayer storage.
+- `GET /readyz`: database-aware readiness; succeeds only if the room database responds. Do not switch Render's health path from `/` to this endpoint until `PILEHEAD_DATABASE_URL` is confirmed configured and the probe returns 200 in production.
+- Slow requests (>1,000 ms) and HTTP 5xx responses emit a compact JSON warning with route, status and duration. Room codes, session tokens and client IPs are deliberately omitted.
+- Keep main as the sole release source. The currently configured Render service follows the temporary fallback branch via a fast-forward mirror action; move it to main in the dashboard and remove the mirror workflow after verifying one successful main build.
+- Verify room creation, two independent clients, reconnect, SNAP/SLAM races and rematch after each release. Green unit tests and `/livez` are not proofs of database readiness.

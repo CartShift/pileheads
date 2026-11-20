@@ -88,3 +88,10 @@ If players repeatedly ask for rules, no one spontaneously replays, or the endgam
 2. Run three pilot sessions with people unfamiliar with the rules.
 3. Save or collect their scorecards; preserve the original responses.
 4. Review the results before considering a final-duel rule change or bulk manufacturing.
+
+
+## Version-aware diagnostic simulator (engineering use only)
+
+\`npm run simulate -- 120 4 20261113 mixed current54\` records 54-card v1.6 seeded diagnostic results; append \`legacy52\` to model the prior 52-card composition under the same engine mechanics. Reaction profiles: \`perfect\`, \`attentive\`, \`casual\`, \`mixed\`.
+
+The simulator records how often SNAP and SLAM opportunities occur, how often modeled players successfully claim them, BURN effects, pickups, long-game percentiles, two-player endgames, and seat outcomes. It does **not** simulate human response latency, physical reactions, perceived tension, skill learning or willingness to replay. Compare matched player counts, seeds, profiles and deck variants before claiming a balance improvement. Keep the real-human study as a separate mandatory release gate.

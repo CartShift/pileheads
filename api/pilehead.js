@@ -53,6 +53,8 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
  starterSeat:g.starterSeat??0,starterReason:g.starterReason||'draw',startedAt:g.startedAt||null,
  blindReveal:g.blindReveal?.expiresAt>Date.now()?g.blindReveal:null,
  botFollowupReady:botSeats(g).some(bot=>E.followUpOptions(g,bot).length>0),
+  // Public boolean only, not a disclosure of bot rank or private card IDs.
+  botSlamReady:botSeats(g).some(bot=>E.slamOptions(g,bot).length>0),
  pile:g.pile,ashesCount:g.ashes.length,limit:g.limit,slamOpen:g.slamOpen,pendingDump:g.pendingDump?{seat:g.pendingDump.seat}:null,setupReady:g.setupReady||g.people.map(()=>false),loser:g.loser,finishedOrder:g.finishedOrder,
  players:g.people.map((p,i)=>({seat:i,out:p.out,up:p.up,handCount:p.hand.length,downCount:p.down.length,pickups:p.pickups,
  ...(i===seat?{hand:p.hand,blindSlots:p.down.map((_,j)=>j)}:{})})),
@@ -87,8 +89,12 @@ async function create(req,b){
  fail(503,'room_create_failed')}
 async function join(req,b){await quota(req,'join',60);const id=code(b.code),nick=name(b.name),t=secret(),r=await load(id);
  if(r.status!=='lobby')fail(409,'already_started');
- const rows=await query('INSERT INTO pilehead_members(code,seat,display_name,token_hash) SELECT $1::varchar(8),x,$2,$3 FROM generate_series(0,$4::integer-1) x WHERE NOT EXISTS(SELECT 1 FROM pilehead_members m WHERE m.code=$1::varchar(8) AND m.seat=x) ORDER BY x LIMIT 1 ON CONFLICT (code,seat) DO NOTHING RETURNING seat',[id,nick,h(t),humanCount(r.state)]);
- if(!rows.length)fail(409,'full');return {...await view(r,Number(rows[0].seat)),session:t}}
+ // Contended ON CONFLICT DO NOTHING can miss a different free seat; retry.
+ for(let attempt=0;attempt<4;attempt++){
+  const rows=await query('INSERT INTO pilehead_members(code,seat,display_name,token_hash) SELECT $1::varchar(8),x,$2,$3 FROM generate_series(0,$4::integer-1) x WHERE NOT EXISTS(SELECT 1 FROM pilehead_members m WHERE m.code=$1::varchar(8) AND m.seat=x) ORDER BY x LIMIT 1 ON CONFLICT (code,seat) DO NOTHING RETURNING seat',[id,nick,h(t),humanCount(r.state)]);
+  if(rows.length)return {...await view(r,Number(rows[0].seat)),session:t};
+ }
+ fail(409,'full')}
 async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!==r.revision)fail(409,'stale_revision');
  const g=structuredClone(r.state);
  g.setupReady??=g.people.map(()=>false);
@@ -143,7 +149,10 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
    try{E.move(g,seat,{type:m.type,source,ids,target:m.target})}catch{fail(400,'illegal_move')}}else fail(400,'bad_move');
  }
  else fail(400,'unknown_action');
- E.invariant(g);const status=g.phase==='over'?'finished':g.phase==='play'?'playing':'lobby';
+ E.invariant(g);
+  // Online clients use the recent 24 events; bound persisted history to avoid JSONB growth.
+  if(g.events.length>96)g.events.splice(0,g.events.length-96);
+  const status=g.phase==='over'?'finished':g.phase==='play'?'playing':'lobby';
  const rows=await query('UPDATE pilehead_rooms SET state=$1::jsonb,status=$2,revision=revision+1,updated_at=now() WHERE code=$3 AND revision=$4 AND expires_at>now() RETURNING code,capacity,revision,status,state,expires_at',[JSON.stringify(g),status,r.code,r.revision]);
  if(!rows.length)fail(409,'stale_revision');return view(rows[0],seat)}
 module.exports=async function handler(req,res){const send=(status,data)=>{res.status(status);res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');return res.json(data)};

@@ -6,6 +6,10 @@ const html=read('dist/pilehead/index.html'),app=read('dist/pilehead/app.js');
 const engine=read('dist/pilehead/engine.js'),print=read('dist/pilehead/print.html');
 const root=read('dist/index.html'),simulation=read('dist/pilehead-sim-core.js');
 const build=read('scripts/build-vercel.mjs');
+const renderServer=read('scripts/render-server.cjs');
+assert.match(renderServer,/url\.pathname === '\/livez'/);
+assert.match(renderServer,/url\.pathname === '\/readyz'/);
+assert.match(renderServer,/duration > 1000 \|\| res\.statusCode >= 500/);
 for(const [label,source]of [['engine',engine],['table',app],['simulation',simulation]])
  assert.doesNotThrow(()=>new vm.Script(source,{filename:label+'.js'}));
 assert.match(html,/src="engine\.js"/);
