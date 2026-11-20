@@ -35,13 +35,13 @@
 @media(max-width:700px){
  .stack-live-social{justify-content:space-between;gap:3px;padding:1px 4px;margin-bottom:5px}
  .stack-reaction-buttons{gap:4px}
- .stack-reaction-buttons button{height:37px;width:38px;font-size:19px}
+ .stack-reaction-buttons button{height:44px;width:44px;font-size:19px}
  .stack-live-status{font-size:9px;min-width:52px}
  .stack-reaction-bubble{padding:5px 7px;max-width:115px;top:-20px}
  .stack-reaction-bubble span:first-child{max-width:54px;font-size:9px}
 }
 @media(max-width:360px){
- .stack-reaction-buttons button{height:35px;width:34px;font-size:18px}
+ .stack-reaction-buttons button{height:42px;width:40px;font-size:18px}
 }
 @media(prefers-reduced-motion:reduce){
  .stack-reaction-bubble{animation:none!important;top:-36px}
