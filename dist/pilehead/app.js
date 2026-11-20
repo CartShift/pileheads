@@ -340,7 +340,12 @@ function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat()
  const arr=p[source],picked=arr.find(c=>c.id===id);if(!picked)return;
  if(source!==currentStage()&&!bridgeAvailable())return;
  if(!E.isLegal(g,picked)){notice='Not playable with the current restriction';render();return}
- selectMatching(bridgeAvailable()?[...p.hand,...p.up]:arr,id);
+ const bridged=bridgeAvailable();
+ selectMatching(bridged?[...p.hand,...p.up]:arr,id);
+ if(bridged&&selection.some(selected=>p.up.some(c=>c.id===selected))){
+  // Face-up bridge plays must include every remaining matching hand card.
+  selection=[...p.hand.map(c=>c.id),...selection.filter(selected=>p.up.some(c=>c.id===selected))];
+ }
  if(selection.includes(id)){try{navigator.vibrate?.(8)}catch{}}
  notice='';render();
 }
