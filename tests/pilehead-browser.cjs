@@ -64,7 +64,7 @@ async function run(browser,width,height,mobile){
   await stage(page,{mode:'hotseat',seat:1,seed:119,snap:true});
   assert.ok(await page.locator('.overlay [data-do="hot-snap"]').count(),'SNAP available without stopping next turn');
   await page.locator('.overlay [data-do="reveal"]').click();
-  assert.ok((await page.locator('.pitch h1').innerText()).includes('Player 2'),'view follows actual turn');
+  assert.ok((await page.locator('.pilehead-table-hud .hud-status').innerText()).includes('YOUR TURN'),'shared screen follows the active player');
   before=await state(page);
   assert.equal(before.turn,1);
   await page.locator('[data-do="hot-snap"]').click();
