@@ -170,6 +170,8 @@ function active(){return data?.game?.turn===data.me&&data?.game?.phase==='play'&
 function statusTitle(){
  const g=data.game;if(g.phase==='setup')return data.members.length+' of '+data.capacity+' players joined';
  if(g.phase==='over')return displayName(g.loser)+' is the PILEHEAD!';
+ if(g.phase==='play'&&g.turn!==data.me&&presenceStatus(g.turn)==='offline')return 'Waiting for '+displayName(g.turn)+' to reconnect';
+ if(g.phase==='play'&&g.turn!==data.me&&presenceStatus(g.turn)==='away')return displayName(g.turn)+' is away';
  return g.pendingDump?displayName(g.pendingDump.seat)+' is choosing a DUMP target':
  snapBlocked()?displayName(g.snapSeat)+' has a matching-draw SNAP chance':
    active()?'Your turn · place a card':displayName(g.turn)+' is playing · watch for SLAM';
@@ -178,7 +180,7 @@ function numberPolicy(){const l=data.game.limit;return l?.type==='under'?'NEXT: 
 function opponentCards(){const g=data.game;
  return '<div class="opponents">'+g.players.filter(p=>p.seat!==data.me).map(p=>'<div data-seat="'+p.seat+'" class="opponent '+
   (g.turn===p.seat&&g.phase==='play'?'current ':'')+(p.out?'finished ':'')+((g.botSeats||[]).includes(p.seat)?'is-bot':'')+'"><strong>'+safe(displayName(p.seat))+
-  (g.turn===p.seat&&g.phase==='play'?' · TURN':'')+(p.out?' · OUT':'')+'</strong><small>'+p.handCount+
+  (g.turn===p.seat&&g.phase==='play'?' · TURN':'')+(p.out?' · OUT':'')+'</strong>'+presenceBadge(p.seat)+'<small>'+p.handCount+
   ' in hand · '+p.up.length+' up · '+p.downCount+' blind</small><div class="held-cards" aria-label="Opponent holds '+p.handCount+' private cards">'+Array.from({length:Math.min(p.handCount,8)},(_,i)=>'<span class="held-back" aria-hidden="true" style="--hold-angle:'+((i-(Math.min(p.handCount,8)-1)/2)*5)+'deg"></span>').join('')+'</div><div class="mini-cards">'+
   p.up.map(c=>A.mini(c)).join('')+
   Array.from({length:p.downCount},()=>A.mini(null)).join('')+'</div></div>').join('')+'</div>';
@@ -265,7 +267,7 @@ function lobby(){
    '<span>'+(allReady?'Everyone is ready · the host can start':
     myReady?'Your cards are locked in · waiting for the others':'Choose your face-up cards, then confirm')+'</span></div>'+
    '<div class="lobby-seats">'+Array.from({length:data.capacity},(_,i)=>'<div class="lobby-seat '+(i<joined||bots.includes(i)?'filled':'')+(bots.includes(i)?' is-bot':'')+'">'+
-  '<span>Seat '+(i+1)+(bots.includes(i)?' · CPU':'')+'</span><strong>'+safe(displayName(i))+'</strong><small>'+(bots.includes(i)?'Ready automatically':i<joined?(ready[i]?'Ready':'Choosing cards'):'Waiting to join')+'</small></div>').join('')+'</div>'+
+  '<span>Seat '+(i+1)+(bots.includes(i)?' · CPU':'')+'</span><strong>'+safe(displayName(i))+'</strong>'+((bots.includes(i)||i<joined)?presenceBadge(i):'')+'<small>'+(bots.includes(i)?'Ready automatically':i<joined?(ready[i]?'Ready':'Choosing cards'):'Waiting to join')+'</small></div>').join('')+'</div>'+
   '<div class="setup-choice-guide"><strong>Step 1 · Choose your three face-up cards</strong><span>Tap a card in your hand, then tap the face-up card you want to replace. The host cannot start until everyone confirms.</span></div>'+
   '<div class="area-label"><span>FACE-UP CARDS</span></div><div class="card-row">'+me.up.map(c=>card(c,{can:!myReady,source:'up',selected:swapCard?.id===c.id})).join('')+'</div>'+
   '<div class="area-label"><span>YOUR HAND</span></div><div class="card-row hand">'+me.hand.map(c=>card(c,{can:!myReady,source:'hand',selected:swapCard?.id===c.id})).join('')+'</div>'+
@@ -286,6 +288,8 @@ function tableHUD(){
    selection.length?(legalMove()?'Ready to place '+selection.length+' selected card'+(selection.length===1?'':'s'):'Choose a legal combination'):
    'Tap a card to select matching copies'):
   snapBlocked()?'Waiting for matching-draw reaction':
+  presenceStatus(g.turn)==='offline'?'Waiting for '+displayName(g.turn)+' to reconnect':
+  presenceStatus(g.turn)==='away'?'Waiting for '+displayName(g.turn)+' to return':
    'Waiting for '+displayName(g.turn)+' · watch for SLAM';
  const rule=g.limit?.type==='under'?'NUMBERS 1–4':
   g.limit?.type==='min'?'NUMBERS '+g.limit.value+'+':'ANY NUMBER';
@@ -324,7 +328,8 @@ function playView(){
  const p=current(),g=data.game,can=active(),source=stageNow(),legal=legalMove(),canSlam=g.slam?.length>0;
  return '<div class="pitch"><h1>'+safe(statusTitle())+'</h1><p>ROUND '+(g.round||1)+' · ROOM '+safe(room)+' · '+(data.humanCount||data.capacity)+' humans · '+(data.botCount||0)+' bots</p></div>'+
   '<div class="online-room-tools"><span class="room-identity"><span class="online-pulse" aria-hidden="true"></span> Room <strong>'+safe(room)+'</strong></span>'+
-  '<button class="action secondary room-invite" data-do="copy" aria-label="Copy room invitation link">Copy invite</button><span class="my-seat">Seat '+(data.me+1)+' · '+safe(displayName(data.me))+'</span></div>'+tableHUD()+
+  '<button class="action secondary room-invite" data-do="copy" aria-label="Copy room invitation link">Copy invite</button><span class="my-seat">Seat '+(data.me+1)+' · '+safe(displayName(data.me))+'</span></div>'+
+  playerWaitingAlert()+tableHUD()+blindRevealBanner()+
   '<section class="table" aria-label="Live physical PILEHEAD table">'+opponentCards()+stack()+upDown()+
   '<div class="hand-area"><div class="area-label"><span>YOUR HAND <b>· '+p.handCount+'</b></span><span class="hand-controls">'+
  (selection.length?'<button type="button" class="hand-clear-button" data-do="clear-selection" aria-label="Clear selected cards">'+selection.length+' selected · Clear</button>':'')+
@@ -400,7 +405,7 @@ function render(){
  // unchanged. Otherwise a live phone can display "SNAP in progress" forever.
  if(transitionTimer!==null){clearTimeout(transitionTimer);transitionTimer=null}
  if(data?.game.phase==='play'){
-  const deadlines=[data.game.snapUntil,data.game.startedAt?data.game.startedAt+3300:null]
+  const deadlines=[data.game.snapUntil,data.game.startedAt?data.game.startedAt+3300:null,data.game.blindReveal?.expiresAt]
    .filter(t=>Number.isFinite(t)&&t>Date.now());
   if(deadlines.length)transitionTimer=setTimeout(()=>{
    transitionTimer=null;render();
