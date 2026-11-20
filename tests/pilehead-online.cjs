@@ -8,6 +8,25 @@ let chosenStarter=0;
 crypto.randomInt=max=>Math.min(chosenStarter,max-1);
 const Engine=require('../dist/pilehead/engine.js');
 const rooms=new Map(),members=new Map(),buckets=new Map();
+// Convert synthetic new-room fixtures into true pre-v1.6 52-card games.
+// Preserve all dealt slots by replacing each extra BURN with a stock card.
+function oldDeck(g,version){
+ const zones=[g.stock,g.pile,g.ashes,...g.people.flatMap(p=>[p.hand,p.up,p.down])];
+ for(const id of [52,53]){
+  const zone=zones.find(z=>z.some(c=>c.id===id));
+  assert.ok(zone,'extra BURN '+id+' exists');
+  const i=zone.findIndex(c=>c.id===id);
+  if(zone===g.stock)zone.splice(i,1);
+  else{
+   const stockIndex=g.stock.findIndex(c=>c.id<52);
+   assert.ok(stockIndex>=0,'legacy replacement stock card exists');
+   zone[i]=g.stock.splice(stockIndex,1)[0];
+  }
+ }
+ g.version=version;
+ Engine.invariant(g);
+ return g;
+}
 function conflict(){const e=Error('unique key');e.code='23505';throw e}
 async function query(sql,args=[]){
  if(sql==='SELECT 1 AS ready')return [{ready:1}];
@@ -278,7 +297,7 @@ async function run(){
  Engine.invariant(rooms.get(hybridCode).state);checks++;
  const advanceAgainStale=await request({action:'advance',code:hybridCode,revision:3},hybridHost);
  assert.equal(advanceAgainStale.status,409);checks++;
- // Arrange a valid terminal state while conserving the complete 52-card deck.
+ // Arrange a valid terminal state while conserving all 54 cards.
  const ended=rooms.get(hybridCode),g=ended.state;
  for(const seat of [0,2]){
   const player=g.people[seat];
@@ -382,7 +401,7 @@ async function run(){
  {
  // In-progress rooms from v1.3 remain readable after the v1.4 deploy.
  const previous=await request({action:'create',humans:2,bots:0,name:'Previous release'});
- rooms.get(previous.data.code).state.version='pilehead-1.3.0';
+ oldDeck(rooms.get(previous.data.code).state,'pilehead-1.3.0');
  const previousRead=await request({action:'state',code:previous.data.code},previous.data.session);
  assert.equal(previousRead.status,200);
  assert.equal(previousRead.data.game.rulesVersion,'pilehead-1.3.0');checks++;
@@ -392,7 +411,7 @@ async function run(){
  const legacyGuest=await request({action:'join',code:legacyCode,name:'Friend'});
  assert.equal(legacyGuest.status,201);
  const oldRoom=rooms.get(legacyCode);
- oldRoom.state.version='pilehead-1.2.0';
+ oldDeck(oldRoom.state,'pilehead-1.2.0');
  const readOld=await request({action:'state',code:legacyCode},legacyToken);
  assert.equal(readOld.status,200,JSON.stringify(readOld));
  assert.equal(readOld.data.game.rulesVersion,'pilehead-1.2.0');
@@ -434,17 +453,23 @@ async function run(){
  assert.equal((await request({action:'state',code:legacyCode},legacyGuest.data.session)).status,200);checks++;
 
  const old14=await request({action:'create',humans:2,bots:0,name:'Previous v1.4 room'});
- rooms.get(old14.data.code).state.version='pilehead-1.4.0';
+ oldDeck(rooms.get(old14.data.code).state,'pilehead-1.4.0');
  const read14=await request({action:'state',code:old14.data.code},old14.data.session);
  assert.equal(read14.status,200);
  assert.equal(read14.data.game.rulesVersion,'pilehead-1.4.0');checks++;
+ const old15=await request({action:'create',humans:2,bots:0,name:'Previous v1.5 room'});
+ oldDeck(rooms.get(old15.data.code).state,'pilehead-1.5.0');
+ const read15=await request({action:'state',code:old15.data.code},old15.data.session);
+ assert.equal(read15.status,200,JSON.stringify(read15));
+ assert.equal(read15.data.game.rulesVersion,'pilehead-1.5.0');
+ assert.equal(Engine.count(rooms.get(old15.data.code).state),52);checks++;
  const unknown=await request({action:'create',humans:2,bots:0,name:'Old unsupported'});
  rooms.get(unknown.data.code).state.version='pilehead-1.1.0';
  const blocked=await request({action:'state',code:unknown.data.code},unknown.data.session);
  assert.equal(blocked.status,409);assert.equal(blocked.data.error,'room_rules_changed');checks++;
  const invalid=await request({action:'create',humans:2,bots:0,name:'Corrupt legacy'});
  const invalidState=rooms.get(invalid.data.code).state;
- invalidState.version='pilehead-1.2.0';
+ oldDeck(invalidState,'pilehead-1.2.0');
  invalidState.stock[0]=invalidState.stock[1];
  const rejected=await request({action:'state',code:invalid.data.code},invalid.data.session);
  assert.equal(rejected.status,409);assert.equal(rejected.data.error,'room_rules_changed');checks++;
