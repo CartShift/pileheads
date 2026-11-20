@@ -31,3 +31,11 @@ Source-level beta checks are in `tests/pilehead-three-beta.cjs`, auto-discovered
 ## Rollback
 
 The default game uses neither `3d-beta.js` nor `3d-beta.css`; simply open `/pilehead/index.html` to use the original renderer. Revert the build-manifest beta entries and remove the classic-navigation beta link if retiring the experiment. Do not touch the authoritative rules, database, API, or shared card state.
+
+## Cinematic composition pass (2026-11-21)
+
+The opt-in beta now loads `3d-beta-v2.css` and `3d-beta-v2.js` after its original presentation assets. This is a reference-driven redesign with a rounded mahogany table, atmospheric lounge gradients, player portrait placeholders, compact opponent groups, room/round HUD, game-log and action sidebars, illustrated card art, and phone-adaptive controls. Local and online games continue using their existing controllers and server authorization; v2 rearranges live DOM nodes rather than duplicating or replacing move logic.
+
+The first 3D renderer had a structural problem: it cleared all WebGL meshes whenever the canonical controller rerendered the DOM. It now retains card meshes across turns and distinguishes all three blind cards under face-up cards. Basic interpolated motion from a selected card to a newly played pile card has been added; it is still beta animation, not deterministic physical simulation.
+
+**QA caveat:** Source-level routing/integration checks pass (including `pilehead-three-cinematic.cjs`) but no actual Chrome/Android screenshot comparison or complete live 2-device playtest has yet been performed for this visual pass. The generated player avatars are generic illustrations, not account profile photos. Do not describe the beta as pixel-perfect to the supplied visual until visually verified and adjusted on real desktop and phone viewports.
