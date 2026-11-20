@@ -20,6 +20,7 @@ assert.match(hub,/ws\.ping\(\)/);
 assert.match(hub,/ws\.close\(1008/);
 assert.match(hub,/async function|async\(\)=>/);
 assert.match(api,/module\.exports\.realtimeSnapshot/);
+assert.match(api,/SELECT revision,state->'reactionEvents'/,'cross-instance polling must not read private hands');
 assert.match(api,/module\.exports\.realtimeAuth/);
 assert.match(api,/module\.exports\.realtimeReact/);
 assert.match(api,/Number\.isInteger\(seat\)/);
