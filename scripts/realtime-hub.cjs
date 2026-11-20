@@ -25,12 +25,12 @@ function attachRealtime(server,api){
    send(peer.ws,{type:'reaction',reaction});
   }
  }
- function pushRevision(code,revision){
+ function pushRevision(code,revision,force=false){
   const peers=rooms.get(code);if(!peers||!Number.isInteger(revision))return;
   for(const peer of peers){
-   if(revision<=peer.revision)continue;
-   peer.revision=revision;
-   send(peer.ws,{type:'invalidate',revision});
+   if(!force&&revision<=peer.revision)continue;
+   peer.revision=Math.max(peer.revision,revision);
+   send(peer.ws,{type:'invalidate',revision,force});
   }
  }
  function rejectUpgrade(socket,status){
