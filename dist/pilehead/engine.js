@@ -214,6 +214,12 @@ function move(g,seat,choice){
  if(isDump&&selectedTarget!==undefined)assert(validTargets.includes(selectedTarget),'Invalid DUMP target');
  if(isDump&&selectedTarget===undefined&&s!=='down')assert(false,'Choose a DUMP target');
  if(!isDump&&choice.target!==undefined)assert(false,'Unexpected target');
+ // This face is public to all room members after a blind flip, even if
+ // the player must immediately pick up the pile. Never expose the card ID.
+ if(s==='down'&&choice.type==='play')g.blindReveal={
+  seat,card:{kind:cards[0].kind,rank:cards[0].rank??null,action:cards[0].action??null},
+  move:g.moves+1,expiresAt:Date.now()+5500
+ };
  p[s]=p[s].filter(c=>!ids.includes(c.id));
  if(bridge)p.up=p.up.filter(c=>!ids.includes(c.id));
  g.slamOpen=false;
