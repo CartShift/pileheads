@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: stack-card-game
+    runtime: node
+    plan: free
+    buildCommand: npm install --no-audit --no-fund && npm run build
+    startCommand: node scripts/render-server.cjs
+    healthCheckPath: /
+    envVars:
+      - key: PILEHEAD_DATABASE_URL
+        sync: false
