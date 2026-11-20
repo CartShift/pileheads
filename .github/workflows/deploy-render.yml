@@ -1,0 +1,25 @@
+name: Deploy STACK to Render
+
+# Render currently watches a dedicated branch. Mirror production main into it
+# until the service is switched directly to main in Render's dashboard.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  sync-render:
+    name: Sync production commit to Render
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Fast-forward Render deployment branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RENDER_BRANCH: feat/render-hosting-outage-fallback-20261120
+        run: |
+          gh api --method PATCH \
+            "repos/${GITHUB_REPOSITORY}/git/refs/heads/${RENDER_BRANCH}" \
+            -f sha="${GITHUB_SHA}" -F force=false
