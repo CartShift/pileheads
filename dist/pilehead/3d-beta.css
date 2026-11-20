@@ -1,0 +1,141 @@
+/* STACK / THREE.JS TABLETOP BETA
+ * Opt-in visual layer. Everything here is scoped to the separate beta HTML.
+ * The classic simulator has no dependency on this stylesheet or WebGL.
+ */
+body.stack-3d-beta{
+  --accent:#ffc936;--ink:#fff5e5;--gold:#ffd75d;--muted:#e1d2c6;
+  min-height:100dvh;
+  background:
+    radial-gradient(ellipse 36% 28% at 77% 13%,#e28a4f68,transparent 95%),
+    radial-gradient(ellipse 42% 35% at 18% 15%,#ab39698c,transparent 95%),
+    radial-gradient(ellipse 55% 44% at 45% 0%,#224b7c98,transparent 98%),
+    linear-gradient(112deg,#1a152c 3%,#24213b 35%,#2a2234 72%,#201a27);
+  background-attachment:fixed;
+}
+body.stack-3d-beta:before{
+  background:
+    radial-gradient(ellipse 2.5% 10% at 19% 5%,#ffd17f75,transparent 100%),
+    radial-gradient(ellipse 2.5% 10% at 81% 11%,#ffd17f64,transparent 100%),
+    repeating-linear-gradient(90deg,transparent 0 17%,#090e2150 18% 20%,transparent 21% 35%);
+  filter:blur(15px);
+  opacity:.48;
+}
+.stack-3d-beta .layout{max-width:1720px;padding:14px clamp(8px,1.6vw,26px) 45px}
+.stack-3d-beta .top{background:#10101baa;border:1px solid #fff4e341;border-radius:19px;padding:11px 18px;margin-bottom:14px;box-shadow:0 12px 45px #0005;backdrop-filter:blur(18px)}
+.stack-3d-beta .top .eyebrow{color:#ffd16c;font:800 10px/1.3 system-ui,sans-serif}
+.stack-3d-beta .top .brand{
+  font:italic 1000 clamp(30px,3.8vw,49px)/.93 Impact,'Arial Black',sans-serif;
+  letter-spacing:-.055em;transform:rotate(-4deg);
+  color:#fff8e6;text-shadow:2px 2px #111, -2px 2px #111,2px -2px #111,-2px -2px #111,4px 5px #111,6px 7px #b82734;
+}
+.stack-3d-beta .top .brand b{color:inherit}
+.stack-3d-beta .links a,.stack-3d-beta .links button{
+  background:#101421db;border:1px solid #ffebd057;border-radius:999px;
+  color:#fff3e3;padding:9px 13px;min-height:37px;font-weight:850;
+}
+.stack-3d-beta .links a:hover,.stack-3d-beta .links button:hover{background:#393347}
+.stack-3d-beta .links .beta-classic-link{background:#fff4db;color:#271d20;border-color:#fff0c8}
+.stack-3d-beta .beta-caption{padding:8px 13px;border:1px solid #ffd56378;border-radius:999px;background:#7c212ad0;color:#ffe690;font:900 11px/1 system-ui;white-space:nowrap;letter-spacing:.04em}
+.stack-3d-beta .beta-status{font:700 11px system-ui;color:#f3d9ad;min-width:110px;text-align:center}
+.stack-3d-beta .pitch{background:transparent;color:#ffeccd}
+.stack-3d-beta .pitch h1{font:900 clamp(15px,1.7vw,20px) system-ui;color:#ffdb70;text-shadow:0 3px 9px #000a}
+.stack-3d-beta .pitch p{color:#fff0e1}
+body.stack-3d-beta.pilehead-playing .table{
+  background:
+    radial-gradient(ellipse 65% 75% at 51% 35%,#e29a5c34,transparent 80%),
+    repeating-linear-gradient(92deg,#f6cf8534 0 1px,transparent 1px 6px,#210a0828 6px 8px,transparent 8px 42px),
+    repeating-linear-gradient(1deg,#42201635 0 2px,transparent 2px 9px),
+    linear-gradient(105deg,#5b2a25,#9b563a 25%,#7e402e 47%,#9a593c 70%,#5c2c27);
+  border:13px solid #502c2a;
+  border-radius:clamp(28px,4vw,58px);
+  box-shadow:0 7px 0 #281719,0 22px 15px #15070dbb,0 36px 72px #000b,
+    inset 0 2px 16px #ffc08740,inset 0 -21px 35px #160c0b91,
+    0 0 0 2px #c68e65;
+  min-height:clamp(630px,calc(100svh - 170px),970px);
+  overflow:hidden;
+  isolation:isolate;
+}
+body.stack-3d-beta.pilehead-playing .table:before{
+  inset:0;border:none;
+  background:radial-gradient(ellipse at 50% 40%,#fca76720,transparent 72%);
+  box-shadow:inset 0 0 0 2px #e7b1796b;
+  mask:none;-webkit-mask:none;
+  border-radius:inherit;pointer-events:none;
+}
+body.stack-3d-beta.pilehead-playing .table:after{
+  inset:17px;border:1px solid #f8bd7b3d;border-radius:35px;
+  box-shadow:inset 0 0 45px #2a0e1161;
+}
+.stack-3d-beta .stack-beta-three-canvas{
+  position:absolute!important;inset:0!important;display:block;
+  width:100%;height:100%;pointer-events:none!important;
+  z-index:1!important;background:transparent!important;
+}
+body.stack-3d-beta.pilehead-playing .table > *:not(.stack-beta-three-canvas){position:relative;z-index:2}
+body.stack-3d-beta.stack-3d-ready.pilehead-playing .table .card.ph-card:not(.card-ghost){
+  opacity:0!important;
+  /* Buttons stay in flow and remain reachable by pointer and keyboard. */
+}
+body.stack-3d-beta.stack-3d-ready.pilehead-playing .table .card.ph-card:not(.card-ghost):focus-visible{
+  outline:3px solid #ffe660!important;outline-offset:3px!important;
+}
+.stack-3d-beta .opponent{
+  background:#111522ba;border:1px solid #f8e4be72;box-shadow:0 8px 20px #210d13a8;
+  backdrop-filter:blur(8px);border-radius:17px;
+}
+.stack-3d-beta .opponent.current{border-color:#ffd456;box-shadow:0 0 0 2px #ffd45688,0 8px 20px #0007}
+.stack-3d-beta .opponent strong{color:#fff2dc;font-weight:950}
+.stack-3d-beta .opponent small{color:#d7d8e2}
+.stack-3d-beta .table .stack-label,.stack-3d-beta .table .area-label{color:#ffe1a0;text-shadow:0 2px 5px #1b0a0e}
+.stack-3d-beta .table .stack-count{color:#fff3db;text-shadow:0 2px 5px #1a0807}
+.stack-3d-beta .table .stack[data-play-target] .pile-card{
+  filter:drop-shadow(0 9px 12px #18070069);
+}
+.stack-3d-beta .table .pilehead-table-hud{
+  background:linear-gradient(90deg,#111c2ad4,#151721a9);
+  border:1px solid #fff1cb59;border-radius:15px;
+  color:#fff7e8;box-shadow:0 9px 28px #160c1a91;
+}
+.stack-3d-beta .table .pilehead-table-hud .hud-status{color:#ffdf6c}
+.stack-3d-beta .table .action.primary,
+.stack-3d-beta .table-actions .action.primary{
+  background:linear-gradient(180deg,#ffe16c,#ffbb25);
+  color:#24160e;border:2px solid #22141a;border-radius:14px;
+  font-weight:950;box-shadow:0 4px 0 #ad6816,0 8px 15px #260b087a;
+}
+.stack-3d-beta .action.secondary{
+  background:#101520e8;border:1px solid #f5dcc08a;color:#fff7e8;
+  border-radius:13px;font-weight:850;
+}
+.stack-3d-beta .action.slam,.stack-3d-beta [data-do="snap"]{
+  background:linear-gradient(180deg,#ff69a4,#dd175c);
+  color:#fff;border-color:#ffb8dd;
+  box-shadow:0 3px 0 #780b35,0 0 19px #ed3f947a;
+}
+.stack-3d-beta .pilehead-effect-note{
+  background:#211420eb;border:1px solid #ffcc71a8;border-radius:14px;
+  color:#fff0d4;box-shadow:0 8px 25px #0007;
+}
+.stack-3d-beta .instructions,.stack-3d-beta .move-history{background:#191523e8;border:1px solid #efce9f5a;border-radius:17px;color:#fff2db}
+.stack-3d-beta .instructions p,.stack-3d-beta .instructions .rules{color:#f4e4d4}
+.stack-3d-beta .instructions .rules div{background:#301e2ab8;border-color:#ffdc9957}
+.stack-3d-beta .setup.panel{background:#131725eb;border:1px solid #ffd08367;backdrop-filter:blur(15px)}
+.stack-3d-beta .setup h2{color:#ffdb69}
+.stack-3d-beta .overlay{z-index:30}
+@media(max-width:700px){
+  .stack-3d-beta .layout{padding:6px 6px 23px}
+  .stack-3d-beta .top{padding:9px 11px;border-radius:12px;margin-bottom:6px}
+  .stack-3d-beta .top .brand{font-size:31px}
+  .stack-3d-beta .beta-caption{padding:6px;font-size:9px}
+  .stack-3d-beta .beta-status{display:none}
+  body.stack-3d-beta.pilehead-playing .table{
+    border-width:7px;border-radius:26px;min-height:650px;
+    box-shadow:0 10px 35px #000b,inset 0 0 18px #1607079a;
+  }
+  .stack-3d-beta .opponent{padding:5px 4px}
+  .stack-3d-beta .links .beta-classic-link{padding:7px 10px}
+  .stack-3d-beta .pitch{padding:6px 0}
+}
+@media(prefers-reduced-motion:reduce){
+ .stack-3d-beta .table .action,.stack-3d-beta .card{animation:none!important;transition:none!important}
+}
