@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
-const tests = fs.readdirSync('tests').filter(name => /^pilehead-.*\.cjs$/.test(name) && name !== 'pilehead-browser.cjs').sort();
+const tests = fs.readdirSync('tests').filter(name => /^pilehead-.*\.cjs$/.test(name) && !['pilehead-browser.cjs','pilehead-live-browser.cjs'].includes(name)).sort();
 if (!tests.length) throw new Error('No STACK tests discovered');
 for (const name of tests) {
   console.log('\n> ' + name);

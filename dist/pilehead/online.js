@@ -77,6 +77,16 @@ function updateState(next){
  if(data&&next.revision!==data.revision){selection=[];swapCard=null;dumpDraft=null}
  if(data&&next.game?.round!==data.game?.round){endDismissed=false;sortMode='dealt';selection=[];swapCard=null;dumpDraft=null}
  data=next;lastRevision=data.revision;lastSyncAt=Date.now();networkError='';roomIssue='';render();
+ if(session){
+  window.StackLive?.connect({code:room,session,
+   revision:()=>data?.revision??-1,
+   onInvalidate:packet=>{
+    if(packet?.force||Number(packet?.revision)>(data?.revision??-1)){
+     refresh(true);
+     schedulePoll(100);
+    }
+   }});
+ }
  if(session&&!pollTimer)schedulePoll();
 }
 function setRequesting(flag){
@@ -131,6 +141,7 @@ async function refresh(quiet=false,forceHeartbeat=false){
    next.game.blindReveal?.move!==data.game.blindReveal?.move||
    next.game.blindReveal?.expiresAt!==data.game.blindReveal?.expiresAt
   );
+  const reactionsChanged=!!data&&next.game.reactions?.at(-1)?.id!==data.game.reactions?.at(-1)?.id;
   const presenceChanged=!!data&&(next.members.length!==data.members.length||
    next.members.some((m,i)=>m.presence!==data.members[i]?.presence||m.name!==data.members[i]?.name));
   if(!data||next.revision!==data.revision||
@@ -139,9 +150,10 @@ async function refresh(quiet=false,forceHeartbeat=false){
   else if(presenceChanged){
    const recovering=!!networkError||!!roomIssue;
    data=next;lastRevision=next.revision;lastSyncAt=Date.now();networkError='';roomIssue='';
+   window.StackLive?.sync(next);
    if(recovering||next.game.phase!=='play')render();
    else patchPresenceUI();
-  }else {const hadError=!!networkError||!!roomIssue;networkError='';roomIssue='';if(hadError)render()}
+  }else {const hadError=!!networkError||!!roomIssue;networkError='';roomIssue='';if(reactionsChanged){data=next;window.StackLive?.sync(next)}if(hadError)render()}
   reconnecting=false;
  }catch(e){
   pollFailures=Math.min(6,pollFailures+1);
@@ -372,7 +384,7 @@ function playView(){
  return '<div class="pitch"><h1>'+safe(statusTitle())+'</h1><p>ROUND '+(g.round||1)+' · ROOM '+safe(room)+' · '+(data.humanCount||data.capacity)+' humans · '+(data.botCount||0)+' bots</p></div>'+
   '<div class="online-room-tools"><span class="room-identity"><span class="online-pulse" aria-hidden="true"></span> Room <strong>'+safe(room)+'</strong></span>'+
   '<button class="action secondary room-invite" data-do="copy" aria-label="Copy room invitation link">Copy invite</button><span class="my-seat">Seat '+(data.me+1)+' · '+safe(displayName(data.me))+'</span></div>'+
-  playerWaitingAlert()+tableHUD()+blindRevealBanner()+
+  playerWaitingAlert()+tableHUD()+(window.StackLive?.buttonMarkup?.()||'')+blindRevealBanner()+
   '<section class="table" aria-label="Live physical PILEHEAD table">'+opponentCards()+stack()+upDown()+
   '<div class="hand-area"><div class="area-label"><span>YOUR HAND <b>· '+p.handCount+'</b></span><span class="hand-controls">'+
  (selection.length?'<button type="button" class="hand-clear-button" data-do="clear-selection" aria-label="Clear selected cards">'+selection.length+' selected · Clear</button>':'')+
@@ -477,6 +489,7 @@ function render(){
   selected:selection.length,moveNo:data?.game.moves||0,online:true});
  window.StackUX?.sync({active:data?active():false,moveNo:data?.game.moves||0,
   stage:data?.game.phase==='play'?stageNow():null});
+ window.StackLive?.sync(data);
 }
 async function command(action,more={}){
  if(!data)return;
@@ -524,6 +537,15 @@ root.addEventListener('click',async e=>{
  if(target.dataset.card){await selectCard({id:Number(target.dataset.card),source:target.dataset.source});return}
  if(target.dataset.blind!==undefined&&target.dataset.blind!==''){await command('move',{move:{type:'play',source:'down',index:Number(target.dataset.blind)}});return}
  const action=target.dataset.do;if(!action)return;
+ if(action==='react'){
+  await window.StackLive?.react(target.dataset.kind,async kind=>{
+   try{
+    const response=await api({action:'react',code:room,kind});
+    window.StackLive?.showReaction(response.reaction);
+   }catch(e){notice=setMessage(e.message);render()}
+  });
+  return;
+ }
  if(action==='create'||action==='join'){
   const typedName=$('online-name')?.value?.trim()||'';
   draftName=typedName;
@@ -650,8 +672,14 @@ window.addEventListener('pointercancel',()=>{
 function schedulePoll(delay){
  if(pollTimer){clearTimeout(pollTimer);pollTimer=null}
  if(!session||!data||document.visibilityState==='hidden'||roomIssue)return;
- // Tight active-turn feedback; retain backoff and conservative lobby polling.
- const base=data.game.phase==='play'?(active()||data.game.followup?.length?850:1250):3000;
+ // WebSocket is the primary channel. Poll as a fallback, for presence and
+ // reconciliation, or quickly when a coordinated bot action is pending.
+ const bots=data.game.botSeats||[];
+ const botDue=data.game.phase==='play'&&(
+  bots.includes(data.game.turn)||data.game.botFollowupReady||data.game.botSlamReady||
+  data.game.pendingDump&&bots.includes(data.game.pendingDump.seat));
+ const base=window.StackLive?.isLive()&&!botDue?9500:
+  data.game.phase==='play'?(active()||data.game.followup?.length?850:1250):3000;
  const backoff=pollFailures?Math.min(18000,base*2**Math.min(pollFailures,4)):base;
  pollTimer=setTimeout(pollOnce,delay??(backoff+Math.floor(Math.random()*220)));
 }
