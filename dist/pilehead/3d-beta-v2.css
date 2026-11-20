@@ -202,7 +202,8 @@ body.stack-3d-beta .table .move-history .event:first-child{
 }
 /* Seat compositions: three players along far side, optional fourth at right. */
 body.stack-3d-beta.pilehead-playing #app .table .opponents{
- position:absolute!important;inset:0!important;width:100%!important;height:0!important;
+ position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+ pointer-events:none!important;
  display:block!important;margin:0!important;padding:0!important;
  overflow:visible;transform:none!important;perspective:none!important;
 }
@@ -213,7 +214,7 @@ body.stack-3d-beta.pilehead-playing #app .table .opponent{
  display:flex;flex-direction:column;align-items:center;
  background:transparent!important;border:0!important;box-shadow:none!important;
  padding:0!important;opacity:1;filter:none!important;
- text-align:center;
+ text-align:center;pointer-events:auto!important;
 }
 body.stack-3d-beta .table[data-stack-opponents="1"] .opponent:nth-child(1){left:50%!important}
 body.stack-3d-beta .table[data-stack-opponents="2"] .opponent:nth-child(1){left:38%!important}
