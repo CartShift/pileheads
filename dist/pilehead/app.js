@@ -23,13 +23,13 @@ function viewSeat(){return mode==='bots'?0:g?.turn??0}
 function getPlayer(){return g.people[viewSeat()]}
 function currentStage(){return E.stage(g,viewSeat())}
 function isTurn(){return g.phase==='play'&&g.turn===viewSeat()}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({g,mode,seats,setupSeat,covered,notice,lastMove}))}catch(e){console.warn('Save unavailable',e)}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({g,mode,seats,setupSeat,covered,notice,lastMove,practiceMode}))}catch(e){console.warn('Save unavailable',e)}}
 function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
  if(!x||!['pilehead-1.1.0','pilehead-1.2.0','pilehead-1.3.0','pilehead-1.4.0','pilehead-1.5.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
  // Keep the existing 1.2 DUMP behavior during saved games.
  // 1.1 sessions stay on the 52-card rules rather than acquiring non-dealt cards.
  if(x.g.version==='pilehead-1.1.0')x.g.version='pilehead-1.2.0';
- E.invariant(x.g);g=x.g;mode=x.mode;seats=x.seats;setupSeat=x.setupSeat??0;
+ E.invariant(x.g);g=x.g;mode=x.mode;seats=x.seats;setupSeat=x.setupSeat??0;practiceMode=x.practiceMode===true&&mode==='bots'&&seats===2;
  covered=mode==='hotseat'&&g.phase!=='over';challengeOpen=false;notice=x.notice||'';lastMove=x.lastMove||null;return true;
  }catch{return false}}
 function card(c,{interactive=false,selected=false,back=false,source='',small=false}={}){
