@@ -165,7 +165,7 @@ test('random bot does not pick up voluntarily when it can play',()=>{
 });
 test('all ten numbered ranks are ordinary including 10 and not unlimited escape cards',()=>{
  const a=E.deck();assert.equal(a.filter(c=>c.kind==='number').length,40);
- assert.deepEqual(E.ACTIONS,{reset:2,ghost:2,under:2,skip:2,burn:2,dump:2});
+ assert.deepEqual(E.ACTIONS,{reset:2,ghost:2,under:2,skip:2,burn:4,dump:2});
  const g=opened(),ten=inject(g,0,'hand',c=>c.kind==='number'&&c.rank===10);
  g.limit={type:'min',value:9};
  const before=g.ashes.length;
