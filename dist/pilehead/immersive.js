@@ -309,7 +309,7 @@ function captureMove({gameKey,seat,moveNo,move}={}){
  }
  capturedMove={gameKey,seat,moveNo,points,stamp:Date.now()};
 }
-const motionScale=()=>motionMode==='quick'?.62:1;
+const motionScale=()=>motionMode==='quick'?.62:.86;
 const canMove=()=>!motion.matches&&motionMode!=='off'&&document.visibilityState!=='hidden'&&
  typeof Element!=='undefined'&&typeof Element.prototype.animate==='function';
 function placeFor(table,seat,layer,ownSeat){

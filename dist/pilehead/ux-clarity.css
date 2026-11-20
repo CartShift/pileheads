@@ -1,0 +1,67 @@
+/* STACK UX clarity: calm mobile-first physical tabletop; game logic is unchanged. */
+.stack-intro-note{margin-top:12px!important;font-size:12px;text-align:center}
+.stack-practice-setup{padding:10px 12px;border:1px solid #d8bb8277;border-radius:10px;background:#1d5140;color:#f8e4c7!important}
+body.pilehead-playing .pilehead-table-hud{position:relative;align-items:center}
+.stack-rules-peek{position:relative;flex:none;margin-left:auto;z-index:52}
+.stack-rules-peek summary{list-style:none;display:flex;align-items:center;justify-content:center;min-width:64px;min-height:39px;padding:6px 10px;border:1px solid #d3b8877c;border-radius:10px;color:#ffe4b1;background:#23483d;font:800 12px system-ui;cursor:pointer}
+.stack-rules-peek summary::-webkit-details-marker{display:none}
+.stack-rules-peek summary:focus-visible{outline:3px solid #f9d795;outline-offset:3px}
+.stack-rules-pop{position:absolute;right:0;top:calc(100% + 7px);width:min(320px,calc(100vw - 32px));max-height:min(60svh,440px);overflow:auto;padding:14px;background:#122e28;border:1px solid #dabc80;border-radius:13px;box-shadow:0 16px 46px #000b;color:#f3e7d1}
+.stack-rules-pop>strong{display:block;margin-bottom:8px;font-size:12px;letter-spacing:.08em}
+.stack-rules-pop p{margin:0;padding:8px 0;border-top:1px solid #f1d8aa25;font:500 12px/1.4 system-ui}
+.stack-rules-pop p b{display:block;color:#f5ce91;font-size:11px;margin-bottom:3px}
+.stack-practice-coach{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;width:min(100%,840px);margin:7px auto;padding:10px 12px;border:1px solid #e3be86a0;border-radius:12px;background:#1d4539;color:#eee8cc}
+.stack-practice-coach div{min-width:0}.stack-practice-coach span{display:block;margin-bottom:2px;font:850 10px system-ui;letter-spacing:.12em;color:#eac68a}
+.stack-practice-coach strong{display:block;font:850 14px system-ui}.stack-practice-coach p{margin:3px 0 0;font:550 12px/1.4 system-ui;color:#d1e2d3}
+.stack-practice-coach button{flex:none;min-width:36px;min-height:36px;border:1px solid #bca6788f;border-radius:9px;background:#16382f;color:#fff0ce;font-size:21px}
+body.pilehead-playing .table .card:focus-visible{outline:3px solid #fbe1a8;outline-offset:3px}
+body.pilehead-playing .table .hand-area .card-row.hand{touch-action:pan-x}
+body.pilehead-playing .table-actions.is-submitting:after{content:'Confirming move…';display:block;flex-basis:100%;text-align:center;color:#ffe1ad;font:750 11px system-ui}
+@media(max-width:700px){
+ body.pilehead-playing{padding-bottom:calc(206px + env(safe-area-inset-bottom))}
+ /* DUMP, blind reveal and hotseat handoff must always cover the fixed action dock. */
+ body.pilehead-playing .overlay{z-index:1500!important}
+ body.pilehead-playing .layout{padding-inline:4px}
+ body.pilehead-playing .top{padding-top:2px;padding-bottom:5px}
+ body.pilehead-playing .top .brand{font-size:22px}
+ body.pilehead-playing .table{min-height:0!important;grid-template-rows:auto auto auto auto!important;padding:7px 5px 4px!important;gap:2px!important;border-width:4px!important}
+ body.pilehead-playing .table .opponents{min-height:0!important;padding-block:2px!important;gap:4px!important}
+ body.pilehead-playing .table .opponent{padding:3px 2px!important}
+ body.pilehead-playing .table .table-center{min-height:154px!important;padding:2px 0!important}
+ body.pilehead-playing .table .stack[data-play-target]{min-height:148px!important}
+ body.pilehead-playing .table .zone.your-up{min-height:78px!important}
+ body.pilehead-playing .table .zone .card-row{min-height:76px!important;padding:2px 1px 4px!important}
+ body.pilehead-playing .table .hand-area{min-height:0!important}
+ body.pilehead-playing .table .card-row.hand{min-height:118px!important;max-height:none!important;padding:16px 9px 5px!important}
+ body.pilehead-playing .pilehead-table-hud{margin-bottom:5px;padding:6px 8px;min-height:51px;gap:5px}
+ body.pilehead-playing .pilehead-table-hud .hud-meta{display:none}
+ .stack-rules-peek summary{min-width:53px;min-height:38px;padding:6px 7px;font-size:11px}
+ body.pilehead-playing .pilehead-selected-effect,body.pilehead-playing .pilehead-effect-note{margin:4px auto 6px;padding:7px 10px;min-height:0;font-size:11px;line-height:1.35}
+ body.pilehead-playing .toolbar.table-actions{
+  position:fixed!important;left:50%;bottom:max(6px,env(safe-area-inset-bottom));transform:translateX(-50%);
+  z-index:75!important;width:min(calc(100% - 12px),560px)!important;
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  gap:6px!important;margin:0!important;padding:7px!important;
+  border-radius:13px!important;background:#102f29f7;backdrop-filter:blur(12px);
+  box-shadow:0 6px 28px #000c!important
+ }
+ body.pilehead-playing .toolbar.table-actions .action{min-height:46px!important;padding:8px 9px!important;font-size:13px!important}
+ body.pilehead-playing .toolbar.table-actions .primary{grid-column:1/-1;order:0}
+ body.pilehead-playing .toolbar.table-actions .snap,
+ body.pilehead-playing .toolbar.table-actions .slam{order:1}
+ body.pilehead-playing .toolbar.table-actions .secondary{order:2}
+ body.pilehead-playing .toolbar.table-actions .action:only-child,
+ body.pilehead-playing .toolbar.table-actions .table-action-prompt{grid-column:1/-1}
+ body.pilehead-playing .toolbar.table-actions .table-action-prompt{min-height:44px!important;order:3}
+ body.pilehead-playing .online-room-tools{min-height:0;padding:4px 7px}
+ body.pilehead-playing .meta,body.pilehead-playing .playtest-tools{margin-top:6px}
+}
+@media(max-width:380px){
+ body.pilehead-playing .table .table-center{min-height:143px!important}
+ body.pilehead-playing .toolbar.table-actions .action{font-size:12px!important}
+ .stack-rules-peek summary{min-width:46px}
+}
+@media(prefers-reduced-motion:reduce){
+ .stack-rules-peek,.stack-rules-pop,.stack-practice-coach{animation:none!important;transition:none!important}
+ body.pilehead-playing .toolbar.table-actions{backdrop-filter:none}
+}
