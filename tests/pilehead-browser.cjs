@@ -86,6 +86,7 @@ async function run(browser,width,height,mobile){
    const overlay=await page.evaluate(()=>getComputedStyle(document.querySelector('.stack-rules-peek')).position);
    assert.equal(overlay,'relative','the rules menu anchors to its own summary');
   }
+  await page.locator('.stack-starter-reveal').waitFor({state:'hidden'});
   await page.locator('[data-stack-dismiss-coach]').click();
   assert.equal(await page.locator('.stack-practice-coach').count(),0,'coaching can be dismissed');
   assert.ok(errors.length===0,'browser errors: '+errors.join('; '));
