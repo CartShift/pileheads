@@ -215,7 +215,10 @@ module.exports.realtimeAuth=async function realtimeAuth(room,token){
  return{code:r.code,seat,revision:Number(r.revision),reactions:recentReactions(r.state)};
 };
 module.exports.realtimeSnapshot=async function realtimeSnapshot(room){
- const r=await load(code(room));
- return{revision:Number(r.revision),reactions:recentReactions(r.state)};
+ // Lightweight cross-instance check; do not transfer the hidden game state.
+ const rows=await query("SELECT revision,state->'reactionEvents' AS reaction_events,expires_at FROM pilehead_rooms WHERE code=$1",[code(room)]);
+ if(!rows.length)fail(404,'room_not_found');
+ if(new Date(rows[0].expires_at)<=new Date())fail(410,'room_expired');
+ return{revision:Number(rows[0].revision),reactions:recentReactions({reactionEvents:rows[0].reaction_events})};
 };
 module.exports.realtimeReact=realtimeReact;
