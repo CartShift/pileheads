@@ -1,6 +1,6 @@
 # STACK Card Game
 
-STACK (internally still named **PILEHEAD**) is a physical-first, 52-card game with a browser tabletop, bot opponents, private multiplayer rooms, a deck gallery and printable playtest materials.
+STACK (internally still named **PILEHEAD**) is a physical-first, 54-card game with a browser tabletop, bot opponents, private multiplayer rooms, a deck gallery and printable playtest materials.
 
 **Play:** `/pilehead/index.html` (site root redirects here).
 **Deck gallery:** `/pilehead/gallery.html` · **Print:** `/pilehead/print.html` · **Official playtest kit:** `/pilehead/playtest.html`.
@@ -52,4 +52,4 @@ The build outputs `vercel-static/` (historical folder name, gitignored). **Rende
 
 This repo now builds only STACK. Experimental SPARK and TILT apps, the separate Sites/Cloudflare Worker, and their tests were retired from current source. Historical sources remain recoverable via Git history. Existing ChatGPT Sites deployments are **not changed** by this cleanup.
 
-The game retains its `/pilehead/` URLs, browser save keys, `/api/pilehead`, database schema and backward-compatible room handling. No card rule or multiplayer protocol changes are included. Passing source tests alone does not certify production multiplayer; test real devices, reconnect and rematch. See `docs/repository.md`.
+The game retains its `/pilehead/` URLs, browser save keys, `/api/pilehead`, database schema and backward-compatible room handling. This v1.6 release changes the production deck from 52 to 54 cards by adding two BURN copies. Other action counts and all number-card counts remain unchanged. Existing 52-card rooms continue with their historical deck until rematch. Passing source tests alone does not certify production multiplayer; test real devices, reconnect and rematch. See `docs/repository.md`.
