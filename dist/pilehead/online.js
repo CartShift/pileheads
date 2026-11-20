@@ -685,6 +685,12 @@ function startPolling(){
   pollFailures=0;refresh(true,true).finally(()=>schedulePoll());
  }});
 }
+$('new')?.addEventListener('click',()=>{
+ // The shared header button has no local-game controller in online mode.
+ // Leave the current seat only after the player confirms.
+ if(data?.game.phase==='play'&&!confirm('Leave this table and create a new online game?'))return;
+ location.assign(location.pathname+'?online=1');
+});
 window.addEventListener('stack-deck-theme-change',()=>render());
 render();startPolling();
 if(room&&session){reconnecting=true;refresh(false)}
