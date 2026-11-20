@@ -1,0 +1,546 @@
+/* STACK 3D BETA / CINEMATIC GAME ROOM
+ * Reference-inspired presentation, isolated to beta. Canonical game DOM stays
+ * interactive underneath the pointer-transparent Three.js card meshes.
+ */
+body.stack-3d-beta{
+ --accent:#ffd044;--gold:#ffd448;--ink:#fff5e4;--muted:#d2c4be;
+ background:
+   radial-gradient(ellipse 17% 42% at 13% 8%,#af2f5a99,transparent 90%),
+   radial-gradient(ellipse 18% 40% at 89% 9%,#bd7545ac,transparent 90%),
+   radial-gradient(ellipse 38% 54% at 51% -1%,#15518cbb,transparent 85%),
+   radial-gradient(ellipse 56% 45% at 47% 78%,#56333db6,transparent 98%),
+   linear-gradient(118deg,#160e23 0%,#29233f 34%,#1b2336 60%,#24121f 100%)!important;
+ color:#fff3e2;
+}
+body.stack-3d-beta::before{
+ position:fixed;inset:0;z-index:0;
+ background:
+   linear-gradient(90deg,transparent 18%,#040d23a8 19% 20%,transparent 21% 33%,#060e1c92 34% 35%,transparent 36% 65%,#040c1d92 66% 67%,transparent 68%),
+   radial-gradient(ellipse 9% 20% at 13% 23%,#ffb7774b,transparent),
+   radial-gradient(ellipse 9% 20% at 87% 17%,#ffbd784a,transparent);
+ filter:blur(24px);opacity:.75;
+}
+body.stack-3d-beta .layout{
+ max-width:1900px!important;width:100%;margin:0 auto;
+ padding:0 clamp(6px,.7vw,14px) 24px!important;
+ position:relative;z-index:1;
+}
+body.stack-3d-beta .layout>.top{
+ position:relative;z-index:40;
+ background:transparent!important;
+ border:0!important;border-radius:0!important;
+ margin:0!important;padding:8px clamp(10px,1.4vw,24px)!important;
+ min-height:75px;
+ display:flex;gap:clamp(8px,1.6vw,24px);align-items:center;
+ box-shadow:none!important;backdrop-filter:none!important;
+}
+.stack-3d-beta .layout>.top .brand{
+ font:italic 1000 clamp(30px,3.5vw,58px)/.92 Impact,'Arial Black',system-ui!important;
+ letter-spacing:-.08em;
+ -webkit-text-stroke:1.7px #161116;
+ paint-order:stroke fill;
+ text-shadow:3px 3px 0 #161116,6px 6px 0 #e02738,10px 8px 0 #ffca31!important;
+}
+.stack-3d-beta .layout>.top .eyebrow{display:none}
+.stack-3d-beta .layout>.top .links{margin-left:auto;gap:clamp(4px,.65vw,9px)}
+.stack-3d-beta .layout>.top .links a,.stack-3d-beta .layout>.top .links button{
+ color:#fff4e6!important;background:#11121ebf!important;
+ border:1.5px solid #ffe6c873!important;box-shadow:0 3px 11px #0005;
+ border-radius:24px;padding:9px 12px;font:850 12px/1.15 system-ui,sans-serif;
+}
+.stack-3d-beta .layout>.top .links a.beta-classic-link{
+ background:#ffdd62!important;color:#26191e!important;border-color:#fff0bb!important;
+}
+.stack-3d-beta .beta-caption{
+ font:900 11px system-ui;letter-spacing:.12em;
+ color:#ffe4a3;background:#6d274d96;border:1px solid #ffdfae75;
+}
+.stack-3d-beta .beta-status{display:none}
+.stack-3d-beta #app{position:relative;isolation:isolate}
+body.stack-3d-beta.pilehead-playing #app .table{
+ position:relative!important;display:block!important;
+ overflow:hidden!important;
+ width:100%!important;
+ height:max(710px,calc(100svh - 88px))!important;
+ max-height:980px!important;
+ min-height:710px!important;
+ margin:0!important;padding:0!important;
+ border:none!important;outline:0!important;border-radius:0!important;
+ background:transparent!important;
+ box-shadow:none!important;transform:none!important;
+ isolation:isolate;
+}
+/* Large oval mahogany tabletop with illuminated bevel and visible grain. */
+body.stack-3d-beta.pilehead-playing #app .table::before{
+ content:"";position:absolute!important;z-index:0!important;
+ left:2%;top:15%;width:97%;height:101%;inset:auto;
+ border:clamp(9px,1.4vw,21px) solid #4c2825;
+ border-radius:50% / 32%;
+ opacity:1;pointer-events:none;
+ transform:perspective(1200px) rotateX(5deg);
+ background:
+   radial-gradient(ellipse 45% 24% at 54% 31%,#ffc28e38,transparent 95%),
+   repeating-linear-gradient(91deg,#eeb0770a 0 1px,transparent 1px 5px,#250e1240 6px 7px,transparent 8px 23px),
+   repeating-linear-gradient(1deg,transparent 0 5px,#24101833 6px 7px,transparent 8px 16px),
+   linear-gradient(111deg,#59272b 0%,#9c533a 22%,#ae6340 41%,#925035 66%,#5c2d30 100%);
+ background-clip:padding-box;
+ box-shadow:
+   0 18px 0 #261417,0 29px 22px #120812aa,0 50px 70px #05020bc4,
+   inset 0 0 0 2px #df9061a1,
+   inset 0 8px 22px #ffc39d4d,
+   inset 0 -70px 80px #28101d81;
+ -webkit-mask:none!important;mask:none!important;
+}
+body.stack-3d-beta.pilehead-playing #app .table::after{
+ content:"";position:absolute!important;pointer-events:none;
+ z-index:0!important;left:4%;top:17%;right:2%;bottom:-7%;inset:auto;
+ width:94%;height:97%;border-radius:50%/32%;
+ border:2px solid #ffb87b43;box-shadow:inset 0 0 34px #41182772;
+ opacity:1;
+}
+body.stack-3d-beta .table .stack-beta-room-light{
+ position:absolute!important;inset:0;z-index:-1!important;
+ pointer-events:none!important;
+ background:
+  radial-gradient(ellipse 7% 9% at 13% 20%,#ffb55f62,transparent),
+  radial-gradient(ellipse 7% 10% at 77% 7%,#f7ab6a51,transparent);
+ filter:blur(10px);
+}
+body.stack-3d-beta .table .stack-beta-table-glow{
+ position:absolute!important;left:30%;top:39%;width:45%;height:44%;
+ background:radial-gradient(ellipse,#ec97432c,transparent 75%);
+ filter:blur(14px);pointer-events:none!important;z-index:1!important;
+}
+body.stack-3d-beta.pilehead-playing #app .table>.stack-beta-three-canvas{
+ position:absolute!important;inset:0!important;z-index:3!important;
+ width:100%;height:100%;pointer-events:none!important;
+}
+body.stack-3d-beta.pilehead-playing #app .table>*:not(.stack-beta-three-canvas){
+ z-index:4;position:absolute;
+}
+/* On a production game the controllers are now table-anchored overlays. */
+body.stack-3d-beta.pilehead-playing #app .table .pitch{
+ position:absolute!important;top:0;left:22%;right:24%;width:auto;
+ margin:0;padding:0;min-height:35px;
+ display:flex;justify-content:center;gap:8px;
+ pointer-events:none;
+}
+body.stack-3d-beta .table .pitch h1{
+ color:#ffe3a1;font:900 clamp(13px,1vw,17px)/1.3 system-ui;
+ background:#141628b8;border:1px solid #fff0cf48;
+ border-radius:999px;padding:7px 12px;text-align:center;
+}
+body.stack-3d-beta .table .pitch p{display:none}
+body.stack-3d-beta.pilehead-playing #app .table .online-room-tools{
+ position:absolute!important;left:1%;top:0%;width:200px;
+ border:1.5px solid #f9dbe887;background:#14141fca;color:#fff5dd;
+ border-radius:20px;box-shadow:0 9px 25px #0007;
+ padding:9px 12px;z-index:12!important;
+}
+body.stack-3d-beta.pilehead-playing #app .table .pilehead-table-hud{
+ position:absolute!important;right:1%;top:0%;left:auto;
+ width:min(235px,22%);min-height:0;
+ background:#141520df!important;
+ border:1.5px solid #eee1d0b5!important;border-radius:18px;
+ padding:10px 12px!important;color:#fff6de;
+ box-shadow:0 10px 26px #0007;
+ display:flex;flex-direction:column;gap:4px;
+}
+body.stack-3d-beta .table .pilehead-table-hud .hud-main,
+body.stack-3d-beta .table .pilehead-table-hud .hud-meta{
+ display:flex;flex-wrap:wrap;justify-content:center;gap:7px;
+}
+body.stack-3d-beta .table .pilehead-table-hud .hud-status{
+ font:900 clamp(12px,1.2vw,16px)/1.12 system-ui;color:#ffd346;
+}
+body.stack-3d-beta .table .pilehead-table-hud .hud-guidance{font-size:10px;text-align:center}
+body.stack-3d-beta .table .pilehead-table-hud .hud-meta{font-size:10px;white-space:nowrap}
+body.stack-3d-beta .table .stack-beta-side-intro{
+ left:1%;top:12%;width:clamp(165px,16vw,245px);
+ padding:15px;display:flex;gap:10px;align-items:center;
+ border:1.5px solid #f4d3df91;border-radius:19px;
+ background:#151323c9;backdrop-filter:blur(14px);
+ box-shadow:0 12px 25px #0009;
+ color:#fff6e4;pointer-events:none;
+}
+body.stack-3d-beta .stack-beta-side-intro .stack-beta-crown{
+ font-size:43px;color:#ffce29;line-height:1;text-shadow:0 4px #7c3c0f;
+}
+body.stack-3d-beta .stack-beta-side-intro strong{
+ display:block;font:900 clamp(11px,1.1vw,16px)/1.12 system-ui;
+}
+body.stack-3d-beta .stack-beta-side-intro small{
+ display:block;color:#f5e6de;font-size:clamp(10px,.9vw,12px);
+ margin-top:6px;line-height:1.28;
+}
+/* A readable live log, not an oversized permanent sidebar. */
+body.stack-3d-beta.pilehead-playing #app .table .move-history{
+ position:absolute!important;left:1%;top:31%;width:clamp(175px,17vw,250px);
+ max-height:43%;min-height:100px;display:block!important;overflow:hidden;
+ color:#fff7e9;background:#0b101dcf!important;
+ border:1.5px solid #efd4ec9e!important;border-radius:19px;
+ box-shadow:0 13px 30px #0009;backdrop-filter:blur(13px);
+ padding:13px!important;
+}
+body.stack-3d-beta .table .move-history summary{
+ font:900 clamp(13px,1vw,16px)/1.15 system-ui;color:#fff9ef;
+ padding:2px 0 10px;cursor:pointer;
+ border-bottom:1px solid #fff5d43d;
+}
+body.stack-3d-beta .table .move-history .event-list{
+ display:flex!important;flex-direction:column;align-items:stretch;gap:5px;
+ max-height:calc(100% - 32px);overflow:auto;padding:6px 0 0;margin:0;
+}
+body.stack-3d-beta .table .move-history .event{
+ display:block;background:transparent!important;border:0!important;
+ padding:7px 7px!important;margin:0!important;border-radius:8px;
+ font:750 11px/1.3 system-ui;color:#fff1e5;white-space:normal;
+}
+body.stack-3d-beta .table .move-history .event:first-child{
+ color:#fff8dd;background:#6c431cf0!important;
+ border:1px solid #ffda69a8!important;
+}
+/* Seat compositions: three players along far side, optional fourth at right. */
+body.stack-3d-beta.pilehead-playing #app .table .opponents{
+ position:absolute!important;inset:0!important;width:100%!important;height:0!important;
+ display:block!important;margin:0!important;padding:0!important;
+ overflow:visible;transform:none!important;perspective:none!important;
+}
+body.stack-3d-beta.pilehead-playing #app .table .opponent{
+ position:absolute!important;top:2.5%;left:50%;width:clamp(104px,12vw,190px)!important;
+ max-width:none!important;min-width:0!important;margin:0!important;
+ transform:translateX(-50%)!important;
+ display:flex;flex-direction:column;align-items:center;
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ padding:0!important;opacity:1;filter:none!important;
+ text-align:center;
+}
+body.stack-3d-beta .table[data-stack-opponents="1"] .opponent:nth-child(1){left:50%!important}
+body.stack-3d-beta .table[data-stack-opponents="2"] .opponent:nth-child(1){left:38%!important}
+body.stack-3d-beta .table[data-stack-opponents="2"] .opponent:nth-child(2){left:64%!important}
+body.stack-3d-beta .table[data-stack-opponents="3"] .opponent:nth-child(1){left:29%!important}
+body.stack-3d-beta .table[data-stack-opponents="3"] .opponent:nth-child(2){left:50%!important}
+body.stack-3d-beta .table[data-stack-opponents="3"] .opponent:nth-child(3){left:71%!important}
+body.stack-3d-beta .table[data-stack-opponents="4"] .opponent:nth-child(1){left:27%!important}
+body.stack-3d-beta .table[data-stack-opponents="4"] .opponent:nth-child(2){left:47%!important}
+body.stack-3d-beta .table[data-stack-opponents="4"] .opponent:nth-child(3){left:67%!important}
+body.stack-3d-beta .table[data-stack-opponents="4"] .opponent:nth-child(4){left:86%!important;top:24%!important}
+body.stack-3d-beta.pilehead-playing #app .table .opponent .stack-beta-portrait,
+body.stack-3d-beta.pilehead-playing #app .table .stack-beta-me .stack-beta-portrait{
+ width:clamp(50px,5.4vw,90px);height:clamp(50px,5.4vw,90px);
+ display:block;flex:none;border-radius:50%;overflow:hidden;
+ background:radial-gradient(circle at 50% 25%,#fff3d6,#d6848d 75%);
+ border:4px solid #ffd839;box-shadow:0 0 0 3px #251020,0 8px 25px #000b;
+ position:relative!important;
+}
+body.stack-3d-beta .table .stack-beta-portrait.portrait-1{border-color:#ffd43b}
+body.stack-3d-beta .table .stack-beta-portrait.portrait-2{border-color:#f08ccb}
+body.stack-3d-beta .table .stack-beta-portrait.portrait-3{border-color:#51e5fa}
+body.stack-3d-beta .table .stack-beta-portrait.portrait-4{border-color:#a78bfd}
+body.stack-3d-beta .table .stack-beta-portrait svg{width:100%;height:100%;display:block}
+body.stack-3d-beta.pilehead-playing #app .table .opponent strong{
+ display:block!important;position:relative;z-index:2;
+ width:auto;min-width:75px;max-width:100%;
+ margin:-7px 0 3px;padding:4px 11px;
+ background:#ffce37!important;color:#251419!important;
+ border:2px solid #261318!important;border-radius:999px;
+ box-shadow:0 4px 0 #5f2c1b,0 5px 14px #0008;
+ font:900 clamp(12px,1.1vw,17px)/1.12 system-ui;
+ text-overflow:ellipsis;
+}
+body.stack-3d-beta .table .opponent.current strong{background:#ffe66f!important}
+body.stack-3d-beta .table .stack-beta-opponent-count,
+body.stack-3d-beta .table .stack-beta-me-count{
+ position:absolute!important;z-index:3;
+ top:40px;right:-2px;border:2px solid #ead6cfc4;
+ border-radius:999px;padding:3px 7px;background:#10131feb;
+ color:#fff;font:900 12px/1 system-ui;
+}
+body.stack-3d-beta .table .opponent small{display:none!important}
+body.stack-3d-beta .table .opponent .held-cards{
+ display:flex!important;min-height:23px;max-height:35px;
+ width:auto;margin:0 auto!important;transform:none!important;
+}
+body.stack-3d-beta .table .opponent .held-back{
+ width:clamp(19px,2.35vw,34px)!important;
+ height:clamp(30px,3.3vw,51px)!important;
+ background:#054a66 url('assets/stack-back.webp') center/cover no-repeat!important;
+ border:1.5px solid #efdcaa!important;border-radius:4px!important;
+ margin-left:-8px;box-shadow:1px 4px 5px #170c12a3;
+}
+body.stack-3d-beta .table .opponent .mini-cards{
+ display:flex!important;justify-content:center!important;
+ height:clamp(37px,3.7vw,55px)!important;margin:10px auto 0!important;
+ filter:drop-shadow(0 4px 3px #000a);transform:none!important;
+}
+body.stack-3d-beta .table .opponent .mini-cards .mini{
+ width:clamp(22px,2.8vw,39px)!important;
+ height:clamp(34px,3.8vw,56px)!important;
+ margin-left:-4px;border-radius:5px;border:1px solid #f5e1c9;
+ box-shadow:0 3px 5px #0008;
+}
+/* Center one actual pile, with a separate stock. There is no fake nine-card row. */
+body.stack-3d-beta.pilehead-playing #app .table .table-center{
+ position:absolute!important;
+ left:24%;top:34%;width:52%;height:34%;min-height:0!important;
+ margin:0!important;padding:0!important;display:grid!important;
+ grid-template-columns:1fr 1.5fr!important;gap:clamp(15px,3.4vw,58px);
+ justify-items:center;align-items:center!important;
+}
+body.stack-3d-beta.pilehead-playing #app .table .table-center .stack{
+ width:100%;height:100%;min-height:0;
+ display:flex!important;align-items:center;justify-content:center;
+ padding:0!important;position:relative;transform:none!important;
+}
+body.stack-3d-beta.pilehead-playing #app .table .table-center .stack:nth-child(3){display:none!important}
+body.stack-3d-beta .table-center .stack .pile-card{
+ margin:5px auto!important;height:clamp(120px,13vw,204px)!important;
+ width:clamp(93px,10vw,156px);overflow:visible!important;
+}
+body.stack-3d-beta .table-center .stack:nth-child(2) .pile-card{
+ filter:drop-shadow(0 8px 14px #0009);
+}
+body.stack-3d-beta .table-center .stack .pile-card .card{
+ width:clamp(93px,9.6vw,155px)!important;
+ height:clamp(127px,13.5vw,211px)!important;
+}
+body.stack-3d-beta .table-center .stack .stack-label{
+ font:900 clamp(10px,.9vw,13px) system-ui;
+ color:#fff0d9;text-shadow:0 2px 5px #180a13;
+}
+body.stack-3d-beta .table-center .stack .stack-count{
+ color:#fff0d8;font:800 clamp(10px,.9vw,13px) system-ui;
+ white-space:normal;text-align:center;line-height:1.14;
+}
+body.stack-3d-beta.pilehead-playing #app .table .zone.your-up{
+ position:absolute!important;
+ bottom:22%;left:29%;width:44%!important;
+ padding:0!important;margin:0!important;
+ min-height:115px!important;background:transparent!important;
+ display:flex!important;flex-direction:column;align-items:center;
+}
+body.stack-3d-beta.pilehead-playing #app .table .zone .area-label{color:#ffde95}
+body.stack-3d-beta.pilehead-playing #app .table .zone .card-row{
+ min-height:95px;justify-content:center;gap:clamp(5px,1vw,17px);
+ padding:6px!important;overflow:visible;
+}
+body.stack-3d-beta.pilehead-playing #app .table .zone .card{
+ width:clamp(67px,6.4vw,95px)!important;
+ height:clamp(96px,9vw,139px)!important;
+}
+body.stack-3d-beta.pilehead-playing #app .table .hand-area{
+ position:absolute!important;
+ bottom:1%;left:23%;width:52%!important;
+ min-height:170px!important;height:21%;
+ margin:0!important;padding:0!important;
+ border:0!important;box-shadow:none!important;background:transparent!important;
+ border-radius:0!important;overflow:visible!important;
+}
+body.stack-3d-beta .table .hand-area .area-label{
+ color:#ffdf92;font-weight:900;letter-spacing:.12em;margin:0!important;padding:0!important;
+}
+body.stack-3d-beta .table .card-row.hand{
+ min-height:145px!important;height:auto;width:100%;
+ max-height:210px!important;
+ justify-content:safe center;overflow-x:auto;overflow-y:hidden;
+ padding:20px 12px 14px!important;gap:0;
+}
+body.stack-3d-beta .table .card-row.hand .card{
+ width:clamp(89px,9vw,137px)!important;height:clamp(130px,12.5vw,190px)!important;
+ flex:0 0 clamp(89px,9vw,137px)!important;
+ margin-left:var(--card-overlap,-12px);
+}
+body.stack-3d-beta .table .card-row.hand .card:first-child{margin-left:0}
+body.stack-3d-beta .table .stack-beta-me{
+ position:absolute!important;left:8%;bottom:6%;z-index:8!important;
+ display:flex;flex-direction:column;align-items:center;
+ filter:drop-shadow(0 9px 9px #0009);
+}
+body.stack-3d-beta .table .stack-beta-me .stack-beta-portrait{
+ width:clamp(72px,8vw,132px)!important;height:clamp(72px,8vw,132px)!important;
+ background:radial-gradient(circle at 50% 20%,#ffd4b7,#e18d90);
+}
+body.stack-3d-beta .table .stack-beta-me strong{
+ display:block;min-width:83px;text-align:center;
+ background:#ffcc37;color:#241519;border:3px solid #24131a;
+ border-radius:999px;padding:4px 13px;margin-top:-6px;
+ box-shadow:0 5px 0 #96501c;font:900 clamp(14px,1.3vw,20px)/1.15 system-ui;
+}
+body.stack-3d-beta .table .stack-beta-me .stack-beta-me-count{
+ top:auto;bottom:-5px;right:-31px;
+}
+body.stack-3d-beta.pilehead-playing #app .table .toolbar.table-actions{
+ position:absolute!important;z-index:12!important;
+ right:1.5%;top:56%;width:clamp(168px,19vw,300px)!important;
+ margin:0!important;padding:0!important;
+ display:flex!important;flex-direction:column!important;justify-content:center;
+ align-items:stretch;flex-wrap:nowrap;
+ gap:clamp(8px,1vw,14px);min-height:0;
+}
+body.stack-3d-beta .table .toolbar.table-actions .action{
+ flex:0 0 auto!important;
+ width:100%;min-height:clamp(54px,5.4vw,83px)!important;
+ font:italic 1000 clamp(15px,1.55vw,25px)/1 Impact,'Arial Black',system-ui!important;
+ text-transform:uppercase;letter-spacing:.015em;
+ border:3px solid #18121a!important;border-radius:999px!important;
+ color:#fffcf4;box-shadow:0 5px 0 #2b131a,0 8px 13px #0009!important;
+}
+body.stack-3d-beta .table .toolbar.table-actions .action.primary{
+ background:linear-gradient(180deg,#ffec68 0%,#ffcb27 78%,#f4a520)!important;
+ color:#191219!important;border:3px solid #21121a!important;
+ box-shadow:0 5px 0 #a65d18,0 8px 16px #000a,0 0 0 2px #ffe596!important;
+}
+body.stack-3d-beta .table .toolbar.table-actions .action.secondary{
+ background:linear-gradient(180deg,#302636,#11121c)!important;
+ color:#fff5e7;border:2px solid #fff0da92!important;
+}
+body.stack-3d-beta .table .toolbar.table-actions .action.snap,
+body.stack-3d-beta .table .toolbar.table-actions .action.slam{
+ background:linear-gradient(180deg,#ff3fa1,#db0054)!important;
+ border-color:#fff2e5!important;color:#fff;
+ box-shadow:0 4px 0 #731335,0 0 22px #fa1f9b8b!important;
+}
+body.stack-3d-beta .table .toolbar.table-actions .table-action-prompt{
+ min-height:75px;border:1px solid #fff3c48b;border-radius:16px;
+ background:#121421e5;color:#ffe7a2;padding:11px;
+}
+body.stack-3d-beta.pilehead-playing #app .table .pilehead-effect-note,
+body.stack-3d-beta.pilehead-playing #app .table .pilehead-selected-effect{
+ position:absolute!important;top:24%;left:33%;width:33%;
+ background:#151622d9!important;color:#fff1dc;
+ border:1px solid #ffe7ad96;border-radius:15px;
+ box-shadow:0 12px 25px #0007;pointer-events:none;
+ padding:10px;
+}
+body.stack-3d-beta.pilehead-playing #app .table .pilehead-selected-effect{top:70%;left:75%;width:22%}
+body.stack-3d-beta .table .stack-beta-action-mark{
+ bottom:1%;left:42%;transform:translateX(-50%);
+ pointer-events:none;
+ font:900 11px system-ui;letter-spacing:.24em;
+ color:#f7dcaeb9;text-shadow:0 3px 5px #0008;
+}
+body.stack-3d-beta.pilehead-playing #app .table .stack-beta-effect{
+ z-index:20!important;top:42%;left:52%;
+}
+body.stack-3d-beta.stack-3d-ready.pilehead-playing .table .card.ph-card:not(.card-ghost){
+ opacity:0!important;
+}
+body.stack-3d-beta.pilehead-playing #app .table .card.ph-card:focus-visible{
+ outline:3px solid #ffda54!important;
+ outline-offset:4px;
+}
+body.stack-3d-beta .table .stack-beta-side-intro,
+body.stack-3d-beta .table .move-history,
+body.stack-3d-beta .table .opponent,
+body.stack-3d-beta .table .toolbar.table-actions,
+body.stack-3d-beta .table .zone,
+body.stack-3d-beta .table .hand-area{pointer-events:auto}
+/* Tablet and smaller desktop: protect room for central cards and actions. */
+@media(max-width:1120px){
+ body.stack-3d-beta.pilehead-playing #app .table .stack-beta-side-intro{width:155px;left:.4%;padding:8px}
+ body.stack-3d-beta .stack-beta-side-intro .stack-beta-crown{font-size:27px}
+ body.stack-3d-beta.pilehead-playing #app .table .move-history{width:155px;left:.5%;top:30%;padding:8px!important}
+ body.stack-3d-beta.pilehead-playing #app .table .table-center{left:21%;width:57%}
+ body.stack-3d-beta.pilehead-playing #app .table .hand-area{left:23%;width:53%!important}
+ body.stack-3d-beta.pilehead-playing #app .table .toolbar.table-actions{right:.7%;width:175px!important}
+}
+/* Mobile: one-column physical table, game actions in a thumb-accessible dock. */
+@media(max-width:760px){
+ body.stack-3d-beta .layout>.top{min-height:58px!important;padding:5px 7px!important}
+ body.stack-3d-beta .layout>.top .brand{font-size:28px!important}
+ body.stack-3d-beta .beta-caption{font-size:9px;padding:6px}
+ body.stack-3d-beta .layout>.top .links{gap:3px}
+ body.stack-3d-beta .layout>.top .links>a:not(.beta-classic-link){display:none}
+ body.stack-3d-beta.pilehead-playing #app .table{
+  height:max(700px,calc(100svh - 75px))!important;
+  min-height:690px!important;
+ }
+ body.stack-3d-beta.pilehead-playing #app .table::before{
+  top:10%;left:-16%;width:132%;height:98%;
+  border-radius:50%/34%;border-width:8px;
+ }
+ body.stack-3d-beta.pilehead-playing #app .table::after{display:none}
+ body.stack-3d-beta.pilehead-playing #app .table .online-room-tools{
+  top:1%;left:1%;width:auto;max-width:46%;padding:5px;font-size:10px
+ }
+ body.stack-3d-beta.pilehead-playing #app .table .pilehead-table-hud{
+  right:1%;top:1%;width:47%;padding:5px!important;border-radius:10px;
+ }
+ body.stack-3d-beta .table .pilehead-table-hud .hud-guidance{display:none}
+ body.stack-3d-beta.pilehead-playing #app .table .pitch,
+ body.stack-3d-beta.pilehead-playing #app .table .stack-beta-side-intro,
+ body.stack-3d-beta.pilehead-playing #app .table .move-history,
+ body.stack-3d-beta .table .stack-beta-action-mark{display:none!important}
+ body.stack-3d-beta.pilehead-playing #app .table .opponent{
+  top:11%!important;width:29%!important;transform:translateX(-50%)!important;
+ }
+ body.stack-3d-beta .table[data-stack-opponents="1"] .opponent:nth-child(1){left:50%!important}
+ body.stack-3d-beta .table[data-stack-opponents="2"] .opponent:nth-child(1){left:28%!important}
+ body.stack-3d-beta .table[data-stack-opponents="2"] .opponent:nth-child(2){left:72%!important}
+ body.stack-3d-beta .table[data-stack-opponents="3"] .opponent:nth-child(1){left:17%!important}
+ body.stack-3d-beta .table[data-stack-opponents="3"] .opponent:nth-child(2){left:50%!important}
+ body.stack-3d-beta .table[data-stack-opponents="3"] .opponent:nth-child(3){left:83%!important}
+ body.stack-3d-beta .table[data-stack-opponents="4"] .opponent:nth-child(1){left:15%!important}
+ body.stack-3d-beta .table[data-stack-opponents="4"] .opponent:nth-child(2){left:38%!important}
+ body.stack-3d-beta .table[data-stack-opponents="4"] .opponent:nth-child(3){left:62%!important}
+ body.stack-3d-beta .table[data-stack-opponents="4"] .opponent:nth-child(4){left:86%!important;top:11%!important}
+ body.stack-3d-beta .table .opponent .stack-beta-portrait{
+  width:44px!important;height:44px!important;border-width:3px!important;
+ }
+ body.stack-3d-beta .table .opponent strong{font-size:10px!important;min-width:0;padding:3px 5px!important}
+ body.stack-3d-beta .table .opponent .held-cards{display:none!important}
+ body.stack-3d-beta .table .opponent .mini-cards{margin-top:6px!important;height:38px!important}
+ body.stack-3d-beta .table .opponent .mini-cards .mini{width:22px!important;height:32px!important}
+ body.stack-3d-beta .table .stack-beta-opponent-count{top:20px!important;right:-8px!important}
+ body.stack-3d-beta.pilehead-playing #app .table .table-center{
+  left:4%;top:37%;width:92%;height:21%;gap:14px!important;
+ }
+ body.stack-3d-beta .table-center .stack .pile-card{height:125px!important}
+ body.stack-3d-beta .table-center .stack .pile-card .card{width:90px!important;height:127px!important}
+ body.stack-3d-beta.pilehead-playing #app .table .zone.your-up{
+  bottom:26%;left:6%;width:88%!important;min-height:90px!important;
+ }
+ body.stack-3d-beta.pilehead-playing #app .table .hand-area{
+  bottom:10%;left:2%;width:96%!important;
+  min-height:115px!important;height:19%;
+ }
+ body.stack-3d-beta .table .card-row.hand{height:135px!important;min-height:125px!important}
+ body.stack-3d-beta .table .card-row.hand .card{
+  width:83px!important;height:120px!important;flex-basis:83px!important;
+ }
+ body.stack-3d-beta.pilehead-playing #app .table .stack-beta-me{
+  left:4%;bottom:45%;transform:scale(.62);transform-origin:bottom left;
+ }
+ body.stack-3d-beta.pilehead-playing #app .table .toolbar.table-actions{
+  position:fixed!important;top:auto!important;bottom:0!important;
+  left:0!important;right:0!important;
+  width:100%!important;max-width:none!important;
+  display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;
+  gap:7px!important;padding:9px max(8px,env(safe-area-inset-right)) calc(9px + env(safe-area-inset-bottom))!important;
+  background:#111423f5;border-top:1px solid #ffc45e7d;
+  backdrop-filter:blur(15px);z-index:99!important;
+ }
+ body.stack-3d-beta .table .toolbar.table-actions .action{
+  width:auto!important;min-height:45px!important;
+  flex:1 1 100px!important;font-size:15px!important;
+  border-width:2px!important;
+ }
+ body.stack-3d-beta.pilehead-playing #app .table .pilehead-effect-note{
+  top:29%;left:16%;width:69%;font-size:11px;
+ }
+ body.stack-3d-beta.pilehead-playing #app .table .pilehead-selected-effect{display:none}
+}
+/* Phone landscape: retain a compact single-table view instead of clipping cards. */
+@media(max-height:570px) and (orientation:landscape){
+ body.stack-3d-beta.pilehead-playing #app .table{height:510px!important;min-height:510px!important}
+ body.stack-3d-beta.pilehead-playing #app .table .opponent{top:4%!important}
+ body.stack-3d-beta.pilehead-playing #app .table .table-center{top:26%;height:36%}
+ body.stack-3d-beta.pilehead-playing #app .table .zone.your-up{bottom:22%;min-height:55px!important}
+ body.stack-3d-beta.pilehead-playing #app .table .hand-area{bottom:0;min-height:90px!important}
+ body.stack-3d-beta .table .card-row.hand .card{height:90px!important;width:63px!important;flex-basis:63px!important}
+ body.stack-3d-beta.pilehead-playing #app .table .toolbar.table-actions .action{min-height:40px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .stack-3d-beta .table .card,
+ .stack-3d-beta .table .action{animation:none!important;transition:none!important}
+}
