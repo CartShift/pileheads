@@ -594,22 +594,51 @@ window.addEventListener('pointercancel',()=>{
  touchGesture?.ghost?.remove();touchGesture=null;root.querySelector('[data-play-target]')?.classList.remove('drop-hover');
 });
 
-function startPolling(){
- if(pollTimer)return;pollTimer=setInterval(async()=>{
-  if(document.visibilityState==='hidden'||busy||!session||!data)return;
-  await refresh(true);
-  if(busy||polling||!data||data.game.phase!=='play')return;
+function schedulePoll(delay){
+ if(pollTimer){clearTimeout(pollTimer);pollTimer=null}
+ if(!session||!data||document.visibilityState==='hidden'||roomIssue)return;
+ const base=data.game.phase==='play'?(active()||data.game.followup?.length?1100:1650):3000;
+ const backoff=pollFailures?Math.min(18000,base*2**Math.min(pollFailures,4)):base;
+ pollTimer=setTimeout(pollOnce,delay??(backoff+Math.floor(Math.random()*220)));
+}
+async function pollOnce(){
+ pollTimer=null;
+ if(!session||!data||document.visibilityState==='hidden')return;
+ try{
+  if(!busy)await refresh(true);
+  if(busy||polling||!data||data.game.phase!=='play'||pollFailures)return;
   const bots=data.game.botSeats||[];
-  // Allow a brief physical reaction window for a freshly drawn matching card.
+  // Only one visible participant coordinates server-authoritative bot turns.
+  const onlineHumans=data.members.filter(m=>m.presence==='online').map(m=>m.seat);
+  if(onlineHumans.length&&Math.min(...onlineHumans)!==data.me)return;
   if(data.game.followup?.length&&Date.now()-lastChangeAt<4700)return;
   if(data.game.snapUntil&&Date.now()<data.game.snapUntil&&!data.game.botFollowupReady)return;
-   if(snapBlocked())return;
-   if((bots.includes(data.game.turn)||data.game.botFollowupReady||data.game.pendingDump&&bots.includes(data.game.pendingDump.seat))&&Date.now()-botTickAt>=1250){
-   botTickAt=Date.now();
-   await command('advance');
+  if(snapBlocked())return;
+  if((bots.includes(data.game.turn)||data.game.botFollowupReady||
+     data.game.pendingDump&&bots.includes(data.game.pendingDump.seat))&&Date.now()-botTickAt>=1250){
+   botTickAt=Date.now();await command('advance');
   }
- },1750);
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&session)refresh(true)});
+ }finally{schedulePoll()}
+}
+function sendAway(){
+ if(!room||!session||!data||markedAway)return;
+ markedAway=true;
+ api({action:'presence',code:room,away:true},session,{keepalive:true}).catch(()=>{});
+}
+function startPolling(){
+ schedulePoll();
+ document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'){
+   if(pollTimer){clearTimeout(pollTimer);pollTimer=null}
+   sendAway();
+  }else if(session){
+   pollFailures=0;refresh(true,true).finally(()=>schedulePoll());
+  }
+ });
+ window.addEventListener('pagehide',sendAway);
+ window.addEventListener('online',()=>{if(session&&document.visibilityState==='visible'){
+  pollFailures=0;refresh(true,true).finally(()=>schedulePoll());
+ }});
 }
 window.addEventListener('stack-deck-theme-change',()=>render());
 render();startPolling();
