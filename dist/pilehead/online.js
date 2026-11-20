@@ -309,6 +309,7 @@ function tableActions(){
  let buttons='';
  if(g.phase==='over')buttons='<button class="action primary" data-do="rematch">Play again · same room</button>';
  else {
+  if(g.followup?.length)buttons+='<button class="action snap" data-do="snap" '+(busy?'disabled':'')+'>SNAP · matching draw</button>';
   if(slam)buttons+='<button class="action slam" data-do="slam" '+(busy?'disabled':'')+'>SLAM · '+g.slam[0].ids.length+' cards</button>';
   if(legal){
    const burn=current().hand?.some(c=>selection.includes(c.id)&&c.action==='burn');
@@ -513,6 +514,7 @@ root.addEventListener('click',async e=>{
  if(action==='play')await play();
  if(action==='take')await command('move',{move:{type:'take'}});
  if(action==='slam'){const m=data?.game.slam?.[0];if(m)await command('move',{move:m})}
+ if(action==='snap'){const m=data?.game.followup?.[0];if(m)await command('move',{move:m})}
  if(action==='copy'){try{await navigator.clipboard.writeText(invite());notice='Invite link copied.'}catch{notice='Copy this link: '+invite()}render()}
  if(action==='share'){try{if(navigator.share)await navigator.share({title:'PILEHEAD',url:invite(),text:'Join my PILEHEAD card game'});else await navigator.clipboard.writeText(invite())}catch{}}
 });
