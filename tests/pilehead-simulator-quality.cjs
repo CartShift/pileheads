@@ -49,7 +49,7 @@ selectCase(online);
 }
 assert.match(local,/if\(bridged&&selection\.some/,'Local bridge selection must include all required hand cards');
 assert.match(online,/if\(bridge&&selection\.some/,'Online bridge selection must include all required hand cards');
-assert.equal((local.match(/submitPlay\(selectedPlay\(\)\)/g)||[]).length,4,
+assert.equal((local.match(/submitPlay\(selectedPlay\(\)\)/g)||[]).length,5,
  'Play button, pile tap, keyboard and drag must share the normalized move');
 assert.match(local,/botQueuedFor===key/,'UI renders must not restart the same bot turn timer');
 assert.doesNotMatch(local,/4800/,'SNAP cannot introduce a 4.8-second delay');
