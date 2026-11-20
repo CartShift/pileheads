@@ -137,6 +137,26 @@ body.stack-3d-beta.stack-3d-ready.pilehead-playing .table .card.ph-card:not(.car
 .stack-3d-beta .setup.panel{background:#131725eb;border:1px solid #ffd08367;backdrop-filter:blur(15px)}
 .stack-3d-beta .setup h2{color:#ffdb69}
 .stack-3d-beta .overlay{z-index:30}
+.stack-3d-beta .stack-beta-effect{
+  position:absolute!important;left:50%;top:43%;z-index:9!important;
+  transform:translate(-50%,-50%) rotate(-7deg);
+  pointer-events:none!important;
+  font:italic 1000 clamp(44px,9vw,116px)/1 Impact,'Arial Black',sans-serif;
+  letter-spacing:-.035em;
+  -webkit-text-stroke:clamp(2px,.4vw,5px) #241114;
+  paint-order:stroke fill;
+  color:#ffdc36;
+  text-shadow:5px 7px #cf3222,10px 14px #2d1021,0 0 50px #f47a29a9;
+  animation:stack-beta-pop .85s cubic-bezier(.15,.8,.2,1) both;
+}
+.stack-3d-beta .stack-beta-effect-dump{color:#db8cff;text-shadow:5px 7px #7938b3,10px 14px #200f29,0 0 50px #b079ff9c}
+.stack-3d-beta .stack-beta-effect-slam{color:#fff5cf;text-shadow:5px 7px #e15429,10px 14px #241018,0 0 50px #ffbe609c}
+@keyframes stack-beta-pop{
+  0%{opacity:0;transform:translate(-50%,-50%) rotate(-12deg) scale(.5)}
+  16%{opacity:1;transform:translate(-50%,-50%) rotate(-5deg) scale(1.16)}
+  35%,67%{opacity:1;transform:translate(-50%,-50%) rotate(-7deg) scale(1)}
+  100%{opacity:0;transform:translate(-50%,-76%) rotate(-7deg) scale(.9)}
+}
 @media(max-width:700px){
   .stack-3d-beta .layout{padding:6px 6px 23px}
   .stack-3d-beta .top{padding:9px 11px;border-radius:12px;margin-bottom:6px}
