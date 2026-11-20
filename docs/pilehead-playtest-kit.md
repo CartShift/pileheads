@@ -1,15 +1,15 @@
 # PILEHEAD — official external playtest kit
 
-**Freeze:** 2026-11-18. **Canonical rules:** `docs/pilehead-design.md` (engine `pilehead-1.3.0`). **Status:** controlled human test, **not** manufacturing / commercial approval.
+**Current deck revision:** 2026-11-20. **Canonical rules:** `docs/pilehead-design.md` (engine `pilehead-1.6.0`). **Status:** controlled human test, **not** manufacturing / commercial approval.
 
 ## Goal and scope
 
-Find out whether unfamiliar players can learn PILEHEAD, choose to replay it, and prefer its purpose-built deck to traditional Shithead. Evaluate **the game itself**, separately from the browser simulator's look and feel. Do not change the deck or core rules within a cohort. The digital engine remains unchanged; only clearly labeled trials may use experimental rules in physical play.
+Find out whether unfamiliar players can learn PILEHEAD, choose to replay it, and prefer its purpose-built deck to traditional Shithead. Evaluate **the game itself**, separately from the browser simulator's look and feel. Do not change the deck or core rules within a cohort. The old 52-card deck and new 54-card BURN ×4 deck must be identified as separate cohorts. The digital engine remains unchanged; only clearly labeled trials may use experimental rules in physical play.
 
 ## Ready-to-use assets
 
 - Online or solo play: `/pilehead/index.html`
-- Print all 52 playable cards: `/pilehead/print.html` (print at 100%, preferably in opaque sleeves)
+- Print all 54 playable cards: `/pilehead/print.html` (print at 100%, preferably in opaque sleeves)
 - Print one-page player rules and a paper/digital scorecard: `/pilehead/playtest.html`
 - Canonical edge cases: `docs/pilehead-design.md`
 - Human/bot and online implementation notes: `docs/pilehead-online.md`
@@ -38,7 +38,7 @@ Find out whether unfamiliar players can learn PILEHEAD, choose to replay it, and
 - `players`: 2–5
 - `experience`: none / some / Shithead regulars
 - `medium`: physical / digital local / digital online
-- `variant`: canonical / final-duel-triple experiment
+- `variant`: canonical-54 / historical-52 / final-duel-triple experiment
 - `learnMinutes`: minutes until a group starts playing without assistance
 - `roundMinutes`: total duration from first move to last player identified
 - `ruleClarifications`: count of external help requests
@@ -71,7 +71,7 @@ Compare canonical and variant across separate complete rounds, with roughly bala
 ## Engineering / release gates
 
 - Automated: GitHub Actions Node 24 `npm test`, `npm run build:vercel`, `npm run build` on relevant changes.
-- Rules: preserve 52 unique card IDs and identical result across local, server and print examples.
+- Rules: preserve 54 unique card IDs (and all 52 original identities for legacy rooms) and identical result across local, server and print examples.
 - Bot SLAM: detect a complete independent four even when `slamOpen === false`.
 - Online: complete two-device joins, SNAP race, concurrent SLAM, reconnect, rematch, and final results on actual phones.
 - Browser: 360px portrait, tablet, desktop and landscape; mouse, touch, keyboard and reduced-motion.
