@@ -18,7 +18,9 @@ body.pilehead-playing .table .card:focus-visible{outline:3px solid #fbe1a8;outli
 body.pilehead-playing .table .hand-area .card-row.hand{touch-action:pan-x}
 body.pilehead-playing .table-actions.is-submitting:after{content:'Confirming move…';display:block;flex-basis:100%;text-align:center;color:#ffe1ad;font:750 11px system-ui}
 @media(max-width:700px){
- body.pilehead-playing{padding-bottom:calc(156px + env(safe-area-inset-bottom))}
+ body.pilehead-playing{padding-bottom:calc(206px + env(safe-area-inset-bottom))}
+ /* DUMP, blind reveal and hotseat handoff must always cover the fixed action dock. */
+ body.pilehead-playing .overlay{z-index:1500!important}
  body.pilehead-playing .layout{padding-inline:4px}
  body.pilehead-playing .top{padding-top:2px;padding-bottom:5px}
  body.pilehead-playing .top .brand{font-size:22px}
