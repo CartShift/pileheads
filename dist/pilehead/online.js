@@ -26,8 +26,9 @@ function selectMatching(cards,id){
  const picked=cards.find(c=>c.id===id);if(!picked)return;
  if(selection.includes(id)){selection=selection.filter(x=>x!==id);return}
  const prior=selection.map(x=>cards.find(c=>c.id===x)).filter(Boolean);
- selection=prior.length&&prior.every(c=>sameFace(c,picked))?[...selection,id]:
-  cards.filter(c=>sameFace(c,picked)).map(c=>c.id);
+ // First tap picks one card. Further taps build a matching group; tapping
+ // another rank changes the selection rather than silently playing all copies.
+ selection=prior.length&&prior.every(c=>sameFace(c,picked))?[...selection,id]:[id];
 }
 function label(c){return c.kind==='action'?c.action.toUpperCase():String(c.rank)}
 function card(c,opts={}){
@@ -45,7 +46,7 @@ function setMessage(e){const map={
  server_error:'The room server could not create your room. Please try again.',
  'Failed to fetch':'Could not reach the room server. Check your connection and try again.',
  'NetworkError when attempting to fetch resource.':'Could not reach the room server. Check your connection and try again.',
- online_not_configured:'Online games need the room database connection to be configured on Vercel.',
+ online_not_configured:'Online games need the room database connection to be configured on Render.',
  service_unavailable:'The room server is temporarily unavailable.',
  session_required:'Your saved seat session is missing. Rejoin from your invitation link.',
  not_member:'This browser does not own a seat in this room.',
@@ -69,6 +70,8 @@ function invite(){return location.origin+location.pathname+'?room='+encodeURICom
 function storeName(value){try{localStorage.setItem(NAME,value)}catch{}}
 function updateState(next){
  if(!next||!next.ok)return;
+ // A slow poll must not roll the table back after a successful move response.
+ if(data&&next.code===data.code&&Number.isInteger(next.revision)&&next.revision<data.revision)return;
  if(next.session){session=next.session;safeSessionSave(STORE+next.code,session)}
  if(room!==next.code){room=next.code;history.replaceState(null,'',location.pathname+'?room='+encodeURIComponent(room)+(deploymentShare?'&_vercel_share='+encodeURIComponent(deploymentShare):''))}
  if(!data||next.revision!==data.revision)lastChangeAt=Date.now();
@@ -77,8 +80,18 @@ function updateState(next){
  data=next;lastRevision=data.revision;lastSyncAt=Date.now();networkError='';roomIssue='';render();
  if(session&&!pollTimer)schedulePoll();
 }
+function setRequesting(flag){
+ // A live table stays mounted while a request is in flight. Replacing it here
+ // resets physical-card positions, keyboard focus and touch-scroll momentum.
+ const dock=root.querySelector('.table-actions');if(!dock)return;
+ dock.classList.toggle('is-submitting',flag);
+ dock.setAttribute('aria-busy',String(flag));
+ for(const button of dock.querySelectorAll('button[data-do]'))button.disabled=flag;
+}
 async function doAction(payload){
- if(busy)return;busy=true;notice='';render();
+ if(busy)return;busy=true;notice='';
+ if(data?.game.phase==='play')setRequesting(true);else render();
+ let failed=false;
  try{const next=await api(payload,payload.action==='create'||payload.action==='join'?null:session);updateState(next);
   if(payload.action==='create')notice='Room created. Share your invitation link.';
   if(payload.action==='join')notice='You joined. Choose your face-up cards while waiting.';
@@ -87,6 +100,7 @@ async function doAction(payload){
    if(payload.action==='decline')notice='Passed on SNAP. Next player may continue.';
   networkError='';
  }catch(e){
+  failed=true;
   if(permanentRoomErrors.has(e.message)){
    roomIssue=e.message;notice='';networkError='';
   }else{
@@ -94,7 +108,11 @@ async function doAction(payload){
    if(e.message==='stale_revision')await refresh(true);
    if(e.message==='online_not_configured')networkError=notice;
   }
- }finally{busy=false;render()}
+ }finally{
+  busy=false;
+  if(failed||!data||data.game.phase!=='play')render();
+  else setRequesting(false);
+ }
 }
 async function refresh(quiet=false,forceHeartbeat=false){
  if(!room||!session||polling)return;
@@ -115,10 +133,15 @@ async function refresh(quiet=false,forceHeartbeat=false){
   );
   const presenceChanged=!!data&&(next.members.length!==data.members.length||
    next.members.some((m,i)=>m.presence!==data.members[i]?.presence||m.name!==data.members[i]?.name));
-  if(!data||next.revision!==data.revision||presenceChanged||
+  if(!data||next.revision!==data.revision||
      next.game.followup?.length!==data.game.followup?.length||
      timeGateChanged||reconnecting)updateState(next);
-  else {const hadError=!!networkError||!!roomIssue;networkError='';roomIssue='';if(hadError)render()}
+  else if(presenceChanged){
+   const recovering=!!networkError||!!roomIssue;
+   data=next;lastRevision=next.revision;lastSyncAt=Date.now();networkError='';roomIssue='';
+   if(recovering||next.game.phase!=='play')render();
+   else patchPresenceUI();
+  }else {const hadError=!!networkError||!!roomIssue;networkError='';roomIssue='';if(hadError)render()}
   reconnecting=false;
  }catch(e){
   pollFailures=Math.min(6,pollFailures+1);
@@ -154,6 +177,20 @@ function playerWaitingAlert(){
   safe(displayName(g.turn))+(state==='offline'?' disconnected':' is away')+'</strong><span>'+
   (state==='offline'?'Their turn is waiting for them to reconnect. The table will update automatically.':
    'They have switched away from the game. Their turn is still waiting.')+'</span></div>';
+}
+// Presence-only heartbeats update labels and the turn banner in place; the
+// hand, pile, animations and current selection do not remount or jitter.
+function patchPresenceUI(){
+ for(const element of root.querySelectorAll('.opponent[data-seat]')){
+  const seat=Number(element.dataset.seat),badge=element.querySelector('.player-presence');
+  if(badge)badge.outerHTML=presenceBadge(seat);
+ }
+ root.querySelector('.room-presence-alert')?.remove();
+ const tools=root.querySelector('.online-room-tools'),alert=playerWaitingAlert();
+ if(tools&&alert)tools.insertAdjacentHTML('afterend',alert);
+ const hud=root.querySelector('.pilehead-table-hud');
+ if(hud)hud.outerHTML=tableHUD();
+ const title=root.querySelector('.pitch h1');if(title)title.textContent=statusTitle();
 }
 function blindRevealBanner(){
  const reveal=data?.game?.blindReveal;
@@ -469,6 +506,11 @@ async function selectCard(c){
  if(c.source!==stageNow()&&!bridge)return;
  const my=current()[c.source],card=my?.find(x=>x.id===c.id);if(!card)return;
  selectMatching(bridge?[...current().hand,...current().up]:my,c.id);
+ if(bridge&&selection.some(id=>current().up.some(card=>card.id===id))){
+  // Grouped face-up play includes all remaining hand cards, as the engine requires.
+  selection=[...current().hand.map(card=>card.id),
+   ...selection.filter(id=>current().up.some(card=>card.id===id))];
+ }
  if(selection.includes(c.id)){try{navigator.vibrate?.(8)}catch{}}
  render();
 }
@@ -524,6 +566,10 @@ root.addEventListener('input',e=>{
  if(notice&&!data){notice='';const message=$('online-form-message');if(message)message.remove()}
 });
 root.addEventListener('keydown',e=>{
+ if(e.key==='Escape'){
+  if(dumpDraft){e.preventDefault();dumpDraft=null;render();return}
+  if(selection.length){e.preventDefault();selection=[];render();return}
+ }
  if(e.key==='Enter'&&e.target?.id==='online-name'){
   e.preventDefault();root.querySelector('[data-do="'+(room?'join':'create')+'"]')?.click();
  }
@@ -639,6 +685,12 @@ function startPolling(){
   pollFailures=0;refresh(true,true).finally(()=>schedulePoll());
  }});
 }
+$('new')?.addEventListener('click',()=>{
+ // The shared header button has no local-game controller in online mode.
+ // Leave the current seat only after the player confirms.
+ if(data?.game.phase==='play'&&!confirm('Leave this table and create a new online game?'))return;
+ location.assign(location.pathname+'?online=1');
+});
 window.addEventListener('stack-deck-theme-change',()=>render());
 render();startPolling();
 if(room&&session){reconnecting=true;refresh(false)}

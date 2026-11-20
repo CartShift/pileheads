@@ -29,6 +29,14 @@ The build outputs `vercel-static/` (historical folder name, gitignored). **Rende
 **Game on Render:** https://stack-card-game-t7vx.onrender.com/pilehead/index.html
 
 
+## Tabletop interaction contract
+
+The simulator treats the cards as individual physical objects. **One tap selects one card**; further taps add matching copies, tapping a selected card deselects it, and tapping a different rank starts a new selection. During a valid final-hand/face-up combination, face-up selection automatically includes the required matching hand cards. The Play button, pile tap, keyboard pile activation, mouse drop and phone drag all normalize to the same engine-validated move. Escape clears a selection or cancels an uncommitted DUMP choice.
+
+**SNAP never reserves or delays the next player's turn.** The SNAP button is the only opportunity prompt; the move remains possible until the next player commits an action. Local bots schedule once per turn rather than resetting their delay on incidental renders. Online rooms discard outdated poll responses, patch presence-only changes without remounting the card table, and show a pending state during authoritative submissions.
+
+These guarantees are covered in `tests/pilehead-simulator-quality.cjs` alongside the existing engine, room API, mobile/table UX, art and build regression suites.
+
 ## Repository map
 
 | Path | Purpose |

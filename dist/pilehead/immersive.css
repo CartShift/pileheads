@@ -2031,6 +2031,18 @@ body.pilehead-focus .move-history{display:none!important}
  body.pilehead-playing .move-history summary{transition:none!important}
 }
 
+/* Normal turns should never trigger an idle deal animation. Physical-card
+   flights are handled by the motion director, not by remounting static cards. */
+body.pilehead-playing .table:not(.scene-entering) .card-row:not(.hand) .card:not(.back){
+ animation:none!important;
+}
+/* Selection and keyboard focus must read clearly on touch and small screens. */
+body.pilehead-playing .table .card-row .card.selected:focus-visible{
+ outline:3px solid #fff5d6;outline-offset:4px;
+}
+body.pilehead-playing .table .hand-area .card-row.hand{
+ overscroll-behavior-x:contain;scroll-padding-inline:12px;
+}
 /* Stable live announcements are intentionally outside the rerendered game root. */
 .visually-hidden{
  position:absolute!important;width:1px!important;height:1px!important;
