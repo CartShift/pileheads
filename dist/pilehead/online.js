@@ -506,6 +506,11 @@ async function selectCard(c){
  if(c.source!==stageNow()&&!bridge)return;
  const my=current()[c.source],card=my?.find(x=>x.id===c.id);if(!card)return;
  selectMatching(bridge?[...current().hand,...current().up]:my,c.id);
+ if(bridge&&selection.some(id=>current().up.some(card=>card.id===id))){
+  // Grouped face-up play includes all remaining hand cards, as the engine requires.
+  selection=[...current().hand.map(card=>card.id),
+   ...selection.filter(id=>current().up.some(card=>card.id===id))];
+ }
  if(selection.includes(c.id)){try{navigator.vibrate?.(8)}catch{}}
  render();
 }
