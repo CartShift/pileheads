@@ -73,7 +73,7 @@ Compare canonical and variant across separate complete rounds, with roughly bala
 - Automated: GitHub Actions Node 24 `npm test`, `npm run build:vercel`, `npm run build` on relevant changes.
 - Rules: preserve 52 unique card IDs and identical result across local, server and print examples.
 - Bot SLAM: detect a complete independent four even when `slamOpen === false`.
-- Online: complete two-device joins, SNAP priority, concurrent SLAM, reconnect, rematch, and final results on actual phones.
+- Online: complete two-device joins, SNAP race, concurrent SLAM, reconnect, rematch, and final results on actual phones.
 - Browser: 360px portrait, tablet, desktop and landscape; mouse, touch, keyboard and reduced-motion.
 - Print: card fronts and backs align, text readable, shuffled cards indistinguishable from backs.
 - Retail approval: check trademark, artwork licenses, packaging, safety/compliance and printing economics **after** human results.
