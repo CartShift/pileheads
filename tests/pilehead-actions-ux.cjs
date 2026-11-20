@@ -54,15 +54,15 @@ check('SLAM remains available outside your turn in both modes',()=>{
  assert.match(renderOnline({turn:false,slam:[{ids:[1,2,3,4]}]}),/SLAM · 4 cards/);
  assert.match(renderLocal({turn:false,slams:[{ids:[1,2,3,4]}]}),/SLAM · 4 cards/);
 });
-check('online SNAP requires manual card play without a SNAP prompt or shortcut',()=>{
- const ordinary=renderOnline({turn:false,snap:[{ids:[7]}],selection:[]});
- assert.doesNotMatch(ordinary,/SNAP/i);
- assert.doesNotMatch(ordinary,/data-do="snap"/);
+check('SNAP button remains available outside turn without an artificial priority delay',()=>{
+ const ready=renderOnline({turn:false,snap:[{ids:[7]}],selection:[]});
+ assert.match(ready,/data-do="snap"/);
+ assert.match(ready,/SNAP · matching draw/);
  const selected=renderOnline({turn:false,snap:[{ids:[7]}],selection:[7],
   legal:{type:'followup',source:'hand',ids:[7]}});
  assert.match(selected,/data-do="play"/);
- assert.doesNotMatch(selected,/data-do="snap"/);
- // Shared-device play keeps its separate hotseat turn-switching interface.
+ assert.match(selected,/data-do="snap"/);
+ assert.doesNotMatch(renderOnline({turn:false,snap:[]}),/data-do="snap"/);
  assert.match(renderLocal({turn:false,snap:[{ids:[7]}]}),/SNAP · matching draw/);
 });
 check('same-room replay and local replay remain actionable',()=>{
