@@ -2,7 +2,7 @@
 (function(){'use strict';
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
 const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11';
-let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,botQueuedFor=null,notice='',lastMove=null,sortMode='dealt',endDismissed=false,dumpDraft=null,starterTimer=null;
+let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,botQueuedFor=null,notice='',lastMove=null,sortMode='dealt',endDismissed=false,dumpDraft=null,starterTimer=null,practiceMode=false;
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
  (a.kind==='number'?a.rank===b.rank:a.action===b.action)}
 function orderedHand(cards){
@@ -109,10 +109,10 @@ function setupView(){if(!g)return '<section class="setup panel"><div class="eyeb
  '<h2>ONE PILE. ONE LOSER.</h2><p>Make your move, stack the pressure, and be the first to lose every card. Six action types can turn the table, including four BURN cards. The last player holding cards loses.</p>'+
  '<div class="fields"><label>Players<select id="seat-count">'+[2,3,4,5].map(n=>'<option value="'+n+'" '+(seats===n?'selected':'')+'>'+n+' players</option>').join('')+'</select></label>'+
  '<label>Play against<select id="game-mode"><option value="bots" '+(mode==='bots'?'selected':'')+'>Computer opponents</option><option value="hotseat" '+(mode==='hotseat'?'selected':'')+'>Local pass-and-play</option></select></label></div>'+
- '<div class="toolbar"><button class="action primary" data-do="create">Deal cards</button><a class="action secondary" href="?online=1">Play with friends online</a></div></section>';
+ '<div class="toolbar"><button class="action primary" data-do="practice">Learn with a bot</button><button class="action secondary" data-do="create">Deal cards</button><a class="action secondary" href="?online=1">Play with friends online</a></div><p class="stack-intro-note">New here? Learn by playing one round. Already know the rules? Deal cards or invite friends.</p></section>';
  const p=g.people[setupSeat],had=swapFrom!==null;
  return '<section class="setup panel"><div class="eyebrow">STACK / OPENING HAND · '+playerName(setupSeat)+'</div><h2>SET THE TABLE.</h2>'+
- '<p>Tap a card in your hand, then a face-up card to swap them. Face-up cards become playable after your draw deck and hand are gone. Three blind cards stay hidden.</p>'+
+ '<p>Tap a card in your hand, then a face-up card to swap them. Face-up cards become playable after your draw deck and hand are gone. Three blind cards stay hidden.</p>'+(practiceMode?'<p class="stack-practice-setup"><strong>Practice · Step 1:</strong> Pick three cards you want to keep face-up for later, then select Start the game. You can play normally against a bot.</p>':'')+
  '<div class="area-label"><span>YOUR FACE-UP CARDS</span></div>'+rowCards(p.up,'up',true)+
  '<div class="area-label"><span>YOUR HAND</span><span>'+(had?'Now tap the card to exchange':'Tap any card to select')+'</span></div>'+
  rowCards(p.hand,'hand',true)+'<div class="toolbar"><button class="action primary" data-do="ready">'+
@@ -255,6 +255,8 @@ function render(){
   event:g?.events?.[g.events.length-1]||null,events:g?.events||[],
   ownSeat:g?viewSeat():0,active:g?isTurn()&&!covered:false,turn:g?.turn??null,
   selected:selection.length,moveNo:g?.moves||0,online:false});
+ window.StackUX?.sync({practice:practiceMode,active:g?isTurn()&&!covered:false,
+  moveNo:g?.moves||0,stage:g?.phase==='play'?currentStage():null});
  save();queueBot();
 }
 function celebrate(ev){
@@ -298,8 +300,8 @@ function queueBot(){
  },canSlam?780:600);
 }
 function startGame(previousWinner=null){endDismissed=false;dumpDraft=null;g=E.create({players:seats,seed:Date.now()>>>0});
- const starter=previousWinner===null?Math.floor(Math.random()*seats):previousWinner;
- g.starterSeat=starter;g.starterReason=previousWinner===null?'draw':'winner';
+ const starter=practiceMode?0:previousWinner===null?Math.floor(Math.random()*seats):previousWinner;
+ g.starterSeat=starter;g.starterReason=practiceMode?'practice':previousWinner===null?'draw':'winner';
  setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
 function afterMove(ev){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
  if(mode==='hotseat'&&g.phase!=='over')covered=!g.pendingDump&&g.turn!==ev.seat;
@@ -356,10 +358,11 @@ function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat()
  notice='';render();
 }
 function execute(action,button){
- if(action==='create'){seats=Number($('seat-count')?.value)||seats;mode=$('game-mode')?.value==='hotseat'?'hotseat':'bots';startGame();return}
+ if(action==='practice'){mode='bots';seats=2;practiceMode=true;window.StackUX?.resetPractice();startGame();return}
+ if(action==='create'){practiceMode=false;seats=Number($('seat-count')?.value)||seats;mode=$('game-mode')?.value==='hotseat'?'hotseat':'bots';startGame();return}
  if(action==='dismiss-result'){endDismissed=true;render();return}
  if(action==='rematch'){startGame(g?.finishedOrder?.[0]??null);return}
- if(action==='new'){g=null;dumpDraft=null;selection=[];swapFrom=null;covered=false;endDismissed=false;render();return}
+ if(action==='new'){g=null;dumpDraft=null;selection=[];swapFrom=null;covered=false;endDismissed=false;practiceMode=false;render();return}
  if(action==='ready'){
   selection=[];swapFrom=null;
   if(mode==='hotseat'&&setupSeat<seats-1){setupSeat++;covered=true}
