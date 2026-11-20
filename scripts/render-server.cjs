@@ -7,6 +7,8 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { stat } = require('node:fs/promises');
 const roomHandler = require('../api/pilehead.js');
+const { attachRealtime } = require('./realtime-hub.cjs');
+let liveHub = null;
 
 const root = path.resolve(__dirname, '../vercel-static');
 const port = Number(process.env.PORT || 10000);
@@ -32,7 +34,16 @@ async function serveApi(req, res, url) {
   req.query = Object.fromEntries(url.searchParams.entries());
   // Vercel provides res.status().json(); preserve that interface here.
   res.status = function (status) { this.statusCode = status; return this; };
-  res.json = function (value) { this.end(JSON.stringify(value)); return this; };
+  res.json = function (value) {
+    // Only notify peers after the authoritative database response succeeded.
+    if(value?.ok&&value.code&&liveHub){
+      const action=typeof req.body==='string'?(()=>{try{return JSON.parse(req.body)?.action}catch{return null}})():null;
+      if(value.reaction)liveHub.pushReaction(value.code,value.reaction);
+      else if(['move','swap','ready','start','rematch','advance','dump-target','decline','join'].includes(action))
+       liveHub.pushRevision(value.code,Number(value.revision),action==='join');
+    }
+    this.end(JSON.stringify(value)); return this;
+  };
 
   if (req.method === 'POST') {
     let body = '';
@@ -81,7 +92,7 @@ async function serveFile(req, res, url) {
     .pipe(res);
 }
 
-http.createServer(async (req, res) => {
+const server = http.createServer(async (req, res) => {
   const started = Date.now();
   res.once('finish', () => {
     const duration = Date.now() - started;
@@ -106,4 +117,12 @@ http.createServer(async (req, res) => {
     if (!res.headersSent) respond(res, 500, 'Internal Server Error');
     else res.destroy();
   }
-}).listen(port, '0.0.0.0', () => console.log(`STACK listening on port ${port}`));
+});
+liveHub=attachRealtime(server,roomHandler);
+server.listen(port, '0.0.0.0', () => console.log(`STACK listening on port ${port} with WebSocket rooms`));
+process.once('SIGTERM',()=>{
+ liveHub.shutdown();
+ server.close(()=>process.exit(0));
+ const limit=setTimeout(()=>process.exit(0),25000);
+ limit.unref?.();
+});
