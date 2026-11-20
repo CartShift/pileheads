@@ -16,10 +16,10 @@ function choices(g,two,source='hand'){
  second:opts.find(o=>o.ids.length===1&&o.ids[0]===two[1].id),
  pair:opts.find(o=>o.ids.length===2&&two.every(c=>o.ids.includes(c.id)))};
 }
-test('v1.5 with all 52 cards and unpowered numbers',()=>{
- assert.equal(E.VERSION,'pilehead-1.5.0');assert.equal(E.deck().length,52);
+test('v1.6 with all 54 cards and unpowered numbers',()=>{
+ assert.equal(E.VERSION,'pilehead-1.6.0');assert.equal(E.deck().length,54);
  assert.equal(E.deck().filter(c=>c.kind==='number').length,40);
- for(const n of Object.values(E.ACTIONS))assert.equal(n,2);
+ for(const [action,n] of Object.entries(E.ACTIONS))assert.equal(n,action==='burn'?4:2);
 });
 test('all six matching action kinds can be grouped or played separately',()=>{
  for(const name of Object.keys(E.ACTIONS)){
@@ -29,6 +29,18 @@ test('all six matching action kinds can be grouped or played separately',()=>{
   const ev=E.move(g,0,{type:'play',source:'hand',ids:[two[1].id,two[0].id],...(name==='dump'?{target:2}:{})});
   assert.equal(ev.action,name);assert.equal(ev.count,2);E.invariant(g);
  }
+});
+test('all four BURN cards can be played together but burn only once',()=>{
+ const g=E.create({seed:63812,players:3});E.start(g);
+ const p=g.people[0];g.stock.push(...p.hand.splice(0));
+ const four=Array.from({length:4},()=>get(g,'burn'));p.hand.push(...four);
+ const opts=E.options(g,0);
+ assert.ok(opts.some(o=>o.type==='play'&&o.ids.length===4&&four.every(c=>o.ids.includes(c.id))));
+ const before=g.ashes.length;
+ const ev=E.move(g,0,{type:'play',source:'hand',ids:four.map(c=>c.id)});
+ assert.equal(ev.count,4);assert.equal(ev.burned,true);
+ assert.equal(g.ashes.length,before+4);assert.equal(g.turn,0);
+ E.invariant(g);
 });
 test('BURN pair burns once and repeats turn',()=>{
  const {g,two}=fixture('burn');const before=g.ashes.length;
