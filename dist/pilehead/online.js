@@ -85,6 +85,7 @@ function setRequesting(flag){
  const dock=root.querySelector('.table-actions');if(!dock)return;
  dock.classList.toggle('is-submitting',flag);
  dock.setAttribute('aria-busy',String(flag));
+ dock.setAttribute('aria-label',flag?'Submitting your move to the table':'Game actions');
  for(const button of dock.querySelectorAll('button[data-do]'))button.disabled=flag;
 }
 async function doAction(payload){
@@ -474,6 +475,8 @@ function render(){
   event:data?.game.events?.[data.game.events.length-1]||null,events:data?.game.events||[],
   ownSeat:data?.me||0,active:data?active():false,turn:data?.game.turn??null,
   selected:selection.length,moveNo:data?.game.moves||0,online:true});
+ window.StackUX?.sync({active:data?active():false,moveNo:data?.game.moves||0,
+  stage:data?.game.phase==='play'?stageNow():null});
 }
 async function command(action,more={}){
  if(!data)return;
@@ -647,7 +650,8 @@ window.addEventListener('pointercancel',()=>{
 function schedulePoll(delay){
  if(pollTimer){clearTimeout(pollTimer);pollTimer=null}
  if(!session||!data||document.visibilityState==='hidden'||roomIssue)return;
- const base=data.game.phase==='play'?(active()||data.game.followup?.length?1100:1650):3000;
+ // Tight active-turn feedback; retain backoff and conservative lobby polling.
+ const base=data.game.phase==='play'?(active()||data.game.followup?.length?850:1250):3000;
  const backoff=pollFailures?Math.min(18000,base*2**Math.min(pollFailures,4)):base;
  pollTimer=setTimeout(pollOnce,delay??(backoff+Math.floor(Math.random()*220)));
 }
