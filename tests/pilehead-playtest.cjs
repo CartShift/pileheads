@@ -17,7 +17,7 @@ assert.match(kit,/lang-he/);
 for(const action of Object.keys(E.ACTIONS)){
  assert.match(kit,new RegExp('data-action="'+action+'"'),'Printable rules must explain '+action);
 }
-for(const feature of ['SLAM','SNAP','LAST-HAND COMBO','DUMP','52-card','2026-11-18']){
+for(const feature of ['SLAM','SNAP','LAST-HAND COMBO','DUMP','54-card','2026-11-20']){
  assert.ok(kit.includes(feature),'Missing public playtest detail: '+feature);
 }
 for(const field of ['sessionId','players','experience','medium','variant','learnMinutes','roundMinutes',
