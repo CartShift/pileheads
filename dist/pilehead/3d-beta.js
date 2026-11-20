@@ -9,6 +9,11 @@
   const body = document.body;
   if (!app || !body.classList.contains('stack-3d-beta')) return;
   const status = document.getElementById('stack-3d-status');
+  const search = new URLSearchParams(location.search);
+  if (search.has('room') || search.has('online')) {
+    const classic = document.querySelector('.beta-classic-link');
+    if (classic) classic.href = 'index.html' + location.search;
+  }
   let canvas = null, renderer = null, scene = null, camera = null, THREE = null;
   let sheetImages = {}, textures = new Map(), cards = new Map();
   let table = null, drawWidth = 0, drawHeight = 0, lastTime = 0, frameId = 0;
