@@ -8,6 +8,7 @@ let chosenStarter=0;
 crypto.randomInt=max=>Math.min(chosenStarter,max-1);
 const Engine=require('../dist/pilehead/engine.js');
 const rooms=new Map(),members=new Map(),buckets=new Map();
+let joinContentionOnce=false;
 // Convert synthetic new-room fixtures into true pre-v1.6 52-card games.
 // Preserve all dealt slots by replacing each extra BURN with a stock card.
 function oldDeck(g,version){
@@ -35,6 +36,7 @@ async function query(sql,args=[]){
   const r={code:args[0],capacity:args[1],status:'lobby',state:JSON.parse(args[2]),revision:0,expires_at:new Date(Date.now()+86400000)};
   rooms.set(r.code,r);return []}
  if(sql.startsWith('INSERT INTO pilehead_members')&&sql.includes('SELECT')){
+  if(joinContentionOnce){joinContentionOnce=false;return []}
   // Regression: Neon/Postgres must resolve both references to room-code parameter $1 as the same type.
   assert.equal((sql.match(/\$1::varchar\(8\)/g)||[]).length,2,'join SQL must cast both room-code references');
   assert.match(sql,/ON CONFLICT \(code,seat\) DO NOTHING/,'simultaneous join should be conflict-safe');
@@ -272,6 +274,7 @@ async function run(){
  assert.equal(hybrid.data.game.round,1);
  assert.equal(hybrid.data.humanCount,2);assert.equal(hybrid.data.botCount,1);
  assert.deepEqual(hybrid.data.game.setupReady,[false,false,true]);checks++;
+ joinContentionOnce=true; // Simulate another join claiming the previously free seat.
  const second=await request({action:'join',code:hybridCode,name:'Hybrid Friend'});
  assert.equal(second.status,201);assert.equal(second.data.me,1);
  const hybridFriend=second.data.session;
