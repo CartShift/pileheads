@@ -19,6 +19,7 @@
   let table = null, drawWidth = 0, drawHeight = 0, lastTime = 0, frameId = 0;
   let refreshing = false, isReady = false, shadowTexture = null, observer = null;
   let previousEffect = '', lastDraw = 0;
+  let cardLaunchOrigins = [];
   const MAX_DPR = matchMedia('(max-width: 700px)').matches ? 1.3 : 1.65;
   const faceNames = Array.from({length: 10}, (_, i) => 'number-' + (i + 1))
     .concat(['reset', 'ghost', 'under', 'skip', 'burn', 'dump']);
@@ -146,7 +147,11 @@
   function mount() {
     const next = app.querySelector('.table');
     if (table === next) return;
-    cards.forEach(discardCard); cards.clear();
+    // Retain meshes across the canonical app's full HTML rerenders.
+    // Recreating them for every move prevents cards from flying between seats.
+    cardLaunchOrigins = Array.from(cards.values())
+      .filter(card => card.element?.classList?.contains('selected') && card.element.closest('.hand-area,.zone'))
+      .map(card => ({x:card.mesh.position.x,y:card.mesh.position.y}));
     table = next;
     if (canvas) canvas.remove();
     if (!table || !canvas) return;
@@ -204,7 +209,9 @@
       }
       angle = Math.max(-.22, Math.min(.22, angle));
       if (entry.new) {
-        entry.mesh.position.set(x, targetY - 14, z);
+        const onPile = Boolean(element.closest('.stack[data-play-target]'));
+        const origin = onPile && cardLaunchOrigins.length ? cardLaunchOrigins.shift() : null;
+        entry.mesh.position.set(origin ? origin.x : x, origin ? origin.y : targetY - 14, origin ? 34 : z);
         entry.mesh.scale.set(bounds.width * .94, bounds.height * .94, 1);
         entry.new = false;
       }
@@ -214,7 +221,10 @@
       entry.mesh.scale.x += (bounds.width - entry.mesh.scale.x) * interpolant;
       entry.mesh.scale.y += (bounds.height - entry.mesh.scale.y) * interpolant;
       entry.mesh.rotation.z += (angle - entry.mesh.rotation.z) * interpolant;
-      entry.mesh.rotation.x += ((hovering ? -.07 : -.018) - entry.mesh.rotation.x) * interpolant;
+      const isHand = Boolean(element.closest('.hand-area'));
+      const isPile = Boolean(element.closest('.stack[data-play-target]'));
+      const pitch = isHand ? -.16 : isPile ? -.10 : -.055;
+      entry.mesh.rotation.x += ((hovering ? -.24 : pitch) - entry.mesh.rotation.x) * interpolant;
       entry.mesh.rotation.y += ((selected ? .065 : 0) - entry.mesh.rotation.y) * interpolant;
       entry.shadow.position.x = entry.mesh.position.x + 8;
       entry.shadow.position.y = entry.mesh.position.y - 9;
