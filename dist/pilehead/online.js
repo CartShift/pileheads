@@ -12,6 +12,7 @@ let room=params.get('room')?.toUpperCase()||'',session=room?safeSessionRead(STOR
 let draftName=safeSessionRead(NAME)||'',draftHumans=2,draftBots=0;
 let data=null,busy=false,polling=false,selection=[],swapCard=null,dumpDraft=null,notice='',networkError='',roomIssue='',drag=null;
 let lastRevision=-1,lastEvent=null,pollTimer=null,transitionTimer=null,reconnecting=false,sortMode='dealt',endDismissed=false,botTickAt=0,lastChangeAt=0;
+let lastHeartbeatAt=0,lastSyncAt=0,pollFailures=0,markedAway=false;
 const A=globalThis.PileheadCardArt;const symbols=A.glyph;
 const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
@@ -57,9 +58,9 @@ function setMessage(e){const map={
  invalid_dump_target:'Choose an active rival for DUMP.',dump_target_not_pending:'This DUMP has already resolved.',dump_target_pending:'The player must choose a DUMP target first.',
  bad_cards:'That group of cards is not legal.',wrong_layer:'Finish your current card layer first.'
  };return map[e]||String(e||'Unexpected room error').replaceAll('_',' ');}
-async function api(payload,auth=session){
+async function api(payload,auth=session,options={}){
  const res=await fetch('/api/pilehead',{method:'POST',headers:{'Content-Type':'application/json',...(auth?{Authorization:'Bearer '+auth}:{})},
-  body:JSON.stringify(payload),cache:'no-store',credentials:'same-origin'});
+  body:JSON.stringify(payload),cache:'no-store',credentials:'same-origin',...options});
  let json;try{json=await res.json()}catch{throw Error('Invalid response from game server')}
  if(!res.ok)throw Error(json.error||'server_error');
  return json;
@@ -73,7 +74,8 @@ function updateState(next){
  if(!data||next.revision!==data.revision)lastChangeAt=Date.now();
  if(data&&next.revision!==data.revision){selection=[];swapCard=null;dumpDraft=null}
  if(data&&next.game?.round!==data.game?.round){endDismissed=false;sortMode='dealt';selection=[];swapCard=null;dumpDraft=null}
- data=next;lastRevision=data.revision;networkError='';roomIssue='';render();
+ data=next;lastRevision=data.revision;lastSyncAt=Date.now();networkError='';roomIssue='';render();
+ if(session&&!pollTimer)schedulePoll();
 }
 async function doAction(payload){
  if(busy)return;busy=true;notice='';render();
@@ -94,24 +96,32 @@ async function doAction(payload){
   }
  }finally{busy=false;render()}
 }
-async function refresh(quiet=false){
+async function refresh(quiet=false,forceHeartbeat=false){
  if(!room||!session||polling)return;
  polling=true;
  try{
-  const next=await api({action:'state',code:room});
+  const heartbeat=forceHeartbeat||Date.now()-lastHeartbeatAt>11000;
+  const next=await api({action:'state',code:room,...(heartbeat?{heartbeat:true}:{})});
+  if(heartbeat){lastHeartbeatAt=Date.now();markedAway=false}
+  lastSyncAt=Date.now();pollFailures=0;
   // A SNAP deadline is time-dependent, not a room revision. The response
   // can change from blocked to unblocked without an UPDATE to the room.
   const timeGateChanged=!!data&&(
    next.game.snapUntil!==data.game.snapUntil||
    next.game.snapSeat!==data.game.snapSeat||
-   next.game.startedAt!==data.game.startedAt
+   next.game.startedAt!==data.game.startedAt||
+   next.game.blindReveal?.move!==data.game.blindReveal?.move||
+   next.game.blindReveal?.expiresAt!==data.game.blindReveal?.expiresAt
   );
-  if(!data||next.revision!==data.revision||next.members.length!==data.members.length||
+  const presenceChanged=!!data&&(next.members.length!==data.members.length||
+   next.members.some((m,i)=>m.presence!==data.members[i]?.presence||m.name!==data.members[i]?.name));
+  if(!data||next.revision!==data.revision||presenceChanged||
      next.game.followup?.length!==data.game.followup?.length||
      timeGateChanged||reconnecting)updateState(next);
   else {const hadError=!!networkError||!!roomIssue;networkError='';roomIssue='';if(hadError)render()}
   reconnecting=false;
  }catch(e){
+  pollFailures=Math.min(6,pollFailures+1);
   if(permanentRoomErrors.has(e.message)){
    const changed=roomIssue!==e.message;
    roomIssue=e.message;notice='';networkError='';
@@ -127,6 +137,32 @@ function displayName(seat){
  const bots=data?.game?.botSeats||[];
  if(bots.includes(seat))return 'Bot '+(bots.indexOf(seat)+1);
  return data?.members?.find(m=>m.seat===seat)?.name||'Waiting for player';
+}
+function presenceStatus(seat){
+ if((data?.game?.botSeats||[]).includes(seat))return 'bot';
+ return data?.members?.find(m=>m.seat===seat)?.presence||'offline';
+}
+function presenceBadge(seat){
+ const state=presenceStatus(seat);
+ const label=state==='bot'?'Bot':state==='online'?'Online':state==='away'?'Away':'Offline';
+ return '<span class="player-presence is-'+state+'"><i aria-hidden="true"></i>'+label+'</span>';
+}
+function playerWaitingAlert(){
+ const g=data?.game;if(!g||g.phase!=='play'||g.turn===data.me)return '';
+ const state=presenceStatus(g.turn);if(state!=='offline'&&state!=='away')return '';
+ return '<div class="room-presence-alert is-'+state+'" role="status"><strong>'+
+  safe(displayName(g.turn))+(state==='offline'?' disconnected':' is away')+'</strong><span>'+
+  (state==='offline'?'Their turn is waiting for them to reconnect. The table will update automatically.':
+   'They have switched away from the game. Their turn is still waiting.')+'</span></div>';
+}
+function blindRevealBanner(){
+ const reveal=data?.game?.blindReveal;
+ if(!reveal||!reveal.card||Date.now()>=reveal.expiresAt)return '';
+ const c=reveal.card,face=c.kind==='number'?'Number '+c.rank:(c.action||'action').toUpperCase();
+ return '<div class="blind-reveal-banner" role="status" aria-live="polite">'+
+  '<div class="blind-reveal-copy"><span>FACE-DOWN CARD FLIPPED</span><strong>'+safe(displayName(reveal.seat))+
+  ' revealed '+safe(face)+'</strong><small>Shown to everyone, even if the pile is picked up.</small></div>'+
+  '<div class="blind-reveal-face">'+card({...c,id:-1})+'</div></div>';
 }
 function current(){return data?.game?.players?.[data.me]}
 function snapBlocked(){const g=data?.game;return !!g?.snapUntil&&Date.now()<g.snapUntil&&g.snapSeat!==data.me;}
