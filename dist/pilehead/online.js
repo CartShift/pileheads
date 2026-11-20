@@ -150,6 +150,7 @@ async function refresh(quiet=false,forceHeartbeat=false){
   else if(presenceChanged){
    const recovering=!!networkError||!!roomIssue;
    data=next;lastRevision=next.revision;lastSyncAt=Date.now();networkError='';roomIssue='';
+   window.StackLive?.sync(next);
    if(recovering||next.game.phase!=='play')render();
    else patchPresenceUI();
   }else {const hadError=!!networkError||!!roomIssue;networkError='';roomIssue='';if(reactionsChanged){data=next;window.StackLive?.sync(next)}if(hadError)render()}
