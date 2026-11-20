@@ -71,7 +71,7 @@ function attachRealtime(server,api){
      const peers=roomSet(auth.code);
      if(peers.size>=MAX_ROOM_PEERS){ws.close(1013,'Room connection limit');return}
      peer={ws,room:auth.code,seat:auth.seat,revision:auth.revision,
-      seen:new Set((auth.reactions||[]).map(e=>e.id))};
+      seen:new Set((auth.reactions||[]).map(e=>e.id)),lastReactionAt:0};
      peers.add(peer);clearTimeout(timeout);
      send(ws,{type:'ready',revision:auth.revision});
     }catch{ws.close(1008,'Invalid room session')}
@@ -80,6 +80,8 @@ function attachRealtime(server,api){
    }
    if(msg.type==='heartbeat'){send(ws,{type:'heartbeat'});return}
    if(msg.type!=='react')return;
+   if(Date.now()-peer.lastReactionAt<800){send(ws,{type:'reaction-error',reason:'slow_down'});return}
+   peer.lastReactionAt=Date.now();
    pending=true;
    try{
     const reaction=await api.realtimeReact(peer.room,peer.seat,msg.kind);
