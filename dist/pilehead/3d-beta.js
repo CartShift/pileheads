@@ -94,6 +94,14 @@
   function cardId(element, face) {
     if (element.dataset.card) return 'id:' + element.dataset.card;
     if (element.dataset.blind) return 'blind:' + element.dataset.blind;
+    // Distinguish all three blind cards in the physical face-up/blind pairs.
+    // Previously each pair's back shared display:back:0, so two disappeared.
+    const pair = element.closest('.up-pair');
+    if (pair) {
+      const index = Array.from(pair.parentElement?.children || []).indexOf(pair);
+      const layer = Array.from(pair.children).indexOf(element);
+      return 'pair:' + index + ':' + layer + ':' + face;
+    }
     const pile = element.closest('.pile-card');
     if (pile) {
       const stack = pile.closest('.stack');
@@ -224,7 +232,7 @@
   }
   function checkEffect() {
     if (!table) return;
-    const note = table.querySelector('.pilehead-effect-note');
+    const note = app.querySelector('.pilehead-effect-note');
     const text = (note?.textContent || '').trim();
     if (!text || text === previousEffect) return;
     const initialized = !!previousEffect;
@@ -320,7 +328,13 @@
   }
   // Keep the currently selected deck in classic mode; fresh beta visits use illustrated cards.
   try {
-    if (!localStorage.getItem('stack-deck-theme-v1')) window.StackDeckThemes?.set?.('characters');
+    // Make the reference's illustrated artwork the beta default on first entry,
+    // without overriding a deliberate Studio choice or subsequent theme switches.
+    const visited = localStorage.getItem('stack-3d-beta-visited');
+    if (!visited && window.StackDeckThemes?.get?.() === 'geometry') {
+      window.StackDeckThemes.set('characters');
+    }
+    if (!visited) localStorage.setItem('stack-3d-beta-visited','1');
   } catch (_) { /* Storage may be disabled */ }
   start();
 })();
