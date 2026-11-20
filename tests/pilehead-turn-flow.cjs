@@ -69,18 +69,23 @@ test('selected starter wins the first-turn lottery',()=>{
  g.starterSeat=2;g.starterReason='winner';E.start(g);
  assert.equal(g.turn,2);assert.equal(g.starterReason,'winner');assert.ok(g.startedAt);
 });
-test('expired SNAP no longer supplies an interrupt',()=>{
+test('SNAP opportunity is not time limited, and ends on the next action',()=>{
  const g=fixture(),p=g.people[0];
  place(g,p.hand,c=>c.rank===5);place(g,g.pile,c=>c.rank===5);
  g.followUp={seat:0,rank:5,ids:[p.hand[0].id],expiresAt:Date.now()-10};
- assert.equal(E.followUpOptions(g,0).length,0);
- assert.ok(E.options(g,0).length>0);E.invariant(g);
+ assert.equal(E.followUpOptions(g,0).length,1,'SNAP remains available without a deadline');
+ const normal=E.options(g,0)[0];
+ assert.ok(normal,'next player remains free to act');
+ E.move(g,0,normal);
+ assert.equal(E.followUpOptions(g,0).length,0,'normal move ends the earlier opportunity');
+ E.invariant(g);
 });
 test('UI has a time-gate repaint and a shared visible lottery',()=>{
  const read=s=>fs.readFileSync(path.resolve(__dirname,'..',s),'utf8');
  const online=read('dist/pilehead/online.js'),api=read('api/pilehead.js');
  assert.match(online,/timeGateChanged/);assert.match(online,/transitionTimer=setTimeout/);
- assert.match(api,/snapUntil:g\.followUp\?\.expiresAt>Date\.now\(\)/);
+ assert.doesNotMatch(api,/snapUntil:g\.followUp/);
+ assert.match(api,/blindReveal:g\.blindReveal\?\.expiresAt>Date\.now\(\)/);
  for(const file of ['dist/pilehead/app.js','dist/pilehead/online.js','dist/pilehead/immersive.js'])
   assert.match(read(file),/starterHTML/);
  assert.match(read('dist/pilehead/stack-brand.css'),/stack-starter-roll/);
