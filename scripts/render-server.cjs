@@ -82,9 +82,24 @@ async function serveFile(req, res, url) {
 }
 
 http.createServer(async (req, res) => {
+  const started = Date.now();
+  res.once('finish', () => {
+    const duration = Date.now() - started;
+    // Diagnose slow/failing room requests without logging room codes, names, tokens or IPs.
+    if (duration > 1000 || res.statusCode >= 500) {
+      const route = (req.url || '').split('?')[0] === '/api/pilehead' ? '/api/pilehead' : 'static-or-health';
+      console.warn(JSON.stringify({ event: 'stack_http_slow_or_failed', route, status: res.statusCode, durationMs: duration }));
+    }
+  });
   try {
     const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    if (url.pathname === '/api/pilehead') await serveApi(req, res, url);
+    if (url.pathname === '/livez') respond(res, 200, JSON.stringify({ ok: true, service: 'stack' }), 'application/json; charset=utf-8');
+    else if (url.pathname === '/readyz') {
+      // Existing DB-aware API health check, not just an HTTP process liveness check.
+      url.searchParams.set('health', '1');
+      await serveApi(req, res, url);
+    }
+    else if (url.pathname === '/api/pilehead') await serveApi(req, res, url);
     else await serveFile(req, res, url);
   } catch (error) {
     console.error('STACK request error:', error.message);
