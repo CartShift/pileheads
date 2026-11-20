@@ -9,11 +9,13 @@ function extract(g,predicate){for(const z of zones(g)){const i=z.findIndex(predi
 function inject(g,seat,source,predicate){const card=extract(g,predicate),arr=g.people[seat][source],old=arr.pop();if(old)g.stock.push(old);arr.push(card);return card}
 function opened(players=2,seed=42){const g=E.create({players,seed});E.start(g);return g}
 
-test('52 distinct physical cards: forty numbers and twelve actions',()=>{
- const a=E.deck();assert.equal(a.length,52);assert.equal(new Set(a.map(c=>c.id)).size,52);
+test('54 distinct physical cards: forty numbers and fourteen actions',()=>{
+ const a=E.deck();assert.equal(a.length,54);assert.equal(new Set(a.map(c=>c.id)).size,54);
  for(let n=1;n<=10;n++)assert.equal(a.filter(c=>c.rank===n).length,4);
  for(const [kind,count]of Object.entries(E.ACTIONS))assert.equal(a.filter(c=>c.action===kind).length,count);
- for(let players=2;players<=5;players++){const g=E.create({players});assert.equal(g.stock.length,52-players*9);assert.equal(E.count(g),52);
+ assert.deepEqual(E.deck('pilehead-1.5.0'),a.filter(c=>c.id<52));
+ assert.deepEqual(a.filter(c=>c.id>=52).map(c=>c.action),['burn','burn']);
+ for(let players=2;players<=5;players++){const g=E.create({players});assert.equal(g.stock.length,54-players*9);assert.equal(E.count(g),54);
   for(const p of g.people)assert.deepEqual([p.hand.length,p.up.length,p.down.length],[3,3,3])}
 });
 test('reproducible shuffle and legal setup exchange',()=>{
