@@ -52,10 +52,6 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
   rulesVersion:g.version,
  round:g.round||1,humanCount:humanCount(g),botSeats:botSeats(g),
  starterSeat:g.starterSeat??0,starterReason:g.starterReason||'draw',startedAt:g.startedAt||null,
- // Time-limited SNAP does not require a database revision to expire:
- // redact it as absent after the deadline so polling clients can repaint.
- snapUntil:g.followUp?.expiresAt>Date.now()?g.followUp.expiresAt:null,
- snapSeat:g.followUp?.expiresAt>Date.now()?g.followUp.seat:null,
  blindReveal:g.blindReveal?.expiresAt>Date.now()?g.blindReveal:null,
  botFollowupReady:botSeats(g).some(bot=>E.followUpOptions(g,bot).length>0),
  pile:g.pile,ashesCount:g.ashes.length,limit:g.limit,slamOpen:g.slamOpen,pendingDump:g.pendingDump?{seat:g.pendingDump.seat}:null,setupReady:g.setupReady||g.people.map(()=>false),loser:g.loser,finishedOrder:g.finishedOrder,
@@ -126,9 +122,6 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
   const bots=botSeats(g);
   const followBot=bots.find(bot=>E.followUpOptions(g,bot).length);
   const slammer=bots.find(bot=>E.slamOptions(g,bot).length);
-  const humanSnapPending=g.followUp?.expiresAt>Date.now()&&
-    !bots.includes(g.followUp.seat)&&E.followUpOptions(g,g.followUp.seat).length;
-  if(humanSnapPending&&slammer===undefined)fail(409,'snap_window_open');
   if(g.pendingDump){
    if(!bots.includes(g.pendingDump.seat))fail(409,'dump_target_pending');
    E.resolveDump(g,g.pendingDump.seat,E.botDumpTarget(g,g.pendingDump.seat));
@@ -137,7 +130,6 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
   else if(slammer!==undefined)E.move(g,slammer,E.slamOptions(g,slammer)[0]);
   else if(bots.includes(g.turn))E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));
   else fail(409,'not_bot_turn');
-  if(g.followUp&&!g.followUp.expiresAt)g.followUp.expiresAt=Date.now()+7000;
  }
  else if(b.action==='dump-target'){
   if(g.phase!=='play'||g.pendingDump?.seat!==seat)fail(409,'dump_target_not_pending');
@@ -145,14 +137,11 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
  }
  else if(b.action==='move'){if(g.phase!=='play')fail(409,'not_started');const m=b.move;
   if(!m||typeof m!=='object'||Array.isArray(m))fail(400,'bad_move');
-  if(g.followUp?.expiresAt>Date.now()&&g.followUp.seat!==seat&&m.type!=='slam'&&
-    E.followUpOptions(g,g.followUp.seat).length)fail(409,'snap_window_open');
   if(m.type==='take'){try{E.move(g,seat,{type:'take'})}catch{fail(400,'illegal_move')}}
   else if(m.type==='slam'||m.type==='play'||m.type==='followup'){const source=E.stage(g,seat);if(m.source!==source)fail(400,'wrong_layer');let ids;
    if(source==='down'){if(m.type==='slam'||m.type==='followup'||!Number.isInteger(m.index)||m.index<0||m.index>=g.people[seat].down.length)fail(400,'bad_blind_slot');ids=[g.people[seat].down[m.index].id]}
    else{if(!Array.isArray(m.ids)||m.ids.length<1||m.ids.length>4||!m.ids.every(Number.isInteger))fail(400,'bad_cards');ids=m.ids}
    try{E.move(g,seat,{type:m.type,source,ids,target:m.target})}catch{fail(400,'illegal_move')}}else fail(400,'bad_move');
-  if(g.followUp&&!g.followUp.expiresAt)g.followUp.expiresAt=Date.now()+7000;
  }
  else fail(400,'unknown_action');
  E.invariant(g);const status=g.phase==='over'?'finished':g.phase==='play'?'playing':'lobby';
