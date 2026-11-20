@@ -284,6 +284,20 @@ async function run(){
  assert.equal(hybridReady0.status,200);assert.equal(hybridReady1.status,200);checks++;
  const hybridStart=await request({action:'start',code:hybridCode,revision:2},hybridHost);
  assert.equal(hybridStart.status,200);assert.equal(hybridStart.data.game.phase,'play');checks++;
+ // A ready bot SLAM reports public eligibility without leaking a hidden card.
+ const staged=rooms.get(hybridCode).state,backup=structuredClone(staged);
+ const regions=[staged.stock,staged.pile,staged.ashes,...staged.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const eightIds=Engine.deck().filter(c=>c.rank===8).map(c=>c.id);
+ const relocate=(dest,id)=>{const from=regions.find(z=>z.some(c=>c.id===id));const idx=from.findIndex(c=>c.id===id);dest.push(from.splice(idx,1)[0])};
+ staged.stock.push(...staged.people[2].hand.splice(0));
+ for(const id of eightIds)relocate(staged.people[2].hand,id);
+ relocate(staged.pile,Engine.deck().find(c=>c.rank===3).id);
+ staged.turn=0;staged.slamOpen=false;Engine.invariant(staged);
+ const botThreat=await request({action:'state',code:hybridCode},hybridHost);
+ assert.equal(botThreat.data.game.botSlamReady,true);
+ assert.equal(botThreat.data.game.players[2].hand,undefined);
+ assert.equal(botThreat.data.game.players[2].handCount,4);
+ rooms.get(hybridCode).state=backup;checks++;
  const prematureBot=await request({action:'advance',code:hybridCode,revision:3},hybridHost);
  assert.equal(prematureBot.status,409);assert.equal(prematureBot.data.error,'not_bot_turn');checks++;
  // Put the turn on a bot; server chooses from its hidden hand and commits exactly one move.
@@ -293,6 +307,7 @@ async function run(){
  assert.equal(botMove.status,200,JSON.stringify(botMove));
  assert.equal(botMove.data.game.moves,1);assert.equal(botMove.data.revision,4);
  assert.equal(botMove.data.game.players[2].hand,undefined);
+ assert.equal(typeof botMove.data.game.botSlamReady,'boolean');
  assert.equal(botMove.data.game.players[0].hand,undefined);
  Engine.invariant(rooms.get(hybridCode).state);checks++;
  const advanceAgainStale=await request({action:'advance',code:hybridCode,revision:3},hybridHost);

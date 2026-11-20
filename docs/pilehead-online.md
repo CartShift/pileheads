@@ -105,7 +105,7 @@ BURN now has four dedicated action cards in the 54-card deck (v1.6). The five ot
 ## Physical follow-up rules and explainable card effects
 
 - `SNAP!`: after a number play, only matching numbers **freshly replenished from stock in that exact move** can be thrown immediately, out of turn, as `type=followup`. This option expires after another move, including a pickup; a successful non-burning SNAP does not steal the next player's turn. A 4-of-a-kind still burns normally. The online SNAP button is available while eligible, without a countdown or protected reaction window.
-- `LAST-HAND COMBO`: when the stock is completely empty and a player has exactly one numeric hand card, any identical face-up cards may be placed together with that last card. The engine validates ownership and removes cards from both layers in the same atomic move.
+- `LAST-HAND COMBO`: with empty stock and one to three identical remaining hand cards, identical face-up cards may join the entire hand in a group of at most four. Matching action cards resolve once. The engine validates ownership and removes cards from both layers in the same atomic move.
 - All SNAP and bridge checks are validated on the authoritative engine; exposed-card combinations and only the owner's possible SNAP are sent to the relevant seat.
 - `drawnCount` is a non-sensitive count added to public events for the stock-to-hand animation. A DUMP pickup animates the pile moving to its intended recipient, and special cards display the outcome in plain language.
 

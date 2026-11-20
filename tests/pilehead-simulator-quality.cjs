@@ -52,6 +52,13 @@ assert.match(online,/if\(bridge&&selection\.some/,'Online bridge selection must 
 assert.equal((local.match(/submitPlay\(selectedPlay\(\)\)/g)||[]).length,5,
  'Play button, pile tap, keyboard and drag must share the normalized move');
 assert.match(local,/botQueuedFor===key/,'UI renders must not restart the same bot turn timer');
+assert.match(local,/function viewSeat\(\)\{return mode==='bots'\?0:g\?\.turn\?\?0\}/,'Hotseat view not blocked by earlier SNAP');
+assert.match(local,/data-do="hot-snap"/,'Shared-device SNAP voluntarily claimable');
+assert.match(local,/covered=!g\.pendingDump&&g\.turn!==ev\.seat/,'Hotseat privacy follows actual turn');
+assert.match(local,/function selectedPlay\(\)\{[\s\S]*?selection=\[\.\.\.getPlayer\(\)\.hand/,'Local drag/drop normalizes bridge');
+assert.match(online,/function legalMove\(\)\{[\s\S]*?selection=\[\.\.\.current\(\)\.hand/,'Online drag/drop normalizes bridge');
+assert.match(online,/t\.source==='up'&&bridgeAvailable\(\)/,'Mobile drag supports face-up bridge');
+assert.match(online,/data\.game\.botSlamReady/,'Browser requests bot out-of-turn SLAM');
 assert.doesNotMatch(local,/4800/,'SNAP cannot introduce a 4.8-second delay');
 assert.doesNotMatch(local,/pilehead-snap-choice/,'SNAP should not show an extra tutorial or pass decision');
 assert.doesNotMatch(local,/SNAP READY/,'Do not coach the user with additional SNAP hints');
