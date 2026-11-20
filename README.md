@@ -18,13 +18,16 @@ Requires Node.js 24.
 
 ```sh
 npm test                 # Every current STACK regression (rules, online, UX, graphics)
-npm run build            # Produce the Vercel static directory
-npm run build:vercel     # Alias for the same build
+npm run build            # Produce the static assets served by Render
+npm run build:vercel     # Legacy alias for the same build
 npm run simulate         # Diagnostic seeded bot simulation, JSON to stdout
 npm run simulate -- 120 4 20261113
 ```
 
-The static build goes to `vercel-static/`, which is gitignored. Vercel serves `api/pilehead.js` alongside the static files. To enable online rooms, securely configure `PILEHEAD_DATABASE_URL` on the Vercel project. Never commit credentials. See `docs/pilehead-online.md`.
+The build outputs `vercel-static/` (historical folder name, gitignored). **Render is the production deployment target**: its Node server (`scripts/render-server.cjs`) serves these assets and the authoritative `/api/pilehead` endpoint. Commits to `main` auto-deploy via `render.yaml`. To enable online rooms, securely set `PILEHEAD_DATABASE_URL` in the Render service. The existing Neon database is retained, with no data migration. Never commit credentials. See `docs/render-hosting.md` and `docs/pilehead-online.md`.
+
+**Game on Render:** https://stack-card-game-t7vx.onrender.com/pilehead/index.html
+
 
 ## Repository map
 
@@ -40,7 +43,8 @@ The static build goes to `vercel-static/`, which is gitignored. Vercel serves `a
 | `dist/pilehead/{gallery,print,playtest}.html` | Gallery, printing and controlled playtests |
 | `api/pilehead.js` | Authoritative multiplayer room API |
 | `dist/pilehead-sim-core.js` | Retained bot diagnostics, not a deployed browser dependency |
-| `scripts/` | Static builder, tests and simulations |
+| `scripts/` | Static builder, Render Node server, tests and simulations |
+| `render.yaml` | Render auto-deployment from `main` (existing Neon database) |
 | `tests/pilehead-*.cjs` | STACK test suite |
 | `docs/pilehead-*.md` | Game rules, deployment and design |
 
