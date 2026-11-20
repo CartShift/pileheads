@@ -457,8 +457,10 @@ async function run(){
  const read14=await request({action:'state',code:old14.data.code},old14.data.session);
  assert.equal(read14.status,200);
  assert.equal(read14.data.game.rulesVersion,'pilehead-1.4.0');checks++;
- const old15=await request({action:'create',humans:2,bots:0,name:'Previous v1.5 room'});
- oldDeck(rooms.get(old15.data.code).state,'pilehead-1.5.0');
+ // v1.4 and v1.5 share the same 52 physical cards. Reuse the room to
+ // avoid consuming an additional room-creation quota in this API test.
+ const old15=old14;
+ rooms.get(old15.data.code).state.version='pilehead-1.5.0';
  const read15=await request({action:'state',code:old15.data.code},old15.data.session);
  assert.equal(read15.status,200,JSON.stringify(read15));
  assert.equal(read15.data.game.rulesVersion,'pilehead-1.5.0');
