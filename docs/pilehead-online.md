@@ -10,6 +10,20 @@ This is the actual PILEHEAD engine in \`dist/pilehead/engine.js\`, with server-a
 - \`/api/pilehead\`: same-origin Vercel Node 24 Function, dynamic import of pinned \`@neondatabase/serverless\` driver and dedicated Postgres database.
 - \`dist/pilehead/online.js\`: online client, local private seat storage, seat-specific views, lobby setup swapping, host-controlled start, revisioned turns, and out-of-turn SLAM. Polls while visible (1.75s), and refreshes after returning to the tab.
 
+## Multiplayer presence, shared blind flips and mobile refinements (Nov 2026)
+
+- Visible players send throttled 11-second heartbeats, and send a best-effort **Away** signal when switching tabs, closing the page, or leaving the app. Players become **Offline** if no signal arrives within 25 seconds. Presence is a member property, *not* a game revision, so heartbeats never invalidate moves or SLAM actions. Seat tokens stay private and reconnect using the existing saved session.
+- Polling is non-overlapping and adaptive (1.1–1.65 seconds in play, 3 seconds in lobby or finished rooms), stops while hidden, and backs off up to 18 seconds on network errors. The lowest-numbered visible human coordinates bot advancement to reduce duplicate server commands. Vercel HTTP polling is not a WebSocket; network latency still affects live turns.
+- A flipped face-down card is publicly displayed for 5.5 seconds, including on failed flips that immediately pick up the pile and on blind DUMP target selection. The public payload contains only the *face* (rank/action), never card identity, hidden stock or other hand cards; the server stops returning the reveal on expiration.
+- The hosted table now shows **Online**, **Away**, **Offline** or **Bot** on seats, makes a disconnected current player unmistakable, and moves the reveal strip above the card table to avoid covering phone controls. The entire experience respects reduced-motion.
+- One-time additive Neon migration required before deploying this version (safe for existing rows/rooms):
+
+```sql
+ALTER TABLE pilehead_members
+  ADD COLUMN IF NOT EXISTS last_seen_at timestamptz NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS is_away boolean NOT NULL DEFAULT false;
+```
+
 ## Database and configuration
 
 The dedicated Neon Postgres project is named **Pilehead Multiplayer** (\`little-wind-33960014\`), in Frankfurt / EU Central. This is deliberately separate from WakeMyWay, StarLinker, Atlas Irwin, SPARK, and other products.
