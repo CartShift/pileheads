@@ -80,12 +80,35 @@
     // The current local/online controller remounts its HTML after a validated action.
     // Reparent the live controls after each render; their existing delegated handlers survive.
     decorate(table);
-    moved.forEach(selector => {
-      const target=app.querySelector(selector);
-      if(target&&target.parentElement!==table)table.appendChild(target);
-    });
-    const hist=table.querySelector('.move-history');
-    if(hist)hist.open=true;
+    const mobile = matchMedia('(max-width:760px)').matches;
+    if (mobile) {
+      // On phones, the HUD belongs above the tabletop and actions belong OUTSIDE
+      // the table's overflow:hidden container. Otherwise position:fixed is clipped
+      // and the cards, status, and buttons overlap each other.
+      for (const selector of ['.pitch','.online-room-tools','.pilehead-table-hud']) {
+        const node=app.querySelector(selector);
+        if(node && node.parentElement!==app)app.insertBefore(node,table);
+      }
+      for (const selector of [
+        '.pilehead-effect-note','.pilehead-selected-effect',
+        '.toolbar.table-actions','.move-history'
+      ]) {
+        const node=app.querySelector(selector);
+        if(node && node.parentElement!==app)app.appendChild(node);
+      }
+      const history=app.querySelector('.move-history');
+      if(history&&!history.dataset.betaMobileSeen) {
+        history.open=false;
+        history.dataset.betaMobileSeen='1';
+      }
+    } else {
+      moved.forEach(selector => {
+        const node=app.querySelector(selector);
+        if(node&&node.parentElement!==table)table.appendChild(node);
+      });
+      const history=table.querySelector('.move-history');
+      if(history)history.open=true;
+    }
     insertPlayers(table);
     table.classList.add('stack-beta-composed');
     lastTable=table;
@@ -97,5 +120,11 @@
   });
   observer.observe(app,{childList:true,subtree:true});
   requestAnimationFrame(compose);
+  // Responsive breakpoint changes must also reparent already-mounted controls.
+  window.addEventListener('resize', () => {
+    if (scheduled) return;
+    scheduled=true;
+    requestAnimationFrame(() => {scheduled=false;compose()});
+  }, {passive:true});
   window.addEventListener('pagehide',()=>observer.disconnect(),{once:true});
 })();
