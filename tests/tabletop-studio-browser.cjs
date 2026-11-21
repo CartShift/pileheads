@@ -71,7 +71,9 @@ async function run(browser,width,height,isMobile){
        header:get('.layout>.top'),hud:get('.v3-topline .pilehead-table-hud'),
        room:get('.v3-room'),table:get('.v3-room .table'),
        opponents:get('.v3-room .opponents'),
-       center:get('.v3-room .table-center'),up:get('.v3-room .zone.your-up'),
+       center:get('.v3-room .table-center'),
+       drawEmpty:get('.v3-room .table-center .stack:first-child .placeholder'),
+       up:get('.v3-room .zone.your-up'),
        hand:get('.v3-room .hand-area'),
        actions:get('.v3-controls'),canvas:get('.stack-beta-three-canvas'),
        canvases:document.querySelectorAll('.stack-beta-three-canvas').length,
@@ -122,6 +124,8 @@ async function run(browser,width,height,isMobile){
      for(let i=0;i<areas.length-1;i++)
        assert(areas[i].bottom<=areas[i+1].top+8,'card zones collide '+i+' '+JSON.stringify(areas));
      assert(result.hand.bottom<=result.table.bottom+2,'hand clipped below physical table');
+     assert(result.drawEmpty&&result.drawEmpty.height<=65,
+       'empty draw pile should be compact late in the game '+JSON.stringify(result.drawEmpty));
      assert(result.hand.bottom<=result.actions.top+4,'fixed action dock covers the hand');
      assert(result.actions.left>=-2&&result.actions.right<=width+2,'action dock clipped sideways');
      assert(result.actions.bottom<=height+2,'action dock not reachable at bottom of viewport');
