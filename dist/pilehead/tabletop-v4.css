@@ -285,6 +285,15 @@ body.stack-tabletop-v4 .v3-room .table-center .stack .pile-card>.card-wrap .card
   box-sizing:border-box!important;
 }
 body.stack-tabletop-v4 .v3-room .table-center .card-wrap:not(:last-child){opacity:0!important}
+/* Safety net: if the WebGL mesh for the top pile face is unavailable,
+   restore the real (semantic, authoritative) DOM card rather than showing
+   a pile count and an empty-looking table. */
+body.stack-tabletop-v4.stack-3d-ready .v3-room .table.studio-pile-2d
+  .stack[data-play-target] .pile-card>.card-wrap:last-child .card.ph-card{
+  opacity:1!important;
+  visibility:visible!important;
+}
+
 body.stack-tabletop-v4 .v3-room .table .zone.your-up{
  grid-row:3!important;display:flex!important;flex-direction:column!important;
  align-items:center!important;justify-content:center!important;
