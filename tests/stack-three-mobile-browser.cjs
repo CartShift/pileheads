@@ -55,7 +55,10 @@ async function testViewport(browser,width,height,isMobile){
       const table=rect('#app>.table')||rect('.table');
       return {
         viewport:{width:innerWidth,height:innerHeight,scrollWidth:document.documentElement.scrollWidth},
-        table,toolbar:rect('#app>.toolbar.table-actions')||rect('.table-actions'),
+        table,header:rect('.layout>.top'),
+        deckPicker:rect('.layout>.top .stack-deck-picker'),
+        menuButton:rect('.layout>.top .table-menu-toggle'),
+        toolbar:rect('#app>.toolbar.table-actions')||rect('.table-actions'),
         hud:rect('#app>.pilehead-table-hud')||rect('.pilehead-table-hud'),
         stock:rect('.table-center'),up:rect('.zone.your-up'),
         hand:rect('.hand-area'),
@@ -67,6 +70,10 @@ async function testViewport(browser,width,height,isMobile){
       }
     });
     if(isMobile){
+      assert(metrics.header&&metrics.header.height<=70,'mobile header should be one row, not '+JSON.stringify(metrics.header));
+      if(metrics.deckPicker&&metrics.menuButton) {
+        assert(Math.abs(metrics.deckPicker.top-metrics.menuButton.top)<15,'deck picker and menu should share header row');
+      }
       assert.equal(metrics.toolbarParent,'app','toolbar must not be inside clipped table');
       assert.equal(metrics.hudParent,'app','turn HUD must sit above table');
       assert(metrics.viewport.scrollWidth<=width+3,'horizontal page overflow '+JSON.stringify(metrics));
