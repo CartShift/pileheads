@@ -7,6 +7,9 @@
   const app=document.getElementById('app');
   if (!app || !document.body.classList.contains('stack-tabletop-v3')) return;
   let pending=false;
+  const previous=document.querySelector('[data-tabletop-legacy]');
+  if(previous && (location.search.includes('room=') || location.search.includes('online=')))
+    previous.href='3d-beta.html'+location.search;
   const avatarSvg='<svg viewBox="0 0 100 100" aria-hidden="true">' +
    '<rect x="23" y="28" width="54" height="48" rx="18" fill="#e9f7f7" stroke="#182234" stroke-width="5"/>' +
    '<rect x="30" y="37" width="40" height="29" rx="11" fill="#12273a"/>' +
