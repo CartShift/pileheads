@@ -39,3 +39,17 @@ The opt-in beta now loads `3d-beta-v2.css` and `3d-beta-v2.js` after its origina
 The first 3D renderer had a structural problem: it cleared all WebGL meshes whenever the canonical controller rerendered the DOM. It now retains card meshes across turns and distinguishes all three blind cards under face-up cards. Basic interpolated motion from a selected card to a newly played pile card has been added; it is still beta animation, not deterministic physical simulation.
 
 **QA caveat:** Source-level routing/integration checks pass (including `pilehead-three-cinematic.cjs`) but no actual Chrome/Android screenshot comparison or complete live 2-device playtest has yet been performed for this visual pass. The generated player avatars are generic illustrations, not account profile photos. Do not describe the beta as pixel-perfect to the supplied visual until visually verified and adjusted on real desktop and phone viewports.
+
+## Mobile corrective pass (21 November 2026)
+
+A real Android screenshot showed a broken beta layout: the HUD covered opponent portraits, the face-up and hand rows collided, the deck back did not match the illustrated cards, and the bottom action toolbar was clipped. This was a **structural mobile composition failure**, not a Three.js shader issue.
+
+Changes:
+
+- `3d-beta-v2.js` now moves current turn, room tools and game HUD **outside and above** the table on narrow screens. It also moves the real action toolbar and move history **outside and below** the table. This keeps delegated gameplay handlers intact and removes the clipping caused by a fixed dock inside the table's overflow container. Desktop retains the cinematic side panels.
+- `3d-beta-mobile.css` is loaded after the previous beta skins. It provides phone-specific header wrapping, single-purpose status bar, restrained opponent rail, separate real stock/pile, three face-up/blind cards, a readable horizontally scrolling hand, a body-level safe-area-aware action dock, and subdued wood grain without the distracting grid effect.
+- For the Characters theme, beta 3D card backs now use a matching teal STACK sunburst texture; miniature 2D cards and fallback rendering follow that direction. Classic and other themes retain their own assets.
+
+**Source checks:** `npm test` includes `tests/pilehead-three-mobile.cjs`, while the previous cinematic and engine-level checks remain. A separate browser gate was added at `tests/stack-three-mobile-browser.cjs`, run via `npm run build && node tests/stack-three-mobile-browser.cjs` after installing Playwright and Chromium. It checks 360, 390, and 430px mobile layouts, desktop, clipping, overlapping zones, interactions, and saves screenshots under `artifacts/browser/`.
+
+**Visual verification still required:** The corrective CSS is committed, but the actual Android/desktop screenshot comparison and full two-device multiplayer QA were not executable from this environment. Do not claim perfect parity with the reference image or mobile production readiness until those screenshots have been inspected.
