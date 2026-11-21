@@ -77,3 +77,16 @@ V4 changes:
 - The Three.js wood/card renderer and existing 2D fallback are unchanged. Classic and the previous `3d-beta.html` are not modified by the new Studio CSS.
 
 `tests/pilehead-tabletop-v3.cjs` now asserts the v4 layout and engine-preservation contract; `tests/tabletop-studio-browser.cjs` adds checks for the mobile action dock not overlapping the hand, and for the new Studio body class and contrast. Source-level checks passed. **Live WebGL + Android browser screenshots, real interactions, and Render deployment still require independent verification**. Do not call v4 pixel-perfect to the user reference based on source checks alone.
+
+## Empty-looking nonempty pile · Android regression fix (21 November 2026)
+
+The uploaded late-game screenshot displayed **7 cards** and **NEXT: 7 or higher**, but no visible top card. Root cause: `tabletop-v4.css` set `.pile-card .card` to `width:100%;height:100%`, while the canonical parent `.pile-card > .card-wrap` was absolutely positioned with no explicit dimensions. The child collapsed; `3d-beta.js` intentionally skipped cards whose measured width or height was below 5px, so the WebGL scene silently omitted the pile face.
+
+Fixes are scoped to **Tabletop Studio**:
+- Give `.card-wrap` explicit responsive width and height, and preserve the full-size child card inside that wrapper.
+- If the expected top pile card cannot be represented by the WebGL mesh, the renderer toggles `.studio-pile-2d` and reveals the existing canonical DOM card instead of misleading the player.
+- When stock reaches zero, replace the giant EMPTY slot with a compact stock marker; keep the true discard pile a visible, accessible drop target.
+- Version the Studio renderer and CSS URLs to invalidate Android/browser caches.
+- `tests/pilehead-tabletop-v3.cjs` locks in the nonzero wrapper geometry and fallback. `tests/tabletop-studio-browser.cjs` now uses a deterministic, conserved 54-card state with **0 stock, 7 pile cards, top rank 7 and 4 cards in hand** and checks actual bounding rectangles on mobile widths. A focused Chromium geometry fixture confirmed 74x100px, centered pile-card dimensions; the full browser suite and live Render deployment are still **unverified** here.
+
+Do not declare the Studio ready for general release until a real browser run confirms the visible pile, a valid Play/Take interaction, SNAP/SLAM, multiplayer reconnect, and no mobile overlap.
