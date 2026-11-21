@@ -476,3 +476,80 @@ html[data-stack-deck-theme="characters"] body.stack-3d-beta .ph-card.ph-back>.ph
    pointer-events:none;
  }
 }
+
+/* Structurally stable vertical game layout.
+ * Earlier beta layers positioned the four regions by percentages and caused
+ * cards to collide on tall/narrow Android viewports. These are now actual
+ * grid rows and may never overlap just because the viewport changes height.
+ */
+@media(max-width:760px){
+ body.stack-3d-beta.pilehead-playing #app>.table{
+   display:grid!important;
+   grid-template-columns:minmax(0,1fr)!important;
+   grid-template-rows:
+      minmax(116px,1fr)
+      minmax(152px,1.25fr)
+      minmax(122px,1.08fr)
+      minmax(140px,1.16fr)!important;
+   gap:4px!important;
+   padding:6px 7px 8px!important;
+   box-sizing:border-box!important;
+ }
+ body.stack-3d-beta.pilehead-playing #app>.table .opponents{
+   grid-column:1!important;grid-row:1!important;
+   position:relative!important;
+   inset:auto!important;top:auto!important;bottom:auto!important;
+   left:auto!important;right:auto!important;
+   width:100%!important;height:100%!important;
+   min-height:0!important;max-height:none!important;
+   margin:0!important;padding:0!important;
+ }
+ body.stack-3d-beta.pilehead-playing #app>.table .table-center{
+   grid-column:1!important;grid-row:2!important;
+   position:relative!important;
+   inset:auto!important;top:auto!important;bottom:auto!important;
+   left:auto!important;right:auto!important;
+   width:100%!important;height:100%!important;
+   min-height:0!important;max-height:100%!important;
+   margin:0!important;padding:0!important;
+ }
+ body.stack-3d-beta.pilehead-playing #app>.table .zone.your-up{
+   grid-column:1!important;grid-row:3!important;
+   position:relative!important;
+   inset:auto!important;top:auto!important;bottom:auto!important;
+   left:auto!important;right:auto!important;
+   width:100%!important;height:100%!important;
+   min-height:0!important;max-height:100%!important;
+   margin:0!important;padding:0!important;
+ }
+ body.stack-3d-beta.pilehead-playing #app>.table .hand-area{
+   grid-column:1!important;grid-row:4!important;
+   position:relative!important;
+   inset:auto!important;top:auto!important;bottom:auto!important;
+   left:auto!important;right:auto!important;
+   width:100%!important;height:100%!important;
+   min-height:0!important;max-height:100%!important;
+   margin:0!important;padding:0!important;
+ }
+ body.stack-3d-beta.pilehead-playing #app>.table .table-center .stack .pile-card{
+   height:105px!important;max-height:105px!important;
+ }
+ body.stack-3d-beta.pilehead-playing #app>.table .table-center .stack .pile-card .card{
+   height:104px!important;width:75px!important;
+ }
+ body.stack-3d-beta.pilehead-playing #app>.table .table-center .stack .stack-count{
+   font-size:9px!important;margin:1px auto!important;
+ }
+ body.stack-3d-beta.pilehead-playing #app>.table .zone.your-up .card-row{
+   height:100px!important;max-height:100px!important;
+   padding:1px 3px!important;
+ }
+ body.stack-3d-beta.pilehead-playing #app>.table .hand-area .card-row.hand{
+   height:calc(100% - 26px)!important;
+   max-height:125px!important;min-height:0!important;
+   padding:5px 4px 4px!important;
+ }
+ body.stack-3d-beta.pilehead-playing #app>.table .hand-area .area-label{
+   height:26px!important;min-height:26px!important;
+ }
+}
