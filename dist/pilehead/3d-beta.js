@@ -147,11 +147,14 @@
     return 'display:' + face + ':' + Array.from(element.parentElement?.children || []).indexOf(element);
   }
   function makeCard(element, face, id) {
-    const front = new THREE.MeshStandardMaterial({
-      map: makeTexture(face), roughness: .82, metalness: 0, color: 0xffffff
+    // Printed card illustrations must reproduce their original colors, even
+    // with dramatic ambient lighting on the 3D tabletop. Light the paper edge
+    // separately; do not tint the painted face or introduce muddy highlights.
+    const front = new THREE.MeshBasicMaterial({
+      map: makeTexture(face), color: 0xffffff, toneMapped: false
     });
-    const reverse = new THREE.MeshStandardMaterial({
-      map: makeTexture('back'), roughness: .85, metalness: 0
+    const reverse = new THREE.MeshBasicMaterial({
+      map: makeTexture('back'), color: 0xffffff, toneMapped: false
     });
     const edge = new THREE.MeshStandardMaterial({color: 0xf2e5cc, roughness: .95});
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1.8),
