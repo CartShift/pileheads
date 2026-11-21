@@ -23,7 +23,7 @@ for(const script of ['engine.js','app.js','online.js','deck-theme.js','3d-beta.j
  assert(preview.includes('src="'+script) || preview.includes('src="'+script+'?'), 'preview must reuse '+script);
 }
 assert(preview.includes('class="stack-3d-beta stack-tabletop-v3 stack-tabletop-v4"'));
-assert(preview.includes('href="tabletop-v4.css?v=studio-2"'));
+assert(preview.includes('href="tabletop-v4.css?v=pile-geometry-20261121"'));
 assert(preview.includes('src="tabletop-v3.js?v=studio-2"'));
 assert(!preview.includes('href="3d-beta-mobile.css'), 'preview must not inherit former beta patches');
 assert(!preview.includes('href="3d-beta-v2.css'), 'preview must not inherit former beta patches');
