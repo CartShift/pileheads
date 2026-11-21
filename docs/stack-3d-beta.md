@@ -53,3 +53,14 @@ Changes:
 **Source checks:** `npm test` includes `tests/pilehead-three-mobile.cjs`, while the previous cinematic and engine-level checks remain. A separate browser gate was added at `tests/stack-three-mobile-browser.cjs`, run via `npm run build && node tests/stack-three-mobile-browser.cjs` after installing Playwright and Chromium. It checks 360, 390, and 430px mobile layouts, desktop, clipping, overlapping zones, interactions, and saves screenshots under `artifacts/browser/`.
 
 **Visual verification still required:** The corrective CSS is committed, but the actual Android/desktop screenshot comparison and full two-device multiplayer QA were not executable from this environment. Do not claim perfect parity with the reference image or mobile production readiness until those screenshots have been inspected.
+
+## Screenshot-driven correction (21 November 2026, follow-up)
+
+The next Android screenshot still showed a displaced bottom Take Pile control, an intrusive Playtest tools bar, duplicate status placement, and corrupted/overlapping card textures. The causes were identified in source:
+
+- The fixed phone toolbar was anchored at `left:0` while inheriting Classic's `transform:translateX(-50%)`. The beta now explicitly resets the transform, spans the viewport and applies a safe-area-aware fixed action dock.
+- The controller's debug `playtest-tools` and `meta` nodes had default Flex order zero, which pushed developer UI **above the turn HUD**. The beta hides them on mobile; notices render after the tabletop instead of before the primary game state.
+- The original 3D renderer scaled cards using rotated `getBoundingClientRect()` dimensions and then applied the rotation again. It also placed overlapping cards at the same Z depth. The renderer now uses offset dimensions, distinct per-card layer depths, nonsticky hover on touch, and color-preserving materials for illustrated faces.
+- Mobile's four live board regions are now normal CSS grid rows rather than independent absolute percentages: opponents, stock/pile, face-up/blind, and hand. This prevents percentage drift and card-region collisions across phone heights.
+
+The browser-level acceptance gate remains `tests/stack-three-mobile-browser.cjs`; the source regression suite covers the above contracts. **This is a committed beta repair, not proof of passing live visual QA.** The Render deployment and the visual output on a real Android browser must still be confirmed.
