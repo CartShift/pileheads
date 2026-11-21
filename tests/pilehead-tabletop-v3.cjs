@@ -60,4 +60,14 @@ assert(css.includes('color:#ffe16e!important'), 'turn status must remain high co
 assert(css.includes('min-height:422px!important'), 'short phones must keep usable minimum scene height');
 assert(css.includes('justify-content:safe center!important'), 'overflowing hands must remain scrollable');
 assert(js.includes('function botPortrait(index)'), 'bots must have distinguishable avatars');
+assert(css.includes('.pile-card>.card-wrap'), 'Studio pile wrappers must have explicit geometry');
+assert(css.includes('width:var(--studio-pile-w, 128px)!important'),
+  'never restore percentage width on a zero-width absolute pile wrapper');
+assert(css.includes('height:var(--studio-pile-h, 178px)!important'),
+  'never restore percentage height on a zero-height absolute pile wrapper');
+assert(css.includes('min-width:var(--studio-pile-w, 128px)!important'),
+  'pile mesh geometry must be measurable by Three.js');
+assert(css.includes('.table.studio-pile-2d'), 'fallback DOM card must be visible when WebGL loses pile geometry');
+assert(renderer.includes("table.classList.toggle('studio-pile-2d', missing)"),
+  'renderer must not silently hide an authoritative nonempty pile');
 console.log('PASS Tabletop Studio v4: single stylesheet, viewport-aware cards, shared game and 3D fallback');
