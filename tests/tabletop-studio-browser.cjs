@@ -36,12 +36,12 @@ async function run(browser,width,height,isMobile){
      const g=E.create({players:4,seed:20261121});
      for(let i=0;i<4;i++)E.autoSetup(g,i);
      E.start(g);g.turn=0;
-     const placed=g.stock.splice(0,7);
-     const numberIndex=placed.findIndex(c=>c.kind==='number');
-     if(numberIndex<0)throw Error('Seed did not draw a numeric pile top');
-     [placed[numberIndex],placed[6]]=[placed[6],placed[numberIndex]];
-     g.pile.push(...placed);
-     g.limit={type:'min',value:g.pile[g.pile.length-1].rank};
+     const sevenIndex=g.stock.findIndex(c=>c.kind==='number'&&c.rank===7);
+     if(sevenIndex<0)throw Error('Seed is missing numeric 7');
+     const topSeven=g.stock.splice(sevenIndex,1)[0];
+     const placed=g.stock.splice(0,6);
+     g.pile.push(...placed,topSeven);
+     g.limit={type:'min',value:7};
      E.invariant(g);
      localStorage.setItem('pilehead-playtest-v11',JSON.stringify({
        g,mode:'bots',seats:4,setupSeat:0,covered:false,notice:'',lastMove:null
