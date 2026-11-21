@@ -51,12 +51,17 @@ async function run(browser,width,height,isMobile){
        actions:get('.v3-controls'),canvas:get('.stack-beta-three-canvas'),
        canvases:document.querySelectorAll('.stack-beta-three-canvas').length,
        cardCount:document.querySelectorAll('.table .card.ph-card').length,
+       statusColor:(()=>{const el=document.querySelector('.v3-topline .hud-status');return el?getComputedStyle(el).color:null;})(),
+       studioV4:document.body.classList.contains('stack-tabletop-v4'),
        standalone:!!document.querySelector('.stack-tabletop-v3 .v3-shell'),
        semanticPlay:!!document.querySelector('[data-play-target="pile"]'),
        webgl:document.body.classList.contains('stack-3d-ready')
      };
    });
    assert(result.standalone,'dedicated tabletop composition mounted');
+   assert(result.studioV4,'new independent Studio v4 styling must be active');
+   assert(result.statusColor!=='rgb(15, 44, 34)'&&result.statusColor!=='rgb(19, 56, 39)',
+     'status label must remain readable on dark background');
    assert(result.semanticPlay,'canonical card play target still present');
    assert(result.cardCount>=7,'table has real draw/pile/face-up/hand cards');
    assert(result.vw+2>=result.scrollWidth,'horizontal overflow '+JSON.stringify(result));
@@ -68,6 +73,7 @@ async function run(browser,width,height,isMobile){
      for(let i=0;i<areas.length-1;i++)
        assert(areas[i].bottom<=areas[i+1].top+8,'card zones collide '+i+' '+JSON.stringify(areas));
      assert(result.hand.bottom<=result.table.bottom+2,'hand clipped below physical table');
+     assert(result.hand.bottom<=result.actions.top+4,'fixed action dock covers the hand');
      assert(result.actions.left>=-2&&result.actions.right<=width+2,'action dock clipped sideways');
      assert(result.actions.bottom<=height+2,'action dock not reachable at bottom of viewport');
    }
