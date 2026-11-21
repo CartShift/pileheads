@@ -23,7 +23,7 @@ for(const script of ['engine.js','app.js','online.js','deck-theme.js','3d-beta.j
  assert(preview.includes('src="'+script) || preview.includes('src="'+script+'?'), 'preview must reuse '+script);
 }
 assert(preview.includes('class="stack-3d-beta stack-tabletop-v3 stack-tabletop-v4"'));
-assert(preview.includes('href="tabletop-v4.css?v=pile-geometry-20261121"'));
+assert(preview.includes('href="tabletop-v4.css?v=pile-visual-20261121"'));
 assert(preview.includes('src="tabletop-v3.js?v=studio-2"'));
 assert(!preview.includes('href="3d-beta-mobile.css'), 'preview must not inherit former beta patches');
 assert(!preview.includes('href="3d-beta-v2.css'), 'preview must not inherit former beta patches');
@@ -68,6 +68,8 @@ assert(css.includes('height:var(--studio-pile-h, 178px)!important'),
 assert(css.includes('min-width:var(--studio-pile-w, 128px)!important'),
   'pile mesh geometry must be measurable by Three.js');
 assert(css.includes('.table.studio-pile-2d'), 'fallback DOM card must be visible when WebGL loses pile geometry');
+assert(css.includes(".stack:first-child:has(.placeholder) .pile-card"),
+  'drawn-out stock must be compact instead of occupying a giant card slot');
 assert(renderer.includes("table.classList.toggle('studio-pile-2d', missing)"),
   'renderer must not silently hide an authoritative nonempty pile');
 console.log('PASS Tabletop Studio v4: single stylesheet, viewport-aware cards, shared game and 3D fallback');
