@@ -494,7 +494,7 @@ body.stack-tabletop-v4 .stack-beta-effect{
  }
  body.stack-tabletop-v4.pilehead-playing .v3-room .table{
   display:grid!important;grid-template-columns:minmax(0,1fr)!important;
-  grid-template-rows:minmax(0,1fr) minmax(0,1.2fr) minmax(0,1.03fr) minmax(0,1.19fr)!important;
+  grid-template-rows:minmax(0,.98fr) minmax(0,1.2fr) minmax(0,1.02fr) minmax(0,1.4fr)!important;
   gap:3px!important;
   height:clamp(422px,calc(100dvh - 188px),603px)!important;
   min-height:422px!important;max-height:603px!important;
@@ -538,8 +538,8 @@ body.stack-tabletop-v4 .stack-beta-effect{
   font-size:10px!important;margin:0 0 3px!important;
  }
  body.stack-tabletop-v4 .v3-room .table-center .stack .pile-card{
-  width:clamp(72px,22vw,92px)!important;
-  height:clamp(98px,30.5vw,125px)!important;
+  width:clamp(63px,19vw,82px)!important;
+  height:clamp(82px,26vw,107px)!important;
   max-height:100%!important;
  }
  body.stack-tabletop-v4 .v3-room .table-center .stack-count{
@@ -559,7 +559,7 @@ body.stack-tabletop-v4 .stack-beta-effect{
  body.stack-tabletop-v4 .v3-room .zone.your-up .up-pair{
   flex:0 0 clamp(63px,18vw,81px)!important;
   width:clamp(63px,18vw,81px)!important;
-  height:clamp(87px,24.4vw,110px)!important;
+  height:clamp(77px,22.5vw,103px)!important;
   max-height:100%!important;
  }
  body.stack-tabletop-v4 .v3-room .table .hand-area{
@@ -581,7 +581,7 @@ body.stack-tabletop-v4 .stack-beta-effect{
  }
  body.stack-tabletop-v4 .v3-room .hand-area .card-row.hand>.card{
   --card-w:clamp(68px,21vw,89px);
-  --card-h:clamp(92px,29vw,122px);
+  --card-h:clamp(79px,calc((100dvh - 188px) * .195),118px);
   width:var(--card-w)!important;height:var(--card-h)!important;
   flex:0 0 var(--card-w)!important;
   margin-left:var(--card-overlap,-12px)!important;
