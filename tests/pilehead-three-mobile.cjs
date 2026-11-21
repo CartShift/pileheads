@@ -59,6 +59,12 @@ assert(mobile.includes('grid-row:4!important'), 'hand must have dedicated last g
 assert(three.includes('faceWidth = element.offsetWidth'), 'use true card dimensions for Three geometry');
 assert(three.includes('const layerZ = handRow'), 'hand needs unique depth per overlapping card');
 assert(three.includes('toneMapped: false'), 'preserve illustrator palette in card faces');
+assert(mobile.includes('Mobile visual hierarchy v3'), 'compact phone header should be loaded');
+assert(mobile.includes('grid-template-areas:"brand deck menu"'), 'header must be one row');
+assert(mobile.includes('min-height:52px!important'), 'header must not occupy two mobile rows');
+assert(mobile.includes('#app>.toolbar.table-actions .action.secondary'), 'secondary actions must not look primary');
+assert(three.includes("pileWrapper !== pileWrapper.parentElement?.lastElementChild"), 'pile should show top card rather than overlapping faces');
+assert(three.includes("entry.mesh.scale.z += (thickness - entry.mesh.scale.z)"), 'pile stack must retain physical thickness');
 
 // A beta-only Three.js presentation still cannot intercept the real
 // clickable semantic card elements or their keyboard/drag controls.
