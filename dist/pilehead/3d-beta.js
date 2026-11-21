@@ -219,6 +219,11 @@
     const interpolant = matchMedia('(prefers-reduced-motion:reduce)').matches ? 1 :
       1 - Math.exp(-Math.min(.075, dt) * 15);
     for (const element of elements) {
+      // Only the top card is legible on a real discard pile. The older pile
+      // faces remain in canonical DOM/game state, but the beta renders them as
+      // the thickness of one physical stack instead of four ghosted images.
+      const pileWrapper = element.closest('.stack[data-play-target] .card-wrap');
+      if (pileWrapper && pileWrapper !== pileWrapper.parentElement?.lastElementChild) continue;
       const face = cardFace(element);
       if (!face || !makeTexture(face)) continue;
       const id = cardId(element, face);
@@ -289,6 +294,14 @@
       const pitch = isHand ? -.16 : isPile ? -.10 : -.055;
       entry.mesh.rotation.x += ((hovering ? -.24 : pitch) - entry.mesh.rotation.x) * interpolant;
       entry.mesh.rotation.y += ((selected ? .065 : 0) - entry.mesh.rotation.y) * interpolant;
+      if (isPile) {
+        const caption = element.closest('.stack')?.querySelector('.stack-count')?.textContent || '';
+        const pileSize = Number.parseInt(caption, 10) || 1;
+        const thickness = Math.min(10, 1.2 + Math.max(0, pileSize - 1) * .23);
+        entry.mesh.scale.z += (thickness - entry.mesh.scale.z) * interpolant;
+      } else {
+        entry.mesh.scale.z += (1 - entry.mesh.scale.z) * interpolant;
+      }
       entry.shadow.position.x = entry.mesh.position.x + 8;
       entry.shadow.position.y = entry.mesh.position.y - 9;
       entry.shadow.scale.set(faceWidth * 1.3, faceHeight * 1.32, 1);
