@@ -51,6 +51,14 @@ assert(mobile.includes('#app>.message'), 'notice must follow playable table rath
 assert(three.includes('element.offsetWidth || bounds.width'), 'do not stretch rotated textures to rotated bounding boxes');
 assert(three.includes('positionInRow') && three.includes('layerZ'), 'all fanned cards need distinct depth to prevent z-fighting');
 assert(three.includes("(hover:hover) and (pointer:fine)"), 'touch tap must not trigger sticky 3D hover');
+assert(mobile.includes('grid-template-rows:'), 'mobile beta must have stable row layout instead of percentages');
+for (const selector of ['.opponents','.table-center','.zone.your-up','.hand-area']) {
+  assert(mobile.includes('#app>.table '+selector), 'missing stable mobile layout for '+selector);
+}
+assert(mobile.includes('grid-row:4!important'), 'hand must have dedicated last grid row');
+assert(three.includes('faceWidth = element.offsetWidth'), 'use true card dimensions for Three geometry');
+assert(three.includes('const layerZ = handRow'), 'hand needs unique depth per overlapping card');
+assert(three.includes('toneMapped: false'), 'preserve illustrator palette in card faces');
 
 // A beta-only Three.js presentation still cannot intercept the real
 // clickable semantic card elements or their keyboard/drag controls.
