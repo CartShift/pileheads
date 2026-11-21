@@ -32,11 +32,24 @@ async function testViewport(browser,width,height,isMobile){
   try {
     await page.goto(origin+'/pilehead/3d-beta.html',{waitUntil:'domcontentloaded'});
     await page.locator('[data-do="create"]').waitFor();
-    await page.locator('#seat-count').selectOption('4');
-    await page.locator('[data-do="create"]').click();
-    await page.locator('[data-do="ready"]').click();
+    // Make a seeded, valid local game with a six-card hand. This reproduces
+    // the crowded state from the Android screenshot without relying on bots
+    // or a random first-turn lottery.
+    await page.evaluate(() => {
+      const E=window.PileheadEngine;
+      const g=E.create({players:4,seed:489});
+      for(let i=1;i<4;i++)E.autoSetup(g,i);
+      E.start(g);g.turn=0;g.startedAt=Date.now()-6000;
+      for(let i=0;i<3;i++)g.people[0].hand.push(g.stock.pop());
+      E.invariant(g);
+      localStorage.setItem('pilehead-playtest-v11',JSON.stringify({
+        g,mode:'bots',seats:4,setupSeat:0,covered:false,notice:'',lastMove:null
+      }));
+    });
+    await page.reload({waitUntil:'domcontentloaded'});
     await page.locator('.table.stack-beta-composed').waitFor();
-    await page.waitForTimeout(800); // let WebGL/card layout settle; 2D fallback is acceptable.
+    await page.locator('.stack-starter-reveal').waitFor({state:'hidden',timeout:9000});
+    await page.waitForTimeout(500); // let WebGL/card layout settle; 2D fallback is acceptable.
     const metrics=await page.evaluate(()=>{
       const rect=s=>{const e=document.querySelector(s);if(!e)return null;const r=e.getBoundingClientRect();return {x:r.x,y:r.y,left:r.left,top:r.top,right:r.right,bottom:r.bottom,width:r.width,height:r.height}};
       const table=rect('#app>.table')||rect('.table');
