@@ -19,6 +19,7 @@
   let table = null, drawWidth = 0, drawHeight = 0, lastTime = 0, frameId = 0;
   let refreshing = false, isReady = false, shadowTexture = null, observer = null;
   let previousEffect = '', lastDraw = 0;
+  let physicalTable = null, physicalTableTexture = null;
   let cardLaunchOrigins = [];
   const MAX_DPR = matchMedia('(max-width: 700px)').matches ? 1.3 : 1.65;
   const faceNames = Array.from({length: 10}, (_, i) => 'number-' + (i + 1))
@@ -197,6 +198,63 @@
     canvas.style.display = '';
     resize();
   }
+  function proceduralWood() {
+    const art=document.createElement('canvas');
+    art.width=1024;art.height=640;
+    const ctx=art.getContext('2d'), w=art.width,h=art.height;
+    const x=w/2,y=h/2,rx=w*.475,ry=h*.468;
+    ctx.clearRect(0,0,w,h);
+    // Soft dark extrusion behind the tabletop bevel.
+    ctx.shadowColor='rgba(5,2,7,.85)';ctx.shadowBlur=34;ctx.shadowOffsetY=18;
+    ctx.fillStyle='#31191d';ctx.beginPath();ctx.ellipse(x,y+12,rx+3,ry+2,0,0,Math.PI*2);ctx.fill();
+    ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+    const base=ctx.createLinearGradient(0,0,w,h);
+    base.addColorStop(0,'#68342f');base.addColorStop(.24,'#aa6340');
+    base.addColorStop(.53,'#b86e47');base.addColorStop(.74,'#a35b3a');base.addColorStop(1,'#592b2a');
+    ctx.save();
+    ctx.beginPath();ctx.ellipse(x,y,rx-14,ry-13,0,0,Math.PI*2);ctx.clip();
+    ctx.fillStyle=base;ctx.fillRect(0,0,w,h);
+    // Deterministic wavy grain, not a high-contrast grid.
+    for(let i=0;i<160;i++){
+      const yy=(i+1)*h/161;
+      const phase=Math.sin(i*12.9898)*13.35;
+      ctx.beginPath();ctx.moveTo(-40,yy);
+      for(let px=-20;px<=w+40;px+=30){
+        const drift=Math.sin(px*.012+phase)*2.2+Math.sin(px*.004+i)*3;
+        ctx.lineTo(px,yy+drift);
+      }
+      ctx.strokeStyle=i%4?'rgba(55,23,18,.10)':'rgba(255,218,145,.10)';
+      ctx.lineWidth=i%4?1.1:1.8;ctx.stroke();
+    }
+    const glaze=ctx.createRadialGradient(x*.9,y*.51,24,x,y,w*.75);
+    glaze.addColorStop(0,'rgba(255,209,147,.23)');
+    glaze.addColorStop(.58,'rgba(255,225,176,.02)');
+    glaze.addColorStop(1,'rgba(27,8,19,.53)');
+    ctx.fillStyle=glaze;ctx.fillRect(0,0,w,h);
+    ctx.restore();
+    ctx.beginPath();ctx.ellipse(x,y,rx-8,ry-8,0,0,Math.PI*2);
+    ctx.strokeStyle='#452525';ctx.lineWidth=17;ctx.stroke();
+    ctx.beginPath();ctx.ellipse(x,y,rx-15,ry-15,0,0,Math.PI*2);
+    ctx.strokeStyle='rgba(255,194,122,.55)';ctx.lineWidth=3;ctx.stroke();
+    const texture=new THREE.CanvasTexture(art);
+    texture.colorSpace=THREE.SRGBColorSpace;
+    return texture;
+  }
+  function sizePhysicalTable(w,h){
+    if(!body.classList.contains('stack-tabletop-v3')||!scene)return;
+    if(!physicalTable){
+      physicalTableTexture=proceduralWood();
+      physicalTable=new THREE.Mesh(new THREE.PlaneGeometry(1,1),
+        new THREE.MeshBasicMaterial({map:physicalTableTexture,transparent:true,
+          depthWrite:false,toneMapped:false,side:THREE.DoubleSide}));
+      physicalTable.renderOrder=0;
+      scene.add(physicalTable);
+    }
+    // Perspective camera's world units correspond to CSS pixels at z=0.
+    // The table rim enters the room at ~16% from the scene's top edge.
+    physicalTable.position.set(0,-h*.24,-26);
+    physicalTable.scale.set(w*1.49,h*1.30,1);
+  }
   function resize() {
     if (!table || !renderer || !canvas) return;
     const width = Math.round(table.clientWidth);
@@ -205,6 +263,7 @@
     if (width === drawWidth && height === drawHeight) return;
     drawWidth = width; drawHeight = height;
     renderer.setSize(width, height, false);
+    sizePhysicalTable(width,height);
     camera.aspect = width / height;
     camera.position.z = height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)));
     camera.updateProjectionMatrix();
@@ -404,6 +463,9 @@
         cards.forEach(discardCard); cards.clear();
         textures.forEach(texture => texture.dispose());
         shadowTexture?.dispose();
+        physicalTable?.geometry.dispose();
+        physicalTable?.material.dispose();
+        physicalTableTexture?.dispose();
         renderer?.dispose();
       }, {once:true});
     } catch (error) {
