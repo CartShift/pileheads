@@ -252,7 +252,12 @@
       const layerZ = handRow ? 14 + Math.max(0,positionInRow) * 2.7 :
         pileRow ? 10 + Math.max(0,positionInRow) * 2.7 :
         pair ? (element.classList.contains('back') ? 4 : 11) : 5;
-      const z = selected ? 57 : hovering ? 42 : layerZ;
+      const handMaxZ = handRow ?
+        14 + Math.max(0, handRow.querySelectorAll('.card.ph-card').length - 1) * 2.7 : 0;
+      // Even after taking a huge pile, a selected card must appear on top
+      // instead of disappearing under cards to its right.
+      const z = selected ? Math.max(57, handMaxZ + 12) :
+        hovering ? Math.max(42, handMaxZ + 5) : layerZ;
       const targetY = y + (selected ? 5 : hovering ? 3 : 0);
       // getBoundingClientRect includes CSS rotation; scaling a 3D mesh to
       // that rotated box and rotating it *again* double-stretched the art.
