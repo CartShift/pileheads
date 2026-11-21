@@ -407,3 +407,30 @@
   body.stack-3d-beta #app>.toolbar.table-actions .action,
   body.stack-3d-beta #app>.table .card{transition:none!important;animation:none!important}
 }
+/* Match the illustrated deck on the small opponent cards and 2D fallback.
+   The Three.js character-deck back uses the same art direction programmatically. */
+html[data-stack-deck-theme="characters"] body.stack-3d-beta .mini.ph-raster-mini.back,
+html[data-stack-deck-theme="characters"] body.stack-3d-beta .ph-card.ph-back>.ph-raster-plate.ph-back-raster {
+  background:
+    repeating-conic-gradient(from 7deg at 50% 49%,#55ced125 0deg 9deg,transparent 9deg 19deg),
+    radial-gradient(ellipse at center,#168ba4 0%,#075168 58%,#052e3f 100%)!important;
+  border-color:#f2e2bc!important;
+}
+html[data-stack-deck-theme="characters"] body.stack-3d-beta .mini.ph-raster-mini.back img.ph-raster-back,
+html[data-stack-deck-theme="characters"] body.stack-3d-beta .ph-card.ph-back img.ph-raster-back {
+  display:none!important;
+}
+html[data-stack-deck-theme="characters"] body.stack-3d-beta .mini.ph-raster-mini.back::after,
+html[data-stack-deck-theme="characters"] body.stack-3d-beta .ph-card.ph-back>.ph-raster-plate.ph-back-raster::after {
+  content:"STACK"!important;
+  position:absolute;inset:0;
+  display:grid;place-items:center;
+  font:italic 1000 clamp(7px,1.1vw,13px)/1 Impact,"Arial Black",sans-serif;
+  letter-spacing:-.045em;
+  text-shadow:1px 2px #111c24,2px 3px #cf3341;
+  color:#fff8df;transform:rotate(-7deg);
+  pointer-events:none;
+}
+html[data-stack-deck-theme="characters"] body.stack-3d-beta .ph-card.ph-back>.ph-raster-plate.ph-back-raster::after {
+  font-size:clamp(19px,4vw,36px);
+}
