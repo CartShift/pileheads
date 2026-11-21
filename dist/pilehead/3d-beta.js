@@ -233,9 +233,29 @@
       const x = bounds.left + bounds.width / 2 - canvasRect.left - canvasRect.width / 2;
       const y = canvasRect.height / 2 - (bounds.top + bounds.height / 2 - canvasRect.top);
       const selected = element.classList.contains('selected');
-      const hovering = element.matches(':hover') && !element.disabled;
-      const z = selected ? 24 : hovering ? 14 : 4;
+      // Touch browsers can retain :hover after a tap. Never let that raise a
+      // random hand card above the others on phones.
+      const hovering = matchMedia('(hover:hover) and (pointer:fine)').matches &&
+        element.matches(':hover') && !element.disabled;
+      const handRow = element.closest('.hand-area .card-row.hand');
+      const pileRow = element.closest('.stack[data-play-target] .pile-card');
+      const pair = element.closest('.zone.your-up .up-pair');
+      const positionInRow = handRow ?
+        Array.from(handRow.querySelectorAll('.card.ph-card')).indexOf(element) :
+        pileRow ? Array.from(pileRow.querySelectorAll('.card.ph-card')).indexOf(element) : 0;
+      // The old renderer gave *every* opaque card the exact same z, causing
+      // depth-buffer fighting and torn character art where cards overlap.
+      // Every overlapping object now has a deterministic stacking depth.
+      const layerZ = handRow ? 14 + Math.max(0,positionInRow) * 2.7 :
+        pileRow ? 10 + Math.max(0,positionInRow) * 2.7 :
+        pair ? (element.classList.contains('back') ? 4 : 11) : 5;
+      const z = selected ? 57 : hovering ? 42 : layerZ;
       const targetY = y + (selected ? 5 : hovering ? 3 : 0);
+      // getBoundingClientRect includes CSS rotation; scaling a 3D mesh to
+      // that rotated box and rotating it *again* double-stretched the art.
+      const faceWidth = element.offsetWidth || bounds.width;
+      const faceHeight = element.offsetHeight || bounds.height;
+      const selectScale = selected ? 1.035 : 1;
       const transform = getComputedStyle(element).transform;
       let angle = 0;
       if (transform && transform !== 'none') {
@@ -247,14 +267,14 @@
         const onPile = Boolean(element.closest('.stack[data-play-target]'));
         const origin = onPile && cardLaunchOrigins.length ? cardLaunchOrigins.shift() : null;
         entry.mesh.position.set(origin ? origin.x : x, origin ? origin.y : targetY - 14, origin ? 34 : z);
-        entry.mesh.scale.set(bounds.width * .94, bounds.height * .94, 1);
+        entry.mesh.scale.set(faceWidth * .94, faceHeight * .94, 1);
         entry.new = false;
       }
       entry.mesh.position.x += (x - entry.mesh.position.x) * interpolant;
       entry.mesh.position.y += (targetY - entry.mesh.position.y) * interpolant;
       entry.mesh.position.z += (z - entry.mesh.position.z) * interpolant;
-      entry.mesh.scale.x += (bounds.width - entry.mesh.scale.x) * interpolant;
-      entry.mesh.scale.y += (bounds.height - entry.mesh.scale.y) * interpolant;
+      entry.mesh.scale.x += (faceWidth * selectScale - entry.mesh.scale.x) * interpolant;
+      entry.mesh.scale.y += (faceHeight * selectScale - entry.mesh.scale.y) * interpolant;
       entry.mesh.rotation.z += (angle - entry.mesh.rotation.z) * interpolant;
       const isHand = Boolean(element.closest('.hand-area'));
       const isPile = Boolean(element.closest('.stack[data-play-target]'));
@@ -263,11 +283,11 @@
       entry.mesh.rotation.y += ((selected ? .065 : 0) - entry.mesh.rotation.y) * interpolant;
       entry.shadow.position.x = entry.mesh.position.x + 8;
       entry.shadow.position.y = entry.mesh.position.y - 9;
-      entry.shadow.scale.set(bounds.width * 1.3, bounds.height * 1.32, 1);
+      entry.shadow.scale.set(faceWidth * 1.3, faceHeight * 1.32, 1);
       entry.shadow.material.opacity = selected ? .82 : .46;
       const focused = document.activeElement === element;
       entry.rim.position.set(entry.mesh.position.x, entry.mesh.position.y, 0);
-      entry.rim.scale.set(bounds.width + 10, bounds.height + 11, 1);
+      entry.rim.scale.set(faceWidth + 10, faceHeight + 11, 1);
       entry.rim.material.opacity = focused ? .95 : selected ? .78 : hovering ? .23 : 0;
       entry.rim.material.color.setHex(focused ? 0xffdc60 : 0xb987ff);
     }
