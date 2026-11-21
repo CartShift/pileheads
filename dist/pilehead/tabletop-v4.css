@@ -233,6 +233,10 @@ body.stack-tabletop-v4 .v3-room .table-center .stack-label{
  margin:0 0 5px!important;font:900 10px/1 system-ui;
  letter-spacing:.14em;text-shadow:0 2px 5px #160811;color:#ffe6b5!important;
 }
+body.stack-tabletop-v4 .v3-room .table-center .stack{
+ --studio-pile-w:clamp(95px,9vw,140px);
+ --studio-pile-h:clamp(133px,12.7vw,190px);
+}
 body.stack-tabletop-v4 .v3-room .table-center .stack .pile-card{
  position:relative!important;overflow:visible!important;
  width:clamp(95px,9vw,140px)!important;
@@ -258,6 +262,27 @@ body.stack-tabletop-v4 .v3-room .table-center .stack[data-play-target] .stack-co
  margin:5px 0 0!important;padding:4px 8px!important;
  border-radius:999px!important;border:1px solid #fff0bd70!important;
  color:#fff0cd!important;background:#14232dbf!important;
+}
+/* Canonical pile markup is .pile-card > .card-wrap > .card.ph-card.
+   Absolutely positioned .card-wrap elements have NO intrinsic dimensions.
+   When the child was changed to width:100% in v4, both collapsed to zero.
+   Give the real wrapper explicit card geometry before WebGL samples it. */
+body.stack-tabletop-v4 .v3-room .table-center .stack .pile-card>.card-wrap{
+  width:var(--studio-pile-w, 128px)!important;
+  height:var(--studio-pile-h, 178px)!important;
+  min-width:var(--studio-pile-w, 128px)!important;
+  min-height:var(--studio-pile-h, 178px)!important;
+  display:block!important;
+  position:absolute!important;
+  left:50%!important;top:3px!important;
+  box-sizing:border-box!important;
+}
+body.stack-tabletop-v4 .v3-room .table-center .stack .pile-card>.card-wrap .card.ph-card{
+  display:block!important;
+  position:relative!important;
+  width:100%!important;height:100%!important;
+  min-width:100%!important;min-height:100%!important;
+  box-sizing:border-box!important;
 }
 body.stack-tabletop-v4 .v3-room .table-center .card-wrap:not(:last-child){opacity:0!important}
 body.stack-tabletop-v4 .v3-room .table .zone.your-up{
@@ -537,6 +562,10 @@ body.stack-tabletop-v4 .stack-beta-effect{
  body.stack-tabletop-v4 .v3-room .table-center .stack-label{
   font-size:10px!important;margin:0 0 3px!important;
  }
+ body.stack-tabletop-v4 .v3-room .table-center .stack{
+  --studio-pile-w:clamp(63px,19vw,82px);
+  --studio-pile-h:clamp(82px,26vw,107px);
+ }
  body.stack-tabletop-v4 .v3-room .table-center .stack .pile-card{
   width:clamp(63px,19vw,82px)!important;
   height:clamp(82px,26vw,107px)!important;
@@ -544,6 +573,28 @@ body.stack-tabletop-v4 .stack-beta-effect{
  }
  body.stack-tabletop-v4 .v3-room .table-center .stack-count{
   font-size:9px!important;margin:3px 0 0!important;
+ }
+/* Keep the drop zone a compact physical stack target instead of the
+    enormous empty dashed rectangle shown on Android. */
+ body.stack-tabletop-v4.pilehead-playing .v3-room .table-center .stack[data-play-target]{
+   width:clamp(118px,39vw,174px)!important;
+   min-width:105px!important;
+   height:100%!important;
+   min-height:0!important;
+   justify-self:center!important;
+   background:transparent!important;
+   border:none!important;
+ }
+ body.stack-tabletop-v4.pilehead-playing .v3-room .table-center .stack[data-play-target]::before{
+   inset:0!important;
+   border:1px dashed #ffe6b452!important;
+   border-radius:14px!important;
+   pointer-events:none!important;
+ }
+ body.stack-tabletop-v4 .v3-room .table-center .stack[data-play-target] .stack-count:last-child{
+   font-size:9px!important;
+   margin-top:2px!important;
+   padding:3px 5px!important;
  }
  body.stack-tabletop-v4 .v3-room .table .zone.your-up{
   grid-row:3!important;justify-content:center!important;gap:1px!important;
