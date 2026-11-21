@@ -64,3 +64,16 @@ The next Android screenshot still showed a displaced bottom Take Pile control, a
 - Mobile's four live board regions are now normal CSS grid rows rather than independent absolute percentages: opponents, stock/pile, face-up/blind, and hand. This prevents percentage drift and card-region collisions across phone heights.
 
 The browser-level acceptance gate remains `tests/stack-three-mobile-browser.cjs`; the source regression suite covers the above contracts. **This is a committed beta repair, not proof of passing live visual QA.** The Render deployment and the visual output on a real Android browser must still be confirmed.
+
+## Tabletop Studio v4 · screenshot-driven correction (21 November 2026)
+
+The Android Studio screenshot was legible but still underwhelming: all card regions felt stacked vertically, the turn headline was dark against a dark HUD, the robot portraits were identical, and the bottom fixed Take Pile dock was uncomfortably close to the hand. The old Studio stylesheet was therefore **replaced**, not extended: `tabletop-studio.html` now loads `tabletop-v4.css` as its single Studio-specific stylesheet. Its scene adapter remains `tabletop-v3.js`, which shares the canonical local/online controllers and semantic input targets.
+
+V4 changes:
+- The phone table height uses `clamp(422px, calc(100dvh - 188px), 603px)` and proportional grid rows rather than 607px of fixed card zones. Card sizes also adjust to available viewport height, making the hand visible above the action dock on ordinary phone sizes.
+- High-contrast gold turn status; differentiated main Play vs Take Pile controls; restrained typography and lighting; one centrally emphasized pile and stock.
+- The three bot portraits are no longer identical, with distinct palettes/accessories from the same in-house SVG robot artwork.
+- Desktop remains the cinematic layout with dedicated log and action areas. On phones those become a compact activity disclosure and safe-area-aware action dock.
+- The Three.js wood/card renderer and existing 2D fallback are unchanged. Classic and the previous `3d-beta.html` are not modified by the new Studio CSS.
+
+`tests/pilehead-tabletop-v3.cjs` now asserts the v4 layout and engine-preservation contract; `tests/tabletop-studio-browser.cjs` adds checks for the mobile action dock not overlapping the hand, and for the new Studio body class and contrast. Source-level checks passed. **Live WebGL + Android browser screenshots, real interactions, and Render deployment still require independent verification**. Do not call v4 pixel-perfect to the user reference based on source checks alone.
