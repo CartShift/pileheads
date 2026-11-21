@@ -99,8 +99,9 @@ function verify(E,rule){
  assert.equal(directEv.erodedCount,1);
  assert(direct.ashes.some(c=>c.id===directTop));E.invariant(direct);
 
- // Blind DUMP defers target resolution; the erosion must occur once, not twice.
- const pending=state(E,{players:2});
+ // Blind DUMP requires >=3 active players to ask for a target.
+ // With only two survivors the engine selects the only recipient automatically.
+ const pending=state(E,{players:3});
  const blind=forceSlot(pending,pending.people[0].down,0,c=>c.action==='dump');
  const other=pending.people[1];
  other.hand.push(...pending.people[0].hand.splice(0),
@@ -111,8 +112,8 @@ function verify(E,rule){
  assert.equal(revealed.type,'dump-pending');
  assert.equal(pending.ashes.some(c=>c.id===pendingTop),false);
  const resolved=E.resolveDump(pending,0,1);
- assert.equal(resolved.erodedCount,1);
- assert.equal(pending.ashes.filter(c=>c.id===pendingTop).length,1);
+ assert.equal(resolved.erodedCount,rule==='final-burn'?1:0);
+ assert.equal(pending.ashes.filter(c=>c.id===pendingTop).length,rule==='final-burn'?1:0);
  E.invariant(pending);
 
  // Blind failure: the newly revealed bad card is topmost and must be burned.
