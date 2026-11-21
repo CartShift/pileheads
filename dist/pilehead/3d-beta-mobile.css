@@ -1,0 +1,409 @@
+/*
+ * STACK Three.js beta: MOBILE REBUILD
+ * Keep the same real game state and illustrated cards, but never try to squeeze
+ * the desktop room's absolute overlays or action panel into a phone.
+ * Load after 3d-beta-v2.css. Classic simulator remains untouched.
+ */
+@media (max-width:760px) {
+  html {overflow-x:hidden}
+  body.stack-3d-beta {
+    overflow-x:hidden!important;
+    width:100%;min-width:0;
+    --card-w:74px;--card-h:105px;
+  }
+  body.stack-3d-beta .layout {
+    width:100%;max-width:100%!important;
+    margin:0!important;padding:0 5px 14px!important;
+    overflow:visible!important;
+  }
+  body.stack-3d-beta .layout>.top {
+    display:flex!important;align-items:center;justify-content:space-between;
+    flex-wrap:wrap!important;gap:4px 7px!important;
+    min-height:0!important;height:auto!important;
+    padding:9px 7px!important;margin:0 0 5px!important;
+    background:#111321a8!important;border-radius:12px!important;
+  }
+  body.stack-3d-beta .layout>.top>div:first-child{order:0;flex:0 1 auto;min-width:0}
+  body.stack-3d-beta .layout>.top .brand {font-size:clamp(26px,8vw,34px)!important}
+  body.stack-3d-beta .layout>.top .table-menu-toggle{
+    order:1;flex:none;margin-left:auto!important;min-width:44px;
+    min-height:38px;padding:7px 10px!important;border-radius:10px!important;
+    font-size:12px!important;
+  }
+  body.stack-3d-beta .layout>.top .stack-deck-picker{
+    order:2;flex:0 0 100%;max-width:100%;
+    display:flex!important;justify-content:flex-end;align-items:center;
+    margin:0!important;padding:0!important;gap:8px;
+    font-size:11px;
+  }
+  body.stack-3d-beta .layout>.top .stack-deck-picker select{
+    min-height:35px;max-width:min(70vw,230px);width:auto!important;
+    border-radius:10px!important;padding:5px 8px;font-size:12px!important;
+  }
+  body.stack-3d-beta .layout>.top .links{order:3;margin:0!important}
+  body.stack-3d-beta .layout>.top .beta-caption,
+  body.stack-3d-beta .layout>.top .beta-status {display:none!important}
+
+  body.stack-3d-beta #app {
+    display:flex;flex-direction:column;align-items:stretch;gap:6px;
+    min-width:0;max-width:100%;overflow:visible;
+    padding-bottom:calc(110px + env(safe-area-inset-bottom));
+  }
+  /* The gameplay controller's current status is ABOVE the table, not over
+     the opponent avatars, and is always available to screen readers. */
+  body.stack-3d-beta #app>.pitch{display:none!important}
+  body.stack-3d-beta #app>.online-room-tools{
+    order:0;position:relative!important;left:auto!important;top:auto!important;
+    width:100%!important;max-width:100%;
+    min-height:35px;padding:5px 9px!important;
+    display:flex!important;justify-content:space-between;gap:7px;
+    margin:0!important;font-size:11px;
+    border-radius:12px!important;
+  }
+  body.stack-3d-beta #app>.pilehead-table-hud{
+    order:1;position:relative!important;
+    left:auto!important;top:auto!important;right:auto!important;
+    width:100%!important;min-width:0;max-width:100%;
+    min-height:49px!important;margin:0!important;padding:7px 10px!important;
+    display:flex!important;align-items:center;justify-content:space-between;
+    flex-direction:row!important;gap:8px;border-radius:13px!important;
+    background:#131b2cea!important;border:1px solid #f6d99875!important;
+    box-shadow:0 4px 14px #0006;
+  }
+  body.stack-3d-beta #app>.pilehead-table-hud .hud-main{
+    display:flex!important;flex-direction:column;align-items:flex-start;
+    justify-content:center;flex:1;min-width:0;gap:2px;
+  }
+  body.stack-3d-beta #app>.pilehead-table-hud .hud-status{
+    color:#ffdf69!important;font:900 13px/1.2 system-ui;white-space:nowrap;
+  }
+  body.stack-3d-beta #app>.pilehead-table-hud .hud-guidance{
+    display:block!important;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;max-width:100%;font-size:10px;text-align:left;
+    color:#e5ddc8;
+  }
+  body.stack-3d-beta #app>.pilehead-table-hud .hud-meta{
+    display:flex!important;align-items:center;justify-content:flex-end;
+    max-width:42%;gap:4px;flex:0 1 auto;
+    flex-wrap:wrap;text-align:right;font-size:10px;
+  }
+  body.stack-3d-beta #app>.pilehead-table-hud .stack-rules-peek {
+    position:relative!important;top:auto!important;right:auto!important;
+    margin:0!important;z-index:12;
+  }
+  body.stack-3d-beta #app>.pilehead-table-hud .stack-rules-peek summary{
+    min-width:60px;min-height:35px;border-radius:9px;padding:6px;
+  }
+
+  body.stack-3d-beta.pilehead-playing #app>.table {
+    order:2;position:relative!important;
+    height:clamp(510px,calc(100svh - 255px),670px)!important;
+    min-height:510px!important;max-height:670px!important;
+    width:100%!important;max-width:100%;margin:0!important;
+    padding:0!important;overflow:hidden!important;
+    isolation:isolate;border-radius:18px!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+  body.stack-3d-beta.pilehead-playing #app>.table::before {
+    content:"";z-index:0!important;pointer-events:none;
+    position:absolute!important;inset:auto!important;
+    left:-23%!important;top:7%!important;
+    width:146%!important;height:108%!important;
+    border:clamp(8px,2vw,14px) solid #482823!important;
+    border-radius:50% / 30%!important;
+    transform:perspective(900px) rotateX(3deg)!important;
+    /* No intersecting grid lines, just subdued directional wood grain. */
+    background:
+      radial-gradient(ellipse 60% 37% at 52% 30%,#d48a5654,transparent 92%),
+      repeating-linear-gradient(93deg,
+        transparent 0 17px,#2e15131c 18px 19px,
+        transparent 20px 42px,#ffe3af0a 43px 44px,
+        transparent 45px 68px),
+      linear-gradient(115deg,#62302e,#a45a3c 28%,#9a543a 54%,#73352e)!important;
+    box-shadow:0 12px 0 #241316,0 24px 30px #09060dcc,
+      inset 0 6px 14px #ffe1af3d,inset 0 -50px 64px #260f1d83!important;
+  }
+  body.stack-3d-beta.pilehead-playing #app>.table::after{display:none!important}
+  body.stack-3d-beta #app>.table .stack-beta-room-light,
+  body.stack-3d-beta #app>.table .stack-beta-table-glow{pointer-events:none!important}
+  body.stack-3d-beta #app>.table>.stack-beta-three-canvas{
+    position:absolute!important;inset:0!important;
+    width:100%!important;height:100%!important;
+    pointer-events:none!important;z-index:3!important;
+  }
+  body.stack-3d-beta #app>.table .stack-beta-side-intro,
+  body.stack-3d-beta #app>.table .stack-beta-action-mark,
+  body.stack-3d-beta #app>.table .stack-beta-me{display:none!important}
+
+  /* Opponents occupy a dedicated top rail. Three face-up and blind cards
+     remain represented; no gigantic fan or fake public opponent hands. */
+  body.stack-3d-beta.pilehead-playing #app>.table .opponents {
+    position:absolute!important;top:0!important;left:0!important;
+    right:0!important;bottom:auto!important;
+    height:138px!important;width:100%!important;
+    overflow:visible!important;pointer-events:none!important;
+    padding:0!important;margin:0!important;z-index:5!important;
+  }
+  body.stack-3d-beta.pilehead-playing #app>.table .opponent {
+    position:absolute!important;top:6px!important;
+    width:31%!important;min-width:0!important;max-width:none!important;
+    transform:translateX(-50%)!important;
+    display:flex!important;flex-direction:column;align-items:center;
+    padding:0!important;margin:0!important;
+    pointer-events:auto!important;
+  }
+  body.stack-3d-beta #app>.table[data-stack-opponents="1"] .opponent:nth-child(1){left:50%!important}
+  body.stack-3d-beta #app>.table[data-stack-opponents="2"] .opponent:nth-child(1){left:28%!important}
+  body.stack-3d-beta #app>.table[data-stack-opponents="2"] .opponent:nth-child(2){left:72%!important}
+  body.stack-3d-beta #app>.table[data-stack-opponents="3"] .opponent:nth-child(1){left:17%!important}
+  body.stack-3d-beta #app>.table[data-stack-opponents="3"] .opponent:nth-child(2){left:50%!important}
+  body.stack-3d-beta #app>.table[data-stack-opponents="3"] .opponent:nth-child(3){left:83%!important}
+  body.stack-3d-beta #app>.table[data-stack-opponents="4"] .opponent{width:24%!important}
+  body.stack-3d-beta #app>.table[data-stack-opponents="4"] .opponent:nth-child(1){left:13%!important}
+  body.stack-3d-beta #app>.table[data-stack-opponents="4"] .opponent:nth-child(2){left:38%!important}
+  body.stack-3d-beta #app>.table[data-stack-opponents="4"] .opponent:nth-child(3){left:63%!important}
+  body.stack-3d-beta #app>.table[data-stack-opponents="4"] .opponent:nth-child(4){left:88%!important;top:6px!important}
+  body.stack-3d-beta #app>.table .opponent .stack-beta-portrait{
+    width:clamp(37px,11vw,47px)!important;
+    height:clamp(37px,11vw,47px)!important;
+    border-width:3px!important;
+    margin:0!important;
+  }
+  body.stack-3d-beta #app>.table .opponent strong{
+    display:block!important;max-width:95%;min-width:0;
+    margin:-5px 0 2px!important;padding:3px 8px!important;
+    font-size:clamp(10px,2.7vw,12px)!important;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  body.stack-3d-beta #app>.table .opponent .stack-beta-opponent-count{
+    position:absolute!important;top:27px!important;right:5%!important;
+    font-size:10px!important;padding:3px 6px!important;
+  }
+  body.stack-3d-beta #app>.table .opponent .held-cards{
+    display:none!important;
+  }
+  body.stack-3d-beta #app>.table .opponent .mini-cards {
+    display:flex!important;justify-content:center!important;
+    flex-wrap:nowrap!important;overflow:visible!important;
+    width:100%!important;height:37px!important;
+    margin:5px 0 0!important;padding:0!important;
+    transform:none!important;
+  }
+  body.stack-3d-beta #app>.table .opponent .mini-cards .mini{
+    flex:0 1 21px!important;
+    width:clamp(17px,5vw,23px)!important;
+    height:clamp(27px,7.4vw,33px)!important;
+    min-width:0!important;margin-left:-5px!important;
+    border-radius:3px!important;box-shadow:0 2px 4px #0009!important;
+  }
+  body.stack-3d-beta #app>.table .opponent .mini-cards .mini:first-child{margin-left:0!important}
+  body.stack-3d-beta #app>.table .opponent .player-presence{display:none!important}
+
+  /* True draw stock and single central discard pile. */
+  body.stack-3d-beta.pilehead-playing #app>.table .table-center {
+    position:absolute!important;inset:auto!important;
+    left:7%!important;top:26%!important;
+    width:86%!important;height:26%!important;min-height:0!important;
+    display:grid!important;grid-template-columns:1fr 1.1fr!important;
+    gap:7%!important;margin:0!important;padding:0!important;
+    align-items:center!important;justify-items:center;
+    z-index:4!important;
+  }
+  body.stack-3d-beta #app>.table .table-center .stack{
+    height:100%!important;width:100%!important;
+    min-width:0!important;min-height:0!important;
+    padding:0!important;margin:0!important;
+    align-items:center;justify-content:center;
+    transform:none!important;
+  }
+  body.stack-3d-beta #app>.table .table-center .stack:nth-child(3){display:none!important}
+  body.stack-3d-beta #app>.table .table-center .stack-label{
+    font-size:10px!important;font-weight:900;letter-spacing:.09em;
+  }
+  body.stack-3d-beta #app>.table .table-center .stack .pile-card{
+    width:86px!important;height:116px!important;
+    min-height:0!important;margin:3px auto!important;
+  }
+  body.stack-3d-beta #app>.table .table-center .stack .pile-card .card{
+    width:82px!important;height:113px!important;
+  }
+  body.stack-3d-beta #app>.table .table-center .stack .stack-count{
+    display:block!important;font-size:10px!important;line-height:1.2!important;
+    min-height:0!important;margin-top:2px!important;
+    color:#fff1d6;
+  }
+
+  /* The private three-up/three-blind layer gets its own unobstructed row. */
+  body.stack-3d-beta.pilehead-playing #app>.table .zone.your-up{
+    position:absolute!important;inset:auto!important;
+    left:8%!important;top:55%!important;
+    width:84%!important;height:101px!important;min-height:0!important;
+    margin:0!important;padding:0!important;
+    display:flex!important;flex-direction:column;align-items:center;
+    z-index:5!important;
+  }
+  body.stack-3d-beta #app>.table .zone.your-up .area-label{
+    margin:0 0 2px!important;padding:0!important;
+    font-size:9px!important;line-height:1.2!important;
+  }
+  body.stack-3d-beta #app>.table .zone.your-up .card-row{
+    width:100%!important;min-height:0!important;height:85px!important;
+    display:flex!important;flex-wrap:nowrap!important;
+    align-items:center!important;justify-content:center!important;
+    gap:clamp(7px,3vw,16px)!important;
+    margin:0!important;padding:2px 4px!important;
+    overflow:visible!important;
+  }
+  body.stack-3d-beta #app>.table .zone.your-up .up-pair{
+    flex:none!important;width:clamp(61px,18vw,76px);height:84px;
+    position:relative;
+  }
+  body.stack-3d-beta #app>.table .zone.your-up .card{
+    width:clamp(59px,17vw,71px)!important;
+    height:clamp(81px,23vw,96px)!important;
+    --card-w:clamp(59px,17vw,71px);
+    --card-h:clamp(81px,23vw,96px);
+  }
+  /* Face-down cards sit slightly below the face-up cards but never cover
+     their numbers. The same semantic card buttons remain usable. */
+  body.stack-3d-beta #app>.table .zone.your-up .up-pair>.card.back{
+    top:8px!important;left:0!important;
+  }
+  body.stack-3d-beta #app>.table .zone.your-up .up-pair>.card:not(.back){
+    position:relative;transform:translate(6px,-3px)!important;
+  }
+
+  /* Hand: controlled fan with horizontal swipe on unusually large hands. */
+  body.stack-3d-beta.pilehead-playing #app>.table .hand-area{
+    position:absolute!important;inset:auto!important;
+    left:3%!important;bottom:3%!important;
+    width:94%!important;height:150px!important;
+    min-width:0!important;min-height:0!important;max-width:94%!important;
+    margin:0!important;padding:0!important;
+    border:0!important;border-radius:0!important;
+    background:transparent!important;box-shadow:none!important;
+    overflow:visible!important;z-index:6!important;
+  }
+  body.stack-3d-beta #app>.table .hand-area .area-label{
+    display:flex!important;justify-content:space-between!important;
+    padding:0 5px!important;margin:0!important;
+    font-size:10px!important;min-height:23px;
+  }
+  body.stack-3d-beta #app>.table .hand-area .hand-controls{
+    position:relative;flex:none;gap:6px;
+  }
+  body.stack-3d-beta #app>.table .hand-area .hand-controls button{
+    min-height:30px!important;min-width:46px!important;
+    padding:5px 7px!important;font-size:11px!important;
+    border-radius:8px!important;
+  }
+  body.stack-3d-beta #app>.table .card-row.hand{
+    display:flex!important;flex-wrap:nowrap!important;
+    align-items:flex-end!important;justify-content:safe center!important;
+    height:125px!important;min-height:0!important;max-height:125px!important;
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    margin:0!important;padding:10px 5px 8px!important;
+    gap:0!important;overflow-x:auto!important;overflow-y:hidden!important;
+    scrollbar-width:thin;scroll-snap-type:none;touch-action:pan-x;
+  }
+  body.stack-3d-beta #app>.table .card-row.hand .card{
+    --card-w:clamp(66px,19vw,78px);
+    --card-h:clamp(93px,27vw,109px);
+    flex:0 0 var(--card-w)!important;
+    width:var(--card-w)!important;height:var(--card-h)!important;
+    min-width:0!important;
+    margin-left:var(--card-overlap,-16px)!important;
+  }
+  body.stack-3d-beta #app>.table .card-row.hand .card:first-child{
+    margin-left:0!important;
+  }
+  /* No avatar floating over your own pile and no permanent in-table toast. */
+  body.stack-3d-beta #app>.table .stack-beta-me,
+  body.stack-3d-beta #app>.table .pilehead-effect-note,
+  body.stack-3d-beta #app>.table .pilehead-selected-effect{display:none!important}
+
+  /* Long descriptions, history and status appear below the table. */
+  body.stack-3d-beta #app>.pilehead-effect-note,
+  body.stack-3d-beta #app>.pilehead-selected-effect{
+    order:3;position:relative!important;
+    inset:auto!important;left:auto!important;right:auto!important;
+    top:auto!important;bottom:auto!important;
+    display:block!important;width:100%!important;max-width:100%;
+    min-height:0!important;max-height:73px!important;
+    overflow:hidden!important;margin:0!important;padding:7px 9px!important;
+    background:#151b29ed!important;color:#f6e5cd!important;
+    border:1px solid #e6b97491!important;border-radius:12px!important;
+    font-size:11px!important;line-height:1.3!important;
+  }
+  body.stack-3d-beta #app>.move-history{
+    order:5;position:relative!important;
+    left:auto!important;top:auto!important;bottom:auto!important;right:auto!important;
+    display:block!important;width:100%!important;max-width:100%;
+    max-height:none!important;min-height:0!important;
+    margin:0!important;padding:9px!important;
+    border-radius:12px!important;background:#111827df!important;
+  }
+  body.stack-3d-beta #app>.move-history:not([open]) .event-list{display:none!important}
+  body.stack-3d-beta #app>.move-history summary{
+    font-size:12px!important;padding:3px 0!important;
+  }
+
+  /* Crucial: this is a sibling of .table, not a descendant of its clipping.
+     It stays visible even if the webview has a collapsing browser toolbar. */
+  body.stack-3d-beta.pilehead-playing #app>.toolbar.table-actions{
+    order:6;position:fixed!important;
+    left:0!important;right:0!important;bottom:0!important;top:auto!important;
+    z-index:300!important;
+    width:100%!important;max-width:none!important;
+    margin:0!important;
+    padding:8px max(10px,env(safe-area-inset-right))
+      calc(9px + env(safe-area-inset-bottom))!important;
+    border:0!important;border-top:1px solid #ffe3aa8f!important;
+    border-radius:15px 15px 0 0!important;
+    background:#111724f7!important;box-shadow:0 -8px 24px #0009!important;
+    backdrop-filter:blur(12px);
+    display:flex!important;align-items:stretch;justify-content:center;
+    flex-direction:row!important;flex-wrap:wrap!important;
+    gap:7px!important;min-height:0!important;max-height:135px!important;
+    overflow-y:auto!important;
+  }
+  body.stack-3d-beta #app>.toolbar.table-actions .action{
+    flex:1 1 calc(50% - 5px)!important;
+    width:auto!important;min-width:0!important;
+    min-height:48px!important;max-height:55px;
+    margin:0!important;padding:9px 8px!important;
+    font:italic 900 clamp(13px,3.5vw,17px)/1.1
+      Impact,'Arial Black',system-ui!important;
+    white-space:normal!important;
+    border-radius:999px!important;
+  }
+  body.stack-3d-beta #app>.toolbar.table-actions .table-action-prompt{
+    flex:1 1 auto;min-height:42px;max-width:100%;
+    font:800 13px/1.25 system-ui;text-align:center;
+    padding:7px 10px!important;
+  }
+  body.stack-3d-beta #app>.toolbar.table-actions .action:focus-visible{
+    outline:3px solid #ffe867!important;outline-offset:2px!important;
+  }
+}
+@media (max-width:760px) and (max-height:680px){
+  body.stack-3d-beta.pilehead-playing #app>.table{
+    height:510px!important;min-height:510px!important;
+  }
+  body.stack-3d-beta #app>.table .table-center{top:25%!important}
+  body.stack-3d-beta #app>.table .zone.your-up{top:54%!important}
+  body.stack-3d-beta #app>.table .hand-area{bottom:1%!important}
+}
+@media (max-width:360px){
+  body.stack-3d-beta #app>.table .opponent .mini-cards .mini{
+    width:16px!important;height:26px!important;margin-left:-6px!important;
+  }
+  body.stack-3d-beta #app>.table .card-row.hand .card{
+    --card-w:64px;--card-h:91px;
+  }
+}
+@media (prefers-reduced-motion:reduce) {
+  body.stack-3d-beta #app>.toolbar.table-actions .action,
+  body.stack-3d-beta #app>.table .card{transition:none!important;animation:none!important}
+}
