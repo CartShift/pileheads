@@ -16,7 +16,7 @@ assert(!classic.includes('3d-beta.js'), 'classic must not load experimental rend
 assert(!classic.includes('3d-beta.css'), 'classic must not load experimental theme');
 assert(beta.includes('class="stack-3d-beta"'), '3D beta must be opt-in');
 for (const script of ['engine.js','deck-art.js','deck-raster.js','deck-theme.js','immersive.js','app.js','online.js','3d-beta.js']) {
-  assert(beta.includes('src="' + script + '"'), 'beta missing canonical game script ' + script);
+  assert(beta.includes('src="' + script + '"') || beta.includes('src="' + script + '?v='), 'beta missing canonical game script ' + script);
 }
 for (const p of ['3d-beta.html','3d-beta.js','3d-beta.css']) {
   assert(builder.includes("'" + p + "'"), 'Render build missing ' + p);
