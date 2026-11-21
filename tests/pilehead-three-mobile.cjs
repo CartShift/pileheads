@@ -44,6 +44,13 @@ assert(mobile.includes('.card-row.hand'));
 assert(mobile.includes('overflow-x:auto!important'));
 assert(mobile.includes('min-height:560px!important'));
 assert(mobile.includes('prefers-reduced-motion:reduce'));
+assert(mobile.includes('transform:none!important'), 'remove inherited translateX(-50%) on fixed action dock');
+assert(mobile.includes('#app>.playtest-tools'), 'hide test-only controls in beta mobile');
+assert(mobile.includes('#app>.meta'), 'hide debug statistics from beta mobile');
+assert(mobile.includes('#app>.message'), 'notice must follow playable table rather than appearing before HUD');
+assert(three.includes('element.offsetWidth || bounds.width'), 'do not stretch rotated textures to rotated bounding boxes');
+assert(three.includes('positionInRow') && three.includes('layerZ'), 'all fanned cards need distinct depth to prevent z-fighting');
+assert(three.includes("(hover:hover) and (pointer:fine)"), 'touch tap must not trigger sticky 3D hover');
 
 // A beta-only Three.js presentation still cannot intercept the real
 // clickable semantic card elements or their keyboard/drag controls.
