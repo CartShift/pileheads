@@ -44,19 +44,54 @@
   function theme() {
     return window.StackDeckThemes?.get?.() || 'characters';
   }
+  function illustratedBack() {
+    // Beta-only teal sunburst, matching the visual language of the illustrated deck.
+    // The existing Classic card-back asset and all game card IDs stay untouched.
+    const el=document.createElement('canvas');
+    el.width=256;el.height=356;
+    const ctx=el.getContext('2d'),w=el.width,h=el.height;
+    ctx.fillStyle='#f8eccf';ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='#052d39';ctx.fillRect(9,9,w-18,h-18);
+    const glow=ctx.createRadialGradient(w/2,h*.48,10,w/2,h*.48,210);
+    glow.addColorStop(0,'#2a9aaa');glow.addColorStop(.52,'#07546d');glow.addColorStop(1,'#06303e');
+    ctx.fillStyle=glow;ctx.fillRect(16,16,w-32,h-32);
+    ctx.save();ctx.beginPath();ctx.rect(16,16,w-32,h-32);ctx.clip();
+    ctx.translate(w/2,h*.48);
+    for(let n=0;n<26;n++){
+      const a=n*Math.PI*2/26;
+      ctx.beginPath();ctx.moveTo(0,0);
+      ctx.lineTo(Math.cos(a-.035)*370,Math.sin(a-.035)*370);
+      ctx.lineTo(Math.cos(a+.035)*370,Math.sin(a+.035)*370);
+      ctx.closePath();ctx.fillStyle=n%2?'#5ad3c91b':'#ffc0441e';ctx.fill();
+    }
+    ctx.restore();
+    ctx.strokeStyle='#e7dcc0';ctx.lineWidth=4;
+    ctx.strokeRect(13,13,w-26,h-26);
+    ctx.save();ctx.translate(w/2,h/2);ctx.rotate(-.09);
+    ctx.font='italic 900 61px Impact,Arial Black,sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.lineWidth=9;ctx.strokeStyle='#12202a';ctx.strokeText('STACK',0,0);
+    ctx.fillStyle='#fff6d9';ctx.fillText('STACK',0,0);
+    ctx.fillStyle='#ed3340';ctx.beginPath();ctx.moveTo(-78,40);ctx.lineTo(59,40);
+    ctx.lineTo(79,30);ctx.lineTo(-55,32);ctx.closePath();ctx.fill();
+    ctx.fillStyle='#ffcb35';ctx.fillRect(-52,46,96,8);
+    ctx.restore();
+    return el;
+  }
   function makeTexture(name) {
     const mode = theme();
     const key = mode + ':' + name;
     if (textures.has(key)) return textures.get(key);
+    const betaBack = name === 'back' && mode === 'characters';
     const image = name === 'back' ? sheetImages.back :
       (mode === 'characters' ? sheetImages.characters : sheetImages.geometry);
-    if (!image) return null;
-    const el = document.createElement('canvas');
-    if (name === 'back') {
+    if (!image && !betaBack) return null;
+    const el = betaBack ? illustratedBack() : document.createElement('canvas');
+    if (name === 'back' && !betaBack) {
       el.width = image.naturalWidth;
       el.height = image.naturalHeight;
       el.getContext('2d').drawImage(image, 0, 0);
-    } else {
+    } else if (!betaBack) {
       const pos = facePositions[name];
       if (!pos) return null;
       el.width = Math.round(image.naturalWidth / 4);
