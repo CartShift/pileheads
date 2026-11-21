@@ -605,6 +605,27 @@ body.stack-tabletop-v4 .stack-beta-effect{
    margin-top:2px!important;
    padding:3px 5px!important;
  }
+ /* The draw stock is often empty late in a round. Present a compact EMPTY
+    marker rather than reserving an entire full-card footprint. The discard
+    pile remains the prominent, touchable target beside it. */
+ body.stack-tabletop-v4 .v3-room .table-center:has(.stack:first-child .placeholder){
+   grid-template-columns:minmax(76px,.65fr) minmax(128px,1.35fr)!important;
+ }
+ body.stack-tabletop-v4 .v3-room .table-center .stack:first-child:has(.placeholder){
+   width:100%!important;max-width:94px!important;
+ }
+ body.stack-tabletop-v4 .v3-room .table-center .stack:first-child:has(.placeholder) .pile-card{
+   width:72px!important;height:52px!important;min-height:0!important;
+   max-height:52px!important;
+   margin:0!important;
+ }
+ body.stack-tabletop-v4 .v3-room .table-center .stack:first-child:has(.placeholder) .placeholder{
+   width:70px!important;height:48px!important;min-width:0!important;
+   border:1px dashed #ffdaaa82!important;border-radius:10px!important;
+   background:#151e2c9e!important;color:#ffdfbd!important;
+   font:900 11px/1.1 system-ui!important;
+   letter-spacing:.07em;
+ }
  body.stack-tabletop-v4 .v3-room .table .zone.your-up{
   grid-row:3!important;justify-content:center!important;gap:1px!important;
   overflow:visible!important;
