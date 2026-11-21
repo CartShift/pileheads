@@ -42,6 +42,14 @@ async function run(browser,width,height,isMobile){
      const placed=g.stock.splice(0,6);
      g.pile.push(...placed,topSeven);
      g.limit={type:'min',value:7};
+     // Match the reported late-game layout: empty stock, 7-card pile,
+     // and four cards in the human hand. Every card stays conserved.
+     g.people[0].hand.push(g.stock.pop());
+     let nextSeat=1;
+     while(g.stock.length){
+       g.people[nextSeat].hand.push(g.stock.pop());
+       nextSeat=nextSeat===3?1:nextSeat+1;
+     }
      E.invariant(g);
      localStorage.setItem('pilehead-playtest-v11',JSON.stringify({
        g,mode:'bots',seats:4,setupSeat:0,covered:false,notice:'',lastMove:null
