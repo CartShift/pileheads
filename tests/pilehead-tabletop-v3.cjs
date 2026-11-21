@@ -11,6 +11,7 @@ const preview=read('dist/pilehead/tabletop-studio.html');
 const css=read('dist/pilehead/tabletop-v3.css');
 const js=read('dist/pilehead/tabletop-v3.js');
 const build=read('scripts/build-vercel.mjs');
+const renderer=read('dist/pilehead/3d-beta.js');
 new vm.Script(js,{filename:'tabletop-v3.js'});
 
 for(const item of ['tabletop-studio.html','tabletop-v3.css','tabletop-v3.js']){
@@ -44,6 +45,12 @@ for(const required of ['.v3-shell','.v3-topline','.v3-room','.v3-info','.v3-cont
  assert(css.includes(required),'missing deliberate scene contract '+required);
 }
 assert(css.includes('stack-3d-ready'), 'DOM cards hidden only once WebGL is ready');
+assert(css.includes('stack-3d-ready .v3-room .table::before'), 'CSS wood must fall back after WebGL failure');
+assert(renderer.includes('function proceduralWood()'), 'studio requires a genuine textured tabletop');
+assert(renderer.includes('new THREE.PlaneGeometry(1,1)'), 'wood surface must be Three.js geometry');
+assert(renderer.includes('function sizePhysicalTable(w,h)'), 'physical tabletop must resize to canvas');
+assert(renderer.includes("body.classList.contains('stack-tabletop-v3')"), 'wood geometry must not affect old beta');
+assert(renderer.includes('physicalTableTexture?.dispose()'), 'table texture must be disposed');
 assert(css.includes('@media(max-width:760px)'), 'mobile is not a desktop viewport crop');
 const depth=[...css].reduce((n,c)=>n+(c==='{')-(c==='}'),0);
 assert.equal(depth,0,'CSS braces must balance');
