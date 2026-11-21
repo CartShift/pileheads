@@ -374,6 +374,18 @@
     for (const [id, card] of cards) {
       if (!seen.has(id)) {discardCard(card); cards.delete(id);}
     }
+    // A nonempty discard pile is a critical gameplay affordance, not optional
+    // visual decoration. If a renderer or CSS regression makes its top mesh
+    // unmeasurable, expose the real semantic DOM card instead of showing a
+    // misleading empty drop zone. Only Studio v4 uses this visual safeguard.
+    if (body.classList.contains('stack-tabletop-v4')) {
+      const top = table.querySelector('.stack[data-play-target] .pile-card .card-wrap:last-child .card.ph-card');
+      const mesh = top && [...cards.values()].find(item => item.element === top);
+      const bounds = top?.getBoundingClientRect();
+      const missing = !!top && (!mesh || !bounds || bounds.width < 8 ||
+        bounds.height < 8 || mesh.mesh.scale.x < 8 || mesh.mesh.scale.y < 8);
+      table.classList.toggle('studio-pile-2d', missing);
+    }
   }
   function checkEffect() {
     if (!table) return;
