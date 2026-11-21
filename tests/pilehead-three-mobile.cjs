@@ -15,7 +15,7 @@ new vm.Script(compose,{filename:'3d-beta-v2.js'});
 new vm.Script(three,{filename:'3d-beta.js'});
 
 // New repair must be beta-only and loaded last.
-assert(beta.includes('href="3d-beta-mobile.css"'));
+assert(beta.includes('href="3d-beta-mobile.css?v='));
 assert(beta.indexOf('3d-beta-mobile.css')>beta.indexOf('3d-beta-v2.css'));
 assert(!classic.includes('3d-beta-mobile.css'));
 assert(build.includes("'3d-beta-mobile.css'"));
