@@ -97,8 +97,8 @@
 
   body.stack-3d-beta.pilehead-playing #app>.table {
     order:2;position:relative!important;
-    height:clamp(510px,calc(100svh - 255px),670px)!important;
-    min-height:510px!important;max-height:670px!important;
+    height:clamp(560px,calc(100svh - 255px),670px)!important;
+    min-height:560px!important;max-height:670px!important;
     width:100%!important;max-width:100%;margin:0!important;
     padding:0!important;overflow:hidden!important;
     isolation:isolate;border-radius:18px!important;
@@ -237,8 +237,8 @@
   /* The private three-up/three-blind layer gets its own unobstructed row. */
   body.stack-3d-beta.pilehead-playing #app>.table .zone.your-up{
     position:absolute!important;inset:auto!important;
-    left:8%!important;top:55%!important;
-    width:84%!important;height:101px!important;min-height:0!important;
+    left:8%!important;top:54%!important;
+    width:84%!important;height:95px!important;min-height:0!important;
     margin:0!important;padding:0!important;
     display:flex!important;flex-direction:column;align-items:center;
     z-index:5!important;
@@ -278,7 +278,7 @@
   body.stack-3d-beta.pilehead-playing #app>.table .hand-area{
     position:absolute!important;inset:auto!important;
     left:3%!important;bottom:3%!important;
-    width:94%!important;height:150px!important;
+    width:94%!important;height:137px!important;
     min-width:0!important;min-height:0!important;max-width:94%!important;
     margin:0!important;padding:0!important;
     border:0!important;border-radius:0!important;
@@ -301,7 +301,7 @@
   body.stack-3d-beta #app>.table .card-row.hand{
     display:flex!important;flex-wrap:nowrap!important;
     align-items:flex-end!important;justify-content:safe center!important;
-    height:125px!important;min-height:0!important;max-height:125px!important;
+    height:111px!important;min-height:0!important;max-height:111px!important;
     width:100%!important;max-width:100%!important;min-width:0!important;
     margin:0!important;padding:10px 5px 8px!important;
     gap:0!important;overflow-x:auto!important;overflow-y:hidden!important;
@@ -309,7 +309,7 @@
   }
   body.stack-3d-beta #app>.table .card-row.hand .card{
     --card-w:clamp(66px,19vw,78px);
-    --card-h:clamp(93px,27vw,109px);
+    --card-h:clamp(91px,26vw,105px);
     flex:0 0 var(--card-w)!important;
     width:var(--card-w)!important;height:var(--card-h)!important;
     min-width:0!important;
@@ -389,11 +389,11 @@
 }
 @media (max-width:760px) and (max-height:680px){
   body.stack-3d-beta.pilehead-playing #app>.table{
-    height:510px!important;min-height:510px!important;
+    height:560px!important;min-height:560px!important;
   }
   body.stack-3d-beta #app>.table .table-center{top:25%!important}
   body.stack-3d-beta #app>.table .zone.your-up{top:54%!important}
-  body.stack-3d-beta #app>.table .hand-area{bottom:1%!important}
+  body.stack-3d-beta #app>.table .hand-area{bottom:2%!important}
 }
 @media (max-width:360px){
   body.stack-3d-beta #app>.table .opponent .mini-cards .mini{
