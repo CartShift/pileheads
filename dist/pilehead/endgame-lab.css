@@ -1,0 +1,41 @@
+/* Isolated endgame playtest theme. No changes to canonical simulator styles. */
+.stack-endgame-lab{--accent:#ffc843;--gold:#ffd86c}
+.stack-endgame-lab .lab-banner{
+ border:1px solid #ffd28b8c;background:linear-gradient(125deg,#403038,#182e2b);
+ border-radius:18px;padding:15px clamp(12px,2vw,24px);
+ margin:8px 0 14px;display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,340px);
+ gap:16px;box-shadow:0 8px 24px #0005;
+}
+.stack-endgame-lab .lab-intro{display:flex;flex-direction:column;gap:5px}
+.stack-endgame-lab .lab-kicker{font:900 10px/1.2 system-ui;letter-spacing:.12em;color:#f8d78f}
+.stack-endgame-lab .lab-intro strong{font-size:clamp(17px,2.5vw,25px);line-height:1.1;color:#fff0d3}
+.stack-endgame-lab .lab-intro p{font-size:12px;line-height:1.4;color:#e9e1d7;margin:4px 0 0}
+.stack-endgame-lab .lab-config{display:grid;grid-template-columns:1fr auto;gap:7px 10px;align-items:end}
+.stack-endgame-lab .lab-config label{display:grid;gap:5px;font-size:11px;font-weight:850;color:#ffe2b0}
+.stack-endgame-lab .lab-config select{height:42px;width:100%;min-width:0;
+ background:#131f24;color:#fff1dc;border:1px solid #f9d7a681;border-radius:9px;padding:7px}
+.stack-endgame-lab .lab-deal{display:grid;gap:4px;font-size:10px;font-weight:800;color:#e4e0d5;white-space:nowrap}
+.stack-endgame-lab #lab-new-seed{height:42px;border-radius:9px;border:1px solid #f7d8b6;background:#f7dfae;color:#22212a;font-weight:850;padding:6px 11px}
+.stack-endgame-lab .lab-config small{grid-column:1/-1;font-size:10px;line-height:1.25;color:#d6d4ca}
+.stack-endgame-lab .table-center{gap:clamp(9px,3vw,50px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.stack-endgame-lab .table-center .stack{min-width:0}
+.stack-endgame-lab .table-center .stack .pile-card{min-height:125px}
+.stack-endgame-lab .stack:last-child .pile-card .card{
+ transform:rotate(8deg);filter:grayscale(.12) saturate(.85);opacity:.87}
+.stack-endgame-lab .stack:last-child .pile-card .placeholder{margin:0 auto}
+.stack-endgame-lab .table-center .stack .stack-label{color:#ffe9bd}
+.stack-endgame-lab .move-history{max-height:260px}
+.stack-endgame-lab .instructions{margin-top:16px}
+@media(max-width:670px){
+ .stack-endgame-lab .lab-banner{grid-template-columns:1fr;gap:10px;padding:12px}
+ .stack-endgame-lab .lab-config{grid-template-columns:minmax(0,1fr) auto}
+ .stack-endgame-lab .lab-deal{max-width:105px}
+ .stack-endgame-lab .lab-deal button{font-size:11px}
+ .stack-endgame-lab .table-center{padding:12px 0;gap:7px;min-height:170px}
+ .stack-endgame-lab .table-center .stack .pile-card{min-height:95px;height:105px}
+ .stack-endgame-lab .table-center .stack .pile-card>.card{width:68px;height:94px}
+ .stack-endgame-lab .table-center .stack .pile-card>.card-wrap>.card{width:68px;height:94px}
+ .stack-endgame-lab .table-center .stack .pile-card>.card-wrap{width:68px}
+ .stack-endgame-lab .table-center .stack .stack-label{font-size:9px;letter-spacing:.05em}
+ .stack-endgame-lab .table-center .stack .stack-count{font-size:10px}
+}
