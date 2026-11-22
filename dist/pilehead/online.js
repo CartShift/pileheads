@@ -9,7 +9,9 @@ const deploymentShare=params.get('_vercel_share');
 const safeSessionRead=key=>{try{return localStorage.getItem(key)}catch{return null}};
 const safeSessionSave=(key,value)=>{try{localStorage.setItem(key,value)}catch{}};
 let room=params.get('room')?.toUpperCase()||'',session=room?safeSessionRead(STORE+room):null;
-let draftName=safeSessionRead(NAME)||'',draftHumans=2,draftBots=0;
+const FINAL_DUEL_KEY='stack-final-duel-default-v1';
+let draftName=safeSessionRead(NAME)||'',draftHumans=2,draftBots=0,
+ draftFinalDuel=safeSessionRead(FINAL_DUEL_KEY)==='final-duel';
 let data=null,busy=false,polling=false,selection=[],swapCard=null,dumpDraft=null,notice='',networkError='',roomIssue='',drag=null;
 let lastRevision=-1,lastEvent=null,pollTimer=null,transitionTimer=null,reconnecting=false,sortMode='dealt',endDismissed=false,botTickAt=0,lastChangeAt=0;
 let lastHeartbeatAt=0,lastSyncAt=0,pollFailures=0,markedAway=false;
@@ -321,6 +323,10 @@ function lobby(){
   '<h2>SET YOUR OPENING HAND.</h2><p>'+humans+' human '+(humans===1?'player':'players')+' · '+bots.length+' '+(bots.length===1?'bot':'bots')+'. Share the link with your friends; computer players are ready automatically.</p>'+
   '<div class="online-code">'+safe(room)+'</div><div class="toolbar"><button class="action primary" data-do="copy">Copy invite link</button>'+
   '<button class="action secondary" data-do="share">Share</button></div>'+
+ '<label class="stack-final-duel-option"><input type="checkbox" id="online-room-final-duel" '+
+ (data.game.endgameRule==='final-duel'?'checked ':'')+(data.host?'':'disabled ')+
+ '/><span><strong>Final Duel · '+(data.game.endgameRule==='final-duel'?'ON':'OFF')+'</strong>'+
+ '<small>Optional: burns the top card on pile pickup with two players left and empty stock. Host can change this before the round starts.</small></span></label>'+
   '<div class="lobby-progress" role="status"><strong>'+readyCount+' / '+data.capacity+' ready</strong>'+
    '<span>'+(allReady?'Everyone is ready · the host can start':
     myReady?'Your cards are locked in · waiting for the others':'Choose your face-up cards, then confirm')+'</span></div>'+
@@ -421,11 +427,14 @@ function welcome(){
   '<span class="small" id="online-name-hint">Leave blank to play as Player 1.</span></label>'+
   '<label>Human players (including you)<select id="online-humans">'+[1,2,3,4,5].map(n=>'<option value="'+n+'" '+(n===draftHumans?'selected':'')+'>'+n+' '+(n===1?'human':'humans')+'</option>').join('')+'</select></label>'+
   '<label>Computer opponents<select id="online-bots">'+[0,1,2,3,4].map(n=>'<option value="'+n+'" '+(n===draftBots?'selected':'')+'>'+n+' '+(n===1?'bot':'bots')+'</option>').join('')+'</select></label></div>'+
-  '<p id="online-seat-summary" class="online-seat-summary'+(valid?'':' is-invalid')+'" role="status">'+
+  '<label class="stack-final-duel-option"><input id="online-final-duel" type="checkbox" '+
+ (draftFinalDuel?'checked':'')+'/>'+
+ '<span><strong>Final Duel · optional</strong><small>Burn the top card on each pile pickup with two players left and an empty draw deck. Off by default.</small></span></label>'+
+ '<p id="online-seat-summary" class="online-seat-summary'+(valid?'':' is-invalid')+'" role="status">'+
   (valid?total+' players · '+draftHumans+' human'+(draftHumans===1?'':'s')+' + '+draftBots+' bot'+(draftBots===1?'':'s')+' (max 5)':total+' players selected · choose 2 to 5 total')+'</p>'+
   '<button type="button" class="action primary" data-do="create" '+(!valid||busy?'disabled':'')+(busy?' aria-busy="true"':'')+'>'+(busy?'Creating room…':'Create online room')+'</button>'+
   (notice?'<p id="online-form-message" class="message online-form-message" role="alert">'+safe(notice)+'</p>':'')+
-  '<p class="small">New games use Final Duel: with two players left and an empty draw stock, each pickup burns the top card. Rooms last 24 hours. Keep this browser to retain your seat.</p></section>';
+  '<p class="small">Final Duel is off unless enabled above. Rooms last 24 hours. Keep this browser to retain your seat.</p></section>';
 }
 function dumpTargetOverlay(){
  if(!data||data.game.phase!=='play'||!dumpDraft&&data.game.pendingDump?.seat!==data.me)return '';
@@ -560,7 +569,8 @@ root.addEventListener('click',async e=>{
   }
   const nick=typedName||(action==='create'?'Player 1':'');
   draftName=nick;storeName(nick);notice='';
-  const opts=action==='create'?{humans:draftHumans,bots:draftBots,name:nick}:{code:room,name:nick};
+  const opts=action==='create'?{humans:draftHumans,bots:draftBots,name:nick,
+ endgameRule:draftFinalDuel?'final-duel':'classic'}:{code:room,name:nick};
   await doAction({action,...opts});return;
  }
  if(action==='retry'){
@@ -602,6 +612,16 @@ root.addEventListener('keydown',e=>{
  }
 });
 root.addEventListener('change',e=>{
+ if(e.target?.id==='online-final-duel'){
+   draftFinalDuel=!!e.target.checked;
+   safeSessionSave(FINAL_DUEL_KEY,draftFinalDuel?'final-duel':'classic');
+   return;
+ }
+ if(e.target?.id==='online-room-final-duel'){
+   if(!data?.host||data.game.phase!=='setup')return;
+   void command('settings',{endgameRule:e.target.checked?'final-duel':'classic'});
+   return;
+ }
  const select=e.target.closest('#online-humans,#online-bots');
  if(!select)return;
  const humans=Number($('online-humans')?.value??draftHumans),bots=Number($('online-bots')?.value??draftBots),total=humans+bots;
