@@ -13,29 +13,33 @@ function deck(version=VERSION){const a=[];let id=0;for(let n=1;n<=10;n++)for(let
  if(version===VERSION||version==='pilehead-1.6.0')for(let k=2;k<ACTIONS.burn;k++)a.push({id:id++,kind:'action',action:'burn'});
  return a;
 }
-function create({seed=20261113,players=4,endgameRule='classic'}={}){
+// The two-player edition leaves SKIP out of the deal, retaining original card IDs.
+// Persist the choice so a room started on older rules keeps its full deck.
+function effectiveDeck(g){return deck(g.version).filter(c=>!(g.omitSkip===true&&c.action==='skip'))}
+function create({seed=20261113,players=4,endgameRule='classic',omitSkip=players===2}={}){
  assert(['classic','final-duel'].includes(endgameRule),'Invalid endgame rule');
  assert(Number.isInteger(seed)&&seed>=0&&seed<=0xffffffff,'Invalid seed');
  assert(Number.isInteger(players)&&players>=2&&players<=5,'2–5 players required');
- const g={version:VERSION,endgameRule,seed,rng:(seed^0x53a2d18b)>>>0,phase:'setup',turn:0,
+ const g={version:VERSION,endgameRule,omitSkip:omitSkip===true,seed,rng:(seed^0x53a2d18b)>>>0,phase:'setup',turn:0,
    moves:0,stock:[],pile:[],ashes:[],limit:null,slamOpen:false,finishedOrder:[],
    loser:null,people:Array.from({length:players},(_,seat)=>({seat,hand:[],up:[],down:[],pickups:0,out:false})),
    events:[]};
- g.stock=shuffle(deck(),g);
+ g.stock=shuffle(effectiveDeck(g),g);
  for(const area of ['down','up','hand'])for(let k=0;k<3;k++)for(const p of g.people)p[area].push(g.stock.pop());
- assert(count(g)===DECK_SIZE,'Setup conservation failed');
+ assert(count(g)===effectiveDeck(g).length,'Setup conservation failed');
  return g;
 }
 function count(g){return g.stock.length+g.pile.length+g.ashes.length+
  g.people.reduce((n,p)=>n+p.hand.length+p.up.length+p.down.length,0)}
-function invariant(g){const expected=deck(g.version);
+function invariant(g){const expected=effectiveDeck(g),byId=new Map(expected.map(c=>[c.id,c]));
+  assert(g.omitSkip===undefined||typeof g.omitSkip==='boolean','Invalid deck setting');
  assert(g.endgameRule===undefined||g.endgameRule==='classic'||g.endgameRule==='final-duel',
    'Invalid endgame rule');
  assert(count(g)===expected.length,'Card conservation failed: '+count(g));
  const cards=[...g.stock,...g.pile,...g.ashes,...g.people.flatMap(p=>[...p.hand,...p.up,...p.down])];
  const ids=cards.map(c=>c.id);
  assert(new Set(ids).size===expected.length,'Duplicate card identity');
- assert(cards.every(c=>{const ref=expected[c.id];return !!ref&&c.kind===ref.kind&&c.rank===ref.rank&&c.action===ref.action}), 'Invalid card identity');
+ assert(cards.every(c=>{const ref=byId.get(c.id);return !!ref&&c.kind===ref.kind&&c.rank===ref.rank&&c.action===ref.action}), 'Invalid card identity');
  assert(g.people.every(p=>!(p.out&&(p.hand.length||p.up.length||p.down.length))),'Finished player has cards');
  return true;
 }
@@ -251,7 +255,7 @@ function move(g,seat,choice){
  // the player must immediately pick up the pile. Never expose the card ID.
  if(s==='down'&&choice.type==='play')g.blindReveal={
   seat,card:{kind:cards[0].kind,rank:cards[0].rank??null,action:cards[0].action??null},
-  move:g.moves+1,expiresAt:Date.now()+5500
+  move:g.moves+1,expiresAt:Date.now()+2200
  };
  p[s]=p[s].filter(c=>!ids.includes(c.id));
  if(bridge)p.up=p.up.filter(c=>!ids.includes(c.id));
@@ -380,7 +384,7 @@ function autoSlam(g,style='greedy',exclude=-1){if(g.phase!=='play'||!g.pile.leng
   if(opts.length&&!(style==='random'&&random(g)<.35))return move(g,seat,opts[0]);
  }return null;
 }
-const api={VERSION,DECK_SIZE,ACTIONS,deck,create,start,swap,autoSetup,stage,count,invariant,
+const api={VERSION,DECK_SIZE,ACTIONS,deck,effectiveDeck,create,start,swap,autoSetup,stage,count,invariant,
  options,slamOptions,followUpOptions,finalHandBridge,topRun,isLegal,finalDuelActive,move,resolveDump,dumpTargets,botDumpTarget,choose,autoSlam,next};
 root.PileheadEngine=api;
 if(typeof module!=='undefined')module.exports=api;
