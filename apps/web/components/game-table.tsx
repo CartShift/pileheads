@@ -15,6 +15,18 @@ const ACTION_DESCRIPTIONS: Record<string, string> = {
   under: "Next number must be 1–4", skip: "Skip the next player's turn",
   burn: "Burn the pile and play again", dump: "Give the pile to any opponent"
 };
+const SAVE_KEY = "stack-next-local-save-v1";
+const THEME_KEY = "stack-next-deck-theme-v1";
+type DeckTheme = "characters" | "original";
+function loadSavedGame(): Game | null {
+  try {
+    const data = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+    if (data?.version !== 1 || data.game?.version !== Engine.VERSION) return null;
+    Engine.invariant(data.game);
+    if (!["setup", "play", "over"].includes(data.game.phase)) return null;
+    return data.game as Game;
+  } catch { return null; }
+}
 const humanLabel = (n: number) => n === 0 ? "You" : `Bot ${n}`;
 const sameFace = (a?: Card, b?: Card) => !!a && !!b &&
   a.kind === b.kind && (a.kind === "number" ? a.rank === b.rank : a.action === b.action);
@@ -50,9 +62,9 @@ function asLocalRoom(game: Game): RoomGame {
   };
 }
 
-function PlayingCard({ card, hidden = false, selected = false, small = false, onClick, disabled = false,
+function PlayingCard({ card, hidden = false, selected = false, small = false, onClick, disabled = false, theme = "characters",
   description }: {
-  card?: Card; hidden?: boolean; selected?: boolean; small?: boolean;
+  card?: Card; hidden?: boolean; selected?: boolean; small?: boolean; theme?: DeckTheme;
   onClick?: () => void; disabled?: boolean; description?: string;
 }) {
   const index = !hidden && card
@@ -67,7 +79,7 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
       animate={{ opacity: 1, y: selected ? -13 : 0, scale: 1 }}
       exit={{ opacity: 0, y: -26, scale: .85 }}
       transition={{ type: "spring", stiffness: 460, damping: 36 }}
-      className={`playing-card ${hidden ? "is-back" : ""} ${selected ? "is-selected" : ""} ${small ? "is-small" : ""} ${onClick && !disabled ? "is-interactive" : ""}`}>
+      className={`playing-card theme-${theme} ${hidden ? "is-back" : ""} ${selected ? "is-selected" : ""} ${small ? "is-small" : ""} ${onClick && !disabled ? "is-interactive" : ""}`}>
       <div aria-hidden="true" className="card-art" style={faceStyle} />
       {onClick && !disabled ? (
         <button type="button" className="card-hit"
@@ -133,14 +145,29 @@ export default function GameTable() {
   const [needsTarget, setNeedsTarget] = useState(false);
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [resumeGame, setResumeGame] = useState<Game | null>(null);
+  const [deckTheme, setDeckTheme] = useState<DeckTheme>("characters");
+  const [showRules, setShowRules] = useState(false);
+  const [confirmRestart, setConfirmRestart] = useState(false);
+  const [undoAvailable, setUndoAvailable] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const [connectionRetry, setConnectionRetry] = useState(0);
+  const [lastSyncAt, setLastSyncAt] = useState(0);
   const inFlight = useRef(false);
   const roomRef = useRef<Room | null>(null);
   const tokenRef = useRef<string | null>(null);
   const localRef = useRef<Game | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const undoRef = useRef<Game | null>(null);
 
   const applyRoom = useCallback((next: Room) => {
     if (roomRef.current?.code === next.code && next.revision < roomRef.current.revision) return;
+    // Heartbeats do not invalidate the card scene. Keep DOM/card identity
+    // stable unless gameplay, membership or ephemeral public events changed.
+    if (roomRef.current?.code === next.code &&
+        roomRef.current.revision === next.revision &&
+        JSON.stringify(roomRef.current.game) === JSON.stringify(next.game) &&
+        JSON.stringify(roomRef.current.members) === JSON.stringify(next.members)) return;
     // An authoritative move supersedes any locally selected cards.
     if (roomRef.current?.code === next.code && next.revision !== roomRef.current.revision) {
       setSelection([]);
@@ -152,6 +179,7 @@ export default function GameTable() {
     }
     roomRef.current = next;
     setRoom(next);
+    setLastSyncAt(Date.now());
     setMode("online");
     history.replaceState(null, "", `/play?room=${encodeURIComponent(next.code)}`);
   }, []);
@@ -160,6 +188,7 @@ export default function GameTable() {
     try {
       const next = await requestRoom({ action: "state", code, heartbeat: true }, token);
       applyRoom(next);
+      setLastSyncAt(Date.now());
       if (!quiet) setNotice("");
     } catch (err) {
       if (!quiet) setNotice(err instanceof Error ? err.message : "Unable to restore room");
@@ -171,6 +200,9 @@ export default function GameTable() {
     const code = params.get("room")?.trim().toUpperCase();
     const savedName = localStorage.getItem("stack-next-display-name");
     if (savedName) setName(savedName);
+    const savedTheme = localStorage.getItem(THEME_KEY);
+    if (savedTheme === "characters" || savedTheme === "original") setDeckTheme(savedTheme);
+    setResumeGame(loadSavedGame());
     if (!code) return;
     setJoinCode(code);
     const token = localStorage.getItem(sessionKey(code));
@@ -193,43 +225,101 @@ export default function GameTable() {
     } finally { inFlight.current = false; setBusy(false); }
   }, [applyRoom, synchronize]);
 
-  // Revision invalidations arrive over WebSocket. HTTP is the source of truth.
+  // Store only local bot matches. Online secrets/state stay in their existing
+  // per-room storage; never persist another player's private cards.
+  useEffect(() => {
+    if (mode !== "local" || !local) return;
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({ version: 1, game: local }));
+      setResumeGame(local);
+    } catch { /* private browsing/quota: current match remains playable */ }
+  }, [mode, local]);
+  useEffect(() => {
+    try { localStorage.setItem(THEME_KEY, deckTheme); } catch {}
+  }, [deckTheme]);
+
+  // One socket per room: a missed 'ready' handshake is treated as offline.
+  // Reconnect after a close, then reconcile the authoritative HTTP snapshot.
   useEffect(() => {
     if (mode !== "online" || !room?.code || !tokenRef.current) return;
     const code = room.code, token = tokenRef.current;
     const wsUrl = new URL(`${backendOrigin || window.location.origin}/api/pilehead/live`);
     wsUrl.protocol = wsUrl.protocol === "https:" ? "wss:" : "ws:";
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let ws: WebSocket;
-    try { ws = new WebSocket(wsUrl.toString()); } catch { return; }
+    try { ws = new WebSocket(wsUrl.toString()); } catch {
+      retryTimer = setTimeout(() => setConnectionRetry(n => n + 1), 3500);
+      return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
+    }
     wsRef.current = ws;
     ws.onopen = () => ws.send(JSON.stringify({ type: "auth", code, token }));
     ws.onmessage = ev => {
       try {
         const packet = JSON.parse(ev.data);
-        if (packet.type === "invalidate" && (packet.force || packet.revision > (roomRef.current?.revision ?? -1))) {
+        if (packet.type === "ready") { setConnected(true); void synchronize(code, token, true); }
+        if (packet.type === "invalidate" &&
+            (packet.force || packet.revision > (roomRef.current?.revision ?? -1))) {
           void synchronize(code, token, true);
         }
-      } catch { /* malformed transport message: next poll will recover */ }
+      } catch { /* transport errors are recovered by polling */ }
     };
-    const interval = window.setInterval(() => void synchronize(code, token, true), 3500);
-    return () => { clearInterval(interval); ws.close(); if (wsRef.current === ws) wsRef.current = null; };
-  }, [mode, room?.code, synchronize]);
+    ws.onclose = () => {
+      if (cancelled) return;
+      setConnected(false);
+      retryTimer = setTimeout(() => setConnectionRetry(n => n + 1), 3500);
+    };
+    ws.onerror = () => setConnected(false);
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      ws.close();
+      if (wsRef.current === ws) wsRef.current = null;
+    };
+  }, [mode, room?.code, connectionRetry, synchronize]);
 
-  const commitLocal = useCallback((change: (g: Game) => void) => {
-    setLocal(prev => {
-      if (!prev) return prev;
-      try {
-        const next = structuredClone(prev);
-        change(next);
-        Engine.invariant(next);
-        localRef.current = next;
-        return next;
-      } catch (err) {
-        setNotice(err instanceof Error ? err.message : "Invalid action");
-        return prev;
+  // Polling is a recovery path when push is active, never the renderer.
+  useEffect(() => {
+    if (mode !== "online" || !room?.code || !tokenRef.current) return;
+    const code = room.code, token = tokenRef.current;
+    const interval = window.setInterval(
+      () => void synchronize(code, token, true), connected ? 9500 : 1700
+    );
+    return () => clearInterval(interval);
+  }, [mode, room?.code, connected, synchronize]);
+
+  const commitLocal = useCallback((change: (g: Game) => void, recordUndo = false) => {
+    // Do not mutate from inside a React state updater: Strict Mode can invoke
+    // updater functions twice. Every physical move is committed exactly once.
+    const previous = localRef.current;
+    if (!previous) return;
+    try {
+      const next = structuredClone(previous);
+      change(next);
+      Engine.invariant(next);
+      if (recordUndo) {
+        undoRef.current = structuredClone(previous);
+        setUndoAvailable(true);
       }
-    });
-    setSelection([]); setNeedsTarget(false);
+      localRef.current = next;
+      setLocal(next);
+      setNotice("");
+      setSelection([]);
+      setNeedsTarget(false);
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Invalid action");
+    }
+  }, []);
+  const undo = useCallback(() => {
+    if (!undoRef.current) return;
+    const restored = structuredClone(undoRef.current);
+    Engine.invariant(restored);
+    localRef.current = restored;
+    undoRef.current = null;
+    setLocal(restored);
+    setUndoAvailable(false);
+    setSelection([]);
+    setNotice("Previous turn restored.");
   }, []);
 
   // A human SNAP is a legal interrupt, not a new turn. Do not re-arm the
@@ -301,7 +391,7 @@ export default function GameTable() {
 
   function playMove(move: Move) {
     setNotice("");
-    if (mode === "local") commitLocal(game => { Engine.move(game, me, move); });
+    if (mode === "local") commitLocal(game => { Engine.move(game, me, move); }, true);
     else if (room) {
       const onlineMove = move.source === "down"
         ? { type: "play", source: "down", index: move.index }
@@ -345,6 +435,7 @@ export default function GameTable() {
   function startLocalGame() {
     const game = createGame(players);
     localRef.current = game;
+    undoRef.current = null; setUndoAvailable(false);
     setLocal(game); setRoom(null); setMode("local"); setSelection([]); setNotice("");
   }
 
@@ -353,9 +444,18 @@ export default function GameTable() {
     else if (room) void submit({ action: "rematch", code: room.code, revision: room.revision });
   }
 
+  function resumeLocal() {
+    const saved = loadSavedGame();
+    if (!saved) { setResumeGame(null); setNotice("Saved game is unavailable."); return; }
+    localRef.current = saved; undoRef.current = null; setUndoAvailable(false);
+    setLocal(saved); setRoom(null); setMode("local"); setSelection([]); setNotice("");
+    history.replaceState(null, "", "/play");
+  }
+
   function leaveTable() {
     if (wsRef.current) wsRef.current.close();
     setMode("home"); setLocal(null); setRoom(null); roomRef.current = null;
+    setConnected(false); setConfirmRestart(false); setShowRules(false);
     setSelection([]); setNotice("");
     history.replaceState(null, "", "/play");
   }
@@ -384,6 +484,13 @@ export default function GameTable() {
           <a href={classicHref} className="subtle-link">Open original Classic ↗</a>
         </div>
         <div className="entry-options">
+          {resumeGame && <div className="resume-panel">
+            <div><div className="eyebrow">SAVED LOCAL MATCH</div>
+              <strong>Pick up where you left off</strong>
+              <p>{resumeGame.phase === "over" ? "Last round finished" : `${resumeGame.moves} moves · ${resumeGame.people.length} players`}</p>
+            </div>
+            <button className="secondary-button" onClick={resumeLocal}>Resume game</button>
+          </div>}
           <div className="mode-card">
             <div className="eyebrow">PRACTICE</div><h2>Play with bots</h2>
             <p>Local, instant, no account required.</p>
@@ -429,7 +536,17 @@ export default function GameTable() {
         <div className="game-head-actions">
           {room && <button className="room-code" onClick={() => void navigator.clipboard.writeText(
             `${window.location.origin}/play?room=${room.code}`)} title="Copy invitation link">ROOM {room.code} <span>Copy invite</span></button>}
+          {mode === "online" && <span className={`connection-chip ${connected ? "is-online" : "is-offline"}`}
+            title={`Last sync: ${lastSyncAt ? new Date(lastSyncAt).toLocaleTimeString() : "pending"}`}
+            role="status">{connected ? "Live" : "Reconnecting"}</span>}
           <span className="beta-tag">REACT TABLE · PREVIEW</span>
+          <button className="exit-button" onClick={() => setShowRules(true)}>Rules</button>
+          <label className="theme-control">Deck
+            <select aria-label="Deck style" value={deckTheme}
+              onChange={e => setDeckTheme(e.target.value as DeckTheme)}>
+              <option value="characters">Characters</option><option value="original">Original</option>
+            </select>
+          </label>
           <button className="exit-button" onClick={leaveTable}>Leave table</button>
         </div>
       </header>
@@ -453,7 +570,7 @@ export default function GameTable() {
           <div className="pile-zone">
             <span className="pile-title">DRAW DECK</span>
             <div className="pile-slot">
-              {g.stockCount > 0 ? <PlayingCard hidden /> : <div className="slot-empty">Empty</div>}
+              {g.stockCount > 0 ? <PlayingCard hidden theme={deckTheme} /> : <div className="slot-empty">Empty</div>}
               {g.stockCount > 1 && <span className="stack-depth" />}
             </div>
             <span className="pile-counter">{g.stockCount} cards</span>
@@ -464,7 +581,7 @@ export default function GameTable() {
               <AnimatePresence initial={false}>
                 {g.pile.slice(-4).map((card, i) => <div key={card.id}
                   className="pile-layer" style={{ transform: `translate(${(i - 1.5) * 6}px, ${(i - 1.5) * -2}px) rotate(${(i - 1.5) * 3}deg)` }}>
-                  <PlayingCard card={card} />
+                  <PlayingCard card={card} theme={deckTheme} />
                 </div>)}
               </AnimatePresence>
               {!g.pile.length && <div className="slot-empty">Pile clear</div>}
@@ -492,10 +609,10 @@ export default function GameTable() {
                 (stage === "up" || (stage === "hand" && g.stockCount === 0));
               return <div className="faceup-pair" key={index}>
                 {index < current.downCount && <div className="blind-under">
-                  <PlayingCard hidden onClick={stage === "down" && active ? () => clickBlind(index) : undefined} />
+                  <PlayingCard hidden theme={deckTheme} onClick={stage === "down" && active ? () => clickBlind(index) : undefined} />
                 </div>}
                 {upCard && <div className="visible-up">
-                  <PlayingCard card={upCard} selected={selection.includes(upCard.id)}
+                  <PlayingCard card={upCard} theme={deckTheme} selected={selection.includes(upCard.id)}
                     onClick={canUp ? () => g.phase === "setup" ? swap(upCard, "up") : chooseCard(upCard) : undefined} />
                 </div>}
               </div>;
@@ -507,7 +624,7 @@ export default function GameTable() {
           <div className="player-hand">
             <AnimatePresence initial={false}>
               {(current.hand || []).map(card =>
-                <PlayingCard key={card.id} card={card} selected={selection.includes(card.id) || swapHand === card.id}
+                <PlayingCard key={card.id} card={card} theme={deckTheme} selected={selection.includes(card.id) || swapHand === card.id}
                   onClick={g.phase === "setup" ? (!ready ? () => swap(card, "hand") : undefined) :
                     (active || g.followup.length > 0) && stage === "hand" ? () => chooseCard(card) : undefined} />)}
             </AnimatePresence>
@@ -534,7 +651,7 @@ export default function GameTable() {
           </div>
         ) : g.phase === "over" ? <div className="setup-controls">
           <div><strong>Game over</strong><p>First out: {nameForSeat(g.finishedOrder[0] ?? -1)}</p></div>
-          <button className="primary-button" disabled={busy} onClick={newRound}>Play another round</button>
+          <button className="primary-button" disabled={busy} onClick={() => setConfirmRestart(true)}>Play another round</button>
         </div> : g.pendingDump?.seat === me ? <div className="setup-controls">
           <div><strong>Choose who takes the pile</strong><p>DUMP can target any active opponent.</p></div>
           <div className="button-group">{liveSeats.map(seat =>
@@ -556,6 +673,7 @@ export default function GameTable() {
               <><strong>{active ? "Your turn" : `Waiting for ${nameForSeat(g.turn)}`}</strong>
                 <span>{active ? "Select one or more matching cards." : "Watch for a SNAP or SLAM opportunity."}</span></>}</div>
             <div className="button-group">
+              {mode === "local" && undoAvailable && <button className="secondary-button" onClick={undo}>Undo</button>}
               {!!g.followup.length && <button className="snap-button" disabled={busy}
                 onClick={() => playMove(g.followup[0])}>SNAP</button>}
               {!!g.slam.length && <button className="slam-button" disabled={busy}
@@ -569,6 +687,33 @@ export default function GameTable() {
         )}
       </div>
       {notice && <div className="alert" role="alert">{notice}</div>}
+      {showRules && <div className="modal-backdrop" role="presentation" onClick={() => setShowRules(false)}>
+        <section className="game-modal" role="dialog" aria-modal="true" aria-label="STACK quick rules"
+          onClick={e => e.stopPropagation()}>
+          <div className="eyebrow">HOW TO PLAY</div><h2>One pile. One loser.</h2>
+          <p>Play a number equal to or higher than the current restriction, or play any special card.
+            Keep three cards in hand while the draw deck lasts. Empty your hand, then your face-up cards,
+            then flip your face-down cards without looking. The last player with cards loses.</p>
+          <div className="quick-rules">{ACTIONS.map(action => <div key={action}>
+            <strong>{action.toUpperCase()}</strong><span>{ACTION_DESCRIPTIONS[action]}</span>
+          </div>)}</div>
+          <p><strong>SNAP:</strong> A matching number you just drew may be played until another player acts.
+            <strong> SLAM:</strong> Complete four matching numbers to burn the pile. <strong>Final Duel:</strong> When
+            only two players remain and the deck is empty, the top card burns before pile pickup.</p>
+          <button className="primary-button" onClick={() => setShowRules(false)}>Back to table</button>
+        </section>
+      </div>}
+      {confirmRestart && <div className="modal-backdrop" onClick={() => setConfirmRestart(false)}>
+        <section className="game-modal" role="dialog" aria-modal="true" aria-label="Confirm next round"
+          onClick={e => e.stopPropagation()}>
+          <div className="eyebrow">FRESH SHUFFLE</div><h2>Another round?</h2>
+          <p>{mode === "local" ? "Start a fresh local game against the bots?" : "Keep the same players and room, and deal a new round?"}</p>
+          <div className="button-group">
+            <button className="secondary-button" onClick={() => setConfirmRestart(false)}>Cancel</button>
+            <button className="primary-button" onClick={() => {setConfirmRestart(false);newRound();}}>Deal again</button>
+          </div>
+        </section>
+      </div>}
       <div className="table-footer"><span>STACK · React tabletop migration preview</span>
         <a href={classicHref}>Original Classic ↗</a></div>
     </main>
