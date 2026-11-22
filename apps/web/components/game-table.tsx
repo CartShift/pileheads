@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
+import { playSound } from "../lib/sound";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
 import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame, type Reaction } from "../lib/room";
 
@@ -18,6 +19,7 @@ const ACTION_DESCRIPTIONS: Record<string, string> = {
 };
 const SAVE_KEY = "stack-next-local-save-v1";
 const THEME_KEY = "stack-next-deck-theme-v1";
+const SOUND_KEY = "stack-next-sound-enabled-v1";
 type DeckTheme = "characters" | "original";
 function loadSavedGame(): Game | null {
   try {
@@ -206,6 +208,7 @@ export default function GameTable() {
   const [busy, setBusy] = useState(false);
   const [resumeGame, setResumeGame] = useState<Game | null>(null);
   const [deckTheme, setDeckTheme] = useState<DeckTheme>("characters");
+  const [soundEnabled, setSoundEnabled] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [undoAvailable, setUndoAvailable] = useState(false);
@@ -221,6 +224,7 @@ export default function GameTable() {
   const wsRef = useRef<WebSocket | null>(null);
   const undoRef = useRef<Game | null>(null);
   const roomEpoch = useRef(0);
+  const lastSoundEvent = useRef<string | null>(null);
 
   const applyRoom = useCallback((next: Room) => {
     if (roomRef.current?.code === next.code && next.revision < roomRef.current.revision) return;
@@ -268,6 +272,7 @@ export default function GameTable() {
     const savedTheme = localStorage.getItem(THEME_KEY);
     if (savedTheme === "characters" || savedTheme === "original") setDeckTheme(savedTheme);
     setResumeGame(loadSavedGame());
+    setSoundEnabled(localStorage.getItem(SOUND_KEY) === "true");
     if (!code) return;
     setJoinCode(code);
     const token = localStorage.getItem(sessionKey(code));
@@ -324,6 +329,9 @@ export default function GameTable() {
   useEffect(() => {
     try { localStorage.setItem(THEME_KEY, deckTheme); } catch {}
   }, [deckTheme]);
+  useEffect(() => {
+    try { localStorage.setItem(SOUND_KEY, String(soundEnabled)); } catch {}
+  }, [soundEnabled]);
 
   const applyReaction = useCallback((reaction: Reaction) => {
     const old = roomRef.current;
@@ -494,6 +502,22 @@ export default function GameTable() {
     fire: "🔥", wow: "😮", laugh: "😂", ouch: "😬", gg: "🏆"
   };
   const current = g?.players[me];
+  const lastEvent = g?.events.at(-1);
+  const soundEventId = lastEvent ? String(g?.round || 1) + ":" +
+    lastEvent.move + ":" + lastEvent.seat + ":" + lastEvent.type : null;
+  useEffect(() => {
+    if (!soundEventId) { lastSoundEvent.current = null; return; }
+    if (lastSoundEvent.current !== null && lastSoundEvent.current !== soundEventId && soundEnabled) {
+      if (g?.phase === "over") playSound("win");
+      else if (lastEvent?.reason === "burn" || lastEvent?.burned) playSound("burn");
+      else if (lastEvent?.reason === "snap" || lastEvent?.type === "followup" ||
+        lastEvent?.type === "slam") playSound("snap");
+      else if (lastEvent?.type === "take" || lastEvent?.type === "blind-fail" ||
+        lastEvent?.reason === "dump") playSound("take");
+      else playSound("play");
+    }
+    lastSoundEvent.current = soundEventId;
+  }, [soundEventId, soundEnabled, g?.phase, lastEvent?.reason, lastEvent?.burned, lastEvent?.type]);
   const stage = current ? current.handCount || g?.stockCount ? "hand" :
     current.up.length ? "up" : current.downCount ? "down" : "out" : "out";
   const active = g?.phase === "play" && g.turn === me && !g.pendingDump;
@@ -508,6 +532,7 @@ export default function GameTable() {
   }, [mode, room]);
 
   function chooseCard(card: Card) {
+    if (soundEnabled) playSound("select");
     setNotice("");
     setSelection(prev => {
       if (prev.includes(card.id)) return prev.filter(id => id !== card.id);
@@ -943,7 +968,15 @@ export default function GameTable() {
           <p><strong>SNAP:</strong> A matching number you just drew may be played until another player acts.
             <strong> SLAM:</strong> Complete four matching numbers to burn the pile. <strong>Final Duel:</strong> When
             only two players remain and the deck is empty, the top card burns before pile pickup.</p>
-          <button className="primary-button" onClick={() => setShowRules(false)}>Back to table</button>
+          <div className="button-group">
+            <button className="secondary-button" aria-pressed={soundEnabled}
+              onClick={() => {
+                setSoundEnabled(enabled => !enabled);
+                // Unlock browser audio on the explicit click when turning it on.
+                if (!soundEnabled) playSound("select");
+              }}>{soundEnabled ? "Sound on" : "Sound off"}</button>
+            <button className="primary-button" onClick={() => setShowRules(false)}>Back to table</button>
+          </div>
         </section>
       </div>}
       {confirmRestart && <div className="modal-backdrop" onClick={() => setConfirmRestart(false)}>
