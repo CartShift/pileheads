@@ -4,8 +4,19 @@
 const assert=require('node:assert/strict');
 const path=require('node:path');
 const {fork}=require('node:child_process');
+const {createServer}=require('node:net');
 const {chromium}=require('playwright');
-const PORT=43178,BASE='http://127.0.0.1:'+PORT;
+let PORT=0,BASE='';
+async function reservePort(){
+ const probe=createServer();
+ await new Promise((resolve,reject)=>{
+   probe.once('error',reject);
+   probe.listen(0,'127.0.0.1',resolve);
+ });
+ const number=probe.address().port;
+ await new Promise(resolve=>probe.close(resolve));
+ return number;
+}
 async function ready(){
  for(let i=0;i<100;i++){
   try{const r=await fetch(BASE+'/livez');if(r.ok)return}catch{}
@@ -17,6 +28,9 @@ async function waitLive(page){
  await page.waitForFunction(()=>document.querySelector('[data-live-status]')?.textContent==='Live table',{timeout:16000});
 }
 async function run(){
+ // CI may retain a previous mock server briefly while child processes close.
+ // An OS-assigned port avoids sporadic EADDRINUSE without hiding real errors.
+ PORT=await reservePort();BASE='http://127.0.0.1:'+PORT;
  const fixture=path.resolve(__dirname,'fixtures/mock-neon-room.cjs');
  const server=fork(path.resolve(__dirname,'../scripts/render-server.cjs'),[],{
   execArgv:['--require',fixture],env:{...process.env,PORT:String(PORT),
