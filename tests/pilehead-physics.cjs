@@ -129,6 +129,12 @@ check('reduced-motion settings suppress all card and particle animations',()=>{
  assert.ok(s.movements.some(x=>x.kind==='append'&&x.clazz.includes('pilehead-cue-fixed')),
   'reduced motion must still explain the public move to both players');
 });
+check('explicit Full Motion can override system reduced-motion preference',()=>{
+ const s=stage(true,'full');
+ s.sync({gameKey:'opt-in',identity:'opt-in:0',moveNo:0,ownSeat:0,events:[]});
+ assert.ok(s.movements.some(x=>x.kind==='animate'),
+  'a player who explicitly chooses Full Motion should see physical card flights');
+});
 check('exact tapped card is the flight origin, not the center of the hand rail',()=>{
  const s=stage();
  s.sync({gameKey:'round-T',identity:'round-T:0',moveNo:0,ownSeat:0,events:[]});
