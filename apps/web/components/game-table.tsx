@@ -798,9 +798,10 @@ export default function GameTable() {
       <header className="game-header">
         <Link href="/" className="logo">STACK<span>.</span></Link>
         <div className="game-head-actions">
-          {room && <button className="room-code" onClick={() => void copyInvite()}
+          {room && <button className={"room-code " + (copiedInvite ? "is-copied" : "")}
+            onClick={() => void copyInvite()}
             title="Copy invitation link" aria-label={"Copy invitation for room " + room.code}>
-            ROOM {room.code} <span>{copiedInvite ? "Copied" : "Copy invite"}</span></button>}
+            ROOM {room.code} <span aria-live="polite">{copiedInvite ? "Copied" : "Copy invite"}</span></button>}
           {mode === "online" && <span className={`connection-chip ${connected ? "is-online" : "is-offline"}`}
             title={`Last sync: ${lastSyncAt.current ? new Date(lastSyncAt.current).toLocaleTimeString() : "pending"}`}
             role="status">{connected ? "Live" : "Reconnecting"}</span>}

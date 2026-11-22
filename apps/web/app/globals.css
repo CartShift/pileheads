@@ -410,3 +410,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
   .coach-tip button{padding:7px;font-size:10px}
   .duel-banner{flex-wrap:wrap;gap:4px 8px}
 }
+
+/* A copied invite must be visibly confirmed even on narrow mobile headers,
+   where the normal "Copy invite" helper label is otherwise hidden. */
+@media(max-width:720px){
+  .room-code.is-copied span{display:inline;font-size:10px;color:var(--lime)}
+}
