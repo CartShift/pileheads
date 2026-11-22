@@ -489,8 +489,8 @@ function celebrate(table,ev,ownSeat){
    moveCard(table,landmark(table,'pile'),landmark(table,'ashes'),ev,
     {hidden:true,delay:ev.type==='blind-fail'?260:0,duration:320,fade:true});
   }
-  snap('pickup');pickupCards(table,ev,ownSeat,ev.seat,ev.type==='blind-fail'?460:ev.erodedCount?300:50,ev.takenCount??ev.count);
-  return 720;
+  snap('pickup');pickupCards(table,ev,ownSeat,ev.seat,ev.type==='blind-fail'?1220:ev.erodedCount?300:50,ev.takenCount??ev.count);
+  return ev.type==='blind-fail'?1910:720;
  }
  if(ev.action==='dump'){
    specialEffect(table,'dump',280);
