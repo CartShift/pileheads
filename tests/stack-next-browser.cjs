@@ -217,6 +217,96 @@ async function localScenarios(browser) {
   }
 }
 
+
+async function adaptiveHandFitScenarios(browser) {
+  const Engine = require("../dist/pilehead/engine.js");
+  const cases = [
+    {width:360,height:740,count:6},
+    {width:360,height:740,count:9},
+    {width:360,height:740,count:16},
+    {width:360,height:740,count:24},
+    {width:390,height:844,count:6},
+    {width:390,height:844,count:16},
+    {width:390,height:844,count:24},
+    {width:1280,height:860,count:24}
+  ];
+  for (const {width,height,count} of cases) {
+    const game=Engine.create({players:2,seed:920000+count+width,endgameRule:"classic"});
+    Engine.autoSetup(game,1);
+    Engine.start(game);
+    game.turn=0;
+    const player=game.people[0];
+    player.hand.push(...game.stock.splice(0,count-player.hand.length));
+    Engine.invariant(game);
+    const context=await browser.newContext({
+      viewport:{width,height},isMobile:width<720,hasTouch:width<720,reducedMotion:"reduce"
+    });
+    await context.addInitScript(saved=>{
+      localStorage.setItem("stack-next-local-save-v1",JSON.stringify({version:1,game:saved}));
+    },game);
+    const page=await context.newPage();
+    const errors=[];
+    page.on("pageerror",e=>errors.push(e.message));
+    try {
+      await page.goto(WEB+"/play");
+      await page.getByRole("button",{name:"Resume game"}).click();
+      const cards=page.locator(".player-hand .card-hit");
+      assert.equal(await cards.count(),count,"fixture must show every saved hand card");
+      await page.locator(".hand-stage").scrollIntoViewIfNeeded();
+      await page.waitForFunction(expected=>{
+        const hand=document.querySelector(".player-hand.is-adaptive");
+        return hand?.children.length===expected && hand?.clientWidth>50;
+      },count);
+      // Let Motion settle before checking actual mobile hit regions.
+      await page.waitForTimeout(120);
+      const dimensions=await page.evaluate(()=>{
+        const stage=document.querySelector(".hand-stage");
+        const outer=stage.getBoundingClientRect();
+        const hand=stage.querySelector(".player-hand");
+        const cards=[...stage.querySelectorAll(".playing-card")].map(card=>{
+          const r=card.getBoundingClientRect();
+          const probe=document.elementFromPoint(r.left+Math.min(8,r.width/4),r.top+10);
+          return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,
+            accessible:probe===card.querySelector(".card-hit")||card.contains(probe)};
+        });
+        const dock=document.querySelector(".control-panel").getBoundingClientRect();
+        return {outer:{left:outer.left,right:outer.right,bottom:outer.bottom},
+          hand:{width:hand.getBoundingClientRect().width,
+            columns:Number(hand.dataset.handColumns),rows:Number(hand.dataset.handRows)},
+          cards,dockTop:dock.top,
+          viewport:document.documentElement.clientWidth,
+          pageWidth:document.documentElement.scrollWidth};
+      });
+      assert.equal(dimensions.cards.length,count,"all hand cards are rendered");
+      assert.ok(dimensions.cards.every(r=>r.left>=dimensions.outer.left-3 &&
+        r.right<=dimensions.outer.right+3),
+        "all full card faces stay within the hand container: "+
+          JSON.stringify({width,count,stage:dimensions.outer,cards:dimensions.cards}));
+      assert.ok(dimensions.cards.every(r=>r.accessible),
+        "every overlapped card must retain a visible tap target: "+JSON.stringify({width,count}));
+      assert.ok(dimensions.pageWidth<=dimensions.viewport+2,
+        "no page horizontal overflow: "+JSON.stringify({width,count,dimensions}));
+      assert.ok(dimensions.dockTop>=dimensions.outer.bottom-2,
+        "the action panel may not cover an expanded hand");
+      if(width<=390 && count>=16)
+        assert.ok(dimensions.hand.rows>=2,"large hands must use compact overlapping rows");
+      const last=cards.last();
+      await last.click({position:{x:8,y:10}});
+      assert.equal(await last.getAttribute("aria-pressed"),"true",
+        "last hand card can be selected on mobile");
+      if(width===360 && (count===6||count===24)) {
+        await page.screenshot({
+          path:path.resolve(ROOT,"artifacts/next/adaptive-hand-"+width+"-"+count+".png"),
+          fullPage:true
+        });
+      }
+      assert.deepEqual(errors,[],"adaptive layout must not crash the client");
+      console.log("PASS adaptive hand: "+count+" cards fitted at "+width+
+        "px ("+dimensions.hand.rows+" rows)");
+    } finally {await context.close()}
+  }
+}
+
 async function seatLayoutScenarios(browser) {
   for (const players of [2, 3, 5]) {
     const context = await browser.newContext({
@@ -569,6 +659,7 @@ async function main() {
     await endgameSettingsAndBridge(browser);
     await localScenarios(browser);
     await seatLayoutScenarios(browser);
+    await adaptiveHandFitScenarios(browser);
     await guidedPracticeScenario(browser);
     await onlineScenarios(browser, apiProc);
     await mixedBotScenarios(browser);
