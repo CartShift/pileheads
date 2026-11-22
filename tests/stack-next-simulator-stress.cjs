@@ -49,7 +49,13 @@ for (let players = 2; players <= 5; players++) {
           ...game.people.map(p => p.hand.length + ":" + p.up.length + ":" + p.down.length)].join("|");
         seen.set(fingerprint, (seen.get(fingerprint) || 0) + 1);
         if (seen.get(fingerprint) > 40)
-          throw Error("repeated coarse public game state over 40 times");
+          throw Error("repeated coarse public game state over 40 times: "+
+            JSON.stringify({turn:game.turn,
+              hand:game.people.map(p=>p.hand.map(c=>c.id)),
+              up:game.people.map(p=>p.up.map(c=>c.id)),
+              down:game.people.map(p=>p.down.map(c=>c.id)),
+              pile:game.pile.map(c=>c.id),
+              recent:game.events.slice(-24).map(e=>[e.seat,e.type,e.reason,e.rank,e.count,e.takenCount])}));
         previousMove = game.moves;
       }
       assert.equal(game.phase, "over", "game exceeded 3000 moves without finishing");
