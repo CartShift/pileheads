@@ -146,7 +146,9 @@ async function onlineScenarios(browser, server) {
     await diagnoseReady(host, "HOST");
     await diagnoseReady(guest, "GUEST");
     await host.getByRole("button", { name: "I'm ready" }).click();
-    await guest.getByRole("button", { name: "I'm ready" }).click();
+    await guest.screenshot({path:path.resolve(ROOT,"artifacts/next/guest-after-host-ready.png"),fullPage:true});
+    await diagnoseReady(guest, "GUEST AFTER HOST READY");
+    await guest.getByRole("button", { name: "I'm ready" }).click({timeout:12000});
     const start = host.getByRole("button", { name: "Start round" });
     await start.waitFor({ state: "visible" });
     await host.waitForFunction(() =>
