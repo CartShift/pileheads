@@ -13,6 +13,7 @@ export type RoomGame = {
   round: number;
   botSeats: number[];
   endgameRule?: "final-duel" | "classic";
+  omitSkip?: boolean;
   botFollowupReady?: boolean;
   botSlamReady?: boolean;
   reactions?: Reaction[];
