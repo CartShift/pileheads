@@ -25,3 +25,18 @@ The API only accepts a *single exact* additional browser origin set through `STA
 5. Compare React responsiveness and physical-card feel with Classic; switch the default route only after sign-off.
 
 The existing Render service and `/pilehead/` routes remain unchanged. The Next preview deploy is opt-in.
+
+## Render preview deployment
+
+The opt-in `render.next-preview.yaml` defines a separate Node service on
+the migration branch. Use the Blueprint manually; it does not modify the
+original `render.yaml` or its service. It must be deployed in the intended
+Render workspace after the user selects it.
+
+Set `STACK_WEB_ORIGIN` on the existing game backend to the newly generated
+preview origin, then deploy the backend code that includes the explicit
+CORS/WebSocket origin allowlist. One frontend origin is supported in addition
+to the backend's same-origin Classic clients.
+
+Do not use Vercel for the Next preview. Prefer a paid Render plan before a
+public launch so friends are not waiting for the Free service to wake.

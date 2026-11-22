@@ -28,6 +28,23 @@ function loadSavedGame(): Game | null {
     return data.game as Game;
   } catch { return null; }
 }
+const ROOM_ERRORS: Record<string,string> = {
+  stale_revision: "Someone moved first. The table is syncing.",
+  network_unavailable: "The game server is unreachable. Check your connection and try again.",
+  request_timeout: "The game server is taking too long to respond. Refreshing is safe.",
+  service_unavailable: "The game service is temporarily unavailable.",
+  online_not_configured: "Online play is not configured on the game server.",
+  room_expired: "This room expired. Create a new one to play.",
+  not_member: "This browser no longer owns a seat in this room.",
+  room_not_found: "We couldn't find that room.",
+  room_rules_changed: "This room uses old rules and can no longer be opened.",
+  already_started: "The round has already started.",
+  waiting_for_players: "Everyone must join and be ready before starting.",
+  rate_limited: "Too many attempts. Try again shortly.",
+  bad_origin: "This game frontend is not authorized by the multiplayer server."
+};
+const messageForError = (message: string) =>
+  ROOM_ERRORS[message] || message.replaceAll("_", " ");
 const humanLabel = (n: number) => n === 0 ? "You" : `Bot ${n}`;
 const sameFace = (a?: Card, b?: Card) => !!a && !!b &&
   a.kind === b.kind && (a.kind === "number" ? a.rank === b.rank : a.action === b.action);
@@ -203,6 +220,7 @@ export default function GameTable() {
   const localRef = useRef<Game | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const undoRef = useRef<Game | null>(null);
+  const roomEpoch = useRef(0);
 
   const applyRoom = useCallback((next: Room) => {
     if (roomRef.current?.code === next.code && next.revision < roomRef.current.revision) return;
@@ -229,13 +247,16 @@ export default function GameTable() {
   }, []);
 
   const synchronize = useCallback(async (code: string, token: string, quiet = false) => {
+    const epoch = roomEpoch.current;
     try {
       const next = await requestRoom({ action: "state", code, heartbeat: true }, token);
+      if (epoch !== roomEpoch.current) return;
       applyRoom(next);
       setLastSyncAt(Date.now());
       if (!quiet) setNotice("");
     } catch (err) {
-      if (!quiet) setNotice(err instanceof Error ? err.message : "Unable to restore room");
+      if (epoch !== roomEpoch.current) return;
+      if (!quiet) setNotice(messageForError(err instanceof Error ? err.message : "network_unavailable"));
     }
   }, [applyRoom]);
 
@@ -256,31 +277,39 @@ export default function GameTable() {
   const submit = useCallback(async (payload: Record<string, unknown>, noAuth = false) => {
     if (inFlight.current) return;
     inFlight.current = true; setBusy(true); setNotice("");
+    const epoch = roomEpoch.current;
     try {
       const next = await requestRoom(payload, noAuth ? null : tokenRef.current);
+      if (epoch !== roomEpoch.current) return;
       applyRoom(next);
       setSelection([]); setSwapHand(null); setNeedsTarget(false);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Network request failed";
-      setNotice(message === "stale_revision" ? "Someone moved first. Updating the table…" : message.replaceAll("_", " "));
+      if (epoch !== roomEpoch.current) return;
+      const message = err instanceof Error ? err.message : "network_unavailable";
+      setNotice(messageForError(message));
       if (message === "stale_revision" && roomRef.current && tokenRef.current) {
         const code = roomRef.current.code, token = tokenRef.current;
         try {
           const fresh = await requestRoom({ action: "state", code, heartbeat: true }, token);
+          if (epoch !== roomEpoch.current) return;
           applyRoom(fresh);
           // Safe repeatable lobby operations must not become a manual race
           // between guests. NEVER silently retry a card move, SNAP or SLAM.
           if (payload.action === "ready" || payload.action === "swap") {
             const retry = await requestRoom({ ...payload, revision: fresh.revision }, token);
+            if (epoch !== roomEpoch.current) return;
             applyRoom(retry);
             setNotice("");
           }
         } catch (retryError) {
-          setNotice(retryError instanceof Error ? retryError.message.replaceAll("_", " ") :
-            "Unable to recover the room. Please try again.");
+          if (epoch !== roomEpoch.current) return;
+          setNotice(messageForError(retryError instanceof Error ? retryError.message : "network_unavailable"));
         }
       }
-    } finally { inFlight.current = false; setBusy(false); }
+    } finally {
+      inFlight.current = false;
+      if (epoch === roomEpoch.current) setBusy(false);
+    }
   }, [applyRoom, synchronize]);
 
   // Store only local bot matches. Online secrets/state stay in their existing
@@ -547,6 +576,7 @@ export default function GameTable() {
   }
 
   function startLocalGame() {
+    roomEpoch.current++;
     const game = createGame(players);
     localRef.current = game;
     undoRef.current = null; setUndoAvailable(false);
@@ -559,6 +589,7 @@ export default function GameTable() {
   }
 
   function resumeLocal() {
+    roomEpoch.current++;
     const saved = loadSavedGame();
     if (!saved) { setResumeGame(null); setNotice("Saved game is unavailable."); return; }
     localRef.current = saved; undoRef.current = null; setUndoAvailable(false);
@@ -567,8 +598,10 @@ export default function GameTable() {
   }
 
   function leaveTable() {
+    roomEpoch.current++;
     if (wsRef.current) wsRef.current.close();
     setMode("home"); setLocal(null); setRoom(null); roomRef.current = null;
+    tokenRef.current = null; setBusy(false); inFlight.current = false;
     setConnected(false); setConfirmRestart(false); setShowRules(false);
     setSelection([]); setNotice("");
     history.replaceState(null, "", "/play");
