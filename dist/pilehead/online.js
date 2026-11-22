@@ -12,7 +12,7 @@ let room=params.get('room')?.toUpperCase()||'',session=room?safeSessionRead(STOR
 const FINAL_DUEL_KEY='stack-final-duel-default-v1';
 let draftName=safeSessionRead(NAME)||'',draftHumans=2,draftBots=0,
  draftFinalDuel=safeSessionRead(FINAL_DUEL_KEY)==='final-duel';
-let data=null,busy=false,polling=false,selection=[],swapCard=null,dumpDraft=null,notice='',networkError='',roomIssue='',drag=null;
+let data=null,pileOpen=false,busy=false,polling=false,selection=[],swapCard=null,dumpDraft=null,notice='',networkError='',roomIssue='',drag=null;
 let lastRevision=-1,lastEvent=null,pollTimer=null,transitionTimer=null,reconnecting=false,sortMode='dealt',endDismissed=false,botTickAt=0,lastChangeAt=0;
 let lastHeartbeatAt=0,lastSyncAt=0,pollFailures=0,markedAway=false;
 const A=globalThis.PileheadCardArt;const symbols=A.glyph;
@@ -77,7 +77,7 @@ function updateState(next){
  if(room!==next.code){room=next.code;history.replaceState(null,'',location.pathname+'?room='+encodeURIComponent(room)+(deploymentShare?'&_vercel_share='+encodeURIComponent(deploymentShare):''))}
  if(!data||next.revision!==data.revision)lastChangeAt=Date.now();
  if(data&&next.revision!==data.revision){selection=[];swapCard=null;dumpDraft=null}
- if(data&&next.game?.round!==data.game?.round){endDismissed=false;sortMode='dealt';selection=[];swapCard=null;dumpDraft=null}
+ if(data&&next.game?.round!==data.game?.round){pileOpen=false;endDismissed=false;sortMode='dealt';selection=[];swapCard=null;dumpDraft=null}
  data=next;lastRevision=data.revision;lastSyncAt=Date.now();networkError='';roomIssue='';render();
  if(session){
   window.StackLive?.connect({code:room,session,
@@ -206,14 +206,13 @@ function patchPresenceUI(){
  if(hud)hud.outerHTML=tableHUD();
  const title=root.querySelector('.pitch h1');if(title)title.textContent=statusTitle();
 }
-function blindRevealBanner(){
+function blindOverlay(){
  const reveal=data?.game?.blindReveal;
- if(!reveal||!reveal.card||Date.now()>=reveal.expiresAt)return '';
- const c=reveal.card,face=c.kind==='number'?'Number '+c.rank:(c.action||'action').toUpperCase();
- return '<div class="blind-reveal-banner" role="status" aria-live="polite">'+
-  '<div class="blind-reveal-copy"><span>FACE-DOWN CARD FLIPPED</span><strong>'+safe(displayName(reveal.seat))+
-  ' revealed '+safe(face)+'</strong><small>Shown to everyone, even if the pile is picked up.</small></div>'+
-  '<div class="blind-reveal-face">'+card({...c,id:-1})+'</div></div>';
+ if(!reveal?.card||Date.now()>=reveal.expiresAt)return '';
+ const event=data.game.events?.at(-1),failed=event?.type==='blind-fail'&&event.move===reveal.move;
+ return '<div class="pile-blind-reveal'+(failed?' is-invalid':'')+'" role="status" aria-label="'+
+  safe(displayName(reveal.seat))+' revealed a '+(failed?'non-playable ':'')+'face-down card on the pile">'+
+  card({...reveal.card,id:-1})+'</div>';
 }
 function current(){return data?.game?.players?.[data.me]}
 function active(){return data?.game?.turn===data.me&&data?.game?.phase==='play'&&!data?.game?.pendingDump}
@@ -235,14 +234,26 @@ function opponentCards(){const g=data.game;
   p.up.map(c=>A.mini(c)).join('')+
   Array.from({length:p.downCount},()=>A.mini(null)).join('')+'</div></div>').join('')+'</div>';
 }
-function stack(){const g=data.game,a=g.pile.slice(-4);
+function pileInspector(){
+ const cards=data?.game?.pile||[];
+ if(!pileOpen||!data)return '';
+ return '<div class="pile-inspect-shade"><section class="pile-inspect-panel" role="dialog" aria-modal="true" aria-label="Played pile cards">'+
+  '<header><div><strong>THE PILE</strong><span>'+cards.length+' played cards · oldest to newest</span></div>'+
+  '<button type="button" class="action secondary" data-do="close-pile" aria-label="Close pile inspection">Close ✕</button></header>'+
+  '<div class="pile-inspect-grid">'+(cards.length?cards.map(c=>card(c)).join(''):'<p>The pile is empty.</p>')+'</div>'+
+  '<p>Only played cards are public. The draw deck remains hidden.</p></section></div>';
+}
+function stack(){
+ const g=data.game,a=g.pile.slice(-5);
  return '<div class="table-center"><div class="stack"><div class="stack-label">DRAW</div><div class="pile-card">'+
   (g.stockCount?'<div class="card back ph-card ph-back" style="pointer-events:none">'+A.back()+'</div>':'<div class="placeholder">EMPTY</div>')+
-  '</div><div class="stack-count">'+g.stockCount+' cards</div></div><div class="stack play-drop" data-play-target="pile" role="button" tabindex="0" aria-label="Play selected cards on the pile">'+
+  '</div><div class="stack-count">'+g.stockCount+' cards</div></div>'+
+  '<div class="stack play-drop" data-play-target="pile" role="button" tabindex="0" aria-label="Play selected cards on the pile">'+
   '<div class="stack-label">THE PILE</div><div class="pile-card">'+
-  (a.length?a.map((c,i)=>'<div class="card-wrap" style="--offset:'+((i-(a.length-1)/2)*8)+'px;--angle:'+((i-(a.length-1)/2)*5)+'deg">'+card(c)+'</div>').join(''):'<div class="placeholder">CLEAR</div>')+
-  '</div><div class="stack-count">'+g.pile.length+' cards</div><div class="stack-count">'+numberPolicy()+
-  '</div></div><div class="stack"><div class="stack-label">BURNED</div><div class="pile-card"><div class="placeholder">✕</div></div>'+
+  (a.length?a.map((c,i)=>'<div class="card-wrap" style="--offset:'+((i-(a.length-1)/2)*10)+'px;--angle:'+((i-(a.length-1)/2)*5)+'deg">'+card(c)+'</div>').join(''):'<div class="placeholder">CLEAR</div>')+
+  blindOverlay()+'</div><div class="stack-count">'+g.pile.length+' cards</div><div class="stack-count">'+numberPolicy()+'</div>'+
+  '<button type="button" class="pile-inspect-button" data-do="inspect-pile" '+(!g.pile.length?'disabled':'')+' aria-label="Inspect all played cards">Inspect pile</button>'+
+  '</div><div class="stack"><div class="stack-label">BURNED</div><div class="pile-card"><div class="placeholder">✕</div></div>'+
   '<div class="stack-count">'+g.ashesCount+' removed</div></div></div>';
 }
 function bridgeAvailable(){
@@ -296,7 +307,7 @@ function selectedEffect(){
  return '<div class="pilehead-selected-effect"><strong>YOUR '+safe(picked.action.toUpperCase())+' CARD</strong><span>'+safe(effectInfo[picked.action]||'Special action')+'</span></div>';
 }
 function lastEffect(){
- const e=data?.game?.events?.at(-1);if(!e)return '';
+ const e=data?.game?.events?.at(-1);if(!e||e.source==='down'||e.type==='blind-fail')return '';
  let message=e.bridgeCount?'HAND + FACE-UP COMBO · '+displayName(e.seat)+' moved matching cards from both layers.':
   e.type==='followup'?'SNAP · '+displayName(e.seat)+' immediately threw a matching drawn '+e.rank+'.':
  e.reason==='four'||e.reason==='slam'?'FOUR OF A KIND · The entire pile burns.':
@@ -390,7 +401,7 @@ function playView(){
  return '<div class="pitch"><h1>'+safe(statusTitle())+'</h1><p>ROUND '+(g.round||1)+' · ROOM '+safe(room)+' · '+(data.humanCount||data.capacity)+' humans · '+(data.botCount||0)+' bots</p></div>'+
   '<div class="online-room-tools"><span class="room-identity"><span class="online-pulse" aria-hidden="true"></span> Room <strong>'+safe(room)+'</strong></span>'+
   '<button class="action secondary room-invite" data-do="copy" aria-label="Copy room invitation link">Copy invite</button><span class="my-seat">Seat '+(data.me+1)+' · '+safe(displayName(data.me))+'</span></div>'+
-  playerWaitingAlert()+tableHUD()+(g.endgameRule==='final-duel'&&g.stockCount===0&&g.players.filter(p=>!p.out).length===2?'<p class="pilehead-bridge-hint" role="status">FINAL DUEL · Each pile pickup permanently burns its top card.</p>':'')+(window.StackLive?.buttonMarkup?.()||'')+blindRevealBanner()+
+  playerWaitingAlert()+tableHUD()+(g.endgameRule==='final-duel'&&g.stockCount===0&&g.players.filter(p=>!p.out).length===2?'<p class="pilehead-bridge-hint" role="status">FINAL DUEL · Each pile pickup permanently burns its top card.</p>':'')+(window.StackLive?.buttonMarkup?.()||'')+
   '<section class="table" aria-label="Live physical PILEHEAD table">'+opponentCards()+stack()+upDown()+
   '<div class="hand-area"><div class="area-label"><span>YOUR HAND <b>· '+p.handCount+'</b></span><span class="hand-controls">'+
  (selection.length?'<button type="button" class="hand-clear-button" data-do="clear-selection" aria-label="Clear selected cards">'+selection.length+' selected · Clear</button>':'')+
@@ -459,7 +470,7 @@ function render(){
     '<a class="action secondary" href="?online=1">Create a new room</a></div>':'')+
    (networkError?'<div class="connection-banner" role="alert"><strong>Connection interrupted</strong>'+
     '<span>'+safe(networkError)+'</span><button class="action secondary" type="button" data-do="retry">Retry connection</button></div>':'')+
-   '</div>'+dumpTargetOverlay()+
+   '</div>'+dumpTargetOverlay()+pileInspector()+
    (data?.game.phase==='play'?(window.PileheadTableFX?.starterHTML?.({
     names:data.game.players.map(p=>displayName(p.seat)),
     seat:data.game.starterSeat,reason:data.game.starterReason,startedAt:data.game.startedAt
@@ -590,7 +601,9 @@ root.addEventListener('click',async e=>{
   if(dumpDraft){const move={...dumpDraft,target:seat};dumpDraft=null;await command('move',{move});return}
   return;
  }
- if(action==='play')await play();
+ if(action==='inspect-pile'){pileOpen=true;render();root.querySelector('[data-do="close-pile"]')?.focus();return}
+  if(action==='close-pile'){pileOpen=false;render();root.querySelector('[data-do="inspect-pile"]')?.focus();return}
+  if(action==='play')await play();
  if(action==='take')await command('move',{move:{type:'take'}});
  if(action==='slam'){const m=data?.game.slam?.[0];if(m)await command('move',{move:m})}
  if(action==='snap'){const m=data?.game.followup?.[0];if(m)await command('move',{move:m})}
@@ -604,6 +617,7 @@ root.addEventListener('input',e=>{
 });
 root.addEventListener('keydown',e=>{
  if(e.key==='Escape'){
+   if(pileOpen){e.preventDefault();pileOpen=false;render();return}
   if(dumpDraft){e.preventDefault();dumpDraft=null;render();return}
   if(selection.length){e.preventDefault();selection=[];render();return}
  }
@@ -632,10 +646,10 @@ root.addEventListener('change',e=>{
  if(button)button.disabled=!valid;
 });
 root.addEventListener('click',e=>{
- if(e.target.closest('[data-play-target]')&&selection.length&&!busy)play();
+ if(!e.target.closest('[data-do="inspect-pile"]')&&e.target.closest('[data-play-target]')&&selection.length&&!busy)play();
 });
 root.addEventListener('keydown',e=>{
- if((e.key==='Enter'||e.key===' ')&&e.target.closest('[data-play-target]')){e.preventDefault();play()}
+ if((e.key==='Enter'||e.key===' ')&&!e.target.closest('[data-do="inspect-pile"]')&&e.target.closest('[data-play-target]')){e.preventDefault();play()}
 });
 root.addEventListener('dragstart',e=>{
  const b=e.target.closest('[data-card]');if(!b||(!active()&&!(b.dataset.source==='hand'&&canTouchHand())))return;
