@@ -168,7 +168,7 @@ function tableActions({turn,legal,pick,slams,snap,stage}){
     '<small>'+(turn?'Tap cards to select · drag onto pile':'Watch the table · SLAM is still possible')+'</small></span>';
   }
  }
- return '<div class="toolbar table-actions" role="group" aria-label="Game actions">'+buttons+'</div>';
+ return '<div class="toolbar table-actions" role="group" aria-label="Game actions">'+selectedPreview()+buttons+'</div>';
 }
 function layerProgress(){
  const p=getPlayer(),stage=currentStage();
@@ -215,7 +215,7 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  '<button type="button" class="hand-sort-button" data-do="sort">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></span></div>'+
  rowCards(p.hand,'hand',selectable&&stage==='hand')+'</div></section>'+
  (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP · Your final matching hand cards can be played with matching exposed cards, including a four-card SLAM. Tap either to select the group.</p>':'')+
- (selectedEffect()||lastEffect())+selectedPreview()+tableActions({turn,legal,pick,slams,snap,stage})+
+ (selectedEffect()||lastEffect())+tableActions({turn,legal,pick,slams,snap,stage})+
  '<div class="stack-classic-hotkeys" aria-label="Keyboard shortcuts"><span>SHORTCUTS</span><kbd>P</kbd> Play <kbd>T</kbd> Take <kbd>S</kbd> Sort <kbd>?</kbd> Rules</div>'+
  '<details class="playtest-tools"><summary>Game tools</summary>'+
  (mode==='bots'&&undoState?'<button type="button" class="action secondary" data-do="undo">Undo your last play</button><small class="stack-undo-note">Restores the previous turn, including any bot responses.</small>':'')+
