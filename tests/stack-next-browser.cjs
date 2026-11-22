@@ -119,6 +119,29 @@ async function onlineScenarios(browser, server) {
     await guest.getByRole("textbox", { name: "Your name" }).fill("Guest");
     await guest.getByRole("button", { name: "Join" }).click();
     await guest.getByRole("button", { name: "I'm ready" }).waitFor();
+    await host.screenshot({path:path.resolve(ROOT,"artifacts/next/setup-host.png"),fullPage:true});
+    await guest.screenshot({path:path.resolve(ROOT,"artifacts/next/setup-guest.png"),fullPage:true});
+    async function diagnoseReady(page, label) {
+      const geometry = await page.evaluate(() => {
+        const button = [...document.querySelectorAll("button")].find(x => x.textContent === "I'm ready");
+        const panel = document.querySelector(".control-panel");
+        const table = document.querySelector(".tabletop");
+        if (!button || !panel || !table) return { error: "missing element" };
+        const r = button.getBoundingClientRect(), pr=panel.getBoundingClientRect(),
+          tr=table.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+        return {
+          button:{x:r.left,y:r.top,width:r.width,height:r.height},
+          panel:{x:pr.left,y:pr.top,width:pr.width,height:pr.height},
+          table:{x:tr.left,y:tr.top,width:tr.width,height:tr.height},
+          hit:hit?.outerHTML.slice(0,280),panelPosition:getComputedStyle(panel).position,
+          panelZ:getComputedStyle(panel).zIndex,scrollY,screenHeight:innerHeight
+        };
+      });
+      console.log(label + " READY HIT TEST " + JSON.stringify(geometry));
+    }
+    await diagnoseReady(host, "HOST");
+    await diagnoseReady(guest, "GUEST");
     await host.getByRole("button", { name: "I'm ready" }).click();
     await guest.getByRole("button", { name: "I'm ready" }).click();
     const start = host.getByRole("button", { name: "Start round" });
