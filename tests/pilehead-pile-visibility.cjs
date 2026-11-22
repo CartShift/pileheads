@@ -60,7 +60,7 @@ check('React table renders flip and invalid flash directly on the pile, not a se
  assert.match(theater,/move-story-flight/);
  assert.match(theater,/move-story-impact/);
  assert.match(theater,/move-story-transfer/);
- assert.match(code,/invalidFlip/);
+ assert.match(theater,/blind-fail/);
  assert.match(code,/className="react-pile-backdrop"/);
  assert.match(code,/setPileOpen\(true\)/);
  assert.match(code,/g\.pile\.map\(card =>/);
