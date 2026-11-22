@@ -143,6 +143,18 @@ async function onlineScenarios(browser, server) {
   const hostCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const guestCtx = await browser.newContext({ viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true });
   const host = await hostCtx.newPage(), guest = await guestCtx.newPage();
+  // Capture the real browser sockets without changing the WebSocket protocol.
+  // Closing a socket must recover automatically with the same seat/session.
+  await host.addInitScript(() => {
+    const Native = window.WebSocket;
+    window.__stackTestSockets = [];
+    window.WebSocket = class TrackedSocket extends Native {
+      constructor(...args) {
+        super(...args);
+        window.__stackTestSockets.push(this);
+      }
+    };
+  });
   const errors = [];
   for (const page of [host, guest]) page.on("pageerror", e => errors.push(e.message));
   try {
@@ -198,6 +210,12 @@ async function onlineScenarios(browser, server) {
       null, { timeout: 14000 });
     await start.click();
     await host.getByRole("heading", { name: "Your move." }).waitFor({ timeout: 14000 });
+    await host.locator(".connection-chip.is-online").waitFor({ timeout: 12000 });
+    await host.evaluate(() => window.__stackTestSockets.at(-1).close());
+    await host.locator(".connection-chip.is-offline").waitFor({ timeout: 4000 });
+    await host.locator(".connection-chip.is-online").waitFor({ timeout: 10000 });
+    assert.ok(await host.evaluate(() => window.__stackTestSockets.length) >= 2,
+      "live room should establish a replacement WebSocket without reload");
     await host.screenshot({path:path.resolve(ROOT,"artifacts/next/online-host.png"),fullPage:true});
     await guest.locator(".player-hand .playing-card").first().waitFor();
 
