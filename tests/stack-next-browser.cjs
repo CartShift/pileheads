@@ -25,6 +25,90 @@ async function waitReady(url, logs) {
 function readGame(page) {
   return page.evaluate(() => JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game);
 }
+
+async function endgameSettingsAndBridge(browser) {
+  const Engine = require("../dist/pilehead/engine.js");
+  // Never rely on a random deal to expose a rare final-hand + face-up bridge.
+  const g = Engine.create({players:2,seed:852239,endgameRule:"classic"});
+  Engine.autoSetup(g,1);
+  Engine.start(g);
+  g.ashes.push(...g.stock.splice(0));
+  const p = g.people[0];
+  const first = p.hand[0];
+  g.ashes.push(...p.hand.splice(1));
+  const sameFace = c => c.kind === first.kind &&
+    (c.kind === "number" ? c.rank === first.rank : c.action === first.action);
+  if (!sameFace(p.up[0])) {
+    const zones = [g.ashes, g.pile, p.up, p.down,
+      g.people[1].hand, g.people[1].up, g.people[1].down];
+    let swapped = false;
+    for (const zone of zones) {
+      const index = zone.findIndex(sameFace);
+      if (index < 0) continue;
+      [p.up[0],zone[index]]=[zone[index],p.up[0]];
+      swapped = true;
+      break;
+    }
+    assert.ok(swapped, "must find matching face-up number/action for bridge fixture");
+  }
+  g.turn=0;
+  Engine.invariant(g);
+  const context=await browser.newContext({
+    viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:"reduce"
+  });
+  await context.addInitScript(data=>{
+    localStorage.setItem("stack-next-local-save-v1",JSON.stringify({version:1,game:data}));
+  },g);
+  const page=await context.newPage();
+  try {
+    await page.goto(WEB + "/play");
+    await page.getByRole("button",{name:"Resume game"}).click();
+    const faceup=page.locator(".faceup-row .visible-up .card-hit");
+    assert.equal(await faceup.count(),1,"only genuinely bridgeable face-up cards are selectable");
+    await faceup.click();
+    assert.equal(await page.locator(".player-hand .playing-card.is-selected").count(),1,
+      "selecting a face-up bridge automatically selects the entire last hand");
+    assert.equal(await page.locator(".faceup-row .playing-card.is-selected").count(),1);
+    await page.getByRole("button",{name:/Play cards/}).click();
+    await page.waitForFunction(() => JSON.parse(
+      localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves>=1);
+    assert.notEqual((await readGame(page)).people[0].hand.length,1,
+      "final hand and face-up bridge must resolve as one legal engine move");
+    console.log("PASS Next Classic parity: last-hand plus face-up card bridge is playable");
+  } finally {await context.close()}
+
+  const standard=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  const regular=await standard.newPage();
+  try {
+    await regular.goto(WEB + "/play");
+    await regular.getByRole("button",{name:"Game settings"}).click();
+    const settings=regular.getByRole("dialog",{name:"Game settings"});
+    const input=settings.getByRole("checkbox");
+    assert.equal(await input.isChecked(),false,"Final Duel defaults OFF in clean local storage");
+    await input.check();
+    await settings.getByRole("button",{name:"Done"}).click();
+    await regular.getByRole("button",{name:/Start game/}).click();
+    assert.equal((await readGame(regular)).endgameRule,"final-duel",
+      "chosen Final Duel rule must be in actual local engine state");
+    await regular.getByRole("button",{name:"Settings"}).click();
+    const inMatch=regular.getByRole("dialog",{name:"Game settings"}).getByRole("checkbox");
+    assert.equal(await inMatch.isChecked(),true);
+    await inMatch.uncheck();
+    assert.equal((await readGame(regular)).endgameRule,"classic",
+      "setup settings must update current match, not only future preference");
+    await regular.getByRole("button",{name:"Back to table"}).click();
+    await regular.getByRole("button",{name:"Start round"}).click();
+    await regular.getByRole("button",{name:"Settings"}).click();
+    assert.equal(await regular.getByRole("dialog",{name:"Game settings"})
+      .getByRole("checkbox").isDisabled(),true,"live round rules must be locked");
+    await regular.reload();
+    await regular.getByRole("button",{name:"Resume game"}).click();
+    assert.equal((await readGame(regular)).endgameRule,"classic",
+      "saved games preserve the rule last selected during setup");
+    console.log("PASS Next Settings: default OFF, opt-in, setup changes, round lock and persistence");
+  } finally {await standard.close()}
+}
+
 async function sameOriginNavigation(browser) {
   const context = await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
   const page = await context.newPage();
@@ -443,6 +527,7 @@ async function main() {
     browser = await chromium.launch({ headless: true });
     console.log("PASS one Render server: Classic, /stack, /play, Next assets and API use one origin");
     await sameOriginNavigation(browser);
+    await endgameSettingsAndBridge(browser);
     await localScenarios(browser);
     await seatLayoutScenarios(browser);
     await guidedPracticeScenario(browser);
