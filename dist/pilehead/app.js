@@ -510,22 +510,24 @@ app.addEventListener('dragover',e=>{if(dragCard&&e.target.closest('[data-play-ta
 app.addEventListener('drop',e=>{
  if(!dragCard||!e.target.closest('[data-play-target]'))return;
  e.preventDefault();const move=dragCard;dragCard=null;
+ // Only one successful submission across native and pointer drag pathways.
+ if(touchGesture){touchGesture.el?.remove();touchGesture=null}
  if(isTurn()&&(currentStage()===move.source||bridgeAvailable()))submitPlay(selectedPlay());
 });
 app.addEventListener('dragend',()=>{dragCard=null});
 
-/* Touch and pen: physically drag a lifted card onto the centre pile.
-   Desktop HTML Drag and Drop remains available; a tap still selects cards. */
+/* Unified touch, pen and mouse card gestures. Native desktop drag/drop
+   remains available; pointer handling also works when native drag fails. */
 let touchGesture=null,suppressTap=false;
 app.addEventListener('click',e=>{if(suppressTap){e.preventDefault();e.stopImmediatePropagation();suppressTap=false}},true);
 app.addEventListener('pointerdown',e=>{
- if(e.pointerType==='mouse')return;
+ if(e.button!==undefined&&e.button!==0)return;
  const b=e.target.closest('button[data-card]');
  if(!b||!isTurn()||covered||g.phase!=='play')return;
  touchGesture={id:Number(b.dataset.card),source:b.dataset.source,x:e.clientX,y:e.clientY,dragging:false,scrolling:false,el:null,row:b.closest('.card-row.hand'),startScroll:b.closest('.card-row.hand')?.scrollLeft||0};
 });
 window.addEventListener('pointermove',e=>{
- const d=touchGesture;if(!d||e.pointerType==='mouse')return;
+ const d=touchGesture;if(!d)return;
  const dx=e.clientX-d.x,dy=e.clientY-d.y;
  if(!d.dragging&&!d.scrolling&&Math.hypot(dx,dy)>12){
   if(d.row&&d.row.scrollWidth>d.row.clientWidth+2&&Math.abs(dx)>Math.abs(dy)*1.35)d.scrolling=true;
@@ -533,7 +535,7 @@ window.addEventListener('pointermove',e=>{
  }
  if(d.scrolling){e.preventDefault();d.row.scrollLeft=d.startScroll-dx;return}
  if(d.dragging&&!d.el){const b=app.querySelector('[data-card="'+d.id+'"]');if(!b)return;
-  d.el=b.cloneNode(true);d.el.classList.add('card-ghost');document.body.appendChild(d.el);
+  d.el=b.cloneNode(true);d.el.classList.add('card-ghost');d.el.style.pointerEvents='none';document.body.appendChild(d.el);
   if(!selection.includes(d.id))selectMatching(bridgeAvailable()?[...getPlayer().hand,...getPlayer().up]:(getPlayer()[d.source]||[]),d.id);
   if(selection.length>1){const badge=document.createElement('span');
    badge.className='drag-count';badge.textContent=selection.length+' cards';d.el.appendChild(badge)}
