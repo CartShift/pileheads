@@ -22,7 +22,7 @@ trusted backend and explicitly allow `http://localhost:3000` through
 ```sh
 npm install
 npm install --prefix apps/web
-npm run build:integrated
+npm run build
 npm run test:integrated
 node scripts/render-server.cjs
 ```
@@ -37,8 +37,10 @@ Routes on the **same** Node server:
 - `/api/pilehead/live`: unchanged authenticated WebSocket
 - `/_next/static/*`: fingerprinted assets from the static export
 
-The root `render.yaml` uses the integrated build and the existing service
-name, on the existing `main` branch. The new paths will appear there **only
+The root `npm run build` always builds Classic and Next together, regardless of
+whether an existing Render service applies Blueprint changes. The deployment
+workflow mirrors `main` to the existing Render-tracked branch. No new service
+is involved. The new paths will appear there **only
 after this PR is merged and the existing service deploys**. Until then the
 live Classic site remains completely unchanged.
 

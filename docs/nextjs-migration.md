@@ -16,11 +16,13 @@ is only relevant for explicitly trusted *external* development origins.
 
 ## Build
 
-`render.yaml` uses the existing `stack-card-game` service. The Render
-build installs root deps and Next deps, then runs `build:integrated`:
+The existing `stack-card-game` service keeps its Node start command. The
+`npm run build` root command performs the integrated build even if the service
+ignores a changed Render Blueprint. The deployment GitHub Action mirrors `main`
+to the currently Render-tracked branch `feat/render-hosting-outage-fallback-20261120`.
+The integrated build does:
 1. Generate the original Classic output through `build-vercel.mjs`.
-2. Build `apps/web` with `output: "export"` and no
-   `NEXT_PUBLIC_STACK_API_ORIGIN` override.
+2. Install Next dependencies when needed. Build `apps/web` with `output: "export"` and force `NEXT_PUBLIC_STACK_API_ORIGIN` to empty for same-origin transport.
 3. Publish static Next routes + `_next` files into `vercel-static/`
    without touching root `index.html` or `pilehead/` assets.
 4. The original `scripts/render-server.cjs` serves everything and retains

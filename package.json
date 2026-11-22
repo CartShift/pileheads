@@ -5,9 +5,9 @@
   "type": "commonjs",
   "scripts": {
     "test": "node scripts/test.mjs",
-    "build": "node scripts/build-vercel.mjs",
+    "build": "node scripts/build-integrated.mjs",
     "build:vercel": "node scripts/build-vercel.mjs",
-    "build:integrated": "node scripts/build-vercel.mjs && npm run build --prefix apps/web && node scripts/publish-next.mjs",
+    "build:integrated": "node scripts/build-integrated.mjs",
     "test:integrated": "node tests/stack-single-service.cjs",
     "simulate": "node scripts/simulate.mjs",
     "test:pilehead": "node scripts/test.mjs",
@@ -19,7 +19,8 @@
     "test:pilehead-finale": "node tests/pilehead-finale.cjs",
     "test:pilehead-playtest": "node tests/pilehead-playtest.cjs",
     "bench:endgame-lab": "node scripts/bench-endgame-lab.cjs",
-    "test:endgame-lab-browser": "node tests/stack-endgame-lab-browser.cjs"
+    "test:endgame-lab-browser": "node tests/stack-endgame-lab-browser.cjs",
+    "build:classic": "node scripts/build-vercel.mjs"
   },
   "engines": {
     "node": "24.x"
