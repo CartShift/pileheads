@@ -105,6 +105,40 @@ async function localScenarios(browser) {
     } finally { await context.close(); }
   }
 }
+
+async function seatLayoutScenarios(browser) {
+  for (const players of [2, 3, 5]) {
+    const context = await browser.newContext({
+      viewport: {width:360,height:740},isMobile:true,hasTouch:true,
+      reducedMotion:"reduce"
+    });
+    const page = await context.newPage();
+    try {
+      await page.goto(WEB + "/play");
+      await page.getByRole("combobox", {name:"Players"}).selectOption(String(players));
+      await page.getByRole("button", {name:/Start game/}).click();
+      await page.getByRole("button", {name:"Start round"}).click();
+      assert.equal(await page.locator(".opponent-seat").count(), players - 1,
+        "the correct number of opponents must appear");
+      const measurements = await page.evaluate(() => ({
+        viewport: document.documentElement.clientWidth,
+        width: document.documentElement.scrollWidth,
+        opponentCount: document.querySelectorAll(".opponent-seat").length,
+        cards: document.querySelectorAll(".player-hand .playing-card").length
+      }));
+      assert.ok(measurements.width <= measurements.viewport + 2,
+        players + "-seat match overflows narrow mobile: " + JSON.stringify(measurements));
+      assert.ok(measurements.cards > 0, "own hand is present");
+      if(players===5) {
+        await page.screenshot({
+          path:path.resolve(ROOT,"artifacts/next/five-players-360.png"),fullPage:true
+        });
+      }
+      console.log("PASS Next local: " + players + " seats on 360px mobile without overflow");
+    } finally {await context.close()}
+  }
+}
+
 async function onlineScenarios(browser, server) {
   const hostCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const guestCtx = await browser.newContext({ viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true });
@@ -355,6 +389,7 @@ async function main() {
     await Promise.all([waitReady(WEB + "/play", () => webLog), waitReady(API + "/livez", () => apiLog)]);
     browser = await chromium.launch({ headless: true });
     await localScenarios(browser);
+    await seatLayoutScenarios(browser);
     await guidedPracticeScenario(browser);
     await onlineScenarios(browser, apiProc);
     await mixedBotScenarios(browser);
