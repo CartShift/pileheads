@@ -389,7 +389,7 @@ function execute(action,button){
  if(action==='undo'&&mode==='bots'&&undoState){
   if(timer!==null)clearTimeout(timer);
   timer=null;botQueuedFor=null;g=undoState;undoState=null;selection=[];challengeOpen=false;dumpDraft=null;
-  lastMove=g.events.at(-1)||null;notice='Last play reversed. Your cards and the bot moves are restored.';render();return;
+  lastMove=g.events.at(-1)||null;notice='';render();return;
  }
  if(action==='practice'){mode='bots';seats=2;practiceMode=true;window.StackUX?.resetPractice();startGame();return}
  if(action==='create'){practiceMode=false;seats=Number($('seat-count')?.value)||seats;mode=$('game-mode')?.value==='hotseat'?'hotseat':'bots';startGame();return}
