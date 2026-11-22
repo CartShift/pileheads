@@ -89,6 +89,7 @@ function asLocalRoom(game: Game): RoomGame {
     events: game.events,
     reactions: [],
     blindReveal: game.blindReveal || null,
+    omitSkip: game.omitSkip === true,
     legal: game.phase === "play" && game.turn === 0 ? Engine.options(game, 0) : [],
     slam: game.phase === "play" ? Engine.slamOptions(game, 0) : [],
     followup: game.phase === "play" ? Engine.followUpOptions(game, 0) : [],
@@ -233,6 +234,9 @@ export default function GameTable() {
   const [practiceMode, setPracticeMode] = useState(false);
   const [coachDismissed, setCoachDismissed] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [pileOpen, setPileOpen] = useState(false);
+  const [specialFx, setSpecialFx] = useState<string | null>(null);
+  const lastAnimatedMove = useRef("");
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -526,6 +530,19 @@ export default function GameTable() {
 
   const g = useMemo(() => mode === "local" && local ? asLocalRoom(local) : mode === "online" ? room?.game : null,
     [mode, local, room]);
+  useEffect(() => {
+    const key = [mode, room?.code || "local", g?.round || 1, g?.moves || 0].join(":");
+    if (lastAnimatedMove.current === key) return;
+    const previouslyMounted = !!lastAnimatedMove.current;
+    lastAnimatedMove.current = key;
+    const event = g?.events.at(-1);
+    if (!previouslyMounted || !event) return;
+    const action = event.action || (event.burned ? "burn" : null);
+    if (!action) return;
+    setSpecialFx(action);
+    const timeout = window.setTimeout(() => setSpecialFx(null), 950);
+    return () => window.clearTimeout(timeout);
+  }, [mode, room?.code, g?.round, g?.moves]);
 
   // Keep every card in view as the hand grows. Measure the real rendered
   // width (not a guessed viewport) so Safari, browser zoom and desktop all
@@ -552,6 +569,7 @@ export default function GameTable() {
   const me = mode === "local" ? 0 : room?.me ?? 0;
   const face = g?.blindReveal;
   const showFlip = !!face && face.expiresAt > Date.now();
+  const invalidFlip = showFlip && g?.events.at(-1)?.type === "blind-fail" && g.events.at(-1)?.move === face?.move;
   const newestReactions = (g?.reactions || []).filter(r => Date.now() - r.at < 8000);
   useEffect(() => {
     if (!newestReactions.length && !showFlip) return;
