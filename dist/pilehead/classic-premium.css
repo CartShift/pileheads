@@ -607,3 +607,65 @@ body.stack-classic .stack-classic-dialog .secondary{background:#193d31;color:#ff
   scroll-margin-bottom:205px;
  }
 }
+
+/* A complete hand should fit above the floating controls on a normal phone.
+   Preserve full-sized cards on tablets and landscape devices. */
+@media(max-width:700px) and (min-height:650px) and (orientation:portrait){
+ body.stack-classic.pilehead-playing .layout>.top{
+  min-height:45px!important;padding-bottom:5px!important;
+ }
+ body.stack-classic.pilehead-playing .pilehead-table-hud{
+  min-height:51px!important;padding-block:7px!important;
+  margin-bottom:5px!important;
+ }
+ body.stack-classic .stack-classic-progress{
+  margin-bottom:5px!important;padding:3px!important;
+ }
+ body.stack-classic .stack-progress-step{padding-block:4px}
+ body.stack-classic.pilehead-playing .table{
+  padding-top:5px!important;
+  grid-template-rows:auto auto auto auto!important;
+  gap:2px!important;
+ }
+ body.stack-classic.pilehead-playing .table .opponents{
+  min-height:0!important;
+  padding:0!important;gap:4px!important;
+ }
+ body.stack-classic.pilehead-playing .table .opponent{
+  padding:3px 3px 2px!important;
+ }
+ body.stack-classic.pilehead-playing .table .held-cards{
+  height:18px!important;min-height:18px!important;margin:0 auto!important;
+ }
+ body.stack-classic.pilehead-playing .table .held-back{
+  height:18px!important;width:14px!important;
+ }
+ body.stack-classic.pilehead-playing .table .mini-cards{
+  height:27px!important;margin:2px 0 0!important;
+ }
+ body.stack-classic.pilehead-playing .table .table-center{
+  min-height:142px!important;
+  padding:0!important;
+ }
+ body.stack-classic.pilehead-playing .table .stack[data-play-target]{
+  min-height:136px!important;
+ }
+ body.stack-classic.pilehead-playing .table .stack .pile-card{
+  height:104px!important;margin-top:3px!important;
+ }
+ body.stack-classic.pilehead-playing .table .zone.your-up{
+  min-height:75px!important;
+ }
+ body.stack-classic.pilehead-playing .table .zone .card-row{
+  min-height:75px!important;
+  padding:1px 0!important;
+ }
+ body.stack-classic.pilehead-playing .table .hand-area .card-row.hand{
+  min-height:108px!important;
+  padding-top:9px!important;
+  padding-bottom:2px!important;
+ }
+ body.stack-classic.pilehead-playing .table .hand-area .card-row.hand .card{
+  --card-w:79px;--card-h:110px;
+ }
+}
