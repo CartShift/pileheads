@@ -87,17 +87,18 @@ check('BURN and DUMP are clearly labeled as different actions',()=>{
  assert.match(html,/BURN/);
  assert.match(online,/BURN PILE/);assert.match(solo,/BURN PILE/);
 });
-check('instant matching draw, final hand bridge and special effects are signposted',()=>{
+check('special effects stay visual, with no permanent last-play prose',()=>{
  for(const src of [online,solo]){
   assert.match(src,/function bridgeAvailable\(/);
   assert.match(src,/data-do="snap"/);
   assert.match(src,/pilehead-bridge-hint/);
-  assert.match(src,/function lastEffect\(/);
+  assert.doesNotMatch(src,/function lastEffect\(/);
   assert.match(src,/effectInfo/);
  }
  assert.match(fx,/drawCards\(/);
- assert.match(fx,/SNAP · MATCHING DRAW/);
- assert.match(css,/pilehead-effect-note/);
+ assert.match(fx,/cue\(table,'SNAP'\)/);
+ assert.match(fx,/publicMoveCaption\(ev\)/);
+ assert.match(read('dist/pilehead/table-feedback.css'),/pilehead-special-ring::after/);
 });
 check('CSS braces and strings balance',()=>{
  const normalized=css.replace(/\/\*[\s\S]*?\*\//g,'');

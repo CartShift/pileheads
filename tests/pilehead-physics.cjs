@@ -119,15 +119,28 @@ check('batched place, draw, pickup and DUMP animate sequentially',()=>{
  assert.ok(s.movements.some(x=>x.clazz.includes('impact-particles')));
  assert.ok(animations.some(x=>x.frames.length===3&&x.frames[1].offset===.57),'DUMP should pass over the pile');
 });
-check('reduced-motion settings suppress all card and particle animations',()=>{
+check('ordinary Classic plays stay silent, including reduced-motion mode',()=>{
+ for(const reduced of [false,true]){
+  const s=stage(reduced);
+  s.sync({gameKey:'round-B',identity:'round-B:0',moveNo:0,ownSeat:0,events:[]});
+  s.sync({gameKey:'round-B',identity:'round-B:1',moveNo:1,ownSeat:0,
+   events:[{type:'play',seat:0,source:'hand',count:1,rank:7,move:1}]});
+  s.flush();
+  assert.equal(s.movements.filter(x=>x.kind==='append'&&x.clazz.includes('pilehead-cue-fixed')).length,0,
+   'ordinary play should not spawn a message, even with animations disabled');
+  if(reduced)assert.equal(s.movements.filter(x=>x.kind==='animate').length,0);
+  else assert.ok(s.movements.some(x=>x.kind==='animate'),'ordinary card must still physically fly');
+ }
+});
+check('special Classic move stays clearly named in reduced-motion mode',()=>{
  const s=stage(true);
- s.sync({gameKey:'round-B',identity:'round-B:0',moveNo:0,ownSeat:0,events:[]});
- s.sync({gameKey:'round-B',identity:'round-B:1',moveNo:1,ownSeat:0,
-  events:[{type:'play',seat:0,source:'hand',count:1,rank:7,move:1}]});
+ s.sync({gameKey:'effects',identity:'effects:0',moveNo:0,ownSeat:0,events:[]});
+ s.sync({gameKey:'effects',identity:'effects:1',moveNo:1,ownSeat:0,
+  events:[{type:'play',seat:0,source:'hand',count:1,action:'under',move:1}]});
  s.flush();
  assert.equal(s.movements.filter(x=>x.kind==='animate').length,0);
- assert.ok(s.movements.some(x=>x.kind==='append'&&x.clazz.includes('pilehead-cue-fixed')),
-  'reduced motion must still explain the public move to both players');
+ assert.equal(s.movements.filter(x=>x.kind==='append'&&x.clazz.includes('pilehead-cue-fixed')).length,1,
+  'a special move needs a concise explanation with reduced motion');
 });
 check('explicit Full Motion can override system reduced-motion preference',()=>{
  const s=stage(true,'full');

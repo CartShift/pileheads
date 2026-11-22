@@ -115,3 +115,51 @@ body.pilehead-playing .table .stack[data-play-target] .stack-count:nth-last-chil
  padding:4px 5px;font-size:9px;margin-top:4px;
  }
 }
+
+
+/* Quiet physical feedback: the effect lives on the pile, not in a huge toast. */
+body.pilehead-playing .table .pilehead-special-ring::after{
+ content:"✦";position:absolute;inset:0;display:grid;place-items:center;
+ color:var(--special-color,#f4d395);font:950 clamp(31px,6vw,57px)/1 system-ui,sans-serif;
+ text-shadow:0 0 22px var(--special-color,#f4d395),0 4px 13px #032016;
+ pointer-events:none;animation:stack-effect-symbol 840ms ease-out both;
+}
+body.pilehead-playing .table .pilehead-special-ring[data-action=burn]::after{content:"✹"}
+body.pilehead-playing .table .pilehead-special-ring[data-action=dump]::after{content:"➜"}
+body.pilehead-playing .table .pilehead-special-ring[data-action=ghost]::after{content:"◌"}
+body.pilehead-playing .table .pilehead-special-ring[data-action=under]::after{content:"1–4";font-size:clamp(24px,4vw,38px)}
+body.pilehead-playing .table .pilehead-special-ring[data-action=reset]::after{content:"↺";animation:stack-effect-rewind 840ms ease both}
+body.pilehead-playing .table .pilehead-special-ring[data-action=skip]::after{content:"»"}
+@keyframes stack-effect-symbol{
+ 0%,13%{opacity:0;transform:scale(.36) rotate(-12deg)}
+ 36%{opacity:1;transform:scale(1.1) rotate(4deg)}
+ 70%{opacity:.95;transform:scale(.96)}
+ 100%{opacity:0;transform:scale(1.26)}
+}
+@keyframes stack-effect-rewind{
+ 0%{opacity:0;transform:rotate(-180deg) scale(.5)}
+ 40%{opacity:1;transform:rotate(0deg) scale(1.1)}
+ 75%{opacity:1;transform:rotate(180deg) scale(1)}
+ 100%{opacity:0;transform:rotate(360deg) scale(1.2)}
+}
+.pilehead-cue.pilehead-cue-fixed{
+ min-width:0!important;min-height:26px!important;
+ max-width:min(68vw,180px)!important;
+ padding:6px 12px!important;border:1px solid #eacb89!important;
+ border-radius:999px!important;
+ background:#103429ee!important;color:#ffe3ae!important;
+ box-shadow:0 5px 16px #001c15ac,0 0 13px #f1b76533!important;
+ text-shadow:none!important;
+ font:850 clamp(10px,2.8vw,13px)/1.15 system-ui,sans-serif!important;
+ letter-spacing:.11em!important;
+ animation:stack-quiet-cue 1040ms ease both!important;
+}
+@keyframes stack-quiet-cue{
+ 0%{opacity:0;transform:translate(-50%,-50%) translateY(5px) scale(.85)}
+ 23%,67%{opacity:1;transform:translate(-50%,-50%) translateY(0) scale(1)}
+ 100%{opacity:0;transform:translate(-50%,-50%) translateY(-8px) scale(.96)}
+}
+@media(prefers-reduced-motion:reduce){
+ body.pilehead-playing .table .pilehead-special-ring::after{animation:none!important;opacity:0!important}
+ .pilehead-cue.pilehead-cue-fixed{animation:none!important;opacity:1!important}
+}

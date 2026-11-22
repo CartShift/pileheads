@@ -15,7 +15,7 @@ import type { BlindReveal } from "../lib/room";
 
 type Point = {x:number;y:number};
 type Scene = {
-  key:string; event:Event; label:string; detail:string;
+  key:string; event:Event; label:string; symbol:string; detail:string;
   kind:string; from:Point; pile:Point; playTo:Point; transferTo:Point;
   stock:Point; hand:Point; transfer:"pickup"|"burn"|"none";
   transferCount:number; drawnCount:number;
@@ -25,7 +25,8 @@ type Props = {
   me:number; theme:"characters"|"original"; nameForSeat:(seat:number)=>string;
   blindReveal?:BlindReveal|null;
 };
-const DURATION=2100;
+const SPECIAL_DURATION=2100;
+const NORMAL_DURATION=1370;
 const ACTIONS=["reset","ghost","under","skip","burn","dump"];
 const center=(el:Element|null):Point|null=>{
   if(!el)return null;
@@ -39,23 +40,25 @@ function cardFace(event:Event){
   return null;
 }
 function description(event:Event,name:(seat:number)=>string){
- const actor=name(event.seat), target=typeof event.target==="number"?name(event.target):"another player";
+ const actor=name(event.seat),target=typeof event.target==="number"?name(event.target):"another player";
  const num=event.takenCount??event.count??0;
- if(event.type==="blind-fail")return{label:"BLIND CARD MISSED!",detail:`${actor} revealed an illegal card. ${num} cards go into their hand.`,kind:"reject"};
- if(event.type==="take")return{label:"PILE PICKUP",detail:`${actor} collects ${num} cards from the pile.`,kind:"pickup"};
- if(event.action==="dump"||event.reason==="dump")return{label:"DUMP!",detail:`${actor} sends ${num} pile cards to ${target} and plays again.`,kind:"dump"};
- if(event.type==="slam"||event.reason==="slam")return{label:"SLAM! FOUR MATCHING",detail:`${actor} burns the pile and plays again.`,kind:"burn"};
- if(event.type==="followup"||event.reason==="snap")return{label:"SNAP!",detail:`${actor} immediately throws the matching card.`,kind:"snap"};
- if(event.burned||event.action==="burn"||event.reason==="four")return{label:"BURN! PILE CLEARED",detail:`${actor} burns ${event.burnedCount||"the"} pile cards and plays again.`,kind:"burn"};
- const actions:Record<string,{label:string;detail:string;kind:string}>={
-   reset:{label:"RESET · FREE PLAY",detail:`${actor} resets the limit. Any number can follow.`,kind:"reset"},
-   under:{label:"UNDER · 1–4 ONLY",detail:`${actor} changes the limit. The next number must be 1 to 4.`,kind:"under"},
-   ghost:{label:"GHOST · RULE STAYS",detail:`${actor} plays through the pile without changing the restriction.`,kind:"ghost"},
-   skip:{label:"SKIP!",detail:`${actor} skips ${target}'s next turn.`,kind:"skip"}
- };
+ // Ordinary cards explain themselves through movement. Only special actions
+ // deserve a short visual emblem; longer descriptions are for screen readers.
+ if(event.type==="blind-fail")return{label:"INVALID",symbol:"×",detail:`${actor} revealed an invalid card and collected ${num} cards`,kind:"reject"};
+ if(event.type==="take")return{label:"PICKUP",symbol:"↑",detail:`${actor} picked up ${num} cards`,kind:"pickup"};
+ if(event.action==="dump"||event.reason==="dump")return{label:"DUMP",symbol:"➜",detail:`${actor} transferred the pile to ${target}`,kind:"dump"};
+ if(event.type==="slam"||event.reason==="slam")return{label:"SLAM",symbol:"✹",detail:`${actor} burned four matching cards`,kind:"burn"};
+ if(event.type==="followup"||event.reason==="snap")return{label:"SNAP",symbol:"✦",detail:`${actor} snapped a matching card`,kind:"snap"};
+ if(event.burned||event.action==="burn"||event.reason==="four")return{label:"BURN",symbol:"✹",detail:`${actor} burned the pile`,kind:"burn"};
  const action=event.action||event.reason||"";
- if(actions[action])return actions[action];
- return{label:"CARD PLAYED",detail:`${actor} plays ${event.count||1} ${event.rank===undefined?"card":`× ${event.rank}`} on the pile.`,kind:"number"};
+ const specials:Record<string,{label:string;symbol:string;detail:string;kind:string}>={
+  reset:{label:"RESET",symbol:"↺",detail:`${actor} reset the number limit`,kind:"reset"},
+  under:{label:"UNDER",symbol:"1–4",detail:`${actor} restricted the next number to 1 through 4`,kind:"under"},
+  ghost:{label:"GHOST",symbol:"◌",detail:`${actor} kept the existing number restriction`,kind:"ghost"},
+  skip:{label:"SKIP",symbol:"»",detail:`${actor} skipped ${target}'s turn`,kind:"skip"}
+ };
+ if(specials[action])return specials[action];
+ return{label:"",symbol:"",detail:"",kind:"number"};
 }
 function buildScene(event:Event,key:string,me:number,name:(seat:number)=>string):Scene|null{
  const table=document.querySelector(".tabletop");
@@ -137,7 +140,7 @@ export default function MoveTheater({gameKey,moveNo,phase,events,me,theme,nameFo
    timer.current=setTimeout(()=>{
      timer.current=null;setScene(null);running.current=false;
      pump.current();
-   },DURATION);
+   },next.kind==="number"?NORMAL_DURATION:SPECIAL_DURATION);
  };
  useEffect(()=>{
    // Do not replay history on a refresh, reconnect, or a new round.
@@ -168,14 +171,19 @@ export default function MoveTheater({gameKey,moveNo,phase,events,me,theme,nameFo
  const flight=e.type!=="take"&&e.type!=="dump-pending";
  const blind=e.source==="down";
  const transfer=scene.transfer!=="none"&&scene.transferCount>0;
- const onlyBack=e.type==="blind-fail";
+ const highlight=scene.kind!=="number";
  return createPortal(
   <div className="move-story-overlay" data-move={e.move} data-kind={scene.kind}
-     role="status" aria-live="polite" aria-atomic="true">
-   <div className="move-story-caption" data-kind={scene.kind}
-     style={{left:scene.pile.x,top:Math.max(105,scene.pile.y-126)}}>
-     <strong>{scene.label}</strong><span>{scene.detail}</span>
-   </div>
+     aria-hidden={!highlight}>
+    {highlight&&<>
+      <div className="move-story-caption" role="status" aria-live="polite"
+        aria-label={scene.detail} data-kind={scene.kind}
+        style={{left:scene.pile.x,top:Math.max(48,scene.pile.y-113)}}>
+        <strong>{scene.label}</strong>
+      </div>
+      <div className="move-story-sigil" data-kind={scene.kind} aria-hidden="true"
+        style={{left:scene.pile.x,top:scene.pile.y}}>{scene.symbol}</div>
+    </>}
    {flight&&<div className="move-story-flight" data-blind={blind?"true":"false"}
       style={vector(scene.from,scene.playTo)}>
      {blind?<><div className="move-story-back">{cardArt(e,theme,true)}</div>
@@ -183,7 +191,7 @@ export default function MoveTheater({gameKey,moveNo,phase,events,me,theme,nameFo
         cardArt(e,theme,cardFace(e)===null)}
      {(e.count??1)>1&&<span className="move-story-count">×{e.count}</span>}
    </div>}
-   {(flight||onlyBack)&&<div className="move-story-impact"
+   {highlight&&<div className="move-story-impact"
         data-kind={scene.kind} style={{left:scene.pile.x,top:scene.pile.y}} />}
    {transfer&&<div className="move-story-transfer" data-kind={scene.kind}
        style={vector(scene.pile,scene.transferTo)}>
@@ -191,7 +199,7 @@ export default function MoveTheater({gameKey,moveNo,phase,events,me,theme,nameFo
         <div className="move-story-stack-back" />
         <div className="move-story-stack-back" />
         {cardArt(e,theme,true)}
-        <b>{scene.transferCount} cards</b>
+        <b>×{scene.transferCount}</b>
       </div>
    </div>}
    {scene.drawnCount>0&&e.type!=="blind-fail"&&e.type!=="take"&&
