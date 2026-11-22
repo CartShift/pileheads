@@ -7,6 +7,8 @@
     "test": "node scripts/test.mjs",
     "build": "node scripts/build-vercel.mjs",
     "build:vercel": "node scripts/build-vercel.mjs",
+    "build:integrated": "node scripts/build-vercel.mjs && npm run build --prefix apps/web && node scripts/publish-next.mjs",
+    "test:integrated": "node tests/stack-single-service.cjs",
     "simulate": "node scripts/simulate.mjs",
     "test:pilehead": "node scripts/test.mjs",
     "test:pilehead-online": "node tests/pilehead-online.cjs",

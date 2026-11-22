@@ -3,6 +3,12 @@ on:
   pull_request:
     paths:
       - "apps/web/**"
+      - "scripts/render-server.cjs"
+      - "scripts/publish-next.mjs"
+      - "package.json"
+      - "render.yaml"
+      - "tests/stack-single-service.cjs"
+      - "tests/stack-next-browser.cjs"
       - "dist/pilehead/engine.js"
       - ".github/workflows/next-web.yml"
 jobs:
@@ -17,10 +23,11 @@ jobs:
       - run: npm install --prefix apps/web --no-audit --no-fund
       - run: npm run typecheck --prefix apps/web
       # CI-only backend endpoint baked into Next's public client bundle.
-      - run: npm run build --prefix apps/web
-        env:
-          NEXT_PUBLIC_STACK_API_ORIGIN: http://127.0.0.1:44292
+      # One static export and one Node runtime. Browser API and websocket
+      # connections are same-origin: no extra frontend service or CORS.
       - run: npm install --no-audit --no-fund
+      - run: npm run build:integrated
+      - run: node tests/stack-single-service.cjs
       - run: node tests/stack-next-cors.cjs
       - run: npm test
       - run: node tests/stack-next-simulator-stress.cjs

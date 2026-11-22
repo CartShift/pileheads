@@ -20,7 +20,11 @@ const contentTypes = {
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
+  '.txt': 'text/plain; charset=utf-8',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.webmanifest': 'application/manifest+json'
 };
 
 function respond(res, status, data, type = 'text/plain; charset=utf-8') {
@@ -68,6 +72,10 @@ async function serveFile(req, res, url) {
   try { pathname = decodeURIComponent(url.pathname); }
   catch { return respond(res, 400, 'Bad Request'); }
   if (pathname === '/') pathname = '/index.html';
+  // Next.js is statically exported. Map friendly routes to real files;
+  // Classic URLs remain untouched, with no catch-all SPA fallback.
+  if (pathname === '/play' || pathname === '/play/') pathname = '/play.html';
+  else if (pathname === '/stack' || pathname === '/stack/') pathname = '/stack.html';
   if (pathname.includes('\0') || pathname.includes('\\')) return respond(res, 400, 'Bad Request');
 
   const filename = path.resolve(root, '.' + pathname);
@@ -85,7 +93,11 @@ async function serveFile(req, res, url) {
   res.setHeader('Content-Type', contentTypes[path.extname(filename).toLowerCase()] || 'application/octet-stream');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Cache-Control', path.extname(filename) === '.html' ? 'no-cache' : 'public, max-age=3600');
+  const nextFingerprint = pathname.startsWith('/_next/static/');
+  const routePayload = path.extname(filename) === '.txt';
+  res.setHeader('Cache-Control', nextFingerprint ? 'public, max-age=31536000, immutable'
+    : path.extname(filename) === '.html' || routePayload ? 'no-cache'
+    : 'public, max-age=3600');
   if (req.method === 'HEAD') return res.end();
   fs.createReadStream(filename)
     .on('error', () => { if (!res.headersSent) respond(res, 500, 'Internal Server Error'); else res.destroy(); })

@@ -11,7 +11,7 @@ import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomG
 
 type Mode = "home" | "local" | "online";
 const ACTIONS = ["reset", "ghost", "under", "skip", "burn", "dump"];
-const classicHref = `${backendOrigin || "https://stack-card-game-t7vx.onrender.com"}/pilehead/index.html`;
+const classicHref = "/pilehead/index.html";
 const ACTION_DESCRIPTIONS: Record<string, string> = {
   reset: "Any number can follow", ghost: "Keep the current restriction",
   under: "Next number must be 1–4", skip: "Skip the next player's turn",
@@ -726,7 +726,7 @@ export default function GameTable() {
 
   if (!g || !current) return (
     <main className="game-shell">
-      <header className="game-header"><Link href="/" className="logo">STACK<span>.</span></Link>
+      <header className="game-header"><Link href="/stack" className="logo">STACK<span>.</span></Link>
         <span className="beta-tag">NEXT TABLE · PREVIEW</span></header>
       <section className="entry">
         <div className="entry-intro"><div className="eyebrow">WELCOME TO THE TABLE</div>
@@ -796,7 +796,7 @@ export default function GameTable() {
   return (
     <main className="game-shell">
       <header className="game-header">
-        <Link href="/" className="logo">STACK<span>.</span></Link>
+        <Link href="/stack" className="logo">STACK<span>.</span></Link>
         <div className="game-head-actions">
           {room && <button className={"room-code " + (copiedInvite ? "is-copied" : "")}
             onClick={() => void copyInvite()}

@@ -1,35 +1,52 @@
-# STACK Next.js table (isolated migration)
+# STACK Next.js table (single Render service)
 
-This application is a Next.js / React / TypeScript table that reuses the **canonical** legacy game engine and the existing authoritative Render/Neon room protocol. It does not change the live Classic site or its database.
+The new React/TypeScript tabletop is exported as **static HTML, JS and CSS**
+and served by the existing STACK Node.js server. Both versions share the same
+domain, authoritative HTTP API, WebSocket server and Neon database.
+**No second Render service, CORS setting or extra Next.js runtime is needed.**
 
-## Run
-
-From the repo root:
+## Local Next development
 
 ```sh
-cd apps/web
-npm install
-cp .env.example .env.local
-npm run dev
+npm install --prefix apps/web
+npm run dev --prefix apps/web
 ```
 
-Local bots work without a server connection. Online rooms require the existing Render service's `PILEHEAD_DATABASE_URL`, the browser's `NEXT_PUBLIC_STACK_API_ORIGIN`, and `STACK_WEB_ORIGIN` on that Render service matching the Next frontend origin, including scheme and port.
+To use online rooms with the development server on port 3000, configure
+`NEXT_PUBLIC_STACK_API_ORIGIN` in `apps/web/.env.local` to point at a
+trusted backend and explicitly allow `http://localhost:3000` through
+`STACK_WEB_ORIGIN` on that backend. Local bot matches need no server.
 
-Use `npm run build` for production and `npm run typecheck` to validate TS. The `predev`/`prebuild` task copies only the existing canonical deck artwork. The game engine is imported directly from `dist/pilehead/engine.js`; do not fork rules into the Next app.
+## One-server integrated build
 
-**Not yet a replacement for Classic:** treat `/play` as migration preview. Preserve the current Render service, URLs and save keys until behavior parity, desktop/phone QA, mixed-bot matches, reconnect, SNAP, SLAM, DUMP and setup have been accepted. No production auto-deploy is configured for this app.
+```sh
+npm install
+npm install --prefix apps/web
+npm run build:integrated
+npm run test:integrated
+node scripts/render-server.cjs
+```
 
-## Render preview (isolated service)
+Routes on the **same** Node server:
 
-A separate example Blueprint is provided at `render.next-preview.yaml`. Do **not**
-replace the existing `render.yaml` or point the original live Render service
-at `apps/web`. Create a separate Render service from the Next preview
-configuration, setting `NEXT_PUBLIC_STACK_API_ORIGIN` during the build.
-After its public origin exists, set `STACK_WEB_ORIGIN` on the **existing**
-authoritative STACK game server to that exact `https://...` origin (no slash)
-and deploy its latest code from the migration PR branch. Classic same-origin
-clients continue to work. Server-side Neon credentials stay exclusively on
-the old game server.
+- `/`: unchanged Classic landing page
+- `/pilehead/index.html`: unchanged Classic simulator
+- `/stack`: new Next landing page
+- `/play`: new React game table; private-room links use `/play?room=CODE`
+- `/api/pilehead`: unchanged authoritative room endpoint
+- `/api/pilehead/live`: unchanged authenticated WebSocket
+- `/_next/static/*`: fingerprinted assets from the static export
 
-The actual preview service is **not created by this PR**. For production,
-review Render plan, uptime, secrets and real-device tests before switching routes.
+The root `render.yaml` uses the integrated build and the existing service
+name, on the existing `main` branch. The new paths will appear there **only
+after this PR is merged and the existing service deploys**. Until then the
+live Classic site remains completely unchanged.
+
+Next.js App Router handles the UI at build time and in the browser. No SSR
+or standalone Next.js server is needed for these routes. The deterministic
+engine continues to come only from `dist/pilehead/engine.js`; prebuild copies
+it to the app's ignored `vendor/` so it bundles under Turbopack's root.
+
+For testing locally, use Playwright via the Next web workflow, with a mock
+Neon implementation and both browser and API bound to the same localhost
+origin. This matches the actual deployment topology.
