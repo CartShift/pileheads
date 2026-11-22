@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { playSound } from "../lib/sound";
+import MoveTheater from "./move-theater";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
 import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame, type Reaction } from "../lib/room";
 
@@ -235,10 +236,6 @@ export default function GameTable() {
   const [coachDismissed, setCoachDismissed] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [pileOpen, setPileOpen] = useState(false);
-  const [specialFx, setSpecialFx] = useState<string | null>(null);
-  const [pickupFx, setPickupFx] = useState<{key:string;x:number;y:number;dx:number;dy:number}|null>(null);
-  const lastPickupMove = useRef("");
-  const lastAnimatedMove = useRef("");
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -532,44 +529,6 @@ export default function GameTable() {
 
   const g = useMemo(() => mode === "local" && local ? asLocalRoom(local) : mode === "online" ? room?.game : null,
     [mode, local, room]);
-  useEffect(() => {
-    const key = [mode, room?.code || "local", g?.round || 1, g?.moves || 0].join(":");
-    if (lastAnimatedMove.current === key) return;
-    const previouslyMounted = !!lastAnimatedMove.current;
-    lastAnimatedMove.current = key;
-    const event = g?.events.at(-1);
-    if (!previouslyMounted || !event) return;
-    const action = event.action || (event.burned ? "burn" : null);
-    if (!action) return;
-    setSpecialFx(action);
-    const timeout = window.setTimeout(() => setSpecialFx(null), 950);
-    return () => window.clearTimeout(timeout);
-  }, [mode, room?.code, g?.round, g?.moves]);
-
-  // An invalid blind card glows first, then the pile flies toward the actual
-  // recipient hand on both client screens without exposing any private faces.
-  useEffect(() => {
-    const event = g?.events.at(-1);
-    if (!g || event?.type !== "blind-fail") return;
-    const key = [mode, room?.code || "local", g.round || 1, event.move].join(":");
-    if (lastPickupMove.current === key) return;
-    const raf = window.requestAnimationFrame(() => {
-      const pile = document.querySelector<HTMLElement>(".pile-slot.played");
-      const seat = mode === "local" ? 0 : room?.me ?? 0;
-      const target = event.seat === seat
-        ? document.querySelector<HTMLElement>(".hand-stage")
-        : document.querySelector<HTMLElement>(
-            '.opponent-seat[data-seat="' + event.seat + '"] .opponent-card-stack');
-      if (!pile || !target) return;
-      const from = pile.getBoundingClientRect(), to = target.getBoundingClientRect();
-      const x = from.left + from.width / 2, y = from.top + from.height / 2;
-      lastPickupMove.current = key;
-      setPickupFx({key, x, y, dx:to.left + to.width/2 - x, dy:to.top + to.height/2 - y});
-    });
-    const timeout = window.setTimeout(() => setPickupFx(null), 2150);
-    return () => { window.cancelAnimationFrame(raf); window.clearTimeout(timeout); };
-  }, [mode, room?.code, room?.me, g?.round, g?.moves]);
-
   // Keep every card in view as the hand grows. Measure the real rendered
   // width (not a guessed viewport) so Safari, browser zoom and desktop all
   // use the same layout. A new row is preferred over unreadably thin slivers.
@@ -595,7 +554,6 @@ export default function GameTable() {
   const me = mode === "local" ? 0 : room?.me ?? 0;
   const face = g?.blindReveal;
   const showFlip = !!face && face.expiresAt > Date.now();
-  const invalidFlip = showFlip && g?.events.at(-1)?.type === "blind-fail" && g?.events.at(-1)?.move === face?.move;
   const newestReactions = (g?.reactions || []).filter(r => Date.now() - r.at < 8000);
   useEffect(() => {
     if (!newestReactions.length && !showFlip) return;
@@ -1009,6 +967,10 @@ export default function GameTable() {
           <button type="button" onClick={() => setCoachDismissed(true)}>Hide tips</button>
         </aside>}
 
+      <MoveTheater gameKey={mode === "local" ? "local:" + local?.seed :
+        "online:" + room?.code + ":" + g.round}
+        moveNo={g.moves} phase={g.phase} events={g.events} blindReveal={g.blindReveal} me={me}
+        theme={deckTheme} nameForSeat={nameForSeat} />
       <div className="tabletop" role="region" aria-label="STACK card game">
         <div className="table-texture" aria-hidden="true" />
         <div className="opponents-row">
@@ -1048,14 +1010,6 @@ export default function GameTable() {
                 </div>)}
               </AnimatePresence>
               {!g.pile.length && <div className="slot-empty">Pile clear</div>}
-               {showFlip && face && <div key={face.move}
-                 className={"react-blind-reveal" + (invalidFlip ? " is-invalid" : "")}
-                 role="status" aria-label={nameForSeat(face.seat) + " revealed a " + (invalidFlip ? "non-playable " : "") + "blind card"}>
-                 <PlayingCard card={{ ...face.card, id: -1, rank: face.card.rank ?? undefined,
-                   action: face.card.action ?? undefined }} theme={deckTheme} />
-               </div>}
-               {specialFx && <span key={g.moves} className="react-special-ring"
-                 data-action={specialFx} aria-hidden="true" />}
             </div>
             <span className="pile-counter">{g.pile.length} cards · {rule}</span>
              <button type="button" className="react-pile-inspect" disabled={!g.pile.length}
@@ -1146,11 +1100,7 @@ export default function GameTable() {
         </motion.section>}
       </div>
 
-      {pickupFx && createPortal(<div key={pickupFx.key} className="react-pickup-transfer"
-         style={{left:pickupFx.x,top:pickupFx.y,
-           "--travel-x":pickupFx.dx+"px","--travel-y":pickupFx.dy+"px"} as CSSProperties}
-         aria-hidden="true"><PlayingCard hidden theme={deckTheme} /></div>,document.body)}
-       {pileOpen && <div className="react-pile-backdrop" onClick={() => setPileOpen(false)}>
+      {pileOpen && <div className="react-pile-backdrop" onClick={() => setPileOpen(false)}>
          <section className="react-pile-panel" role="dialog" aria-modal="true" aria-label="All played pile cards"
            onClick={e => e.stopPropagation()}>
            <header><div><strong>THE PILE</strong><small>{g.pile.length} played cards · oldest to newest</small></div>

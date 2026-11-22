@@ -20,7 +20,12 @@ export type Event = {
   seat: number;
   reason?: string;
   action?: string;
+  source?: "hand" | "up" | "down";
   count?: number;
+  takenCount?: number;
+  burnedCount?: number;
+  drawnCount?: number;
+  bridgeCount?: number;
   target?: number;
   burned?: boolean;
   erodedCount?: number;
@@ -33,6 +38,7 @@ export type Player = {
 };
 export type Game = {
   version: string;
+  seed: number;
   phase: "setup" | "play" | "over";
   endgameRule?: "classic" | "final-duel";
   omitSkip?: boolean;

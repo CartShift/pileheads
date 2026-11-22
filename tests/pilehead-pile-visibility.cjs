@@ -55,13 +55,18 @@ check('the API exposes face-down flips and public pile without the draw deck or 
 });
 check('React table renders flip and invalid flash directly on the pile, not a separate banner', () => {
  const code=read('apps/web/components/game-table.tsx');
- assert.match(code,/className=\{"react-blind-reveal"/);
- assert.match(code,/invalidFlip/);
+ assert.match(code,/<MoveTheater gameKey=/);
+ const theater=read('apps/web/components/move-theater.tsx');
+ assert.match(theater,/move-story-flight/);
+ assert.match(theater,/move-story-impact/);
+ assert.match(theater,/move-story-transfer/);
+ assert.match(theater,/blind-fail/);
  assert.match(code,/className="react-pile-backdrop"/);
  assert.match(code,/setPileOpen\(true\)/);
  assert.match(code,/g\.pile\.map\(card =>/);
  assert.match(code,/g\.omitSkip/);
  assert.doesNotMatch(code,/className="blind-flip"/);
+ assert.match(theater,/event\.type==="blind-fail"/);
 });
 check('shared animations respect reduced motion and serialize invalid flip before pile pickup', () => {
  const css=read('dist/pilehead/table-feedback.css');

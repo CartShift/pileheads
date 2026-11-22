@@ -4,7 +4,7 @@ const STORE='pilehead-table-sound-v1',MOTION_STORE='pilehead-table-motion-v1';
 const motion=typeof matchMedia==='function'?matchMedia('(prefers-reduced-motion: reduce)'):{matches:false};
 const $=(sel,el=document)=>el.querySelector(sel);
 let last=null,seen=false,ctx=null,sound=false,btn=null,focusButton=null,motionButton=null,
- focusMode=false,motionMode='full',menuButton=null,handScroll=0,lastAutoSelected=null;
+ focusMode=false,motionMode=motion.matches?'off':'full',menuButton=null,handScroll=0,lastAutoSelected=null;
 try{
  sound=localStorage.getItem(STORE)==='on';
  focusMode=localStorage.getItem('pilehead-table-focus-v1')==='on';
@@ -40,7 +40,6 @@ function controls(){
   motionButton=document.createElement('button');motionButton.type='button';
   motionButton.className='motion-toggle';motionButton.dataset.fxMotion='1';
   motionButton.addEventListener('click',()=>{
-   if(motion.matches)return;
    motionMode=motionMode==='full'?'quick':motionMode==='quick'?'off':'full';
    try{localStorage.setItem(MOTION_STORE,motionMode)}catch{}
    clearMotion();updateMotionButton();
@@ -72,15 +71,14 @@ function updateButton(){if(btn){btn.setAttribute('aria-pressed',String(sound));b
 function updateFocusButton(){if(focusButton){focusButton.setAttribute('aria-pressed',String(focusMode));focusButton.textContent=focusMode?'✕ Exit focus':'◎ Focus table'}}
 function updateMotionButton(){
  if(!motionButton)return;
- const label=motion.matches?'Motion off · system preference':
-  motionMode==='full'?'Motion: Full':motionMode==='quick'?'Motion: Quick':'Motion: Off';
+ const label=motionMode==='full'?'Motion: Full':motionMode==='quick'?'Motion: Quick':'Motion: Off';
  motionButton.textContent=label;
- motionButton.title=motion.matches?'Reduced motion is enabled on this device':
+ motionButton.title=motion.matches?'Reduced motion is preferred on this device. Select Full to opt into card animations.':
   'Cycle full physical motion, quick motion, and off';
- motionButton.disabled=Boolean(motion.matches);
- motionButton.setAttribute('aria-label',label+(motion.matches?'':'. Change animation speed.'));
+ motionButton.disabled=false;
+ motionButton.setAttribute('aria-label',label+'. Change animation speed.');
  document.body?.classList.toggle('pilehead-quick-motion',motionMode==='quick');
- document.body?.classList.toggle('pilehead-motion-off',motionMode==='off'||Boolean(motion.matches));
+ document.body?.classList.toggle('pilehead-motion-off',motionMode==='off');
 }
 function handLayout(n,rowWidth,cardWidth,mobile){
  // Never squeeze a hand so tightly that the visible card index disappears.
@@ -310,7 +308,7 @@ function captureMove({gameKey,seat,moveNo,move}={}){
  capturedMove={gameKey,seat,moveNo,points,stamp:Date.now()};
 }
 const motionScale=()=>motionMode==='quick'?.62:.86;
-const canMove=()=>!motion.matches&&motionMode!=='off'&&document.visibilityState!=='hidden'&&
+const canMove=()=>motionMode!=='off'&&document.visibilityState!=='hidden'&&
  typeof Element!=='undefined'&&typeof Element.prototype.animate==='function';
 function placeFor(table,seat,layer,ownSeat){
  if(seat===ownSeat){
@@ -413,7 +411,7 @@ function specialEffect(table,action,delay=0){
 function cue(table,text){
  if(!table||document.visibilityState==='hidden')return;
  const el=document.createElement('div');el.className='pilehead-cue pilehead-cue-fixed';
- el.setAttribute('aria-hidden','true');el.textContent=text;
+ el.setAttribute('role','status');el.setAttribute('aria-live','polite');el.textContent=text;
  const point=center(landmark(table,'pile'));
  el.style.left=point.x+'px';el.style.top=point.y+'px';
  document.body.appendChild(el);motionGhosts.add(el);
@@ -475,6 +473,19 @@ function drawCards(table,ev,ownSeat,delay=0){
  });
  later(()=>pulse(hand,'turn'),delay+340);
 }
+function publicMoveCaption(ev){
+ const actor=Number.isInteger(ev?.seat)?'PLAYER '+(ev.seat+1):'PLAYER';
+ if(ev?.type==='blind-fail')return actor+' · BLIND CARD FAILED · PILE PICKUP';
+ if(ev?.type==='take')return actor+' · PICKED UP '+(ev.takenCount??ev.count)+' CARDS';
+ if(ev?.action==='dump')return actor+' · DUMP TO PLAYER '+(Number(ev.target)+1);
+ if(ev?.type==='slam')return actor+' · SLAM!';
+ if(ev?.burned)return actor+' · PILE BURNED';
+ const messages={reset:'RESET · ANY NUMBER',ghost:'GHOST · RULE STAYS',
+  under:'UNDER · NEXT 1–4',skip:'SKIP · NEXT TURN MISSED'};
+ if(messages[ev?.action])return actor+' · '+messages[ev.action];
+ if(ev?.type==='followup')return actor+' · SNAP!';
+ return actor+' · PLAYED '+(ev.count||1)+' × '+(ev.rank??'CARD');
+}
 function celebrate(table,ev,ownSeat){
  if(!table||!ev||!canMove())return 0;
  const pickup=ev.type==='take'||ev.type==='blind-fail';
@@ -531,7 +542,7 @@ function celebrate(table,ev,ownSeat){
    pulse($('[data-play-target] .stack-count:last-child',table),'hit');
   if(ev.action==='ghost')pulse(landmark(table,'pile'),'turn');
   snap('play');
- }else snap('play');
+ }else{cue(table,publicMoveCaption(ev));snap('play')}
  drawCards(table,ev,ownSeat,ev.burned?530:310);
  return ev.burned?1050:Math.max(650,Number(ev.drawnCount)?910:620);
 }
@@ -562,7 +573,13 @@ function animateQueue(ownSeat){
   }
   return;
  }
- if(!canMove()){motionQueue.length=0;pendingTurn=null;return}
+ if(!canMove()){
+  const ev=motionQueue.shift(),table=$('#app .table');
+  if(table&&ev)cue(table,publicMoveCaption(ev));
+  if(motionQueue.length)later(()=>animateQueue(ownSeat),1200);
+  else pendingTurn=null;
+  return;
+ }
  const ev=motionQueue.shift(),table=$('#app .table');
  if(!table)return;
  const generation=motionGeneration;
