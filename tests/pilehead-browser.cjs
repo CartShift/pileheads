@@ -56,12 +56,6 @@ async function run(browser,width,height,mobile){
   await page.locator('[data-do="ready"]').click();
   await page.locator('.table').waitFor();
   await stage(page,{mode:'bots',seed:117});
-  // Temporary compressed screenshot trace for reviewing both real viewports.
-  if(width===390||width===1280){
-   const encoded=(await page.screenshot({type:'jpeg',quality:54})).toString('base64');
-   for(let pos=0;pos<encoded.length;pos+=3500)
-    console.log('STACK_VISUAL_CHUNK '+width+' '+String(pos/3500)+' '+encoded.slice(pos,pos+3500));
-  }
   let before=await state(page);
   assert.equal(before.moves,0);
   assert.equal(await page.locator('.stack-progress-step').count(),3,'three physical card layers are visible');
@@ -106,26 +100,9 @@ async function run(browser,width,height,mobile){
   assert.equal(shortcutOutcome.moves,1,
    'P shortcut submits the same validated Play button: '+JSON.stringify(shortcutOutcome));
   await stage(page,{mode:'bots',seed:119});
-  await page.evaluate(()=>{
-   window.__stackDrag=[];
-   for(const type of ['dragstart','dragenter','dragover','drop','dragend'])
-    document.getElementById('app').addEventListener(type,e=>
-     window.__stackDrag.push({type,source:e.target?.dataset?.source||null,
-      target:!!e.target?.closest?.('[data-play-target]')}),true);
-  });
   await page.locator('.hand-area button[data-card]').first().dragTo(page.locator('[data-play-target]'));
-  const dragOutcome=await page.evaluate(()=>{
-   const saved=JSON.parse(localStorage.getItem('pilehead-playtest-v11'));
-   const from=document.querySelector('.hand-area button[data-card]');
-   const to=document.querySelector('[data-play-target]');
-   const describe=el=>{if(!el)return null;const r=el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
-    const top=document.elementFromPoint(x,y);
-    return{x,y,width:r.width,height:r.height,tag:top?.tagName,hit:top?.className?.baseVal||top?.className,
-     covered:top&&!el.contains(top)&&top!==el,scrollY:window.scrollY};};
-   return{moves:saved.g.moves,notice:saved.notice,selected:document.querySelectorAll('.card.selected').length,
-    events:window.__stackDrag.filter(e=>e.type!=='dragover').slice(-12),from:describe(from),to:describe(to)};
-  });
-  assert.ok(dragOutcome.moves>=1,'drag-and-drop should commit the selection: '+JSON.stringify(dragOutcome));
+  const dragOutcome=await state(page);
+  assert.equal(dragOutcome.moves,1,'drag-and-drop must commit exactly one card move');
   await stage(page,{mode:'hotseat',seat:1,seed:119,snap:true});
   assert.ok(await page.locator('.overlay [data-do="hot-snap"]').count(),'SNAP available without stopping next turn');
   await page.locator('.overlay [data-do="reveal"]').click();
