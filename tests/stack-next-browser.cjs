@@ -6,13 +6,13 @@
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const fs = require("node:fs");
-const { spawn, fork } = require("node:child_process");
+const { fork } = require("node:child_process");
 const { chromium } = require("playwright");
 
 const ROOT = path.resolve(__dirname, "..");
-const WEB_PORT = 44291, API_PORT = 44292;
+const WEB_PORT = 44291;
 const WEB = "http://127.0.0.1:" + WEB_PORT;
-const API = "http://127.0.0.1:" + API_PORT;
+const API = WEB; // One Render Node runtime hosts Next static pages, API and WebSocket.
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 async function waitReady(url, logs) {
@@ -328,7 +328,7 @@ async function mixedBotScenarios(browser) {
     const code=new URL(page.url()).searchParams.get("room");
     await page.waitForFunction(async code=>{
       const token=localStorage.getItem("stack-next-room-"+code);
-      const response=await fetch("http://127.0.0.1:44292/api/pilehead",{
+      const response=await fetch("/api/pilehead",{
         method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
         body:JSON.stringify({action:"state",code})
       });
@@ -392,29 +392,31 @@ async function abandonedRoomScenario(browser) {
 
 async function main() {
   fs.mkdirSync(path.resolve(ROOT, "artifacts/next"), {recursive:true});
-  const webProc = spawn(process.execPath, [
-    path.resolve(ROOT, "apps/web/node_modules/next/dist/bin/next"), "start", "-p", String(WEB_PORT)
-  ], {
-    cwd: path.resolve(ROOT, "apps/web"),
-    env: { ...process.env, NODE_ENV: "production" },
-    stdio: ["ignore", "pipe", "pipe"]
-  });
   const apiProc = fork(path.resolve(ROOT, "scripts/render-server.cjs"), [], {
     execArgv: ["--require", path.resolve(ROOT, "tests/fixtures/mock-neon-room.cjs")],
-    env: { ...process.env, NODE_ENV: "test", PORT: String(API_PORT),
-      STACK_WEB_ORIGIN: WEB, PILEHEAD_DATABASE_URL: "postgresql://fake:fake@neon.invalid/stack",
+    env: { ...process.env, NODE_ENV: "test", PORT: String(WEB_PORT),
+      PILEHEAD_DATABASE_URL: "postgresql://fake:fake@neon.invalid/stack",
       STACK_TEST_WS_HEARTBEAT_MS: "200" },
     stdio: ["ignore", "pipe", "pipe", "ipc"]
   });
-  let webLog = "", apiLog = "";
-  webProc.stdout.on("data", b => webLog += b.toString());
-  webProc.stderr.on("data", b => webLog += b.toString());
+  let apiLog = "";
   apiProc.stdout.on("data", b => apiLog += b.toString());
   apiProc.stderr.on("data", b => apiLog += b.toString());
   let browser;
   try {
-    await Promise.all([waitReady(WEB + "/play", () => webLog), waitReady(API + "/livez", () => apiLog)]);
+    await waitReady(WEB + "/livez", () => apiLog);
+    for (const route of ["/", "/pilehead/index.html", "/play", "/play/", "/stack", "/stack/"]) {
+      const response = await fetch(WEB + route);
+      assert.equal(response.status, 200, "single-server route must work: " + route);
+    }
+    const classic = await (await fetch(WEB + "/pilehead/index.html")).text();
+    assert.match(classic, /Pilehead|STACK/i, "Classic must still be available");
+    const main = await (await fetch(WEB + "/")).text();
+    assert.ok(!main.includes('id="__next"'), "root must remain the original Classic landing");
+    const html = await (await fetch(WEB + "/play")).text();
+    assert.match(html, /_next\/static\//, "Next scripts must be included");
     browser = await chromium.launch({ headless: true });
+    console.log("PASS one Render server: Classic, /stack, /play, Next assets and API use one origin");
     await localScenarios(browser);
     await seatLayoutScenarios(browser);
     await guidedPracticeScenario(browser);
@@ -423,12 +425,10 @@ async function main() {
     await abandonedRoomScenario(browser);
   } catch (e) {
     console.error("Next browser acceptance failed:", e);
-    console.error("WEB LOGS", webLog.slice(-6000));
-    console.error("API LOGS", apiLog.slice(-6000));
+    console.error("INTEGRATED SERVER LOGS", apiLog.slice(-6000));
     process.exitCode = 1;
   } finally {
     if (browser) await browser.close();
-    webProc.kill("SIGTERM");
     apiProc.kill("SIGTERM");
   }
 }
