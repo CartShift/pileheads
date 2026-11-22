@@ -113,8 +113,14 @@ async function run(browser,width,height,mobile){
   await page.locator('.hand-area button[data-card]').first().dragTo(page.locator('[data-play-target]'));
   const dragOutcome=await page.evaluate(()=>{
    const saved=JSON.parse(localStorage.getItem('pilehead-playtest-v11'));
+   const from=document.querySelector('.hand-area button[data-card]');
+   const to=document.querySelector('[data-play-target]');
+   const describe=el=>{if(!el)return null;const r=el.getBoundingClientRect(),x=r.left+r.width/2,y=r.top+r.height/2;
+    const top=document.elementFromPoint(x,y);
+    return{x,y,width:r.width,height:r.height,tag:top?.tagName,hit:top?.className?.baseVal||top?.className,
+     covered:top&&!el.contains(top)&&top!==el,scrollY:window.scrollY};};
    return{moves:saved.g.moves,notice:saved.notice,selected:document.querySelectorAll('.card.selected').length,
-    events:window.__stackDrag.filter(e=>e.type!=='dragover').slice(-12)};
+    events:window.__stackDrag.filter(e=>e.type!=='dragover').slice(-12),from:describe(from),to:describe(to)};
   });
   assert.ok(dragOutcome.moves>=1,'drag-and-drop should commit the selection: '+JSON.stringify(dragOutcome));
   await stage(page,{mode:'hotseat',seat:1,seed:119,snap:true});
