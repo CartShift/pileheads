@@ -103,3 +103,15 @@ body.pilehead-playing .table .pilehead-special-ring[data-action=skip]{--special-
  body.pilehead-playing .table .pile-blind-reveal.is-invalid .card{animation:none!important}
  body.pilehead-playing .table .pilehead-special-ring{animation:none;opacity:0}
 }
+
+/* The rule chip stays immediately before the absolutely positioned inspect control. */
+body.pilehead-playing .table .stack[data-play-target] .stack-count:nth-last-child(2){
+ display:inline-block;padding:5px 9px;border:1px solid #e8c27e67;
+ background:#05291fe0;border-radius:999px;color:#f8d48e;
+ min-width:max-content;font-weight:850;font-size:11px;margin-top:8px;
+}
+@media(max-width:650px){
+ body.pilehead-playing .table .stack[data-play-target] .stack-count:nth-last-child(2){
+ padding:4px 5px;font-size:9px;margin-top:4px;
+ }
+}
