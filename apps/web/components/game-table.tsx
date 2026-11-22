@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
@@ -135,11 +135,7 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
     backgroundPosition: `${(index % 4) * 100 / 3}% ${Math.floor(index / 4) * 100 / 3}%`
   } : {};
   return (
-    <motion.div layout="position"
-      initial={{ opacity: 0, y: 9, scale: .97 }}
-      animate={{ opacity: 1, y: selected ? -13 : 0, scale: 1 }}
-      exit={{ opacity: 0, y: -26, scale: .85 }}
-      transition={{ type: "spring", stiffness: 460, damping: 36 }}
+    <div
       className={`playing-card theme-${theme} ${hidden ? "is-back" : ""} ${selected ? "is-selected" : ""} ${small ? "is-small" : ""} ${onClick && !disabled ? "is-interactive" : ""}`}
       style={offsetX ? {left: offsetX} : undefined}>
       <div aria-hidden="true" className="card-art" style={faceStyle} />
@@ -161,7 +157,7 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
           style={{left:floating.x,top:floating.y}} aria-hidden="true">
           <div className="card-art" style={faceStyle} />
         </div>, document.body)}
-    </motion.div>
+    </div>
   );
 }
 
@@ -989,12 +985,10 @@ export default function GameTable() {
                   e.preventDefault(); playSelected();
                 }
               }}>
-              <AnimatePresence initial={false}>
-                {g.pile.slice(-5).map((card, i) => <div key={card.id}
+              {g.pile.slice(-5).map((card, i) => <div key={card.id}
                   className="pile-layer" style={{ transform: `translate(${(i - 2) * 10}px, ${(i - 2) * -3}px) rotate(${(i - 2) * 3}deg)` }}>
                   <PlayingCard card={card} theme={deckTheme} />
                 </div>)}
-              </AnimatePresence>
               {!g.pile.length && <div className="slot-empty">Pile clear</div>}
             </div>
             <span className="pile-counter">{g.pile.length} cards · {rule}</span>
@@ -1048,7 +1042,6 @@ export default function GameTable() {
             <div className={`player-hand ${handCount ? "is-adaptive" : "is-empty"}`}
               style={handCount ? handLayout : undefined} data-hand-rows={handRows}
               data-hand-columns={handColumns}>
-              <AnimatePresence initial={false}>
               {handCards.map((card, index) =>
                 <PlayingCard key={card.id} card={card}
                   offsetX={lastRowShift && Math.floor(index / handColumns) === handRows - 1 ? lastRowShift : 0}
@@ -1057,7 +1050,6 @@ export default function GameTable() {
                     (active || g.followup.length > 0) && stage === "hand" ? () => chooseCard(card) : undefined}
                   onDrop={active && stage === "hand" ? () => playCardDirect(card) : undefined} />)}
               {!current.handCount && <span className="hand-placeholder">No cards in hand</span>}
-              </AnimatePresence>
             </div>
           </div>
         </div>
