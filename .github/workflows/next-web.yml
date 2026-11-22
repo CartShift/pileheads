@@ -1,7 +1,5 @@
 name: STACK Next web preview
 on:
-  push:
-    branches: [feat/nextjs-react-game-table]
   pull_request:
     paths:
       - "apps/web/**"

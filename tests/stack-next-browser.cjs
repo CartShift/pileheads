@@ -115,7 +115,7 @@ async function onlineScenarios(browser) {
       null, { timeout: 14000 });
     await start.click();
     await host.getByRole("heading", { name: "Your move." }).waitFor({ timeout: 14000 });
-    await guest.locator(".player-hand .card-hit").first().waitFor();
+    await guest.locator(".player-hand .playing-card").first().waitFor();
 
     const guestView = await guest.evaluate(async args => {
       const token = localStorage.getItem("stack-next-room-" + args.code);
@@ -140,7 +140,7 @@ async function onlineScenarios(browser) {
     await host.getByRole("button", { name: "SNAP" }).waitFor({ state: "hidden", timeout: 13000 });
     await guest.reload({ waitUntil: "domcontentloaded" });
     await guest.locator(".tabletop").waitFor({ timeout: 14000 });
-    assert.ok(await guest.locator(".player-hand .card-hit").count() > 0,
+    assert.ok(await guest.locator(".player-hand .playing-card").count() > 0,
       "reconnect restores seat");
     assert.deepEqual(errors, [], "no multiplayer client exceptions");
     console.log("PASS Next online: dual mobile seats, CORS, private hands, SNAP race, reconnect");
