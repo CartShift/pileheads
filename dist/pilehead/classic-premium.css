@@ -1,0 +1,679 @@
+/* STACK Classic | A tactile, mobile-first tabletop.
+   Loaded after existing styles. The online game and 3D experiment are untouched.
+   All motion is decorative; the engine remains authoritative. */
+body.stack-classic{
+ --sc-cream:#f7ead2;--sc-ink:#142922;--sc-quiet:#b6c8bb;
+ --sc-gold:#f0c88d;--sc-copper:#f1ae73;--sc-coral:#f17855;
+ --sc-deep:#081a16;--sc-felt:#164a3e;--sc-panel:#18382f;
+ background:
+  radial-gradient(ellipse 88% 65% at 50% -30%,#315749 0%,transparent 78%),
+  linear-gradient(180deg,#122c25 0%,#071b17 65%,#071510 100%);
+ background-attachment:fixed;
+ color:var(--sc-cream);
+ -webkit-font-smoothing:antialiased;
+}
+body.stack-classic .layout{position:relative}
+body.stack-classic .layout>.top{
+ position:relative;align-items:center;gap:12px;
+ border-bottom:1px solid #a4b8a025;
+ padding-bottom:14px;
+}
+body.stack-classic .layout>.top .brand{
+ color:#fff6dc;
+ text-shadow:0 3px 18px #0005;
+ letter-spacing:-.045em;
+}
+body.stack-classic .layout>.top .brand b{color:#f17b56}
+body.stack-classic .layout>.top .eyebrow{
+ color:#dbc499;
+ letter-spacing:.23em;
+}
+body.stack-classic .layout>.top .links a,
+body.stack-classic .layout>.top .links button,
+body.stack-classic .layout>.top .table-menu-toggle{
+ border:1px solid #b7a97d45;
+ border-radius:9px;
+ color:#f5e4c5;
+ background:linear-gradient(150deg,#25443a,#102921);
+ box-shadow:0 2px 0 #050e0b55;
+ min-height:39px;
+ transition:background .16s,border-color .16s,transform .16s;
+}
+body.stack-classic .layout>.top .links a:hover,
+body.stack-classic .layout>.top .links button:hover{
+ background:#355d49;border-color:#e9be806b;
+}
+body.stack-classic.pilehead-playing .pilehead-table-hud{
+ width:min(100%,1120px);
+ min-height:70px;
+ display:flex;gap:15px;align-items:center;
+ background:linear-gradient(105deg,#fff3d9 0%,#f2dfb9 100%)!important;
+ border:1px solid #f5d8a7!important;
+ border-left:6px solid #ea835a!important;
+ border-radius:14px!important;
+ box-shadow:0 7px 0 #0a1d17,0 14px 32px #0005!important;
+ margin:7px auto 13px;
+ padding:14px 19px;
+}
+body.stack-classic.pilehead-playing .pilehead-table-hud.is-my-turn{
+ background:linear-gradient(105deg,#fff6df,#f7dfaf)!important;
+ border-left-color:#db9e43!important;
+}
+body.stack-classic.pilehead-playing .pilehead-table-hud .hud-main{
+ gap:5px;min-width:0;
+}
+body.stack-classic.pilehead-playing .pilehead-table-hud .hud-status{
+ font:900 clamp(16px,2vw,23px)/1.1 system-ui,sans-serif;
+ letter-spacing:-.035em;color:#1b3027;
+}
+body.stack-classic.pilehead-playing .pilehead-table-hud .hud-guidance{
+ font:580 12px/1.5 system-ui,sans-serif;color:#4d5c50;
+}
+body.stack-classic.pilehead-playing .pilehead-table-hud .hud-meta{gap:7px}
+body.stack-classic.pilehead-playing .pilehead-table-hud .hud-meta .hud-rule{
+ background:#183c30!important;color:#ffeac9!important;
+ border:1px solid #315e4b!important;
+ border-radius:7px!important;
+ font-weight:850;
+}
+body.stack-classic.pilehead-playing .pilehead-table-hud .hud-meta .hud-urgent{
+ background:#d75132!important;
+ color:#fff9e8!important;border-radius:7px!important;
+}
+body.stack-classic.pilehead-playing .pilehead-table-hud .hud-dot{
+ border-radius:50%;transform:none;
+ background:#db7654;box-shadow:0 0 0 4px #de957324;
+}
+body.stack-classic.pilehead-playing .pilehead-table-hud.is-my-turn .hud-dot{
+ background:#3d8562;box-shadow:0 0 0 4px #38885b28;
+}
+/* The three-layer progression is a quiet tabletop score strip, not a modal. */
+body.stack-classic .stack-classic-progress{
+ width:min(100%,1120px);margin:0 auto 12px;
+ padding:9px 13px;
+ display:flex;gap:16px;align-items:center;
+ background:linear-gradient(115deg,#18352bca,#10261fda);
+ border:1px solid #9db39a36;
+ border-radius:13px;
+ box-shadow:0 8px 16px #03130c32;
+}
+body.stack-classic .stack-progress-title{
+ display:block;flex:none;
+ font:850 10px/1.3 system-ui,sans-serif;letter-spacing:.18em;
+ color:#d9c49a;
+}
+body.stack-classic .stack-progress-steps{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:5px;min-width:0;flex:1;
+}
+body.stack-classic .stack-progress-step{
+ min-width:0;display:flex;align-items:center;gap:9px;
+ border:1px solid transparent;
+ border-radius:9px;padding:7px 10px;
+ color:#afc3b3;
+}
+body.stack-classic .stack-progress-step.is-current{
+ background:#38604b74;border-color:#e5c18a7a;
+ color:#fff2d3;
+ box-shadow:inset 0 0 0 1px #d5b67a22;
+}
+body.stack-classic .stack-progress-step.is-done{
+ color:#c5ddbe;background:#365d4432;
+}
+body.stack-classic .stack-progress-index{
+ display:grid;place-items:center;
+ width:30px;height:30px;flex:none;border-radius:8px;
+ border:1px solid #94ad974f;
+ color:#d7b47f;
+ font:900 12px/1 system-ui,sans-serif;
+}
+body.stack-classic .is-current .stack-progress-index{
+ color:#192c23;background:#eac58e;border-color:#eac58e;
+}
+body.stack-classic .is-done .stack-progress-index{
+ color:#d4f3ca;border-color:#72a883;
+}
+body.stack-classic .stack-progress-copy{min-width:0;display:flex;flex-direction:column;gap:2px}
+body.stack-classic .stack-progress-copy strong{
+ font:850 12px/1.2 system-ui,sans-serif;
+ white-space:nowrap;
+}
+body.stack-classic .stack-progress-copy small{
+ color:#adbeaf;font:600 10px/1.2 system-ui,sans-serif;
+ white-space:nowrap;text-overflow:ellipsis;overflow:hidden;
+}
+body.stack-classic .is-current .stack-progress-copy small{color:#e7dabc}
+/* A real-feeling framed card table, with one central play target. */
+body.stack-classic.pilehead-playing .table{
+ position:relative;
+ border:8px solid #272b22!important;
+ border-radius:31px!important;
+ background:
+  radial-gradient(ellipse 77% 57% at 47% 39%,#2c6a55 0%,#194b3d 65%,#0d3129 100%)!important;
+ box-shadow:0 0 0 2px #bb9964,0 7px 0 2px #1b1713,
+  0 18px 48px #0009,inset 0 0 0 2px #c9b27e58,
+  inset 0 20px 32px #07261d80!important;
+}
+body.stack-classic.pilehead-playing .table:before{
+ inset:-8px;
+ opacity:.32!important;
+ background:repeating-linear-gradient(34deg,#fff6d105 0 1px,transparent 1px 8px)!important;
+ pointer-events:none;
+}
+body.stack-classic.pilehead-playing .table:after{
+ border:1px solid #e4cd9b24;
+ border-radius:20px;
+ pointer-events:none;
+}
+body.stack-classic.pilehead-playing .table.is-active-turn{
+ border-color:#363124!important;
+}
+body.stack-classic.pilehead-playing .table .opponents{
+ gap:clamp(6px,1.2vw,16px);
+}
+body.stack-classic.pilehead-playing .table .opponent{
+ position:relative;min-width:0;
+ background:linear-gradient(180deg,#09291e9a,#0c2c23cc);
+ border:1px solid #b4c9a143;
+ border-radius:12px;
+ box-shadow:0 5px 13px #00120d45;
+ transition:border-color .18s,background .18s,box-shadow .18s;
+}
+body.stack-classic.pilehead-playing .table .opponent.current{
+ background:linear-gradient(180deg,#3c5f48ed,#174133e8);
+ border-color:#e7bc75;
+ box-shadow:0 0 0 1px #d9a96860,0 7px 18px #0005;
+}
+body.stack-classic.pilehead-playing .table .opponent.finished{
+ filter:saturate(.55);opacity:.6;
+}
+body.stack-classic.pilehead-playing .table .opponent strong{
+ width:100%;margin-bottom:5px;
+ background:none!important;border:0!important;
+ border-radius:0!important;box-shadow:none!important;
+ color:#f4ecd2!important;
+ font:850 12px/1.3 system-ui,sans-serif;
+ letter-spacing:.02em;
+}
+body.stack-classic.pilehead-playing .table .opponent.current strong{
+ color:#ffe1a7!important;
+}
+body.stack-classic.pilehead-playing .table .opponent small{
+ color:#bdd0be;font-size:10px;
+}
+body.stack-classic.pilehead-playing .table .table-center{
+ position:relative;
+ justify-content:center;
+}
+body.stack-classic.pilehead-playing .table .stack-label{
+ color:#f0d5a7;
+ font:900 10px/1.2 system-ui,sans-serif;
+ letter-spacing:.19em;
+}
+body.stack-classic.pilehead-playing .table .stack-count{
+ color:#d0dccc;
+ font-size:11px;
+}
+body.stack-classic.pilehead-playing .table .stack[data-play-target]{
+ position:relative;
+ background:linear-gradient(165deg,#fff8d20a,#071b131b);
+ border:1px dashed #ddc39488!important;
+ border-radius:16px!important;
+ box-shadow:inset 0 0 0 1px #f0dca01d;
+ transition:background .18s,border-color .18s,box-shadow .18s;
+}
+body.stack-classic.pilehead-playing .table .stack[data-play-target].is-armed{
+ border-color:#f6d899!important;
+ background:linear-gradient(165deg,#e8c37824,#0e30241b);
+ box-shadow:inset 0 0 0 2px #e6bf734b,0 0 20px #e4b45d20;
+}
+body.stack-classic.pilehead-playing .table .stack[data-play-target].drop-hover{
+ background:#efbd6544!important;
+ border:2px solid #ffe0a3!important;
+ box-shadow:inset 0 0 0 4px #f5ce7a52!important;
+}
+body.stack-classic.pilehead-playing .table .stack[data-play-target]:focus-visible{
+ outline:3px solid #ffe5b2;
+ outline-offset:5px;
+}
+body.stack-classic.pilehead-playing .table .zone.your-up .area-label,
+body.stack-classic.pilehead-playing .table .hand-area .area-label{
+ color:#ffedc8;
+ font:850 11px/1.4 system-ui,sans-serif;letter-spacing:.13em;
+}
+body.stack-classic.pilehead-playing .table .hand-area{
+ background:linear-gradient(180deg,transparent 0%,#08241d55 40%,#071a16b0 100%);
+ border-top:1px solid #dbb78658;
+ border-radius:0 0 17px 17px;
+}
+body.stack-classic.pilehead-playing .table .hand-area .area-label{
+ padding:0 6px;
+}
+body.stack-classic.pilehead-playing .table .card-row.hand .card{
+ -webkit-tap-highlight-color:transparent;
+}
+body.stack-classic.pilehead-playing .table .card-row.hand .card.selected{
+ box-shadow:0 0 0 3px #f5c678,0 10px 27px #0009!important;
+ filter:brightness(1.045);
+}
+@media(hover:hover) and (pointer:fine){
+ body.stack-classic.pilehead-playing .table .card.playable:not(.selected):hover{
+  filter:brightness(1.08);
+ }
+}
+body.stack-classic.pilehead-playing .table .hand-sort-button,
+body.stack-classic.pilehead-playing .table .hand-clear-button{
+ border-radius:8px!important;
+ background:#1a4536;border:1px solid #c4aa79a9;
+ color:#f9e4bd;
+ font-weight:800;
+}
+/* The command dock owns the selection preview. It never blocks a turn. */
+body.stack-classic.pilehead-playing .toolbar.table-actions{
+ display:flex;gap:8px;
+ width:min(100%,850px);
+ border:1px solid #a88e617b;
+ border-radius:16px;
+ background:linear-gradient(135deg,#203c30,#0c241c);
+ box-shadow:0 8px 0 #071510,0 16px 31px #0008;
+ padding:10px;
+ flex-wrap:wrap;
+ margin:13px auto 9px;
+}
+body.stack-classic.pilehead-playing .toolbar.table-actions .stack-classic-preview{
+ flex:1 1 100%;
+}
+body.stack-classic.pilehead-playing .stack-classic-preview{
+ display:flex;gap:12px;align-items:center;
+ min-width:0;min-height:49px;
+ background:#f2dfbd;
+ border:1px solid #efc790;border-radius:10px;
+ color:#1c3226;padding:9px 13px;
+ box-shadow:inset 0 0 0 1px #ffffff4a;
+}
+body.stack-classic.pilehead-playing .stack-classic-preview.is-invalid{
+ background:#f4d5c3;border-color:#d9866a;
+}
+body.stack-classic .stack-preview-flag{
+ flex:none;
+ font:850 10px/1.1 system-ui,sans-serif;
+ color:#6d4930;letter-spacing:.12em;
+}
+body.stack-classic .stack-classic-preview strong{
+ font:950 17px/1.2 system-ui,sans-serif;
+ letter-spacing:-.025em;
+}
+body.stack-classic .stack-preview-instruction{
+ font:600 12px/1.4 system-ui,sans-serif;color:#45544b;
+ margin-left:auto;
+}
+body.stack-classic.pilehead-playing .toolbar.table-actions .action{
+ min-height:53px;border-radius:10px;
+ border:1px solid #b3c4a77d;
+ font:850 14px/1.2 system-ui,sans-serif;
+ letter-spacing:.005em;
+ transition:filter .14s,transform .14s,box-shadow .14s;
+}
+body.stack-classic.pilehead-playing .toolbar.table-actions .primary{
+ background:linear-gradient(180deg,#f28b64,#d8593d);
+ color:#fff9e9;border-color:#ffa781;
+ box-shadow:inset 0 1px 0 #ffd0ad40,0 3px 0 #a7442f;
+}
+body.stack-classic.pilehead-playing .toolbar.table-actions .secondary{
+ background:#f0e2c6;color:#183028;
+ border-color:#e3cb9b;
+}
+body.stack-classic.pilehead-playing .toolbar.table-actions .slam{
+ background:linear-gradient(180deg,#ffc774,#de8d3d);
+ color:#322319;border-color:#ffdf9d;
+}
+body.stack-classic.pilehead-playing .toolbar.table-actions .snap{
+ background:linear-gradient(180deg,#b8e1c0,#67b491);
+ color:#1c3528;border-color:#c3e9cd;
+}
+body.stack-classic.pilehead-playing .toolbar.table-actions .action:hover:not(:disabled){
+ filter:brightness(1.085);
+}
+body.stack-classic.pilehead-playing .toolbar.table-actions .action:active:not(:disabled){
+ transform:translateY(2px);box-shadow:none;
+}
+body.stack-classic.pilehead-playing .toolbar.table-actions .table-action-prompt{
+ color:#fae9c6;
+}
+body.stack-classic.pilehead-playing .toolbar.table-actions .table-action-prompt small{
+ color:#bccfbe;
+}
+body.stack-classic.pilehead-playing .pilehead-selected-effect,
+body.stack-classic.pilehead-playing .pilehead-effect-note{
+ width:min(100%,850px);
+ border-radius:12px!important;
+ border:1px solid #d6b47b73;
+ border-left:4px solid #edb777;
+ background:linear-gradient(95deg,#24483b,#123129);
+ box-shadow:0 5px 17px #0005;
+ color:#f3e6cb;
+}
+body.stack-classic.pilehead-playing .pilehead-selected-effect strong,
+body.stack-classic.pilehead-playing .pilehead-effect-note .effect-label{
+ color:#ffe1ab;
+}
+body.stack-classic.pilehead-playing .stack-classic-hotkeys{
+ width:min(100%,850px);margin:9px auto 0;
+ display:flex;justify-content:center;gap:8px;align-items:center;
+ color:#b3c4b7;font:650 11px/1.4 system-ui,sans-serif;
+}
+body.stack-classic .stack-classic-hotkeys>span{
+ font-size:9px;letter-spacing:.12em;color:#cfb68e;font-weight:900;margin-right:7px;
+}
+body.stack-classic .stack-classic-hotkeys kbd{
+ min-width:23px;padding:2px 5px;border:1px solid #8b9d8780;
+ background:#25453a;border-radius:5px;
+ text-align:center;font:850 11px/1.5 system-ui,sans-serif;color:#ffe9bb;
+}
+body.stack-classic.pilehead-playing .meta{
+ width:min(100%,850px);
+ background:#0f291f9a;
+ border:1px solid #758c6f39;
+ border-radius:9px;
+ padding:10px 14px;
+ font-variant-numeric:tabular-nums;
+}
+body.stack-classic.pilehead-playing .meta strong{
+ color:#efcb93;font-weight:850;
+}
+body.stack-classic.pilehead-playing .playtest-tools,
+body.stack-classic.pilehead-playing .move-history{
+ max-width:850px;
+ border:1px solid #799a7953;
+ border-radius:10px;
+ background:#102a22;
+}
+body.stack-classic.pilehead-playing .playtest-tools{
+ margin:8px auto;width:min(100%,850px);padding:0 12px 9px;
+}
+body.stack-classic.pilehead-playing .playtest-tools summary{
+ cursor:pointer;font-weight:750;color:#d5c39e;padding:11px 0;
+}
+body.stack-classic.pilehead-playing .playtest-tools .action{
+ min-height:42px;margin-right:8px;padding:8px 12px;font-size:12px;
+}
+body.stack-classic.pilehead-playing .stack-undo-note{
+ display:inline-block;max-width:280px;color:#b8c9b5;font:600 11px/1.4 system-ui,sans-serif;
+ padding:6px 0;vertical-align:middle;
+}
+body.stack-classic.pilehead-playing .message{
+ color:#ffe0ab;
+}
+/* Opening / reset: an editorial card-dealing surface. */
+body.stack-classic:not(.pilehead-playing) .setup.panel{
+ border:2px solid #c9ab79;
+ border-radius:19px;
+ background:
+  linear-gradient(135deg,#fff4df 0%,#f2dfbd 100%);
+ box-shadow:9px 10px 0 #183126,0 25px 68px #0007;
+}
+body.stack-classic:not(.pilehead-playing) .setup .action.primary{
+ background:#d96446;color:#fff7e9;border-color:#ad422f;
+}
+body.stack-classic:not(.pilehead-playing) .setup .action.secondary{
+ background:#193c30;color:#fff1d2;border-color:#567e5c;
+}
+body.stack-classic .stack-classic-dialog .panel{
+ width:min(100%,450px);
+ padding:clamp(22px,4vw,34px);
+ border:2px solid #e6c58e;
+ border-radius:18px;
+ background:linear-gradient(145deg,#fdf0d6,#efdbb6);
+ color:#20342b;
+ box-shadow:9px 10px 0 #c76b49,0 24px 60px #000a;
+}
+body.stack-classic .stack-classic-dialog .eyebrow{color:#a1573e}
+body.stack-classic .stack-classic-dialog h2{margin:10px 0;font:900 32px/1.08 system-ui,sans-serif;letter-spacing:-.04em}
+body.stack-classic .stack-classic-dialog p{color:#4c5849;line-height:1.6}
+body.stack-classic .stack-classic-dialog .toolbar{margin-top:19px}
+body.stack-classic .stack-classic-dialog .action{flex:1;min-height:51px}
+body.stack-classic .stack-classic-dialog .primary{background:#d76043;color:#fff5df;border-color:#bb4d33}
+body.stack-classic .stack-classic-dialog .secondary{background:#193d31;color:#fff1d8;border-color:#345b48}
+@media(max-width:700px){
+ body.stack-classic{background-attachment:scroll}
+ body.stack-classic .layout{padding-inline:6px}
+ body.stack-classic .layout>.top{
+  min-height:51px;margin-bottom:3px;padding:2px 6px 8px;
+ }
+ body.stack-classic .layout>.top .brand{font-size:27px!important}
+ body.stack-classic .layout>.top .eyebrow{font-size:8px}
+ body.stack-classic.pilehead-playing .pilehead-table-hud{
+  min-height:58px;margin:4px auto 7px;
+  padding:9px 10px!important;border-radius:11px!important;
+ }
+ body.stack-classic.pilehead-playing .pilehead-table-hud .hud-status{
+  font-size:14px!important;
+ }
+ body.stack-classic.pilehead-playing .pilehead-table-hud .hud-guidance{
+  font-size:10px;line-height:1.35;
+ }
+ body.stack-classic .stack-classic-progress{
+  padding:5px;gap:0;margin-bottom:7px;
+  background:#102d23b5;
+  border-radius:10px;
+ }
+ body.stack-classic .stack-progress-title{display:none}
+ body.stack-classic .stack-progress-steps{gap:3px}
+ body.stack-classic .stack-progress-step{
+  padding:5px 4px;gap:5px;border-radius:7px;
+ }
+ body.stack-classic .stack-progress-index{
+  width:22px;height:23px;min-width:22px;
+  border-radius:5px;font-size:9px;
+ }
+ body.stack-classic .stack-progress-copy strong{font-size:10px}
+ body.stack-classic .stack-progress-copy small{font-size:9px}
+ body.stack-classic.pilehead-playing .table{
+  border:5px solid #2a2921!important;
+  border-radius:20px!important;
+  box-shadow:0 0 0 1px #b99666,0 5px 0 1px #181c17,
+   0 9px 28px #0008,inset 0 0 0 1px #d6bb8155!important;
+  padding:8px 5px 6px!important;
+  gap:4px!important;
+ }
+ body.stack-classic.pilehead-playing .table:before{inset:-5px}
+ body.stack-classic.pilehead-playing .table .opponents{gap:5px}
+ body.stack-classic.pilehead-playing .table .opponent{
+  padding:5px 3px!important;border-radius:8px;
+ }
+ body.stack-classic.pilehead-playing .table .opponent strong{
+  font-size:10px!important;
+ }
+ body.stack-classic.pilehead-playing .table .opponent small{font-size:9px}
+ body.stack-classic.pilehead-playing .table .stack-label{font-size:9px;letter-spacing:.13em}
+ body.stack-classic.pilehead-playing .table .table-center{
+  min-height:149px!important;
+ }
+ body.stack-classic.pilehead-playing .table .stack[data-play-target]{
+  border-radius:11px!important;min-height:145px!important;
+ }
+ body.stack-classic.pilehead-playing .table .hand-area{
+  border-radius:0 0 10px 10px;
+ }
+ body.stack-classic.pilehead-playing .table .card-row.hand{
+  min-height:118px!important;padding-top:16px!important;
+ }
+ body.stack-classic.pilehead-playing .toolbar.table-actions{
+  position:fixed!important;
+  left:50%;transform:translateX(-50%);
+  bottom:max(5px,env(safe-area-inset-bottom));
+  z-index:75!important;
+  width:min(calc(100% - 12px),560px)!important;
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  align-items:stretch;
+  gap:6px!important;padding:8px!important;margin:0!important;
+  border:1px solid #ccae7b8a!important;
+  border-radius:14px!important;
+  background:linear-gradient(155deg,#16392ded,#0b231ce9)!important;
+  backdrop-filter:blur(15px);
+  box-shadow:0 -7px 28px #000a!important;
+ }
+ body.stack-classic.pilehead-playing .toolbar.table-actions .stack-classic-preview{
+  grid-column:1/-1;order:-1;
+  min-height:39px;
+  padding:6px 9px;gap:7px;border-radius:8px;
+ }
+ body.stack-classic .stack-preview-flag{font-size:8px;letter-spacing:.06em}
+ body.stack-classic .stack-classic-preview strong{font-size:13px}
+ body.stack-classic .stack-preview-instruction{
+  display:none;
+ }
+ body.stack-classic.pilehead-playing .toolbar.table-actions .action{
+  min-height:49px!important;
+  padding:8px 9px!important;
+  font-size:13px!important;
+ }
+ body.stack-classic.pilehead-playing .toolbar.table-actions .primary{grid-column:1/-1;order:0}
+ body.stack-classic.pilehead-playing .toolbar.table-actions .snap,
+ body.stack-classic.pilehead-playing .toolbar.table-actions .slam{order:1}
+ body.stack-classic.pilehead-playing .toolbar.table-actions .secondary{order:2}
+ body.stack-classic.pilehead-playing .toolbar.table-actions .action:only-child,
+ body.stack-classic.pilehead-playing .toolbar.table-actions .table-action-prompt{grid-column:1/-1}
+ body.stack-classic.pilehead-playing .stack-classic-hotkeys{display:none}
+ body.stack-classic.pilehead-playing .pilehead-selected-effect,
+ body.stack-classic.pilehead-playing .pilehead-effect-note{
+  min-height:0;padding:8px 10px;margin:5px auto 6px;
+  font-size:11px;
+ }
+ body.stack-classic.pilehead-playing .meta{font-size:10px;gap:8px;padding:8px 10px}
+ body.stack-classic.pilehead-playing .meta span{white-space:nowrap}
+ body.stack-classic.pilehead-playing .playtest-tools{
+  margin-bottom:8px;
+ }
+ body.stack-classic .stack-classic-dialog .toolbar{display:grid;grid-template-columns:1fr}
+}
+@media(max-width:380px){
+ body.stack-classic .stack-progress-copy strong{font-size:9px}
+ body.stack-classic .stack-progress-copy small{font-size:8px}
+ body.stack-classic .stack-progress-step{gap:4px}
+ body.stack-classic.pilehead-playing .table .table-center{
+  min-height:142px!important;
+ }
+ body.stack-classic.pilehead-playing .toolbar.table-actions .action{
+  min-height:48px!important;font-size:12px!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ body.stack-classic *,body.stack-classic *:before,body.stack-classic *:after{
+  scroll-behavior:auto!important;
+  animation-duration:.001ms!important;animation-iteration-count:1!important;
+  transition-duration:.001ms!important;
+ }
+}
+@media print{
+ body.stack-classic .stack-classic-progress,
+ body.stack-classic .stack-classic-preview,
+ body.stack-classic .stack-classic-hotkeys{display:none!important}
+}
+/* No card may sit underneath a desktop action toolbar when scrolled into
+   view. On wider viewports the table and actions live in document flow. */
+@media(min-width:701px){
+ body.stack-classic.pilehead-playing .toolbar.table-actions{
+  position:static!important;left:auto!important;bottom:auto!important;
+  transform:none!important;z-index:1;
+ }
+ body.stack-classic.pilehead-playing .table .card-row.hand{
+  scroll-margin-bottom:110px;
+ }
+}
+@media(min-width:900px) and (max-height:1000px){
+ body.stack-classic.pilehead-playing .table{
+  min-height:0!important;
+  grid-template-rows:minmax(82px,auto) minmax(164px,1fr) minmax(89px,auto) minmax(150px,auto);
+  padding-top:10px!important;
+  padding-bottom:8px!important;
+  gap:4px!important;
+ }
+ body.stack-classic.pilehead-playing .table .table-center{min-height:165px!important}
+ body.stack-classic.pilehead-playing .table .opponents{min-height:79px!important}
+ body.stack-classic.pilehead-playing .table .zone.your-up{min-height:92px!important}
+ body.stack-classic.pilehead-playing .table .zone .card-row{min-height:83px!important}
+ body.stack-classic.pilehead-playing .table .card-row.hand{
+  min-height:150px!important;
+  padding-top:10px!important;
+ }
+ body.stack-classic.pilehead-playing .table .card-row.hand .card{
+  --card-w:98px;--card-h:136px;
+ }
+}
+@media(max-width:700px){
+ html:has(body.stack-classic.pilehead-playing){scroll-padding-bottom:205px}
+ body.stack-classic.pilehead-playing .table .hand-area .card-row.hand .card{
+  scroll-margin-bottom:205px;
+ }
+}
+
+/* A complete hand should fit above the floating controls on a normal phone.
+   Preserve full-sized cards on tablets and landscape devices. */
+@media(max-width:700px) and (min-height:650px) and (orientation:portrait){
+ body.stack-classic.pilehead-playing .layout>.top{
+  min-height:45px!important;padding-bottom:5px!important;
+ }
+ body.stack-classic.pilehead-playing .pilehead-table-hud{
+  min-height:51px!important;padding-block:7px!important;
+  margin-bottom:5px!important;
+ }
+ body.stack-classic .stack-classic-progress{
+  margin-bottom:5px!important;padding:3px!important;
+ }
+ body.stack-classic .stack-progress-step{padding-block:4px}
+ body.stack-classic.pilehead-playing .table{
+  padding-top:5px!important;
+  grid-template-rows:auto auto auto auto!important;
+  gap:2px!important;
+ }
+ body.stack-classic.pilehead-playing .table .opponents{
+  min-height:0!important;
+  padding:0!important;gap:4px!important;
+ }
+ body.stack-classic.pilehead-playing .table .opponent{
+  padding:3px 3px 2px!important;
+ }
+ body.stack-classic.pilehead-playing .table .held-cards{
+  height:18px!important;min-height:18px!important;margin:0 auto!important;
+ }
+ body.stack-classic.pilehead-playing .table .held-back{
+  height:18px!important;width:14px!important;
+ }
+ body.stack-classic.pilehead-playing .table .mini-cards{
+  height:27px!important;margin:2px 0 0!important;
+ }
+ body.stack-classic.pilehead-playing .table .table-center{
+  min-height:142px!important;
+  padding:0!important;
+ }
+ body.stack-classic.pilehead-playing .table .stack[data-play-target]{
+  min-height:136px!important;
+ }
+ body.stack-classic.pilehead-playing .table .stack .pile-card{
+  height:104px!important;margin-top:3px!important;
+ }
+ body.stack-classic.pilehead-playing .table .zone.your-up{
+  min-height:75px!important;
+ }
+ body.stack-classic.pilehead-playing .table .zone .card-row{
+  min-height:75px!important;
+  padding:1px 0!important;
+ }
+ body.stack-classic.pilehead-playing .table .hand-area .card-row.hand{
+  min-height:108px!important;
+  padding-top:9px!important;
+  padding-bottom:2px!important;
+ }
+ body.stack-classic.pilehead-playing .table .hand-area .card-row.hand .card{
+  --card-w:79px;--card-h:110px;
+ }
+}
+
+/* The old .top opacity produced a stacking context beneath the later felt
+   table. Raise the *header* rather than only its menu, or menu taps hit cards. */
+body.stack-classic.pilehead-playing .layout>.top{
+ position:relative!important;
+ z-index:250!important;
+ opacity:1!important;
+}

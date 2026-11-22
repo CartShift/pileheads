@@ -24,9 +24,10 @@ function renderOnline({phase='play',turn=true,selection=[10],legal=null,take=fal
 function renderLocal({phase='play',turn=true,selection=[10],legal=[],pick=false,slams=[],snap=[],stage='hand',mode='bots'}={}){
  const game={phase,slamOpen:false,pile:[{rank:7},{rank:8},{rank:9}],turn:turn?0:1};
  const props={turn,legal,pick,slams,snap,stage};
- return new Function('g','selection','getPlayer','mode','playerName',
+ return new Function('g','selection','getPlayer','mode','playerName','isTurn','covered','viewSeat','currentStage','E',
    localBlock+'return tableActions('+JSON.stringify(props)+');')(
-    game,selection,()=>({hand:[{id:10,action:null}]}),mode,i=>'Player '+i
+    game,selection,()=>({hand:[{id:10,action:null,kind:'number',rank:7}],up:[]}),mode,i=>'Player '+i,
+    ()=>turn,false,()=>0,()=>stage,{options:()=>legal}
    );
 }
 let checks=0;
