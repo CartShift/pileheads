@@ -97,9 +97,9 @@ function asLocalRoom(game: Game): RoomGame {
 }
 
 function PlayingCard({ card, hidden = false, selected = false, small = false, onClick, onDrop, disabled = false, theme = "characters",
-  description }: {
+  description, offsetX = 0 }: {
   card?: Card; hidden?: boolean; selected?: boolean; small?: boolean; theme?: DeckTheme;
-  onClick?: () => void; onDrop?: () => void; disabled?: boolean; description?: string;
+  onClick?: () => void; onDrop?: () => void; disabled?: boolean; description?: string; offsetX?: number;
 }) {
   const index = !hidden && card
     ? card.kind === "number" ? (card.rank || 1) - 1 : 10 + ACTIONS.indexOf(card.action || "")
@@ -138,7 +138,8 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
       animate={{ opacity: 1, y: selected ? -13 : 0, scale: 1 }}
       exit={{ opacity: 0, y: -26, scale: .85 }}
       transition={{ type: "spring", stiffness: 460, damping: 36 }}
-      className={`playing-card theme-${theme} ${hidden ? "is-back" : ""} ${selected ? "is-selected" : ""} ${small ? "is-small" : ""} ${onClick && !disabled ? "is-interactive" : ""}`}>
+      className={`playing-card theme-${theme} ${hidden ? "is-back" : ""} ${selected ? "is-selected" : ""} ${small ? "is-small" : ""} ${onClick && !disabled ? "is-interactive" : ""}`}
+      style={offsetX ? {left: offsetX} : undefined}>
       <div aria-hidden="true" className="card-art" style={faceStyle} />
       {onClick && !disabled ? (
         <button type="button" className="card-hit"
@@ -578,6 +579,11 @@ export default function GameTable() {
       (availableHandWidth - cardWidth) / (handColumns - 1));
   const cardHeight = cardWidth * 355 / 252;
   const handRowStep = Math.max(34, Math.round(cardHeight * (handRows > 3 ? .49 : .64)));
+  // Center a partly occupied final row, instead of leaving its cards
+  // stranded on the left side of the table.
+  const tailCount = handCount - Math.max(0, handRows - 1) * handColumns;
+  const lastRowShift = handRows > 1 && tailCount < handColumns
+    ? (handColumns - tailCount) * handStep / 2 : 0;
   const handLayout: CSSProperties = {
     gridTemplateColumns: `repeat(${handColumns}, ${handStep}px)`,
     gridAutoRows: `${handRowStep}px`,
@@ -1042,7 +1048,7 @@ export default function GameTable() {
               </div>;
             })}
           </div>
-          <div className="zone-heading hand-heading"><strong>YOUR HAND</strong>
+          <div className="zone-heading hand-heading"><strong>YOUR HAND · {current.handCount}</strong>
             <span className="hand-utilities">
               {selection.length > 0 && <button type="button" className="hand-tool"
                 onClick={() => {setSelection([]);setNeedsTarget(false);}}>
@@ -1061,8 +1067,10 @@ export default function GameTable() {
               style={handCount ? handLayout : undefined} data-hand-rows={handRows}
               data-hand-columns={handColumns}>
               <AnimatePresence initial={false}>
-              {handCards.map(card =>
-                <PlayingCard key={card.id} card={card} theme={deckTheme} selected={selection.includes(card.id) || swapHand === card.id}
+              {handCards.map((card, index) =>
+                <PlayingCard key={card.id} card={card}
+                  offsetX={lastRowShift && Math.floor(index / handColumns) === handRows - 1 ? lastRowShift : 0}
+                  theme={deckTheme} selected={selection.includes(card.id) || swapHand === card.id}
                   onClick={g.phase === "setup" ? (!ready ? () => swap(card, "hand") : undefined) :
                     (active || g.followup.length > 0) && stage === "hand" ? () => chooseCard(card) : undefined}
                   onDrop={active && stage === "hand" ? () => playCardDirect(card) : undefined} />)}
