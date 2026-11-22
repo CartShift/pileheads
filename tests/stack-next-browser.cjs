@@ -653,9 +653,9 @@ async function sharedMoveAnimationScenarios(browser) {
  const normal=E.create({players:2,seed:20261188});
  E.start(normal);
  const hand=normal.people[0].hand;
- const zones=[normal.stock,normal.ashes,...normal.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const quietZones=[normal.stock,normal.ashes,...normal.people.flatMap(p=>[p.hand,p.up,p.down])];
  if(!hand.some(card=>card.kind==="number")){
-  const found=zones.find(arr=>arr.some(card=>card.kind==="number"));
+  const found=quietZones.find(arr=>arr.some(card=>card.kind==="number"));
   const at=found.findIndex(card=>card.kind==="number");
   [found[at],hand[0]]=[hand[0],found[at]];
  }
