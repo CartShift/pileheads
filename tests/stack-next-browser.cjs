@@ -284,6 +284,37 @@ async function onlineScenarios(browser, server) {
     await guest.getByRole("textbox", { name: "Your name" }).fill("Guest");
     await guest.getByRole("button", { name: "Join" }).click();
     await guest.getByRole("button", { name: "I'm ready" }).waitFor();
+    // Settings are server-owned, host-only during setup, and off by default.
+    await host.getByRole("button", { name: "Settings" }).click();
+    const hostRule = host.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox");
+    assert.equal(await hostRule.isChecked(), false, "online Final Duel starts OFF");
+    await hostRule.check();
+    await host.getByRole("dialog", { name: "Game settings" })
+      .getByRole("button", { name: "Back to table" }).click();
+    await host.waitForFunction(() => {
+      const element = document.querySelector(".game-header");
+      return !!element && !document.querySelector('[role="dialog"]');
+    });
+    await guest.getByRole("button", { name: "Settings" }).click();
+    const guestRule = guest.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox");
+    await guest.waitForFunction(() => {
+      const box = document.querySelector('.game-modal [type="checkbox"]');
+      return !!box && box.checked && box.disabled;
+    }, null, { timeout: 14000 });
+    await guest.getByRole("dialog", { name: "Game settings" })
+      .getByRole("button", { name: "Back to table" }).click();
+    await host.getByRole("button", { name: "Settings" }).click();
+    await host.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox").uncheck();
+    await host.getByRole("dialog", { name: "Game settings" })
+      .getByRole("button", { name: "Back to table" }).click();
+    await guest.getByRole("button", { name: "Settings" }).click();
+    await guest.waitForFunction(() => {
+      const box = document.querySelector('.game-modal [type="checkbox"]');
+      return !!box && !box.checked && box.disabled;
+    }, null, { timeout: 14000 });
+    await guest.getByRole("dialog", { name: "Game settings" })
+      .getByRole("button", { name: "Back to table" }).click();
+
     // The full online header is wider than the offline one; prevent
     // overflow-induced scroll/visual viewport hit-testing bugs at 360px.
     for (const [browser, label] of [[host, "host"], [guest, "guest"]]) {
@@ -385,6 +416,12 @@ async function onlineScenarios(browser, server) {
     await host.getByRole("button", { name: "I'm ready" }).waitFor({ timeout: 15000 });
     assert.equal(new URL(host.url()).searchParams.get("room"), code,
       "rematch must preserve private room identity");
+    await host.getByRole("button", { name: "Settings" }).click();
+    assert.equal(await host.getByRole("dialog", { name: "Game settings" })
+      .getByRole("checkbox").isChecked(), false,
+      "room rematch must preserve the authoritative Classic rule");
+    await host.getByRole("dialog", { name: "Game settings" })
+      .getByRole("button", { name: "Back to table" }).click();
     assert.deepEqual(errors, [], "no multiplayer client exceptions");
     console.log("PASS Next online: dual mobile seats, CORS, private hands, SNAP race, reconnect");
   } finally { await Promise.all([hostCtx.close(), guestCtx.close()]); }
