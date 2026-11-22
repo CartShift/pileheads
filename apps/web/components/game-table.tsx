@@ -759,7 +759,7 @@ export default function GameTable() {
     if (wsRef.current) wsRef.current.close();
     setMode("home"); setLocal(null); setRoom(null); roomRef.current = null;
     tokenRef.current = null; setBusy(false); inFlight.current = false;
-    setConnected(false); setConfirmRestart(false); setShowRules(false);
+    setConnected(false); setConfirmRestart(false); setShowRules(false); setPileOpen(false);
     setShowSettings(false); setPendingRule(null); setCopiedInvite(false);
     setSelection([]); setNotice("");
     history.replaceState(null, "", "/play");
@@ -768,13 +768,13 @@ export default function GameTable() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        if (showRules || showSettings || confirmRestart || needsTarget || selection.length) {
+        if (showRules || showSettings || confirmRestart || pileOpen || needsTarget || selection.length) {
           event.preventDefault();
-          setShowRules(false); setShowSettings(false); setConfirmRestart(false); setNeedsTarget(false); setSelection([]);
+          setShowRules(false); setShowSettings(false); setConfirmRestart(false); setPileOpen(false); setNeedsTarget(false); setSelection([]);
         }
         return;
       }
-      if (showRules || showSettings || confirmRestart || event.altKey || event.metaKey || event.ctrlKey) return;
+      if (showRules || showSettings || confirmRestart || pileOpen || event.altKey || event.metaKey || event.ctrlKey) return;
       const target = event.target;
       if (target instanceof HTMLElement &&
           target.closest("input,textarea,select,[contenteditable=true]")) return;
@@ -788,10 +788,10 @@ export default function GameTable() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showRules, showSettings, confirmRestart, needsTarget, selection.length]);
+  }, [showRules, showSettings, confirmRestart, pileOpen, needsTarget, selection.length]);
 
   useEffect(() => {
-    if (!showRules && !showSettings && !confirmRestart) return;
+    if (!showRules && !showSettings && !confirmRestart && !pileOpen) return;
     const previous = document.activeElement as HTMLElement | null;
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
     const buttons = [...(dialog?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") || [])];
@@ -807,7 +807,7 @@ export default function GameTable() {
     };
     dialog?.addEventListener("keydown", trap);
     return () => { dialog?.removeEventListener("keydown", trap); previous?.focus?.(); };
-  }, [showRules, showSettings, confirmRestart]);
+  }, [showRules, showSettings, confirmRestart, pileOpen]);
 
   async function copyInvite() {
     if (!room) return;
