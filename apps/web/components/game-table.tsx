@@ -453,6 +453,22 @@ export default function GameTable() {
     setSelection([]);
   }
 
+  function playCardDirect(card: Card) {
+    const ids = selection.includes(card.id) ? selection : [card.id];
+    const choice = legal.find(m => m.type === "play" && m.source !== "down" &&
+      identicalIds(m.ids || [], ids));
+    if (!choice) {
+      setNotice("This card is not legal now. Choose another card or take the pile.");
+      return;
+    }
+    if (card.kind === "action" && card.action === "dump" && (g?.players.filter(p =>
+      !p.out && p.seat !== me).length || 0) > 1) {
+      setSelection(ids); setNeedsTarget(true);
+      return;
+    }
+    playMove(choice);
+  }
+
   function playSelected(target?: number) {
     const chosen = legal.find(m => m.type === "play" && m.source !== "down" &&
       identicalIds(m.ids || [], selection));
@@ -511,6 +527,50 @@ export default function GameTable() {
     setSelection([]); setNotice("");
     history.replaceState(null, "", "/play");
   }
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        if (showRules || confirmRestart || needsTarget || selection.length) {
+          event.preventDefault();
+          setShowRules(false); setConfirmRestart(false); setNeedsTarget(false); setSelection([]);
+        }
+        return;
+      }
+      if (showRules || confirmRestart || event.altKey || event.metaKey || event.ctrlKey) return;
+      const target = event.target;
+      if (target instanceof HTMLElement &&
+          target.closest("input,textarea,select,[contenteditable=true]")) return;
+      const keys: Record<string, string> = {
+        p: "play", t: "take", u: "undo", s: "snap", b: "slam"
+      };
+      const action = keys[event.key.toLowerCase()];
+      const button = action ? document.querySelector<HTMLButtonElement>(
+        '[data-hotkey="' + action + '"]') : null;
+      if (button && !button.disabled) { event.preventDefault(); button.click(); }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [showRules, confirmRestart, needsTarget, selection.length]);
+
+  useEffect(() => {
+    if (!showRules && !confirmRestart) return;
+    const previous = document.activeElement as HTMLElement | null;
+    const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
+    const buttons = [...(dialog?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") || [])];
+    buttons[0]?.focus();
+    const trap = (event: KeyboardEvent) => {
+      if (event.key !== "Tab" || !buttons.length) return;
+      const first = buttons[0], last = buttons[buttons.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus();
+      }
+    };
+    dialog?.addEventListener("keydown", trap);
+    return () => { dialog?.removeEventListener("keydown", trap); previous?.focus?.(); };
+  }, [showRules, confirmRestart]);
 
   async function createOnlineRoom() {
     if (onlineHumans + onlineBots < 2 || onlineHumans + onlineBots > 5) {
@@ -629,7 +689,16 @@ export default function GameTable() {
           </div>
           <div className="pile-zone is-main">
             <span className="pile-title">PLAY PILE</span>
-            <div className="pile-slot played">
+            <div className={"pile-slot played " + (selection.length ? "is-drop-ready" : "")}
+              data-drop-target="pile" role="button" tabIndex={0}
+              aria-label="Play selected cards onto the pile"
+              aria-disabled={!canPlay || busy}
+              onClick={() => { if (selection.length && !busy) playSelected(); }}
+              onKeyDown={e => {
+                if ((e.key === "Enter" || e.key === " ") && selection.length && !busy) {
+                  e.preventDefault(); playSelected();
+                }
+              }}>
               <AnimatePresence initial={false}>
                 {g.pile.slice(-4).map((card, i) => <div key={card.id}
                   className="pile-layer" style={{ transform: `translate(${(i - 1.5) * 6}px, ${(i - 1.5) * -2}px) rotate(${(i - 1.5) * 3}deg)` }}>
@@ -665,7 +734,8 @@ export default function GameTable() {
                 </div>}
                 {upCard && <div className="visible-up">
                   <PlayingCard card={upCard} theme={deckTheme} selected={selection.includes(upCard.id)}
-                    onClick={canUp ? () => g.phase === "setup" ? swap(upCard, "up") : chooseCard(upCard) : undefined} />
+                    onClick={canUp ? () => g.phase === "setup" ? swap(upCard, "up") : chooseCard(upCard) : undefined}
+                    onDrop={canUp && g.phase === "play" ? () => playCardDirect(upCard) : undefined} />
                 </div>}
               </div>;
             })}
@@ -678,7 +748,8 @@ export default function GameTable() {
               {(current.hand || []).map(card =>
                 <PlayingCard key={card.id} card={card} theme={deckTheme} selected={selection.includes(card.id) || swapHand === card.id}
                   onClick={g.phase === "setup" ? (!ready ? () => swap(card, "hand") : undefined) :
-                    (active || g.followup.length > 0) && stage === "hand" ? () => chooseCard(card) : undefined} />)}
+                    (active || g.followup.length > 0) && stage === "hand" ? () => chooseCard(card) : undefined}
+                  onDrop={active && stage === "hand" ? () => playCardDirect(card) : undefined} />)}
             </AnimatePresence>
             {!current.handCount && <span className="hand-placeholder">No cards in hand</span>}
           </div>
@@ -725,14 +796,14 @@ export default function GameTable() {
               <><strong>{active ? "Your turn" : `Waiting for ${nameForSeat(g.turn)}`}</strong>
                 <span>{active ? "Select one or more matching cards." : "Watch for a SNAP or SLAM opportunity."}</span></>}</div>
             <div className="button-group">
-              {mode === "local" && undoAvailable && <button className="secondary-button" onClick={undo}>Undo</button>}
-              {!!g.followup.length && <button className="snap-button" disabled={busy}
+              {mode === "local" && undoAvailable && <button className="secondary-button" data-hotkey="undo" onClick={undo}>Undo</button>}
+              {!!g.followup.length && <button className="snap-button" data-hotkey="snap" disabled={busy}
                 onClick={() => playMove(g.followup[0])}>SNAP</button>}
-              {!!g.slam.length && <button className="slam-button" disabled={busy}
+              {!!g.slam.length && <button className="slam-button" data-hotkey="slam" disabled={busy}
                 onClick={() => playMove(g.slam[0])}>SLAM</button>}
-              <button className="secondary-button" disabled={busy || !canTake}
+              <button className="secondary-button" data-hotkey="take" disabled={busy || !canTake}
                 onClick={() => playMove({ type: "take" })}>Take pile</button>
-              <button className="primary-button" disabled={busy || !active || !canPlay}
+              <button className="primary-button" data-hotkey="play" disabled={busy || !active || !canPlay}
                 onClick={() => playSelected()}>Play cards <span aria-hidden>→</span></button>
             </div>
           </div>
