@@ -123,10 +123,11 @@ export default function MoveTheater({gameKey,moveNo,phase,events,me,theme,nameFo
    const ctx=latest.current;
    // A failed blind play emits only a pickup event. Its public face is
    // supplied separately by the authoritative blindReveal, never guessed.
-   const event=queued.event.type==="blind-fail" && queued.reveal?.move===queued.event.move ?
+   const reveal=queued.reveal;
+   const event=queued.event.type==="blind-fail" && reveal!==null && reveal.move===queued.event.move ?
      {...queued.event,source:"down" as const,
-       rank:queued.reveal.card.kind==="number"?queued.reveal.card.rank:undefined,
-       action:queued.reveal.card.kind==="action"?queued.reveal.card.action:undefined}:
+       rank:reveal.card.kind==="number"?reveal.card.rank:undefined,
+       action:reveal.card.kind==="action"?reveal.card.action:undefined}:
      queued.event;
    const key=gameKey+":"+event.move;
    const next=buildScene(event,key,ctx.me,ctx.nameForSeat);
@@ -154,7 +155,7 @@ export default function MoveTheater({gameKey,moveNo,phase,events,me,theme,nameFo
    if(!fresh.length && events.length)fresh.push(events[events.length-1]);
    cursor.current.move=moveNo;
    queue.current.push(...fresh.slice(-6).map(event=>({event,
-     reveal:blindReveal?.move===event.move?blindReveal:null})));
+     reveal:blindReveal && blindReveal.move===event.move?blindReveal:null})));
    if(queue.current.length>8)queue.current.splice(0,queue.current.length-8);
    pump.current();
  },[gameKey,moveNo,phase,events,blindReveal]);
