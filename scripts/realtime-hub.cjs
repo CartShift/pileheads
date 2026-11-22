@@ -50,11 +50,14 @@ function attachRealtime(server,api){
   wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws,req));
  });
  wss.on('connection',ws=>{
-  let peer=null,pending=false,alive=true;
+  let peer=null,pending=false;
+  // Health belongs to the socket. The pong listener must reset the exact
+  // flag the keepalive scheduler checks, otherwise every socket dies in 50s.
+  ws.isAlive=true;
   const timeout=setTimeout(()=>{if(!peer)ws.close(1008,'Authentication required')},6000);
   timeout.unref?.();
   allPeers.add(ws);
-  ws.on('pong',()=>{alive=true});
+  ws.on('pong',()=>{ws.isAlive=true});
   ws.on('message',async bytes=>{
    if(pending)return;
    let msg;
