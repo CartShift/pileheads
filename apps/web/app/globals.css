@@ -318,3 +318,39 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
   color:#ccdfcb;font-size:11px;font-weight:750}
 @media(max-width:720px){.results-overlay{padding:17px;width:calc(100% - 18px)}
   .results-standings{margin:10px 0}.results-standings li{padding:7px 9px}}
+
+/* Visual-QA fixes: draw backs must never reveal the full 4×4 face sprite,
+   and the action dock must NEVER overlap the player's physical cards. */
+.playing-card.theme-original.is-back .card-art,
+.drag-ghost.theme-original.is-back .card-art{
+  background-image:url("/pilehead/assets/stack-back.webp");
+  background-size:cover;
+  background-position:center;
+}
+.control-panel{position:relative;bottom:auto;margin:12px auto 0}
+@media(min-width:721px){
+  .tabletop{min-height:600px}
+  .opponents-row{min-height:137px;padding-top:16px;padding-bottom:3px}
+  .opponent-seat{max-width:195px}
+  .table-center{min-height:188px;padding:9px 16px 6px}
+  .pile-slot{height:133px;width:110px}
+  .played{width:144px}
+  .pile-slot .playing-card{width:85px}
+  .slot-empty,.burn-mark{width:85px;height:115px}
+  .burn-mark{font-size:52px}
+  .player-zones{padding-bottom:13px}
+  .faceup-row,.player-hand{min-height:124px}
+  .faceup-pair{width:90px;height:133px}
+  .player-zones .playing-card{width:85px}
+  .zone-heading{padding:5px 2px;margin-bottom:8px}
+  .hand-heading{margin-top:5px}
+}
+@media(max-width:390px){
+  .game-header{align-items:center;padding-top:0}
+  .game-header .logo{font-size:24px;white-space:nowrap}
+  .game-head-actions{flex-wrap:nowrap}
+  .game-head-actions .exit-button{white-space:nowrap;padding:7px 7px;font-size:10px}
+  .theme-control select{max-width:80px;font-size:10px;padding:7px 4px}
+  .game-head-actions .connection-chip{font-size:9px;padding:6px}
+  .game-head-actions .room-code{font-size:9px;padding:6px 7px}
+}

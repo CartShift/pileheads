@@ -78,6 +78,14 @@ async function localScenarios(browser) {
       await page.getByRole("button", { name: "Resume game" }).click();
       assert.equal((await readGame(page)).moves, 0, "resume recovers saved state");
       assert.equal(await page.locator(".player-hand .playing-card.theme-original").count(), 3);
+      const handRect = await page.locator(".player-hand").boundingBox();
+      const dockRect = await page.locator(".control-panel").boundingBox();
+      assert.ok(handRect && dockRect &&
+        dockRect.y >= handRect.y + handRect.height - 2,
+        "action dock must never obstruct hand cards on any viewport");
+      const drawBack = await page.locator(".pile-zone .playing-card.is-back .card-art").first()
+        .evaluate(el => getComputedStyle(el).backgroundImage);
+      assert.match(drawBack, /stack-back\.webp/, "draw pile uses a real card back, not the face sprite");
       const viewport = await page.evaluate(() => ({
         viewport: document.documentElement.clientWidth,
         page: document.documentElement.scrollWidth
