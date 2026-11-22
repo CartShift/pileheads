@@ -169,7 +169,7 @@ function PlayerPosition({ name, seat, active, self, out, handCount, up, downCoun
   handCount: number; up: Card[]; downCount: number; presence?: string; reaction?: string;
 }) {
   return <div className={`opponent-seat ${active ? "seat-active" : ""} ${out ? "seat-out" : ""}`}
-    aria-label={`${name}: ${handCount} in hand, ${up.length} face-up, ${downCount} face-down`}>
+    data-seat={seat} aria-label={`${name}: ${handCount} in hand, ${up.length} face-up, ${downCount} face-down`}>
     <div className="seat-heading">
       <span className="avatar" aria-hidden="true">{self ? "Y" : String(seat + 1)}</span>
       <div><strong>{name}</strong><small>{out ? "Finished" : presence === "offline" ? "Offline" :
@@ -236,6 +236,8 @@ export default function GameTable() {
   const [showRules, setShowRules] = useState(false);
   const [pileOpen, setPileOpen] = useState(false);
   const [specialFx, setSpecialFx] = useState<string | null>(null);
+  const [pickupFx, setPickupFx] = useState<{key:string;x:number;y:number;dx:number;dy:number}|null>(null);
+  const lastPickupMove = useRef("");
   const lastAnimatedMove = useRef("");
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [undoAvailable, setUndoAvailable] = useState(false);
@@ -543,6 +545,30 @@ export default function GameTable() {
     const timeout = window.setTimeout(() => setSpecialFx(null), 950);
     return () => window.clearTimeout(timeout);
   }, [mode, room?.code, g?.round, g?.moves]);
+
+  // An invalid blind card glows first, then the pile flies toward the actual
+  // recipient hand on both client screens without exposing any private faces.
+  useEffect(() => {
+    const event = g?.events.at(-1);
+    if (!g || event?.type !== "blind-fail") return;
+    const key = [mode, room?.code || "local", g.round || 1, event.move].join(":");
+    if (lastPickupMove.current === key) return;
+    const raf = window.requestAnimationFrame(() => {
+      const pile = document.querySelector<HTMLElement>(".pile-slot.played");
+      const seat = mode === "local" ? 0 : room?.me ?? 0;
+      const target = event.seat === seat
+        ? document.querySelector<HTMLElement>(".hand-stage")
+        : document.querySelector<HTMLElement>(
+            '.opponent-seat[data-seat="' + event.seat + '"] .opponent-card-stack');
+      if (!pile || !target) return;
+      const from = pile.getBoundingClientRect(), to = target.getBoundingClientRect();
+      const x = from.left + from.width / 2, y = from.top + from.height / 2;
+      lastPickupMove.current = key;
+      setPickupFx({key, x, y, dx:to.left + to.width/2 - x, dy:to.top + to.height/2 - y});
+    });
+    const timeout = window.setTimeout(() => setPickupFx(null), 2150);
+    return () => { window.cancelAnimationFrame(raf); window.clearTimeout(timeout); };
+  }, [mode, room?.code, room?.me, g?.round, g?.moves]);
 
   // Keep every card in view as the hand grows. Measure the real rendered
   // width (not a guessed viewport) so Safari, browser zoom and desktop all
@@ -1120,7 +1146,11 @@ export default function GameTable() {
         </motion.section>}
       </div>
 
-      {pileOpen && <div className="react-pile-backdrop" onClick={() => setPileOpen(false)}>
+      {pickupFx && createPortal(<div key={pickupFx.key} className="react-pickup-transfer"
+         style={{left:pickupFx.x,top:pickupFx.y,
+           "--travel-x":pickupFx.dx+"px","--travel-y":pickupFx.dy+"px"} as CSSProperties}
+         aria-hidden="true"><PlayingCard hidden theme={deckTheme} /></div>,document.body)}
+       {pileOpen && <div className="react-pile-backdrop" onClick={() => setPileOpen(false)}>
          <section className="react-pile-panel" role="dialog" aria-modal="true" aria-label="All played pile cards"
            onClick={e => e.stopPropagation()}>
            <header><div><strong>THE PILE</strong><small>{g.pile.length} played cards · oldest to newest</small></div>
