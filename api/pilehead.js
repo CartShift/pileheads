@@ -186,9 +186,23 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
  try{if(req.method==='GET'&&req.query?.health==='1'){
   const rows=await query('SELECT 1 AS ready');return send(200,{ok:rows[0]?.ready===1,service:'pilehead-rooms'});
  }
- if(req.method!=='POST')return send(405,{ok:false,error:'method_not_allowed'});
-  if(req.headers.origin){let origin;try{origin=new URL(req.headers.origin).host}catch{fail(403,'bad_origin')}
-   if(origin!==String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim())fail(403,'bad_origin')}
+ // Keep Classic same-origin, and allow exactly one explicitly configured
+  // Next.js frontend origin. No wildcard CORS and no browser credentials.
+  if(req.headers.origin){
+   let parsed;try{parsed=new URL(req.headers.origin)}catch{fail(403,'bad_origin')}
+   const ownHost=String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim();
+   const trusted=String(process.env.STACK_WEB_ORIGIN||'').trim().replace(/[/]$/,'');
+   const external=Boolean(trusted&&parsed.origin===trusted);
+   if(parsed.host!==ownHost&&!external)fail(403,'bad_origin');
+   if(external){
+    res.setHeader('Access-Control-Allow-Origin',trusted);
+    res.setHeader('Vary','Origin');
+    res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type');
+   }
+  }
+  if(req.method==='OPTIONS'){res.status(204);return res.end()}
+  if(req.method!=='POST')return send(405,{ok:false,error:'method_not_allowed'});
   if(Number(req.headers['content-length']||0)>4096)fail(413,'too_large');
   if(!String(req.headers['content-type']||'').startsWith('application/json'))fail(415,'json_required');
   let b=req.body;if(typeof b==='string'){try{b=JSON.parse(b)}catch{fail(400,'bad_json')}}if(!b||typeof b!=='object'||Array.isArray(b))fail(400,'bad_json');
