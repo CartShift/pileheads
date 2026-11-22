@@ -398,6 +398,18 @@ function particles(where,type='burn'){
  document.body.appendChild(group);motionGhosts.add(group);
  later(()=>{group.remove();motionGhosts.delete(group)},830);
 }
+function specialEffect(table,action,delay=0){
+ if(!canMove()||!['reset','ghost','under','skip','burn','dump'].includes(action))return;
+ later(()=>{
+  const pile=landmark(table,'pile');
+  if(!pile?.isConnected||!canMove())return;
+  const ring=document.createElement('span');
+  ring.className='pilehead-special-ring';ring.dataset.action=action;ring.setAttribute('aria-hidden','true');
+  pile.appendChild(ring);motionGhosts.add(ring);
+  later(()=>{ring.remove();motionGhosts.delete(ring)},950);
+  if(action==='burn'||action==='dump')particles(pile,'burn');
+ },delay);
+}
 function cue(table,text){
  if(!table||document.visibilityState==='hidden')return;
  const el=document.createElement('div');el.className='pilehead-cue pilehead-cue-fixed';
@@ -468,7 +480,7 @@ function celebrate(table,ev,ownSeat){
  const pickup=ev.type==='take'||ev.type==='blind-fail';
  if(pickup){
   if(ev.type==='blind-fail'){
-   cue(table,'BLIND CARD · PICK UP');
+   // The revealed face and red rejection flash now live directly on the shared pile.
    moveCard(table,placeFor(table,ev.seat,'down',ownSeat),landmark(table,'pile'),ev,
     {hidden:true,duration:260,fade:true});
   }else cue(table,'TAKE THE PILE · '+ev.count+' CARDS');
@@ -481,6 +493,7 @@ function celebrate(table,ev,ownSeat){
   return 720;
  }
  if(ev.action==='dump'){
+   specialEffect(table,'dump',280);
   cue(table,'DUMP · PILE TO CHOSEN PLAYER');
   // DUMP itself is burned: it must NEVER enter the recipient's hand.
   playCards(table,ev,ownSeat,{to:landmark(table,'ashes'),via:landmark(table,'pile'),fade:true});
@@ -497,12 +510,14 @@ function celebrate(table,ev,ownSeat){
  }
  playCards(table,ev,ownSeat);
  if(ev.burned){
+   specialEffect(table,'burn',350);
   cue(table,ev.type==='slam'?'SLAM! · FOUR OF A KIND':
    ev.reason==='four'?'FOUR MATCHING · PILE BURNS':'BURN · PILE REMOVED');
   burnPile(table,ev,ev.type==='slam'?350:390);
  }else if(ev.type==='followup'){cue(table,'SNAP · MATCHING DRAW');snap('play');particles(landmark(table,'pile'),'slam')}
  else if(ev.bridgeCount){cue(table,'HAND + FACE UP · COMBO');snap('play')}
  else if(ev.action){
+   specialEffect(table,ev.action,310);
   const messages={skip:'SKIP · NEXT PLAYER MISSES TURN',under:'UNDER · PLAY 1–4',
    reset:'RESET · ANY NUMBER',ghost:'GHOST · RESTRICTION STAYS'};
   if(messages[ev.action])cue(table,messages[ev.action]);
