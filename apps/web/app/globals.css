@@ -354,3 +354,30 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
   .game-head-actions .connection-chip{font-size:9px;padding:6px}
   .game-head-actions .room-code{font-size:9px;padding:6px 7px}
 }
+
+/* Online rooms carry a room code, live status, rules, theme and Exit.
+   Small devices must wrap these controls instead of widening the viewport.
+   A horizontal overflow can also break Playwright/native touch hit-testing. */
+@media(max-width:720px){
+  .game-header{display:flex;flex-wrap:wrap;align-content:flex-start;
+    gap:6px 9px;min-height:0;padding:11px 7px 8px}
+  .game-header .logo{flex:0 0 auto;margin-right:auto;white-space:nowrap}
+  .game-head-actions{min-width:0;max-width:100%;flex:1 1 245px;
+    display:flex;justify-content:flex-end;flex-wrap:wrap;gap:5px}
+  .game-head-actions .room-code,.game-head-actions .exit-button,
+  .game-head-actions .connection-chip{white-space:nowrap;flex-shrink:0}
+}
+@media(max-width:440px){
+  .game-header .logo{font-size:25px}
+  .game-head-actions{flex:1 1 100%;justify-content:space-between;gap:6px}
+  .game-head-actions .room-code{flex:1 0 auto;max-width:100%;justify-content:center}
+  .game-head-actions .connection-chip{flex:0 0 auto}
+  .game-head-actions .theme-control{flex:0 0 auto}
+  .game-head-actions .exit-button{flex:0 0 auto}
+  .game-meta{margin-top:0}
+}
+@media(max-width:360px){
+  .game-head-actions{justify-content:flex-start}
+  .game-head-actions .room-code{flex:0 1 auto}
+  .game-head-actions .theme-control{margin-left:auto}
+}

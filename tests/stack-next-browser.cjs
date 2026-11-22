@@ -122,6 +122,16 @@ async function onlineScenarios(browser, server) {
     await guest.getByRole("textbox", { name: "Your name" }).fill("Guest");
     await guest.getByRole("button", { name: "Join" }).click();
     await guest.getByRole("button", { name: "I'm ready" }).waitFor();
+    // The full online header is wider than the offline one; prevent
+    // overflow-induced scroll/visual viewport hit-testing bugs at 360px.
+    for (const [browser, label] of [[host, "host"], [guest, "guest"]]) {
+      const geometry = await browser.evaluate(() => ({
+        viewport: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth
+      }));
+      assert.ok(geometry.scrollWidth <= geometry.viewport + 2,
+        label + " online room overflows its viewport: " + JSON.stringify(geometry));
+    }
     await host.screenshot({path:path.resolve(ROOT,"artifacts/next/setup-host.png"),fullPage:true});
     await guest.screenshot({path:path.resolve(ROOT,"artifacts/next/setup-guest.png"),fullPage:true});
     async function diagnoseReady(page, label) {
