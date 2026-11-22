@@ -306,20 +306,6 @@ function selectedEffect(){
  if(!picked)return '';
  return '<div class="pilehead-selected-effect"><strong>YOUR '+safe(picked.action.toUpperCase())+' CARD</strong><span>'+safe(effectInfo[picked.action]||'Special action')+'</span></div>';
 }
-function lastEffect(){
- const e=data?.game?.events?.at(-1);if(!e||e.source==='down'||e.type==='blind-fail')return '';
- let message=e.bridgeCount?'HAND + FACE-UP COMBO · '+displayName(e.seat)+' moved matching cards from both layers.':
-  e.type==='followup'?'SNAP · '+displayName(e.seat)+' immediately threw a matching drawn '+e.rank+'.':
- e.reason==='four'||e.reason==='slam'?'FOUR OF A KIND · The entire pile burns.':
- e.action==='dump'?'DUMP · '+displayName(e.target)+' takes the pile. '+displayName(e.seat)+' plays again.':e.action?effectInfo[e.action]:
- e.type==='take'||e.type==='blind-fail'?'PICKUP · The pile moves into '+displayName(e.seat)+'’s hand.':
- e.burned?'BURN · The pile is removed from the table.':
- 'PLAY · '+displayName(e.seat)+' placed '+e.count+' card'+(e.count===1?'':'s')+'.';
- if(!message)return '';
- return '<div class="pilehead-effect-note" role="status" aria-live="polite"><span class="effect-label">'+
-  safe(e.bridgeCount?'COMBO':e.action?e.action.toUpperCase():e.type==='followup'?'SNAP':e.burned?'BURN':'LAST MOVE')+
-  '</span><span>'+safe(message+(e.erodedCount?' Final Duel: the visible top card is permanently burned.':''))+'</span></div>';
-}
 function events(){return data.game.events.slice(-7).reverse().map(e=>{
  const n=safe(displayName(e.seat));let s=e.type==='take'?'picked up '+(e.takenCount??e.count)+' cards':e.type==='blind-fail'?'picked up after a blind flip':
  e.type==='followup'?'SNAP! threw the freshly drawn matching '+e.rank:
@@ -409,7 +395,7 @@ function playView(){
   '<div class="card-row hand">'+(p.hand?.length?orderedHand(p.hand).map(c=>card(c,{can:canTouchHand()&&source==='hand',source:'hand',selected:selection.includes(c.id)})).join(''):
   '<span style="font-size:12px;color:#b8cfba">No cards in hand</span>')+'</div></div></section>'+
  (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP: Your last matching hand cards can combine with matching face-up cards. Four numbers can also SLAM. Tap either one to select the group.</p>':'')+
- (selectedEffect()||lastEffect())+tableActions()+
+ selectedEffect()+tableActions()+
   (notice?'<div class="message" role="status" aria-live="polite">'+safe(notice)+'</div>':'')+
   '<div class="meta"><span>Move '+g.moves+'</span><span>Draw '+g.stockCount+'</span><span>Ashes '+g.ashesCount+'</span><span>Synced · rev '+data.revision+'</span></div>'+
   '<details class="move-history"><summary>Move history <span>'+g.moves+' moves</span></summary>'+
