@@ -640,12 +640,48 @@ async function sharedMoveAnimationScenarios(browser) {
    });
    assert.match(measured.animation,/stack-story-throw/,"actual card flight must animate");
    assert.ok(measured.endX.endsWith("px"));
-   assert.match(measured.caption,new RegExp(action==="under"?"1–4":action.toUpperCase(),"i"));
+   assert.match(measured.caption,new RegExp(action.toUpperCase(),"i"));
+   assert.ok(measured.caption.length<=6,"special popup should be only a short action name");
+   assert.equal(await theater.locator(".move-story-sigil").count(),1,
+      "special move has an animated emblem above the central pile");
    if(["burn","dump"].includes(action))assert.ok(measured.hasTransfer,
     action+" must physically clear or transfer the pile");
    console.log("PASS Next motion: "+action.toUpperCase()+" visible card movement and effect");
   }finally{await context.close()}
  }
+ // A normal card still flies, but no text appears on each ordinary play.
+ const normal=E.create({players:2,seed:20261188});
+ E.start(normal);
+ const hand=normal.people[0].hand;
+ const zones=[normal.stock,normal.ashes,...normal.people.flatMap(p=>[p.hand,p.up,p.down])];
+ if(!hand.some(card=>card.kind==="number")){
+  const found=zones.find(arr=>arr.some(card=>card.kind==="number"));
+  const at=found.findIndex(card=>card.kind==="number");
+  [found[at],hand[0]]=[hand[0],found[at]];
+ }
+ normal.limit=null;normal.turn=0;
+ E.invariant(normal);
+ const quiet=await browser.newContext({viewport:{width:390,height:844},
+   isMobile:true,hasTouch:true,reducedMotion:"no-preference"});
+ await quiet.addInitScript(game=>localStorage.setItem("stack-next-local-save-v1",
+   JSON.stringify({version:1,game})),normal);
+ const quietPage=await quiet.newPage();
+ try{
+  await quietPage.goto(WEB+"/play");
+  await quietPage.getByRole("button",{name:"Resume game"}).click();
+  await quietPage.locator('.player-hand .card-hit[aria-label^="Number"]').first().click();
+  await quietPage.getByRole("button",{name:/Play cards/}).click();
+  const scene=quietPage.locator('.move-story-overlay[data-kind="number"]');
+  await scene.waitFor({timeout:6000});
+  assert.equal(await scene.locator(".move-story-flight").count(),1);
+  assert.equal(await scene.locator(".move-story-caption").count(),0,
+    "regular play must never show a floating headline");
+  assert.equal(await scene.locator(".move-story-sigil").count(),0);
+  assert.equal(await scene.locator(".move-story-impact").count(),0);
+  assert.equal(await quietPage.locator(".event-banner").count(),0,
+    "the old always-on latest-card text banner must be gone");
+  console.log("PASS Next quiet motion: ordinary cards fly without narration");
+ }finally{await quiet.close()}
  // Force an illegal blind card without leaking its identity before the flip.
  const fail=E.create({players:2,seed:33497});
  E.start(fail);
