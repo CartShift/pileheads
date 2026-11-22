@@ -127,27 +127,21 @@ function setupView(){if(!g)return '<section class="setup panel"><div class="eyeb
 }
 
 function tableHUD(){
- const viewer=viewSeat(),layer=currentStage(),turn=isTurn(),can=turn&&!covered;
- const who=g.phase==='over'?'ROUND COMPLETE':can?'YOUR TURN':playerName(g.turn)+' TO PLAY';
- const guide=g.phase==='over'?'Round finished · view results':
- E.slamOptions(g,viewer).length?'SLAM available · interrupt any turn':
- can?(layer==='down'?'Choose one blind card to flip':
-  layer==='up'?'Choose a face-up card':
-  selection.length?'Confirm your selected cards':'Tap a card to select matching copies'):
- 'Waiting for '+playerName(g.turn)+' · watch for SLAM';
- const rule=g.limit?.type==='under'?'NUMBERS 1–4':
-  g.limit?.type==='min'?'NUMBERS '+g.limit.value+'+':'ANY NUMBER';
+ const turn=isTurn(),stage=currentStage(),can=turn&&!covered;
+ const who=g.phase==='over'?'Round complete':can?'Your turn':playerName(g.turn)+' is playing';
+ const finalDuel=E.finalDuelActive(g);
+ const guide=finalDuel?'FINAL DUEL · Two players remain. Each pickup burns the top card.':
+  can?(stage==='down'?'Flip a blind card':stage==='up'?'Play a face-up card':
+   selection.length?'Tap the pile to play':'Select a card'):
+  '';
  return '<div class="pilehead-table-hud '+(can?'is-my-turn':'is-waiting')+'" aria-label="Table status">'+
   '<div class="hud-main"><span class="hud-status"><i class="hud-dot" aria-hidden="true"></i>'+who+'</span>'+
-  '<span class="hud-guidance">'+guide+'</span></div>'+
-  '<div class="hud-meta"><span>'+layer.toUpperCase()+'</span><span class="hud-rule">'+rule+'</span>'+
-  (E.slamOptions(g,viewer).length?'<span class="hud-urgent">SLAM READY</span>':'')+
-  '</div></div>';
+  (guide?'<span class="hud-guidance">'+guide+'</span>':'')+'</div></div>';
 }
 function tableActions({turn,legal,pick,slams,snap,stage}){
  let buttons='';
  if(g.phase==='over')buttons='<button class="action primary" data-do="rematch">Play again</button>';
- else {
+ else{
   if(snap.length)buttons+='<button class="action snap" data-do="snap">SNAP · matching draw</button>';
   if(slams.length)buttons+='<button class="action slam" data-do="slam">SLAM · '+slams[0].ids.length+' cards</button>';
   if(turn&&stage!=='down'&&selection.length){
@@ -155,52 +149,15 @@ function tableActions({turn,legal,pick,slams,snap,stage}){
    if(canPlace){
     const burn=getPlayer().hand.some(c=>selection.includes(c.id)&&c.action==='burn');
     buttons+='<button class="action primary" data-do="play">'+(burn?'BURN PILE':'Play '+selection.length+' card'+(selection.length===1?'':'s'))+
-      ' <span aria-hidden="true">↗</span></button>';
+     ' <span aria-hidden="true">↗</span></button>';
    }
   }
   if(turn&&pick)buttons+='<button class="action secondary" data-do="take">Take pile · '+g.pile.length+'</button>';
   if(mode==='hotseat')buttons+='<button class="action secondary" data-do="hot-snap" aria-label="Attempt SNAP">SNAP!</button>';
   if(mode==='hotseat'&&g.people.some(p=>E.slamOptions(g,p.seat).length))buttons+='<button class="action secondary" data-do="challenge">Other player SLAM</button>';
-  if(!buttons){
-   const message=turn?(stage==='down'?'Choose a blind card':selection.length?'Choose a legal combination':'Select a card to play'):
-    playerName(g.turn)+' is playing';
-   buttons='<span class="table-action-prompt" role="status">'+message+
-    '<small>'+(turn?'Tap cards to select · drag onto pile':'Watch the table · SLAM is still possible')+'</small></span>';
-  }
  }
- return '<div class="toolbar table-actions" role="group" aria-label="Game actions">'+selectedPreview()+buttons+'</div>';
-}
-function layerProgress(){
- const p=getPlayer(),stage=currentStage();
- const layers=[
-  {id:'hand',label:'In hand',detail:p.hand.length+(g.stock.length?' · '+g.stock.length+' to draw':'')},
-  {id:'up',label:'Face up',detail:p.up.length+' cards'},
-  {id:'down',label:'Blind',detail:p.down.length+' cards'}
- ];
- const index=['hand','up','down','out'].indexOf(stage);
- return '<div class="stack-classic-progress" aria-label="Your progress through the card layers">'+
-  '<span class="stack-progress-title">YOUR JOURNEY</span>'+
-  '<div class="stack-progress-steps">'+layers.map((step,i)=>
-   '<div class="stack-progress-step '+(index===i?'is-current':index>i?'is-done':'is-future')+'"'+
-    (index===i?' aria-current="step"':'')+'>'+
-   '<span class="stack-progress-index">'+(index>i?'✓':'0'+(i+1))+'</span>'+
-   '<span class="stack-progress-copy"><strong>'+step.label+'</strong><small>'+step.detail+'</small></span></div>'
-  ).join('')+'</div></div>';
-}
-function selectedPreview(){
- if(!selection.length||!isTurn()||covered)return '';
- const p=getPlayer(),cards=selection.map(id=>[...p.hand,...p.up].find(c=>c.id===id)).filter(Boolean);
- if(!cards.length)return '';
- const first=cards[0],face=first.kind==='number'?String(first.rank):first.action.toUpperCase();
- const valid=E.options(g,viewSeat()).some(o=>o.type==='play'&&o.ids?.length===selection.length&&o.ids.every(id=>selection.includes(id)));
- const isBridge=selection.some(id=>p.up.some(c=>c.id===id))&&currentStage()==='hand';
- const label=cards.length>1?cards.length+' × '+face:face;
- const description=valid?'Tap the pile or Play to place '+(cards.length===1?'this card':'these cards')+'.':
-  'This selection cannot be played. Adjust the cards or take the pile.';
- return '<div class="stack-classic-preview '+(valid?'is-valid':'is-invalid')+'" role="status">'+
-  '<span class="stack-preview-flag">'+(valid?'READY TO PLAY':'CHECK SELECTION')+'</span>'+
-  '<strong>'+label+(isBridge?' · Hand + face up':'')+'</strong>'+
-  '<span class="stack-preview-instruction">'+description+'</span></div>';
+ // Nothing to do? No enormous empty fixed toolbar covering the cards.
+ return buttons?'<div class="toolbar table-actions" role="group" aria-label="Game actions">'+buttons+'</div>':'';
 }
 function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotseat'||viewer===0,turn=isTurn(),stage=currentStage();
  const selectable=turn&&g.phase==='play'&&!covered,slams=E.slamOptions(g,viewer),snap=E.followUpOptions(g,viewer),legal=E.options(g,viewer),pick=legal.some(o=>o.type==='take');
@@ -208,23 +165,24 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
   turn?'Your turn · '+(stage==='down'?'Flip one blind card':stage==='up'?'Play from your face-up row':'Choose cards from your hand'):
   playerName(g.turn)+' is playing · watch for a SLAM!';
  return '<div class="pitch"><h1>'+summary+'</h1><p>'+E.deck(g.version).length+' custom cards · 40 numbers · '+(E.deck(g.version).length-40)+' actions · '+g.people.length+' players</p></div>'+
- tableHUD()+layerProgress()+(E.finalDuelActive(g)?'<p class="pilehead-bridge-hint" role="status">FINAL DUEL · Two players remain. Each pile pickup permanently burns its top card.</p>':'')+'<section class="table" aria-label="PILEHEAD physical table">'+opponents()+pile()+
+ tableHUD()+'<section class="table" aria-label="PILEHEAD physical table">'+opponents()+pile()+
  upAndDown(p,selectable)+
  '<div class="hand-area"><div class="area-label"><span>YOUR HAND <b>· '+p.hand.length+'</b></span><span class="hand-controls">'+
  (selection.length?'<button type="button" class="hand-clear-button" data-do="clear-selection" aria-label="Clear selected cards">'+selection.length+' selected · Clear</button>':'')+
  '<button type="button" class="hand-sort-button" data-do="sort">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></span></div>'+
  rowCards(p.hand,'hand',selectable&&stage==='hand')+'</div></section>'+
- (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP · Your final matching hand cards can be played with matching exposed cards, including a four-card SLAM. Tap either to select the group.</p>':'')+
- (selectedEffect()||lastEffect())+tableActions({turn,legal,pick,slams,snap,stage})+
- '<div class="stack-classic-hotkeys" aria-label="Keyboard shortcuts"><span>SHORTCUTS</span><kbd>P</kbd> Play <kbd>T</kbd> Take <kbd>S</kbd> Sort <kbd>?</kbd> Rules</div>'+
- '<details class="playtest-tools"><summary>Game tools</summary>'+
- (mode==='bots'&&undoState?'<button type="button" class="action secondary" data-do="undo">Undo your last play</button><small class="stack-undo-note">Restores the previous turn, including any bot responses.</small>':'')+
- '<button class="action secondary" data-do="export">Export QA state</button></details>'+
- (notice?'<div class="message" role="status" aria-live="polite">'+notice+'</div>':'')+
+ (bridgeAvailable()?'<p class="pilehead-bridge-hint">You can combine your final hand with matching face-up cards.</p>':'')+
+ tableActions({turn,legal,pick,slams,snap,stage})+
+ (notice?'<div class="message stack-classic-error" role="status" aria-live="polite">'+notice+'</div>':'')+
+ '<details class="stack-classic-more"><summary>Game details</summary><div class="stack-classic-more-body">'+
  '<div class="meta"><span>Moves <strong>'+g.moves+'</strong></span><span>Draw stock <strong>'+g.stock.length+'</strong></span>'+
  '<span>Burned <strong>'+g.ashes.length+'</strong></span><span>Pickups <strong>'+g.people.reduce((n,x)=>n+x.pickups,0)+'</strong></span></div>'+
  '<details class="move-history"><summary>Move history <span>'+g.moves+' moves</span></summary>'+
-      '<div class="event-list" role="list" aria-label="Recent moves">'+g.events.slice(-8).reverse().map(e=>'<span class="event" role="listitem">'+eventName(e)+'</span>').join('')+'</div></details>';
+ '<div class="event-list" role="list" aria-label="Recent moves">'+g.events.slice(-8).reverse().map(e=>'<span class="event" role="listitem">'+eventName(e)+'</span>').join('')+'</div></details>'+
+ '<details class="playtest-tools"><summary>Developer tools</summary>'+
+ (mode==='bots'&&undoState?'<button type="button" class="action secondary" data-do="undo">Undo last move</button>':'')+
+ '<button class="action secondary" data-do="export">Export game state</button></details>'+
+ '</div></details>';
 }
 function endScreen(){
  if(!g||g.phase!=='over'||endDismissed)return '';
@@ -269,6 +227,8 @@ function overlay(){
 function render(){
  const focused=app.contains(document.activeElement)?document.activeElement:null;
  const historyOpen=!!app.querySelector('.move-history')?.open;
+ const detailsOpen=!!app.querySelector('.stack-classic-more')?.open;
+ const toolsOpen=!!app.querySelector('.playtest-tools')?.open;
  const key=focused?.tagName==='SUMMARY'&&focused.parentElement?.classList.contains('move-history')?{type:'history'}:
   focused?.dataset?.card?{type:'card',id:focused.dataset.card,source:focused.dataset.source}:
   focused?.dataset?.do?{type:'action',name:focused.dataset.do}:null;
@@ -282,7 +242,12 @@ function render(){
   const left=3300-(Date.now()-g.startedAt);
   if(left>0)starterTimer=setTimeout(()=>{starterTimer=null;render()},left+25);
  }
+ if(detailsOpen&&app.querySelector('.stack-classic-more'))app.querySelector('.stack-classic-more').open=true;
+ if(toolsOpen&&app.querySelector('.playtest-tools'))app.querySelector('.playtest-tools').open=true;
  if(historyOpen&&app.querySelector('.move-history'))app.querySelector('.move-history').open=true;
+ const headerUndo=$('classic-undo');
+ if(headerUndo)headerUndo.hidden=!(mode==='bots'&&g?.phase==='play'&&undoState);
+ document.body.classList.toggle('stack-classic-actions-active',!!app.querySelector('.table-actions'));
  if(restartPrompt&&!app.querySelector('.stack-classic-dialog')?.contains(document.activeElement)){
   app.querySelector('.stack-classic-dialog [data-do="cancel-new"]')?.focus({preventScroll:true});
  }
@@ -347,7 +312,7 @@ function queueBot(){
  try{let ev=botDump?E.resolveDump(g,g.pendingDump.seat,E.botDumpTarget(g,g.pendingDump.seat)):
     botSnap?E.move(g,g.followUp.seat,E.followUpOptions(g,g.followUp.seat)[0]):E.autoSlam(g,'greedy',0);
   if(!ev&&g.turn!==0)ev=E.move(g,g.turn,E.choose(g,g.turn,['greedy','saver','random'][g.turn%3]));
-  if(ev){lastMove=ev;notice=eventName(ev);selection=[];render()}
+  if(ev){lastMove=ev;notice='';selection=[];render()}
  }catch(e){notice='Bot error: '+e.message;render()}
  },canSlam?780:600);
 }
@@ -355,7 +320,7 @@ function startGame(previousWinner=null){endDismissed=false;dumpDraft=null;undoSt
  const starter=practiceMode?0:previousWinner===null?Math.floor(Math.random()*seats):previousWinner;
  g.starterSeat=starter;g.starterReason=practiceMode?'practice':previousWinner===null?'draw':'winner';
  setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
-function afterMove(ev,previousTurn=ev.seat){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
+function afterMove(ev,previousTurn=ev.seat){lastMove=ev;selection=[];challengeOpen=false;notice='';
  // The prior seat's optional SNAP must not suddenly hide the current seat.
  // Only a real change of the active turn requires passing the device.
  if(mode==='hotseat'&&g.phase!=='over'&&g.turn!==previousTurn)covered=!g.pendingDump;
@@ -577,7 +542,14 @@ window.addEventListener('pointerup',endTouch);
 window.addEventListener('pointercancel',e=>{const d=touchGesture;touchGesture=null;d?.el?.remove();app.querySelector('[data-play-target]')?.classList.remove('drop-hover')});
 
 
+$('classic-undo')?.addEventListener('click',()=>execute('undo'));
 $('new').addEventListener('click',()=>{if(g){restartPrompt=true;render()}else{g=null;undoState=null;notice='';selection=[];challengeOpen=false;covered=false;render()}});
+// Keep appearance choices in the menu rather than on the game board.
+document.addEventListener('DOMContentLoaded',()=>{
+ const nav=document.querySelector('.layout>.top .links');
+ const picker=document.querySelector('.layout>.top>.stack-deck-picker');
+ if(nav&&picker)nav.appendChild(picker);
+});
 window.addEventListener('stack-deck-theme-change',()=>render());
 restore();render();
 })();
