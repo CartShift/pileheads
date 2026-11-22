@@ -334,6 +334,23 @@ function sameIds(a,b){return Array.isArray(a)&&a.length===b.length&&a.every((x,i
 function choose(g,seat,style='greedy'){
  const opts=options(g,seat);assert(opts.length,'No moves');
  if(opts.length===1)return withBotTarget(g,seat,opts[0]);
+ // Classic can legally cycle in a two-player duel without the optional
+ // top-card erosion rule. A computer must not repeat the same ranks forever:
+ // voluntarily taking the pile is already a legal move, not a hidden rule.
+ // React and Classic both call this shared deterministic strategy.
+ const twoRemain=g.people.filter(p=>!p.out).length===2;
+ if(!g.stock.length&&twoRemain&&!finalDuelActive(g)&&g.pile.length&&
+    g.events.length>=24){
+   const recent=g.events.slice(-24);
+   const own=recent.filter(e=>e.seat===seat);
+   const lastNumber=[...own].reverse().find(e=>e.reason==='number')?.rank;
+   const repeatedRank=own.filter(e=>e.reason==='number'&&e.rank===lastNumber).length;
+   const recentPickup=own.slice(-3).some(e=>e.type==='take');
+   if(lastNumber!==undefined&&repeatedRank>=5&&!recentPickup){
+     const takeMove=opts.find(o=>o.type==='take');
+     if(takeMove)return takeMove;
+   }
+ }
  const p=g.people[seat],score=o=>{
   if(o.type==='take')return -1000;
   const c=p[o.source].find(x=>x.id===o.ids[0]);

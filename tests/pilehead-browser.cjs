@@ -17,7 +17,7 @@ async function state(page){
 }
 async function stage(page,{seed=489,mode='bots',seat=0,snap=false,finale=false}={}){
  await page.evaluate(({seed,mode,seat,snap,finale})=>{
-  const E=globalThis.PileheadEngine,g=E.create({seed,players:2});
+  const E=globalThis.PileheadEngine,g=E.create({seed,players:2,endgameRule:finale?'final-duel':'classic'});
   if(mode==='bots')E.autoSetup(g,1);
   E.start(g);g.turn=seat;g.startedAt=Date.now()-5000;
   if(finale){
