@@ -225,6 +225,7 @@ export default function GameTable() {
   const [handSort, setHandSort] = useState<HandSort>("dealt");
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [endgameRule, setEndgameRule] = useState<EndgameRule>("classic");
+  const [pendingRule, setPendingRule] = useState<EndgameRule | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [practiceMode, setPracticeMode] = useState(false);
   const [coachDismissed, setCoachDismissed] = useState(false);
@@ -324,7 +325,8 @@ export default function GameTable() {
           applyRoom(fresh);
           // Safe repeatable lobby operations must not become a manual race
           // between guests. NEVER silently retry a card move, SNAP or SLAM.
-          if (payload.action === "ready" || payload.action === "swap") {
+          if (payload.action === "ready" || payload.action === "swap" ||
+              payload.action === "settings") {
             const retry = await requestRoom({ ...payload, revision: fresh.revision }, token);
             if (epoch !== roomEpoch.current) return;
             applyRoom(retry);
@@ -685,7 +687,8 @@ export default function GameTable() {
     if (wsRef.current) wsRef.current.close();
     setMode("home"); setLocal(null); setRoom(null); roomRef.current = null;
     tokenRef.current = null; setBusy(false); inFlight.current = false;
-    setConnected(false); setConfirmRestart(false); setShowRules(false); setShowSettings(false); setCopiedInvite(false);
+    setConnected(false); setConfirmRestart(false); setShowRules(false);
+    setShowSettings(false); setPendingRule(null); setCopiedInvite(false);
     setSelection([]); setNotice("");
     history.replaceState(null, "", "/play");
   }
@@ -753,8 +756,17 @@ export default function GameTable() {
     if (mode === "online" && roomRef.current) {
       const activeRoom = roomRef.current;
       if (!activeRoom.host || activeRoom.game.phase !== "setup") return;
+      // Optimistic feedback for the checkbox, but the server remains the
+      // single source of truth. Concurrent host/guest lobby changes may require
+      // one safe revision retry, unlike card moves.
+      setPendingRule(next);
       void submit({ action: "settings", code: activeRoom.code, revision: activeRoom.revision,
-        endgameRule: next });
+        endgameRule: next }).then(() => {
+          if (roomRef.current?.game.endgameRule === next) {
+            setEndgameRule(next);
+            try { localStorage.setItem(FINAL_DUEL_KEY, next); } catch {}
+          }
+        }).finally(() => setPendingRule(null));
       return;
     }
     setEndgameRule(next);
@@ -1100,8 +1112,8 @@ export default function GameTable() {
           onClick={event => event.stopPropagation()}>
           <div className="eyebrow">GAME SETTINGS</div><h2>Table rules</h2>
           <label className="rule-toggle">
-            <input type="checkbox" checked={g.endgameRule === "final-duel"}
-              disabled={g.phase !== "setup" || (mode === "online" && !room?.host)}
+            <input type="checkbox" checked={(mode === "online" && pendingRule ? pendingRule : g.endgameRule) === "final-duel"}
+              disabled={busy || g.phase !== "setup" || (mode === "online" && !room?.host)}
               onChange={event => changeEndgameRule(event.target.checked ? "final-duel" : "classic")} />
             <span><strong>Final Duel</strong><small>
               When the stock is empty and exactly two players remain, each pile pickup
