@@ -1016,14 +1016,24 @@ export default function GameTable() {
                 }
               }}>
               <AnimatePresence initial={false}>
-                {g.pile.slice(-4).map((card, i) => <div key={card.id}
-                  className="pile-layer" style={{ transform: `translate(${(i - 1.5) * 6}px, ${(i - 1.5) * -2}px) rotate(${(i - 1.5) * 3}deg)` }}>
+                {g.pile.slice(-5).map((card, i) => <div key={card.id}
+                  className="pile-layer" style={{ transform: `translate(${(i - 2) * 10}px, ${(i - 2) * -3}px) rotate(${(i - 2) * 3}deg)` }}>
                   <PlayingCard card={card} theme={deckTheme} />
                 </div>)}
               </AnimatePresence>
               {!g.pile.length && <div className="slot-empty">Pile clear</div>}
+               {showFlip && face && <div key={face.move}
+                 className={"react-blind-reveal" + (invalidFlip ? " is-invalid" : "")}
+                 role="status" aria-label={nameForSeat(face.seat) + " revealed a " + (invalidFlip ? "non-playable " : "") + "blind card"}>
+                 <PlayingCard card={{ ...face.card, id: -1, rank: face.card.rank ?? undefined,
+                   action: face.card.action ?? undefined }} theme={deckTheme} />
+               </div>}
+               {specialFx && <span key={g.moves} className="react-special-ring"
+                 data-action={specialFx} aria-hidden="true" />}
             </div>
             <span className="pile-counter">{g.pile.length} cards · {rule}</span>
+             <button type="button" className="react-pile-inspect" disabled={!g.pile.length}
+               onClick={() => setPileOpen(true)}>Inspect pile</button>
           </div>
           <div className="pile-zone">
             <span className="pile-title">BURNED</span>
@@ -1032,13 +1042,6 @@ export default function GameTable() {
           </div>
         </div>
 
-        {showFlip && face && <div className="blind-flip" role="status">
-          <PlayingCard card={{ ...face.card, id: -1, rank: face.card.rank ?? undefined,
-            action: face.card.action ?? undefined }} theme={deckTheme} small />
-          <div><strong>{nameForSeat(face.seat)} flipped a blind card</strong>
-            <span>{face.card.kind === "number" ? "Number " + face.card.rank :
-              face.card.action?.toUpperCase()}</span></div>
-        </div>}
         {finalDuel && <div className="duel-banner" role="status">
           <strong>FINAL DUEL</strong><span>Every pickup burns the visible top card first.</span>
         </div>}
@@ -1117,7 +1120,19 @@ export default function GameTable() {
         </motion.section>}
       </div>
 
-      <div className="control-panel" aria-label="Game actions">
+      {pileOpen && <div className="react-pile-backdrop" onClick={() => setPileOpen(false)}>
+         <section className="react-pile-panel" role="dialog" aria-modal="true" aria-label="All played pile cards"
+           onClick={e => e.stopPropagation()}>
+           <header><div><strong>THE PILE</strong><small>{g.pile.length} played cards · oldest to newest</small></div>
+             <button type="button" className="secondary-button" onClick={() => setPileOpen(false)}>Close</button></header>
+           <div className="react-pile-grid">{g.pile.length
+             ? g.pile.map(card => <div className="react-pile-item" key={card.id}>
+                 <PlayingCard card={card} theme={deckTheme} /></div>)
+             : <p>The pile is empty.</p>}</div>
+           <p>Only cards that have been played are visible. The draw deck stays hidden.</p>
+         </section>
+       </div>}
+       <div className="control-panel" aria-label="Game actions">
         {g.phase === "setup" ? (
           <div className="setup-controls">
             <div><strong>{mode === "online" ? `${room?.members.length || 0} joined · ${g.players.length - g.botSeats.length} humans required` : "Set up your cards"}</strong>
@@ -1214,7 +1229,7 @@ export default function GameTable() {
           <p>Play a number equal to or higher than the current restriction, or play any special card.
             Keep three cards in hand while the draw deck lasts. Empty your hand, then your face-up cards,
             then flip your face-down cards without looking. The last player with cards loses.</p>
-          <div className="quick-rules">{ACTIONS.map(action => <div key={action}>
+          <div className="quick-rules">{ACTIONS.filter(action => !(action === "skip" && g.omitSkip)).map(action => <div key={action}>
             <strong>{action.toUpperCase()}</strong><span>{ACTION_DESCRIPTIONS[action]}</span>
           </div>)}</div>
           <p><strong>SNAP:</strong> A matching number you just drew may be played until another player acts.
