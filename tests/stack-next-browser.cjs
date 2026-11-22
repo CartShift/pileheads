@@ -134,30 +134,21 @@ async function onlineScenarios(browser, server) {
     }
     await host.screenshot({path:path.resolve(ROOT,"artifacts/next/setup-host.png"),fullPage:true});
     await guest.screenshot({path:path.resolve(ROOT,"artifacts/next/setup-guest.png"),fullPage:true});
-    async function diagnoseReady(page, label) {
-      const geometry = await page.evaluate(() => {
-        const button = [...document.querySelectorAll("button")].find(x => x.textContent === "I'm ready");
-        const panel = document.querySelector(".control-panel");
-        const table = document.querySelector(".tabletop");
-        if (!button || !panel || !table) return { error: "missing element" };
-        const r = button.getBoundingClientRect(), pr=panel.getBoundingClientRect(),
-          tr=table.getBoundingClientRect();
-        const hit = document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
-        return {
-          button:{x:r.left,y:r.top,width:r.width,height:r.height},
-          panel:{x:pr.left,y:pr.top,width:pr.width,height:pr.height},
-          table:{x:tr.left,y:tr.top,width:tr.width,height:tr.height},
-          hit:hit?.outerHTML.slice(0,280),panelPosition:getComputedStyle(panel).position,
-          panelZ:getComputedStyle(panel).zIndex,scrollY,screenHeight:innerHeight
-        };
+    // Regression: the opponent's Ready button must remain a real tap target
+    // even after the host receives a revision and updates the lobby.
+    async function assertReadyTapTarget(page, label) {
+      const hit = await page.getByRole("button", { name: "I'm ready" }).evaluate(button => {
+        const bounds = button.getBoundingClientRect();
+        const target = document.elementFromPoint(bounds.left + bounds.width / 2,
+          bounds.top + bounds.height / 2);
+        return target === button || button.contains(target);
       });
-      console.log(label + " READY HIT TEST " + JSON.stringify(geometry));
+      assert.equal(hit, true, label + " Ready button is covered by the table");
     }
-    await diagnoseReady(host, "HOST");
-    await diagnoseReady(guest, "GUEST");
+    await assertReadyTapTarget(host, "Host");
+    await assertReadyTapTarget(guest, "Guest");
     await host.getByRole("button", { name: "I'm ready" }).click();
-    await guest.screenshot({path:path.resolve(ROOT,"artifacts/next/guest-after-host-ready.png"),fullPage:true});
-    await diagnoseReady(guest, "GUEST AFTER HOST READY");
+    await assertReadyTapTarget(guest, "Guest after host Ready");
     await guest.getByRole("button", { name: "I'm ready" }).click({timeout:12000});
     const start = host.getByRole("button", { name: "Start round" });
     await start.waitFor({ state: "visible" });
@@ -212,6 +203,46 @@ async function onlineScenarios(browser, server) {
     console.log("PASS Next online: dual mobile seats, CORS, private hands, SNAP race, reconnect");
   } finally { await Promise.all([hostCtx.close(), guestCtx.close()]); }
 }
+async function mixedBotScenarios(browser) {
+  const context = await browser.newContext({
+    viewport: {width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:"reduce"
+  });
+  const page = await context.newPage();
+  const errors=[];
+  page.on("pageerror", err=>errors.push(err.message));
+  try {
+    await page.goto(WEB + "/play");
+    await page.getByRole("textbox", {name:"Your name"}).fill("Solo with bot");
+    await page.getByRole("combobox", {name:"Humans"}).selectOption("1");
+    await page.getByRole("combobox", {name:"Bots"}).selectOption("1");
+    await page.getByRole("button", {name:/Create a room/}).click();
+    await page.getByRole("button", {name:"I'm ready"}).click();
+    await page.getByRole("button", {name:"Start round"}).click();
+    await page.getByRole("heading", {name:"Your move."}).waitFor({timeout:13000});
+    // The seeded fixture makes the first card playable and SNAP available.
+    const first=page.locator(".player-hand .card-hit").first();
+    await first.click();
+    await page.getByRole("button", {name:/Play cards/}).click();
+    await page.waitForFunction(()=>{
+      const status=document.querySelector(".game-meta h1")?.textContent||"";
+      return status.includes("Bot")||status.includes("Your move.");
+    },null,{timeout:11000});
+    // Check the authoritative server has taken the bot turn; browser never
+    // receives the bot hand, and no client can silently perform a bot move.
+    const code=new URL(page.url()).searchParams.get("room");
+    await page.waitForFunction(async code=>{
+      const token=localStorage.getItem("stack-next-room-"+code);
+      const response=await fetch("http://127.0.0.1:44292/api/pilehead",{
+        method:"POST",headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+        body:JSON.stringify({action:"state",code})
+      });
+      const data=await response.json();
+      return data.ok && data.game.moves>=2 && data.game.players[1].hand===undefined;
+    },code,{timeout:12000});
+    assert.deepEqual(errors,[],"no mixed bot room client exceptions");
+    console.log("PASS Next online: authoritative server bot completes turn in mixed human+bot room");
+  } finally {await context.close()}
+}
 async function main() {
   fs.mkdirSync(path.resolve(ROOT, "artifacts/next"), {recursive:true});
   const webProc = spawn(process.execPath, [
@@ -239,6 +270,7 @@ async function main() {
     browser = await chromium.launch({ headless: true });
     await localScenarios(browser);
     await onlineScenarios(browser, apiProc);
+    await mixedBotScenarios(browser);
   } catch (e) {
     console.error("Next browser acceptance failed:", e);
     console.error("WEB LOGS", webLog.slice(-6000));
