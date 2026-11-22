@@ -463,3 +463,90 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
   .player-hand.is-adaptive{min-height:0}
   .player-hand.is-adaptive .playing-card.is-selected{z-index:16}
 }
+
+/* Public pile visibility and shared physical feedback, React table. */
+.pile-zone.is-main{position:relative}
+.react-pile-inspect{
+ border:1px solid #d3b77888;border-radius:999px;background:#274838d6;
+ padding:5px 10px;margin-top:5px;font-size:10px;font-weight:800;color:#f6e5c0;
+ cursor:pointer;line-height:1.2;white-space:nowrap;
+}
+.react-pile-inspect:disabled{opacity:.4;cursor:default}
+.react-pile-inspect:focus-visible{outline:2px solid #eac889;outline-offset:3px}
+.pile-slot.played .react-blind-reveal{
+ position:absolute;inset:0;display:grid;place-items:center;z-index:31;
+ pointer-events:none;animation:react-blind-visible 2200ms ease-out forwards;
+}
+.pile-slot.played .react-blind-reveal .playing-card{pointer-events:none;opacity:1!important}
+.pile-slot.played .react-blind-reveal.is-invalid{
+ animation:react-blind-rejected 1800ms cubic-bezier(.22,.76,.23,1) forwards;
+}
+.pile-slot.played .react-blind-reveal.is-invalid .playing-card{
+ animation:react-blind-redflash 440ms 610ms ease-out;
+}
+@keyframes react-blind-visible{
+ 0%{opacity:0;transform:perspective(550px) rotateY(83deg) scale(.9)}
+ 20%{opacity:1;transform:perspective(550px) rotateY(-9deg) scale(1.07)}
+ 35%,75%{opacity:1;transform:perspective(550px) rotateY(0) scale(1)}
+ 100%{opacity:0;transform:scale(.95)}
+}
+@keyframes react-blind-rejected{
+ 0%{opacity:0;transform:perspective(550px) rotateY(80deg)}
+ 24%{opacity:1;transform:perspective(550px) rotateY(0)}
+ 45%,62%{opacity:1;transform:translate(0,0) scale(1)}
+ 77%{opacity:.9;transform:translate(-24px,23px) scale(.7)}
+ 100%{opacity:0;transform:translate(-60px,64px) scale(.3)}
+}
+@keyframes react-blind-redflash{
+ 0%,100%{filter:none}
+ 45%{filter:drop-shadow(0 0 20px #fa3b5b) drop-shadow(0 0 8px #ff314d)}
+}
+.pile-slot.played .react-special-ring{
+ --fx-color:#f0ca72;position:absolute;inset:-13px;border-radius:50%;z-index:26;
+ pointer-events:none;box-shadow:0 0 0 2px var(--fx-color);
+ background:radial-gradient(circle,transparent 26%,color-mix(in srgb,var(--fx-color),transparent 75%) 56%,transparent 75%);
+ animation:react-special-burst 950ms ease-out both;
+}
+.react-special-ring[data-action=burn]{--fx-color:#ff9657}
+.react-special-ring[data-action=dump]{--fx-color:#ff70ad}
+.react-special-ring[data-action=reset]{--fx-color:#85bbff}
+.react-special-ring[data-action=ghost]{--fx-color:#beabff}
+.react-special-ring[data-action=under]{--fx-color:#62d6c4}
+.react-special-ring[data-action=skip]{--fx-color:#ffe0a2}
+@keyframes react-special-burst{
+ 0%{opacity:0;transform:scale(.25) rotate(-10deg)}
+ 32%{opacity:1;transform:scale(.95) rotate(4deg)}
+ 70%{opacity:.87;transform:scale(1.2) rotate(11deg)}
+ 100%{opacity:0;transform:scale(1.55) rotate(16deg)}
+}
+.react-pile-backdrop{
+ position:fixed;z-index:10000;inset:0;display:grid;place-items:center;padding:12px;
+ background:#051712db;backdrop-filter:blur(7px);
+}
+.react-pile-panel{
+ width:min(760px,100%);max-height:86dvh;overflow:auto;overscroll-behavior:contain;
+ background:linear-gradient(150deg,#183a32,#0b261f);color:#f8ead2;
+ border:1px solid #d1bd8a70;border-radius:22px;padding:18px;
+ box-shadow:0 24px 75px #000b;
+}
+.react-pile-panel header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:20px}
+.react-pile-panel header>div{display:flex;flex-direction:column;gap:5px}
+.react-pile-panel header strong{font-weight:900;letter-spacing:.08em}
+.react-pile-panel header small,.react-pile-panel>p{color:#b7d1c0;font-size:12px}
+.react-pile-panel header button{font-size:12px;min-width:70px;padding:9px}
+.react-pile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:12px;align-content:start;min-height:90px}
+.react-pile-item .playing-card{position:relative;width:100%!important;max-width:96px;margin:auto;pointer-events:none}
+.react-pile-item:last-child .playing-card{outline:2px solid #f2d195;outline-offset:3px}
+@media(max-width:650px){
+ .react-pile-panel{padding:12px;max-height:90dvh}
+ .react-pile-grid{grid-template-columns:repeat(auto-fill,minmax(60px,1fr));gap:8px}
+ .react-pile-inspect{font-size:9px;padding:5px 8px}
+}
+@media(prefers-reduced-motion:reduce){
+ .pile-slot.played .react-blind-reveal,
+ .pile-slot.played .react-blind-reveal.is-invalid{
+  animation:react-blind-visible 2200ms step-end forwards
+ }
+ .pile-slot.played .react-blind-reveal.is-invalid .playing-card{animation:none}
+ .pile-slot.played .react-special-ring{animation:none;opacity:0}
+}
