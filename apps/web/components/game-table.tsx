@@ -218,7 +218,10 @@ export default function GameTable() {
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [connected, setConnected] = useState(false);
   const [connectionRetry, setConnectionRetry] = useState(0);
-  const [lastSyncAt, setLastSyncAt] = useState(0);
+  // Heartbeat timestamps are diagnostic only: never rerender all animated
+  // cards just because an identical HTTP state was polled.
+  const lastSyncAt = useRef(0);
+  const [copiedInvite, setCopiedInvite] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [reactionClock, setReactionClock] = useState(0);
   const inFlight = useRef(false);
@@ -249,7 +252,7 @@ export default function GameTable() {
     }
     roomRef.current = next;
     setRoom(next);
-    setLastSyncAt(Date.now());
+    lastSyncAt.current = Date.now();
     setMode("online");
     history.replaceState(null, "", `/play?room=${encodeURIComponent(next.code)}`);
   }, []);
@@ -260,7 +263,7 @@ export default function GameTable() {
       const next = await requestRoom({ action: "state", code, heartbeat: true }, token);
       if (epoch !== roomEpoch.current || (roomRef.current && roomRef.current.code !== code)) return;
       applyRoom(next);
-      setLastSyncAt(Date.now());
+      lastSyncAt.current = Date.now();
       if (!quiet) setNotice("");
     } catch (err) {
       if (epoch !== roomEpoch.current) return;
@@ -644,7 +647,7 @@ export default function GameTable() {
     if (wsRef.current) wsRef.current.close();
     setMode("home"); setLocal(null); setRoom(null); roomRef.current = null;
     tokenRef.current = null; setBusy(false); inFlight.current = false;
-    setConnected(false); setConfirmRestart(false); setShowRules(false);
+    setConnected(false); setConfirmRestart(false); setShowRules(false); setCopiedInvite(false);
     setSelection([]); setNotice("");
     history.replaceState(null, "", "/play");
   }
@@ -692,6 +695,21 @@ export default function GameTable() {
     dialog?.addEventListener("keydown", trap);
     return () => { dialog?.removeEventListener("keydown", trap); previous?.focus?.(); };
   }, [showRules, confirmRestart]);
+
+  async function copyInvite() {
+    if (!room) return;
+    const invite = new URL("/play?room=" + encodeURIComponent(room.code),
+      window.location.origin).toString();
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("clipboard_unsupported");
+      await navigator.clipboard.writeText(invite);
+      setCopiedInvite(true);
+    } catch {
+      // Explicit user interaction only. Even a browser without clipboard
+      // permissions must still let the player share the invite.
+      window.prompt("Copy this private room invite link:", invite);
+    }
+  }
 
   async function createOnlineRoom() {
     if (onlineHumans + onlineBots < 2 || onlineHumans + onlineBots > 5) {
@@ -780,10 +798,11 @@ export default function GameTable() {
       <header className="game-header">
         <Link href="/" className="logo">STACK<span>.</span></Link>
         <div className="game-head-actions">
-          {room && <button className="room-code" onClick={() => void navigator.clipboard.writeText(
-            `${window.location.origin}/play?room=${room.code}`)} title="Copy invitation link">ROOM {room.code} <span>Copy invite</span></button>}
+          {room && <button className="room-code" onClick={() => void copyInvite()}
+            title="Copy invitation link" aria-label={"Copy invitation for room " + room.code}>
+            ROOM {room.code} <span>{copiedInvite ? "Copied" : "Copy invite"}</span></button>}
           {mode === "online" && <span className={`connection-chip ${connected ? "is-online" : "is-offline"}`}
-            title={`Last sync: ${lastSyncAt ? new Date(lastSyncAt).toLocaleTimeString() : "pending"}`}
+            title={`Last sync: ${lastSyncAt.current ? new Date(lastSyncAt.current).toLocaleTimeString() : "pending"}`}
             role="status">{connected ? "Live" : "Reconnecting"}</span>}
           <span className="beta-tag">REACT TABLE · PREVIEW</span>
           <button className="exit-button" onClick={() => setShowRules(true)}>Rules</button>
