@@ -32,7 +32,7 @@ assert(app.includes('StackEndgameLabSeed'),'same-seed comparisons');
 assert(app.includes('erodedCount'),'erosion is visible in event text');
 
 function state(E,{players=3,active=players,stockEmpty=true,pileCount=3}={}){
- const g=E.create({players,seed:20261121});
+ const g=E.create({players,seed:20261121,endgameRule:'final-duel'});
  for(let i=0;i<players;i++)E.autoSetup(g,i);
  E.start(g);
  if(stockEmpty)g.people[1].hand.push(...g.stock.splice(0));
