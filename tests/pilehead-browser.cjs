@@ -56,6 +56,12 @@ async function run(browser,width,height,mobile){
   await page.locator('[data-do="ready"]').click();
   await page.locator('.table').waitFor();
   await stage(page,{mode:'bots',seed:117});
+  // Temporary compressed screenshot trace for reviewing both real viewports.
+  if(width===390||width===1280){
+   const encoded=(await page.screenshot({type:'jpeg',quality:54})).toString('base64');
+   for(let pos=0;pos<encoded.length;pos+=3500)
+    console.log('STACK_VISUAL_CHUNK '+width+' '+String(pos/3500)+' '+encoded.slice(pos,pos+3500));
+  }
   let before=await state(page);
   assert.equal(before.moves,0);
   assert.equal(await page.locator('.stack-progress-step').count(),3,'three physical card layers are visible');
