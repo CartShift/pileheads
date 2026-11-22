@@ -227,12 +227,17 @@ export default function GameTable() {
     setSelection([]); setNeedsTarget(false);
   }, []);
 
-  // A bot's timer is keyed only to the authoritative turn/move, never to a
-  // selection or incidental React render. SNAP does not delay the bot.
-  useEffect(() => {
-    if (mode !== "local" || !local || local.phase !== "play") return;
+  // A human SNAP is a legal interrupt, not a new turn. Do not re-arm the
+  // next bot's timer when that interrupt increments the move counter.
+  const localBotKey = (() => {
+    if (mode !== "local" || !local || local.phase !== "play") return null;
     const seat = local.pendingDump?.seat ?? local.turn;
-    if (seat === 0) return;
+    if (seat === 0) return null;
+    const lastNormalMove = [...local.events].reverse().find(e => e.type !== "followup");
+    return `${seat}:${local.pendingDump?.seat ?? "none"}:${lastNormalMove?.move ?? 0}`;
+  })();
+  useEffect(() => {
+    if (!localBotKey) return;
     const timer = window.setTimeout(() => {
       commitLocal(g => {
         const current = g.pendingDump?.seat ?? g.turn;
@@ -246,7 +251,7 @@ export default function GameTable() {
       });
     }, 680);
     return () => clearTimeout(timer);
-  }, [mode, local?.turn, local?.moves, local?.phase, local?.pendingDump?.seat, commitLocal]);
+  }, [localBotKey, commitLocal]);
 
   // Human-triggered bot advance remains server-authoritative in online rooms.
   useEffect(() => {
