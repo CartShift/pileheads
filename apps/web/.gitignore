@@ -6,3 +6,4 @@ public/pilehead/
 .env
 .env.*
 !.env.example
+vendor/

@@ -67,5 +67,6 @@ export type EngineApi = {
 };
 
 // The CJS/UMD file supplies module.exports and globalThis.PileheadEngine.
-// Next bundles this dependency for client-side local simulation.
-export const Engine = require("../../../dist/pilehead/engine.js") as EngineApi;
+// The predev/prebuild sync copies the canonical engine to a gitignored vendor file.
+// This keeps one editable rules source while staying inside Turbopack’s project root.
+export const Engine = require("../vendor/pilehead-engine.cjs") as EngineApi;
