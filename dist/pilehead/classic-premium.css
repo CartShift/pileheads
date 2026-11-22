@@ -669,3 +669,11 @@ body.stack-classic .stack-classic-dialog .secondary{background:#193d31;color:#ff
   --card-w:79px;--card-h:110px;
  }
 }
+
+/* The old .top opacity produced a stacking context beneath the later felt
+   table. Raise the *header* rather than only its menu, or menu taps hit cards. */
+body.stack-classic.pilehead-playing .layout>.top{
+ position:relative!important;
+ z-index:250!important;
+ opacity:1!important;
+}
