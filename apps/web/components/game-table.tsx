@@ -569,7 +569,7 @@ export default function GameTable() {
   const me = mode === "local" ? 0 : room?.me ?? 0;
   const face = g?.blindReveal;
   const showFlip = !!face && face.expiresAt > Date.now();
-  const invalidFlip = showFlip && g?.events.at(-1)?.type === "blind-fail" && g.events.at(-1)?.move === face?.move;
+  const invalidFlip = showFlip && g?.events.at(-1)?.type === "blind-fail" && g?.events.at(-1)?.move === face?.move;
   const newestReactions = (g?.reactions || []).filter(r => Date.now() - r.at < 8000);
   useEffect(() => {
     if (!newestReactions.length && !showFlip) return;
