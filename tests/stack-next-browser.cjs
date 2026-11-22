@@ -67,7 +67,7 @@ async function endgameSettingsAndBridge(browser) {
     const expectedBridgeCards = p.up.filter(sameFace).length;
     assert.equal(await faceup.count(),expectedBridgeCards,
       "only genuinely matching face-up cards can be selected for a bridge");
-    await faceup.click();
+    await faceup.first().click();
     assert.equal(await page.locator(".player-hand .playing-card.is-selected").count(),1,
       "selecting a face-up bridge automatically selects the entire last hand");
     assert.equal(await page.locator(".faceup-row .playing-card.is-selected").count(),1);
