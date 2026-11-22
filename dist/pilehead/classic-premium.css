@@ -570,3 +570,40 @@ body.stack-classic .stack-classic-dialog .secondary{background:#193d31;color:#ff
  body.stack-classic .stack-classic-preview,
  body.stack-classic .stack-classic-hotkeys{display:none!important}
 }
+/* No card may sit underneath a desktop action toolbar when scrolled into
+   view. On wider viewports the table and actions live in document flow. */
+@media(min-width:701px){
+ body.stack-classic.pilehead-playing .toolbar.table-actions{
+  position:static!important;left:auto!important;bottom:auto!important;
+  transform:none!important;z-index:1;
+ }
+ body.stack-classic.pilehead-playing .table .card-row.hand{
+  scroll-margin-bottom:110px;
+ }
+}
+@media(min-width:900px) and (max-height:1000px){
+ body.stack-classic.pilehead-playing .table{
+  min-height:0!important;
+  grid-template-rows:minmax(82px,auto) minmax(164px,1fr) minmax(89px,auto) minmax(150px,auto);
+  padding-top:10px!important;
+  padding-bottom:8px!important;
+  gap:4px!important;
+ }
+ body.stack-classic.pilehead-playing .table .table-center{min-height:165px!important}
+ body.stack-classic.pilehead-playing .table .opponents{min-height:79px!important}
+ body.stack-classic.pilehead-playing .table .zone.your-up{min-height:92px!important}
+ body.stack-classic.pilehead-playing .table .zone .card-row{min-height:83px!important}
+ body.stack-classic.pilehead-playing .table .card-row.hand{
+  min-height:150px!important;
+  padding-top:10px!important;
+ }
+ body.stack-classic.pilehead-playing .table .card-row.hand .card{
+  --card-w:98px;--card-h:136px;
+ }
+}
+@media(max-width:700px){
+ html:has(body.stack-classic.pilehead-playing){scroll-padding-bottom:205px}
+ body.stack-classic.pilehead-playing .table .hand-area .card-row.hand .card{
+  scroll-margin-bottom:205px;
+ }
+}
