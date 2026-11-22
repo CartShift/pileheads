@@ -76,9 +76,10 @@ check('mobile rules are content-sized and protect card visibility',()=>{
  assert.match(css,/\.hand-scroll-arrow/);
  assert.match(css,/\.hand-controls/);
 });
-check('online effect feedback remains; Classic removes always-on effect panels',()=>{
- assert.match(online,/\(selectedEffect\(\)\|\|lastEffect\(\)\)\+tableActions\(/);
- assert.doesNotMatch(local,/\(selectedEffect\(\)\|\|lastEffect\(\)\)\+tableActions\(/);
+check('no always-on move explanation; selected action guidance remains available',()=>{
+ assert.match(online,/selectedEffect\(\)\+tableActions\(\)/);
+ assert.doesNotMatch(online,/lastEffect\(\)/);
+ assert.doesNotMatch(local,/lastEffect\(\)/);
  assert.match(local,/tableActions\(\{turn,legal,pick,slams,snap,stage\}\)/);
 });
 console.log('PILEHEAD contextual UX: '+checks+' state checks passed');
