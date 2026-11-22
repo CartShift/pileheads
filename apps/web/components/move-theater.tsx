@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import type { Event } from "../lib/engine";
+import type { BlindReveal } from "../lib/room";
 
 type Point = {x:number;y:number};
 type Scene = {
@@ -22,6 +23,7 @@ type Scene = {
 type Props = {
   gameKey:string; moveNo:number; phase:string; events:Event[];
   me:number; theme:"characters"|"original"; nameForSeat:(seat:number)=>string;
+  blindReveal?:BlindReveal|null;
 };
 const DURATION=2100;
 const ACTIONS=["reset","ghost","under","skip","burn","dump"];
@@ -66,7 +68,7 @@ function buildScene(event:Event,key:string,me:number,name:(seat:number)=>string)
  const own=event.seat===me;
  const seatSelector='.opponent-seat[data-seat="'+event.seat+'"]';
  const actorHand=center(lookup(own?".hand-stage":seatSelector+" .opponent-card-stack"))||pile;
- const origin=event.source==="down"?
+ const origin=(event.source==="down"||event.type==="blind-fail")?
    center(lookup(own?".faceup-row .blind-under":seatSelector+" .mini-back")):
    event.source==="up"?
    center(lookup(own?".faceup-row .visible-up":seatSelector+" .opponent-up")):
@@ -105,9 +107,9 @@ function vector(from:Point,to:Point):CSSProperties{
  } as CSSProperties;
 }
 
-export default function MoveTheater({gameKey,moveNo,phase,events,me,theme,nameForSeat}:Props){
+export default function MoveTheater({gameKey,moveNo,phase,events,me,theme,nameForSeat,blindReveal}:Props){
  const [scene,setScene]=useState<Scene|null>(null);
- const queue=useRef<Event[]>([]);
+ const queue=useRef<Array<{event:Event;reveal:BlindReveal|null}>>([]);
  const cursor=useRef({gameKey:"",move:0});
  const running=useRef(false);
  const timer=useRef<ReturnType<typeof setTimeout>|null>(null);
@@ -117,8 +119,15 @@ export default function MoveTheater({gameKey,moveNo,phase,events,me,theme,nameFo
  pump.current=()=>{
    if(running.current||!queue.current.length)return;
    if(document.visibilityState==="hidden"){queue.current=[];return}
-   const event=queue.current.shift()!;
+   const queued=queue.current.shift()!;
    const ctx=latest.current;
+   // A failed blind play emits only a pickup event. Its public face is
+   // supplied separately by the authoritative blindReveal, never guessed.
+   const event=queued.event.type==="blind-fail" && queued.reveal?.move===queued.event.move ?
+     {...queued.event,source:"down" as const,
+       rank:queued.reveal.card.kind==="number"?queued.reveal.card.rank:undefined,
+       action:queued.reveal.card.kind==="action"?queued.reveal.card.action:undefined}:
+     queued.event;
    const key=gameKey+":"+event.move;
    const next=buildScene(event,key,ctx.me,ctx.nameForSeat);
    if(!next){pump.current();return}
@@ -144,17 +153,18 @@ export default function MoveTheater({gameKey,moveNo,phase,events,me,theme,nameFo
      .sort((a,b)=>(a.move||0)-(b.move||0));
    if(!fresh.length && events.length)fresh.push(events[events.length-1]);
    cursor.current.move=moveNo;
-   queue.current.push(...fresh.slice(-6));
+   queue.current.push(...fresh.slice(-6).map(event=>({event,
+     reveal:blindReveal?.move===event.move?blindReveal:null})));
    if(queue.current.length>8)queue.current.splice(0,queue.current.length-8);
    pump.current();
- },[gameKey,moveNo,phase,events]);
+ },[gameKey,moveNo,phase,events,blindReveal]);
  useEffect(()=>()=>{
    if(timer.current!==null)clearTimeout(timer.current);
    queue.current=[];running.current=false;
  },[]);
  if(!scene)return null;
  const e=scene.event;
- const flight=e.type!=="take"&&e.type!=="blind-fail"&&e.type!=="dump-pending";
+ const flight=e.type!=="take"&&e.type!=="dump-pending";
  const blind=e.source==="down";
  const transfer=scene.transfer!=="none"&&scene.transferCount>0;
  const onlyBack=e.type==="blind-fail";
