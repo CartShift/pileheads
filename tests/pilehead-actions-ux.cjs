@@ -32,11 +32,11 @@ function renderLocal({phase='play',turn=true,selection=[10],legal=[],pick=false,
 }
 let checks=0;
 const check=(name,fn)=>{fn();checks++;console.log('PASS '+name)};
-check('empty pile offers meaningful instruction, not three disabled buttons',()=>{
- for(const render of [renderOnline,renderLocal]){
-  const html=render({selection:[]});assert.match(html,/Select a card/);
-  assert.doesNotMatch(html,/<button/);
- }
+check('Classic has no idle dock; online remains unchanged',()=>{
+ assert.equal(renderLocal({selection:[]}), '', 'Classic should not show unavailable controls');
+ const onlineHtml=renderOnline({selection:[]});
+ assert.match(onlineHtml,/Select a card/);
+ assert.doesNotMatch(onlineHtml,/<button/);
 });
 check('online legal selection reveals a specific enabled play action',()=>{
  const html=renderOnline({legal:{type:'play',source:'hand',ids:[10]}});
@@ -44,8 +44,7 @@ check('online legal selection reveals a specific enabled play action',()=>{
 });
 check('local legal selection reveals Play and bad selection explains itself',()=>{
  assert.match(renderLocal({legal:[{type:'play',source:'hand',ids:[10]}]}),/data-do="play"/);
- const invalid=renderLocal();assert.match(invalid,/Choose a legal combination/);
- assert.doesNotMatch(invalid,/data-do="play"/);
+ const invalid=renderLocal();assert.equal(invalid,'','bad selection must not generate redundant guidance');
 });
 check('a valid Take action is visible in either mode',()=>{
  assert.match(renderOnline({selection:[],take:true}),/Take pile · 3/);
@@ -77,7 +76,9 @@ check('mobile rules are content-sized and protect card visibility',()=>{
  assert.match(css,/\.hand-scroll-arrow/);
  assert.match(css,/\.hand-controls/);
 });
-check('special effect explanation is adjacent to and above actions',()=>{
- for(const src of [online,local])assert.match(src,/\(selectedEffect\(\)\|\|lastEffect\(\)\)\+tableActions\(/);
+check('online effect feedback remains; Classic removes always-on effect panels',()=>{
+ assert.match(online,/\(selectedEffect\(\)\|\|lastEffect\(\)\)\+tableActions\(/);
+ assert.doesNotMatch(local,/\(selectedEffect\(\)\|\|lastEffect\(\)\)\+tableActions\(/);
+ assert.match(local,/tableActions\(\{turn,legal,pick,slams,snap,stage\}\)/);
 });
 console.log('PILEHEAD contextual UX: '+checks+' state checks passed');
