@@ -50,9 +50,10 @@ check('mobile controls are contextual and table height comes from cards',()=>{
  assert.match(css,/\.hand-controls/);
  assert.match(fx,/matchMedia\('\(max-width:700px\)'\)\.matches/);
 });
-check('online keeps effect notes while Classic removes duplicate banners',()=>{
+check('selected-card guidance remains available without an always-on move banner',()=>{
  const game=online.slice(online.indexOf('function playView(){'));
- assert.ok(game.includes('(selectedEffect()||lastEffect())+tableActions('));
+ assert.ok(game.includes('selectedEffect()+tableActions('));
+ assert.doesNotMatch(game,/lastEffect\(\)/);
  const localView=local.slice(local.indexOf('function gameView(){'),local.indexOf('function endScreen(){'));
  assert.doesNotMatch(localView,/selectedEffect\(\)\|\|lastEffect\(\)/);
  assert.match(css,/selected action-card explanation takes priority/);
