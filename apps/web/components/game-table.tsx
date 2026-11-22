@@ -969,7 +969,7 @@ export default function GameTable() {
 
       <MoveTheater gameKey={mode === "local" ? "local:" + local?.seed :
         "online:" + room?.code + ":" + g.round}
-        moveNo={g.moves} phase={g.phase} events={g.events} me={me}
+        moveNo={g.moves} phase={g.phase} events={g.events} blindReveal={g.blindReveal} me={me}
         theme={deckTheme} nameForSeat={nameForSeat} />
       <div className="tabletop" role="region" aria-label="STACK card game">
         <div className="table-texture" aria-hidden="true" />
