@@ -160,7 +160,8 @@ export default function MoveTheater({gameKey,moveNo,phase,events,me,theme,nameFo
  return createPortal(
   <div className="move-story-overlay" data-move={e.move} data-kind={scene.kind}
      role="status" aria-live="polite" aria-atomic="true">
-   <div className="move-story-caption" data-kind={scene.kind}>
+   <div className="move-story-caption" data-kind={scene.kind}
+     style={{left:scene.pile.x,top:Math.max(105,scene.pile.y-126)}}>
      <strong>{scene.label}</strong><span>{scene.detail}</span>
    </div>
    {flight&&<div className="move-story-flight" data-blind={blind?"true":"false"}
