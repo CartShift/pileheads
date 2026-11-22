@@ -22,6 +22,7 @@ export type Event = {
   count?: number;
   target?: number;
   burned?: boolean;
+  erodedCount?: number;
   rank?: number;
   move?: number;
 };

@@ -24,6 +24,14 @@ const PRACTICE_KEY = "stack-next-practice-mode-v1";
 const FINAL_DUEL_KEY = "stack-final-duel-default-v1";
 type EndgameRule = "classic" | "final-duel";
 type DeckTheme = "characters" | "original";
+type HandSort = "dealt" | "asc" | "desc";
+function orderedHand(cards: Card[], mode: HandSort) {
+  if (mode === "dealt") return cards;
+  const weight = (card: Card) => card.kind === "number" ? card.rank || 0 :
+    11 + ACTIONS.indexOf(card.action || "reset");
+  return [...cards].sort((a,b) =>
+    (mode === "asc" ? 1 : -1) * (weight(a) - weight(b)) || a.id - b.id);
+}
 function loadSavedGame(): Game | null {
   try {
     const data = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
@@ -186,9 +194,11 @@ function PlayerPosition({ name, seat, active, self, out, handCount, up, downCoun
 
 function eventText(e: Event | undefined, name: (seat: number) => string) {
   if (!e) return "Choose your move. Every card changes the table.";
-  if (e.type === "take" || e.type === "blind-fail") return `${name(e.seat)} picked up the pile`;
+  if (e.type === "take" || e.type === "blind-fail")
+    return `${name(e.seat)} picked up the pile${e.erodedCount ? " · top card burned" : ""}`;
   if (e.reason === "burn" || e.burned) return `${name(e.seat)} burned the pile!`;
-  if (e.reason === "dump") return `${name(e.seat)} dumped the pile on ${name(e.target ?? -1)}`;
+  if (e.reason === "dump")
+    return `${name(e.seat)} dumped the pile on ${name(e.target ?? -1)}${e.erodedCount ? " · top card burned" : ""}`;
   if (e.type === "slam") return `${name(e.seat)} made a SLAM!`;
   if (e.reason === "snap") return `${name(e.seat)} snapped another card!`;
   if (e.reason === "skip") return `${name(e.seat)} skipped a turn`;
@@ -212,6 +222,7 @@ export default function GameTable() {
   const [busy, setBusy] = useState(false);
   const [resumeGame, setResumeGame] = useState<Game | null>(null);
   const [deckTheme, setDeckTheme] = useState<DeckTheme>("characters");
+  const [handSort, setHandSort] = useState<HandSort>("dealt");
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [endgameRule, setEndgameRule] = useState<EndgameRule>("classic");
   const [showSettings, setShowSettings] = useState(false);
@@ -972,11 +983,21 @@ export default function GameTable() {
             })}
           </div>
           <div className="zone-heading hand-heading"><strong>YOUR HAND</strong>
-            <span>{g.phase === "setup" ? "Select a hand card, then a face-up card to swap" :
-              stage === "hand" ? "Tap matching cards to build a group" : "Finish your visible cards first"}</span></div>
+            <span className="hand-utilities">
+              {selection.length > 0 && <button type="button" className="hand-tool"
+                onClick={() => {setSelection([]);setNeedsTarget(false);}}>
+                Clear {selection.length}
+              </button>}
+              {g.phase === "setup" ? "Swap cards before starting" :
+                <button type="button" className="hand-tool" aria-label="Sort hand"
+                  onClick={() => setHandSort(order => order === "dealt" ? "asc" :
+                    order === "asc" ? "desc" : "dealt")}>
+                  Sort {handSort === "dealt" ? "↑" : handSort === "asc" ? "↓" : "↺"}
+                </button>}
+            </span></div>
           <div className="player-hand">
             <AnimatePresence initial={false}>
-              {(current.hand || []).map(card =>
+              {orderedHand(current.hand || [], handSort).map(card =>
                 <PlayingCard key={card.id} card={card} theme={deckTheme} selected={selection.includes(card.id) || swapHand === card.id}
                   onClick={g.phase === "setup" ? (!ready ? () => swap(card, "hand") : undefined) :
                     (active || g.followup.length > 0) && stage === "hand" ? () => chooseCard(card) : undefined}
