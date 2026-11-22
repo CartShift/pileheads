@@ -550,3 +550,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
  .pile-slot.played .react-blind-reveal.is-invalid .playing-card{animation:none}
  .pile-slot.played .react-special-ring{animation:none;opacity:0}
 }
+
+/* A single public stack silhouette travels to the recipient after the red flash. */
+.react-pickup-transfer{
+ position:fixed;z-index:99997;pointer-events:none;width:76px;
+ transform:translate(-50%,-50%);animation:react-pickup-fly 2100ms ease both;
+ filter:drop-shadow(0 7px 13px #061c16a6);will-change:transform,opacity;
+}
+.react-pickup-transfer .playing-card{width:100%!important;pointer-events:none!important}
+@keyframes react-pickup-fly{
+ 0%,52%{opacity:0;transform:translate(-50%,-50%) scale(.82)}
+ 55%{opacity:1;transform:translate(-50%,-50%) scale(.96)}
+ 64%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}
+ 85%{opacity:1;transform:translate(calc(-50% + var(--travel-x)),calc(-50% + var(--travel-y))) rotate(-10deg) scale(.65)}
+ 100%{opacity:0;transform:translate(calc(-50% + var(--travel-x)),calc(-50% + var(--travel-y))) rotate(-12deg) scale(.42)}
+}
+@media(prefers-reduced-motion:reduce){.react-pickup-transfer{display:none!important}}
