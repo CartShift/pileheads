@@ -800,8 +800,8 @@ export default function GameTable() {
         <div className="meta-right"><span>{g.moves} moves</span><span>{g.players.length} players</span></div>
       </section>
       {mode === "local" && practiceMode && !coachDismissed && g.phase !== "over" &&
-        <aside className="coach-tip" aria-label="Learning coach" role="status">
-          <div><strong>LEARN BY PLAYING</strong><span>{coachText}</span></div>
+        <aside className="coach-tip" aria-label="Learning coach">
+          <div><strong>LEARN BY PLAYING</strong><span aria-live="polite">{coachText}</span></div>
           <button type="button" onClick={() => setCoachDismissed(true)}>Hide tips</button>
         </aside>}
 
