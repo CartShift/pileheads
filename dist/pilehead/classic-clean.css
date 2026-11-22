@@ -1,0 +1,320 @@
+/* STACK Classic Quiet Table.
+   User feedback: remove secondary dashboards, not gameplay.
+   This file is local-Classic only; online and alternate table remain untouched. */
+
+/* A single restrained masthead; every secondary setting lives in Menu. */
+body.stack-classic.pilehead-playing .layout>.top{
+ position:relative!important;z-index:260!important;opacity:1!important;
+ min-height:50px!important;margin:0 auto 9px!important;
+ padding:3px 5px 8px!important;
+ display:flex!important;flex-wrap:nowrap!important;
+ justify-content:space-between!important;align-items:center!important;
+ gap:10px!important;
+ border-bottom:1px solid #c6b68b25;
+}
+body.stack-classic.pilehead-playing .layout>.top .eyebrow{display:none!important}
+body.stack-classic.pilehead-playing .layout>.top .brand{
+ font-size:clamp(27px,3.2vw,36px)!important;
+ line-height:1!important;
+}
+body.stack-classic.pilehead-playing .layout>.top .table-menu-toggle{
+ display:inline-flex!important;align-items:center;justify-content:center;
+ min-width:80px;min-height:39px!important;
+ margin-left:auto;padding:8px 13px!important;
+ background:#19372d!important;color:#f3e4c8!important;
+ border:1px solid #c7a97670!important;border-radius:10px!important;
+ box-shadow:none!important;font:750 12px/1 system-ui,sans-serif!important;
+}
+body.stack-classic.pilehead-playing .layout>.top .links{
+ position:absolute!important;top:calc(100% + 4px)!important;right:0!important;
+ left:auto!important;z-index:500!important;
+ display:none!important;flex-direction:column!important;align-items:stretch!important;
+ width:min(310px,calc(100vw - 20px))!important;max-height:min(77dvh,620px);
+ overflow-y:auto;overscroll-behavior:contain;
+ padding:10px!important;gap:5px!important;
+ border:1px solid #bfaa7a99!important;border-radius:13px!important;
+ background:#102b23f9!important;
+ backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+ box-shadow:0 20px 48px #000c!important;
+}
+body.stack-classic.pilehead-playing .layout>.top .links.is-open{display:flex!important}
+body.stack-classic.pilehead-playing .layout>.top .links a,
+body.stack-classic.pilehead-playing .layout>.top .links button{
+ display:flex!important;justify-content:flex-start!important;align-items:center!important;
+ min-height:42px!important;width:100%!important;
+ border:1px solid #d5bd8350!important;border-radius:8px!important;
+ background:#1b4034!important;color:#f4e4c8!important;
+ padding:10px 12px!important;
+ font:700 12px/1.25 system-ui,sans-serif!important;
+ text-decoration:none!important;
+}
+body.stack-classic.pilehead-playing .layout>.top .links [hidden]{display:none!important}
+body.stack-classic.pilehead-playing .layout>.top .links #classic-undo{
+ background:#e5d5ae!important;color:#1e3529!important;
+ border-color:#e5c894!important;
+}
+body.stack-classic.pilehead-playing .layout>.top .links #new{
+ background:#d77353!important;color:#fff7e5!important;
+ border-color:#efaa88!important;
+}
+body.stack-classic.pilehead-playing .layout>.top .links .stack-deck-picker{
+ order:20;margin:5px 0 0;min-width:0;width:100%;
+ display:flex;flex-direction:column;gap:5px;
+ padding:10px 10px 4px;border-top:1px solid #b9a1775e;
+ background:transparent;
+}
+body.stack-classic.pilehead-playing .layout>.top .links .stack-deck-picker-label{
+ font:750 11px/1.4 system-ui,sans-serif!important;
+ color:#d6bf96!important;
+}
+body.stack-classic.pilehead-playing .layout>.top .links .stack-deck-picker select{
+ width:100%!important;min-height:40px!important;
+ border-radius:8px!important;
+ background:#1e4236!important;color:#f4ebd4!important;
+ border:1px solid #b6a27f99!important;
+}
+body.stack-classic.pilehead-playing .layout>.top .links #new,
+body.stack-classic.pilehead-playing .layout>.top .links #classic-undo{order:-2}
+body.stack-classic.pilehead-playing .layout>.top .links a[href="?online=1"]{order:-1}
+
+/* One quiet status line. The pile itself already shows its rule and count. */
+body.stack-classic.pilehead-playing .pilehead-table-hud{
+ width:min(100%,1120px);min-height:51px!important;
+ margin:4px auto 10px!important;padding:8px 12px!important;
+ display:flex;align-items:center;gap:12px!important;
+ border:1px solid #bdb68c66!important;border-left:3px solid #d9aa68!important;
+ border-radius:11px!important;
+ background:linear-gradient(112deg,#efe1c3,#f5e9cf)!important;
+ box-shadow:0 3px 0 #071b14a0!important;
+}
+body.stack-classic.pilehead-playing .pilehead-table-hud .hud-main{
+ flex:1;min-width:0;display:flex;align-items:center;gap:11px!important;
+}
+body.stack-classic.pilehead-playing .pilehead-table-hud .hud-status{
+ display:inline-flex;flex:none;align-items:center;gap:7px;
+ color:#203c2c;font:850 14px/1.3 system-ui,sans-serif!important;
+ letter-spacing:0!important;text-transform:none!important;
+}
+body.stack-classic.pilehead-playing .pilehead-table-hud .hud-guidance{
+ display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+ color:#6a6955!important;font:600 11px/1.3 system-ui,sans-serif!important;
+}
+body.stack-classic.pilehead-playing .pilehead-table-hud .hud-dot{
+ flex:none;width:8px;height:8px;border-radius:50%;
+}
+body.stack-classic.pilehead-playing .stack-rules-peek{z-index:300!important}
+body.stack-classic.pilehead-playing .stack-rules-peek summary{
+ min-height:32px!important;min-width:48px!important;
+ border:1px solid #d4c199;border-radius:8px!important;
+ background:#1c4234!important;color:#f9e8c4!important;
+ font:750 11px/1 system-ui,sans-serif!important;padding:6px 9px!important;
+}
+
+/* Cards and opponents are the scene. No framed opponent dashboards. */
+body.stack-classic.pilehead-playing .table .opponents{
+ width:min(91%,900px)!important;min-height:0!important;
+ padding:0!important;gap:clamp(4px,1vw,12px)!important;
+}
+body.stack-classic.pilehead-playing .table .opponent{
+ padding:3px 6px 2px!important;
+ background:transparent!important;border:1px solid transparent!important;
+ box-shadow:none!important;border-radius:9px!important;
+}
+body.stack-classic.pilehead-playing .table .opponent.current{
+ background:#f2d18c13!important;
+ border-color:#f2d18c70!important;
+ box-shadow:inset 0 0 0 1px #f3d29626!important;
+}
+body.stack-classic.pilehead-playing .table .opponent strong{
+ font-size:11px!important;margin:0 0 2px!important;
+}
+body.stack-classic.pilehead-playing .table .opponent small{
+ display:block;font-size:9px!important;opacity:.85;
+}
+body.stack-classic.pilehead-playing .table .opponent .held-cards{
+ height:20px!important;min-height:20px!important;margin:1px auto 0!important;
+}
+body.stack-classic.pilehead-playing .table .opponent .held-back{
+ height:20px!important;width:15px!important;
+}
+body.stack-classic.pilehead-playing .table .opponent .mini-cards{
+ height:28px!important;min-height:0!important;margin:2px auto 0!important;
+}
+body.stack-classic.pilehead-playing .table .opponent .mini{
+ width:20px;height:27px;font-size:10px;
+}
+body.stack-classic.pilehead-playing .table .stack[data-play-target]{
+ background:transparent!important;
+ border:1px dashed #d5c39a69!important;
+ box-shadow:none!important;
+}
+body.stack-classic.pilehead-playing .table .stack[data-play-target].is-armed{
+ background:#e9c77615!important;
+ border-color:#e9c776!important;box-shadow:0 0 0 2px #e9c77630!important;
+}
+body.stack-classic.pilehead-playing .table{
+ background:radial-gradient(ellipse at 50% 45%,#27614e 0%,#164637 75%,#10382d 100%)!important;
+}
+body.stack-classic.pilehead-playing .table .hand-area{
+ border-top:1px solid #d4c69c45!important;
+ background:linear-gradient(180deg,transparent,#041c1644)!important;
+}
+body.stack-classic.pilehead-playing .table .area-label,
+body.stack-classic.pilehead-playing .table .stack-label{
+ font-size:10px!important;letter-spacing:.1em!important;
+ color:#ecd4a7!important;
+}
+
+/* The dock exists only when a player has a real, actionable button. */
+body.stack-classic.pilehead-playing .toolbar.table-actions{
+ min-height:0!important;gap:7px!important;
+ width:min(100%,670px)!important;max-width:670px!important;
+ margin:10px auto 6px!important;padding:7px!important;
+ border:1px solid #bdab7b82!important;
+ border-radius:11px!important;background:#15372ded!important;
+ box-shadow:0 5px 16px #0006!important;
+}
+body.stack-classic.pilehead-playing .toolbar.table-actions .action{
+ min-height:46px!important;
+ flex:1 1 125px;border-radius:8px!important;
+ font:780 13px/1.1 system-ui,sans-serif!important;
+}
+body.stack-classic.pilehead-playing .toolbar.table-actions .primary{
+ flex:1.4 1 150px;
+}
+body.stack-classic.pilehead-playing .toolbar.table-actions .secondary{
+ background:#e6dfc9!important;color:#1c362a!important;
+}
+body.stack-classic.pilehead-playing .toolbar.table-actions .table-action-prompt,
+body.stack-classic.pilehead-playing .toolbar.table-actions .stack-classic-preview{display:none!important}
+
+/* The detail drawer is genuinely secondary, and starts closed. */
+body.stack-classic.pilehead-playing .stack-classic-more{
+ width:min(100%,670px);margin:8px auto 24px;
+ border:0;border-radius:9px;background:transparent;
+ color:#b4c1ab;
+}
+body.stack-classic.pilehead-playing .stack-classic-more>summary{
+ display:inline-flex;align-items:center;gap:8px;
+ list-style:none;cursor:pointer;padding:9px 13px;
+ border:1px solid #91a1833e;border-radius:9px;
+ color:#bccebc;font:650 11px/1.2 system-ui,sans-serif;
+}
+body.stack-classic.pilehead-playing .stack-classic-more>summary::-webkit-details-marker{display:none}
+body.stack-classic.pilehead-playing .stack-classic-more>summary:before{content:"▸";font-size:11px}
+body.stack-classic.pilehead-playing .stack-classic-more[open]>summary:before{content:"▾"}
+body.stack-classic.pilehead-playing .stack-classic-more-body{
+ margin-top:8px;padding:12px;
+ border:1px solid #728d735d;border-radius:11px;
+ background:#102b22e9;
+}
+body.stack-classic.pilehead-playing .stack-classic-more .meta{
+ background:transparent;border:none;box-shadow:none;margin:0 0 8px;
+}
+body.stack-classic.pilehead-playing .stack-classic-more .move-history{
+ margin:7px auto;
+}
+body.stack-classic.pilehead-playing .stack-classic-more .playtest-tools{
+ margin:6px auto;padding:0 8px 8px;
+}
+body.stack-classic.pilehead-playing .stack-classic-error{
+ width:min(100%,670px);margin:7px auto;
+ padding:10px 13px;border-radius:9px;
+ border:1px solid #eeaa8c;background:#60332c;
+ color:#fff2dd;font-size:12px;
+}
+body.stack-classic.pilehead-playing .instructions.panel{display:none!important}
+body.stack-classic.pilehead-playing .pilehead-bridge-hint{
+ max-width:670px;margin:5px auto;padding:6px 10px;
+ border-radius:8px;background:#1e4938;color:#f8ddb4;
+ font:650 11px/1.4 system-ui,sans-serif;
+}
+body.stack-classic.pilehead-playing .stack-practice-coach{
+ max-width:670px;min-height:0;padding:9px 12px;margin:6px auto;
+}
+body.stack-classic.pilehead-playing .stack-practice-coach p{font-size:11px}
+
+/* Phone: no fixed blank command panel. Actual actions remain reachable. */
+@media(max-width:700px){
+ body.stack-classic.pilehead-playing{
+  padding-bottom:calc(23px + env(safe-area-inset-bottom))!important;
+ }
+ body.stack-classic.pilehead-playing.stack-classic-actions-active{
+  padding-bottom:calc(100px + env(safe-area-inset-bottom))!important;
+ }
+ body.stack-classic.pilehead-playing .layout>.top{
+  min-height:45px!important;margin-bottom:4px!important;
+ }
+ body.stack-classic.pilehead-playing .pilehead-table-hud{
+  min-height:44px!important;margin:0 auto 6px!important;
+  padding:6px 9px!important;
+ }
+ body.stack-classic.pilehead-playing .pilehead-table-hud .hud-main{
+  gap:7px!important;min-width:0;
+ }
+ body.stack-classic.pilehead-playing .pilehead-table-hud .hud-status{
+  font-size:12px!important;
+ }
+ body.stack-classic.pilehead-playing .pilehead-table-hud .hud-guidance{
+  font-size:10px!important;
+ }
+ body.stack-classic.pilehead-playing .table{
+  grid-template-rows:auto auto auto auto!important;
+  gap:3px!important;padding:6px 5px!important;
+ }
+ body.stack-classic.pilehead-playing .table .opponent{
+  padding:2px 3px!important;
+ }
+ body.stack-classic.pilehead-playing .table .opponent strong{
+  font-size:10px!important;
+ }
+ body.stack-classic.pilehead-playing .table .opponent .held-cards{
+  height:17px!important;min-height:17px!important;margin:0 auto!important;
+ }
+ body.stack-classic.pilehead-playing .table .opponent .held-back{
+  height:17px!important;width:13px!important;
+ }
+ body.stack-classic.pilehead-playing .table .opponent .mini-cards{
+  height:26px!important;margin:1px auto 0!important;
+ }
+ body.stack-classic.pilehead-playing .table .table-center{
+  min-height:140px!important;
+ }
+ body.stack-classic.pilehead-playing .table .stack[data-play-target]{
+  min-height:136px!important;
+ }
+ body.stack-classic.pilehead-playing .toolbar.table-actions{
+  position:fixed!important;
+  bottom:max(5px,env(safe-area-inset-bottom))!important;
+  left:50%!important;transform:translateX(-50%)!important;
+  width:min(calc(100% - 14px),520px)!important;
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  padding:6px!important;gap:6px!important;
+  z-index:75!important;margin:0!important;
+  border-radius:12px!important;
+  background:#113026f4!important;backdrop-filter:blur(12px);
+ }
+ body.stack-classic.pilehead-playing .toolbar.table-actions .action{
+  min-height:48px!important;padding:8px!important;
+  grid-column:auto!important;order:0!important;
+ }
+ body.stack-classic.pilehead-playing .toolbar.table-actions .action:only-child{
+  grid-column:1/-1!important;
+ }
+ body.stack-classic.pilehead-playing .stack-classic-more{
+  margin:7px auto 12px;padding-left:5px;
+ }
+}
+@media(max-width:380px){
+ body.stack-classic.pilehead-playing .pilehead-table-hud .hud-guidance{
+  max-width:145px;
+ }
+ body.stack-classic.pilehead-playing .table .table-center{
+  min-height:134px!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ body.stack-classic.pilehead-playing .toolbar.table-actions .action{
+  transition:none!important;animation:none!important;
+ }
+}
