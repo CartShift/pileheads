@@ -15,7 +15,7 @@ import type { Event } from "../lib/engine";
 type Point = {x:number;y:number};
 type Scene = {
   key:string; event:Event; label:string; detail:string;
-  kind:string; from:Point; pile:Point; transferTo:Point;
+  kind:string; from:Point; pile:Point; playTo:Point; transferTo:Point;
   stock:Point; hand:Point; transfer:"pickup"|"burn"|"none";
   transferCount:number; drawnCount:number;
 };
@@ -79,6 +79,7 @@ function buildScene(event:Event,key:string,me:number,name:(seat:number)=>string)
  const desc=description(event,name);
  return{
    key,event,...desc,from:origin||actorHand,pile,
+   playTo:event.action==="dump"?ashes:pile,
    transferTo:transfer==="burn"?ashes:recipientPoint||pile,
    stock,hand:actorHand,transfer,
    transferCount:transfer==="pickup"?Math.max(0,event.takenCount??event.count??0):
@@ -165,7 +166,7 @@ export default function MoveTheater({gameKey,moveNo,phase,events,me,theme,nameFo
      <strong>{scene.label}</strong><span>{scene.detail}</span>
    </div>
    {flight&&<div className="move-story-flight" data-blind={blind?"true":"false"}
-      style={vector(scene.from,scene.pile)}>
+      style={vector(scene.from,scene.playTo)}>
      {blind?<><div className="move-story-back">{cardArt(e,theme,true)}</div>
         <div className="move-story-front">{cardArt(e,theme,cardFace(e)===null)}</div></>:
         cardArt(e,theme,cardFace(e)===null)}
