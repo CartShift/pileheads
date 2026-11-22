@@ -84,6 +84,9 @@ async function run(browser,width,height,mobile){
   await page.locator('.playtest-tools summary').click();
   await page.locator('[data-do="undo"]').click();
   assert.deepEqual(await state(page),before,'solo Undo must restore every deterministic card ID and turn');
+  if(!(await page.locator('#new').isVisible())){
+   await page.locator('.table-menu-toggle').click();
+  }
   await page.locator('#new').click();
   assert.ok(await page.locator('.stack-classic-dialog').count(),'restarting shows a designed confirmation');
   await page.locator('[data-do="cancel-new"]').click();
