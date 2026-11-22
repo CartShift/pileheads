@@ -41,18 +41,20 @@ check('mobile controls are contextual and table height comes from cards',()=>{
   assert.match(source,/function tableActions\(/);
   assert.match(source,/class="toolbar table-actions"/);
   assert.match(source,/data-do="clear-selection"/);
-  assert.match(source,/table-action-prompt/);
  }
+ assert.match(online,/table-action-prompt/);
+ assert.doesNotMatch(local,/table-action-prompt/,
+  'Classic should not draw a blank contextual command dock');
  assert.match(css,/PHONE TABLE · NOVEMBER 2026/);
  assert.match(css,/grid-template-rows:auto auto auto auto/);
  assert.match(css,/\.hand-controls/);
  assert.match(fx,/matchMedia\('\(max-width:700px\)'\)\.matches/);
 });
-check('special-card explanation and latest move appear before the action rail',()=>{
- for(const source of [local,online]){
-  const game=source.slice(source.indexOf('function gameView(){')>=0?source.indexOf('function gameView(){'):source.indexOf('function playView(){'));
-  assert.ok(game.indexOf('(selectedEffect()||lastEffect())+tableActions(')>=0);
- }
+check('online keeps effect notes while Classic removes duplicate banners',()=>{
+ const game=online.slice(online.indexOf('function playView(){'));
+ assert.ok(game.includes('(selectedEffect()||lastEffect())+tableActions('));
+ const localView=local.slice(local.indexOf('function gameView(){'),local.indexOf('function endScreen(){'));
+ assert.doesNotMatch(localView,/selectedEffect\(\)\|\|lastEffect\(\)/);
  assert.match(css,/selected action-card explanation takes priority/);
 });
 check('tablet and desktop keep larger card faces while arranging groups',()=>{

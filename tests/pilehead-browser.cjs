@@ -58,12 +58,12 @@ async function run(browser,width,height,mobile){
   await stage(page,{mode:'bots',seed:117});
   let before=await state(page);
   assert.equal(before.moves,0);
-  assert.equal(await page.locator('.stack-progress-step').count(),3,'three physical card layers are visible');
-  assert.equal(await page.locator('.stack-progress-step.is-current strong').innerText(),'In hand');
+  assert.equal(await page.locator('.stack-classic-progress').count(),0,'redundant dashboard removed');
+  assert.equal(await page.locator('.table-actions').count(),0,'no blank dock blocks cards');
   const first=page.locator('.hand-area button[data-card]').first();
   await first.click();
-  assert.ok(await page.locator('.stack-classic-preview').count(),'selected-card preview is visible');
-  assert.ok(await page.locator('.stack-classic-preview').innerText(),'preview is legible');
+  assert.equal(await page.locator('.stack-classic-preview').count(),0,'no duplicate selection preview');
+  assert.ok(await page.locator('.table-actions [data-do="play"]').count(),'selection exposes Play');
   assert.equal(await page.locator('.hand-area button[aria-pressed="true"]').count(),1,'tap selects one card');
   await page.locator('[data-play-target]').click({position:{x:9,y:9}});
   const firstOutcome=await page.evaluate(()=>{
@@ -75,8 +75,10 @@ async function run(browser,width,height,mobile){
   assert.equal((await state(page)).moves,1,'pile click commits selected card');
   // Undo returns the *entire* authoritative local state, including the stock,
   // last action and any bot response. It never constructs a reverse move.
-  await page.locator('.playtest-tools summary').click();
-  await page.locator('[data-do="undo"]').click();
+  await page.locator('.table-menu-toggle').click();
+  assert.ok(await page.locator('#classic-undo').isVisible(),'Undo lives in the menu');
+  assert.ok(await page.locator('.top .links .stack-deck-picker').count(),'theme switch lives in the menu');
+  await page.locator('#classic-undo').click();
   assert.deepEqual(await state(page),before,'solo Undo must restore every deterministic card ID and turn');
   if(!(await page.locator('#new').isVisible())){
    await page.locator('.table-menu-toggle').click();
@@ -106,7 +108,8 @@ async function run(browser,width,height,mobile){
   await stage(page,{mode:'hotseat',seat:1,seed:119,snap:true});
   assert.ok(await page.locator('.overlay [data-do="hot-snap"]').count(),'SNAP available without stopping next turn');
   await page.locator('.overlay [data-do="reveal"]').click();
-  assert.ok((await page.locator('.pilehead-table-hud .hud-status').innerText()).includes('YOUR TURN'),'shared screen follows the active player');
+  assert.match(await page.locator('.pilehead-table-hud .hud-status').innerText(),/Your turn/i,
+   'shared screen follows the active player');
   before=await state(page);
   assert.equal(before.turn,1);
   await page.locator('[data-do="hot-snap"]').click();
@@ -135,13 +138,9 @@ async function run(browser,width,height,mobile){
   await page.locator('.stack-practice-coach').waitFor();
   assert.ok(await page.locator('.stack-rules-peek summary').count(),'in-game quick rules are available');
   if(mobile){
-   assert.equal(await page.locator('.stack-classic-hotkeys').isVisible(),false,
-    'keyboard hints do not crowd the phone table');
-   const bounds=await page.locator('.stack-classic-progress').boundingBox();
-   assert.ok(bounds&&bounds.x>=-2&&bounds.x+bounds.width<=width+2,
-    'mobile progress stays inside the viewport');
-   const dock=await page.locator('.table-actions').evaluate(el=>getComputedStyle(el).position);
-   assert.equal(dock,'fixed','phone actions stay reachable while navigating the table');
+   assert.equal(await page.locator('.stack-classic-hotkeys').count(),0,'no shortcut legend');
+   assert.equal(await page.locator('.stack-classic-progress').count(),0,'no stage dashboard');
+   assert.equal(await page.locator('.table-actions').count(),0,'no idle dock');
    const overlay=await page.evaluate(()=>getComputedStyle(document.querySelector('.stack-rules-peek')).position);
    assert.equal(overlay,'relative','the rules menu anchors to its own summary');
   }
@@ -150,7 +149,7 @@ async function run(browser,width,height,mobile){
   assert.equal(await page.locator('.stack-practice-coach').count(),0,'coaching can be dismissed');
   assert.ok(errors.length===0,'browser errors: '+errors.join('; '));
   console.log('PASS browser '+width+'x'+height+' '+(mobile?'touch':'desktop')+
-   ': premium HUD, layer progress, selection preview, Undo, restart, shortcut, drag, hotseat SNAP/privacy');
+   ': quiet table, contextual actions, menu Undo, restart, shortcuts, drag, hotseat SNAP/privacy');
  }catch(error){
   fs.mkdirSync('artifacts/browser',{recursive:true});
   await page.screenshot({path:path.resolve('artifacts/browser/failure-'+width+'.png'),fullPage:true}).catch(()=>{});

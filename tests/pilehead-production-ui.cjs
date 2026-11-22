@@ -21,7 +21,7 @@ function onlineStatus({turn=true,layer='hand',selection=[],legal=null,limit=null
 }
 function localStatus({turn=true,layer='hand',selection=[],limit=null}={}){
  const g={phase:'play',limit,turn:turn?0:1};
- const E={followUpOptions:()=>[],slamOptions:()=>[]};
+ const E={followUpOptions:()=>[],slamOptions:()=>[],finalDuelActive:()=>false};
  return new Function('g','viewSeat','currentStage','isTurn','covered','selection','E','playerName',
   localHud+'return tableHUD()')(g,()=>0,()=>layer,()=>turn,false,selection,E,i=>'Player '+(i+1));
 }
@@ -33,8 +33,9 @@ check('online your turn explains how to play, with a separate rank rule',()=>{
 check('number restriction and layer status are legible without the old busy dashboard',()=>{
  assert.match(onlineStatus({layer:'up',limit:{type:'under'}}),/Choose a face-up card/);
  assert.match(onlineStatus({layer:'down'}),/Choose one blind card to flip/);
- assert.match(localStatus({limit:{type:'under'}}),/NUMBERS 1–4/);
- assert.match(localStatus(),/YOUR TURN/);
+ assert.doesNotMatch(localStatus({limit:{type:'under'}}),/NUMBERS 1–4/,
+  'Classic does not duplicate pile rules in HUD');
+ assert.match(localStatus(),/Your turn/);
 });
 check('opponents and urgent reactions get correct state hints and escaped names',()=>{
  const s=onlineStatus({turn:false,name:'<Other & Co>'});
