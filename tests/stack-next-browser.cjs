@@ -190,13 +190,15 @@ async function onlineScenarios(browser, server) {
     // Regression: the opponent's Ready button must remain a real tap target
     // even after the host receives a revision and updates the lobby.
     async function assertReadyTapTarget(page, label) {
-      const hit = await page.getByRole("button", { name: "I'm ready" }).evaluate(button => {
-        const bounds = button.getBoundingClientRect();
-        const target = document.elementFromPoint(bounds.left + bounds.width / 2,
-          bounds.top + bounds.height / 2);
-        return target === button || button.contains(target);
-      });
-      assert.equal(hit, true, label + " Ready button is covered by the table");
+      // Playwright trial-click performs the same scroll and hit testing as a
+      // human tap but does not commit Ready. elementFromPoint on an offscreen
+      // button is not a meaningful clickability test.
+      try {
+        await page.getByRole("button", { name: "I'm ready" })
+          .click({ trial: true, timeout: 8000 });
+      } catch (error) {
+        throw new Error(label + " Ready is not an actionable mobile tap target", { cause: error });
+      }
     }
     await assertReadyTapTarget(host, "Host");
     await assertReadyTapTarget(guest, "Guest");
