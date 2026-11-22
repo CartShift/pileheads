@@ -506,8 +506,7 @@ function celebrate(table,ev,ownSeat){
  if(ev.action==='dump'){
    specialEffect(table,'dump',280);
   cue(table,'DUMP');
-  // DUMP itself is burned: it must NEVER enter the recipient's hand.
-  playCards(table,ev,ownSeat,{to:landmark(table,'ashes'),via:landmark(table,'pile'),fade:true});
+  // DUMP is already in ashes. Only the actual pile travels to its target.
   later(()=>particles(landmark(table,'ashes'),'burn'),330);
   if(ev.erodedCount){
    cue(table,'FINAL DUEL · TOP CARD BURNS');
@@ -516,10 +515,10 @@ function celebrate(table,ev,ownSeat){
   }
   pickupCards(table,ev,ownSeat,ev.target,ev.erodedCount?670:370,ev.takenCount);
   snap('pickup');
-  drawCards(table,ev,ownSeat,530);
-  return 1050;
+  return 850;
  }
- playCards(table,ev,ownSeat);
+ // The played card is already in the authoritative pile: a second flying
+ // copy would mislead players into seeing a double move.
  if(ev.burned){
    specialEffect(table,'burn',350);
   cue(table,ev.type==='slam'?'SLAM':'BURN');
@@ -541,8 +540,9 @@ function celebrate(table,ev,ownSeat){
   if(ev.action==='ghost')pulse(landmark(table,'pile'),'turn');
   snap('play');
  }else snap('play');
- drawCards(table,ev,ownSeat,ev.burned?530:310);
- return ev.burned?1050:Math.max(650,Number(ev.drawnCount)?910:620);
+ // Stock/hand counters and cards have already updated. Do not replay
+ // synthetic card draws over cards that are already visible in the hand.
+ return ev.burned?900:620;
 }
 function turnPulse(table,seat,ownSeat){
  if(!table||!canMove()||seat===null||seat===undefined)return;
@@ -607,7 +607,8 @@ function sync({event=null,events=[],identity=null,gameKey=null,ownSeat=0,active=
   clearMotion();
   table.classList.add('scene-entering');
   later(()=>table.classList.remove('scene-entering'),480);
-  if(!Number(moveNo))firstDeal(table,ownSeat);
+  // Each seat already displays the new hand. A fake opening volley doubles
+  // the cards visually and competes with the starter-seat announcement.
   return;
  }
  if(last===identity)return;last=identity;
@@ -617,8 +618,11 @@ function sync({event=null,events=[],identity=null,gameKey=null,ownSeat=0,active=
   .sort((a,b)=>a.move-b.move):[];
  if(!newEvents.length&&event)newEvents=[event];
  observedMove=nextMove;
- // Prevent a reconnect after a long pause from replaying dozens of stale moves.
- motionQueue.push(...newEvents.slice(-4));if(motionQueue.length>6)motionQueue.splice(0,motionQueue.length-6);
+ // The latest committed state has replaced earlier turns. Never let
+ // a pending bot/multiplayer animation narrate an already-obsolete pile.
+ clearMotion();
+ const latest=newEvents.at(-1);
+ if(latest&&latest.move===nextMove)motionQueue.push(latest);
  if(turn!==null)pendingTurn={seat:turn,ownSeat};
  animateQueue(ownSeat);
 }
