@@ -167,8 +167,10 @@ check('new round cancels stale flight and burn callbacks',()=>{
  assert.equal(s.movements.filter(x=>x.kind==='animate').length,before,
   'A finished room must not play delayed effects from the prior game');
 });
-check('SKIP reports its public target seat for a visible skipped turn',()=>{
- const g=engine.create({players:2,seed:45});
+check('legacy two-player SKIP remains visible while fresh two-seat games omit it',()=>{
+ const fresh=engine.create({players:2,seed:45});
+ assert(!engine.effectiveDeck(fresh).some(c=>c.action==='skip'));
+ const g=engine.create({players:2,seed:45,omitSkip:false});
  engine.start(g);
  const all=[g.stock,g.pile,g.ashes,...g.people.flatMap(p=>[p.hand,p.up,p.down])];
  const source=all.find(a=>a.some(c=>c.action==='skip'));
