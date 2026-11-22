@@ -2,7 +2,7 @@
    Rules v1.6: 40 ordinary numbers (1–10 x4) + 14 independent actions (BURN x4, others x2).
    All information lives in state; rendering never determines legality. */
 (function(root){'use strict';
-const VERSION='pilehead-1.6.0',DECK_SIZE=54,ACTIONS={reset:2,ghost:2,under:2,skip:2,burn:4,dump:2};
+const VERSION='pilehead-1.7.0',DECK_SIZE=54,ACTIONS={reset:2,ghost:2,under:2,skip:2,burn:4,dump:2};
 function assert(ok,message){if(!ok)throw new Error(message)}
 function random(g){g.rng=(Math.imul(g.rng,1664525)+1013904223)>>>0;return g.rng/4294967296}
 function shuffle(a,g){for(let i=a.length-1;i>0;i--){let j=Math.floor(random(g)*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
@@ -10,13 +10,13 @@ function deck(version=VERSION){const a=[];let id=0;for(let n=1;n<=10;n++)for(let
  // Keep all original 52 card IDs intact for active rooms from older releases.
  // Additional BURN copies are IDs 52 and 53; DUMP stays at IDs 50 and 51.
  for(const [action,n] of Object.entries(ACTIONS))for(let k=0;k<(action==='burn'?2:n);k++)a.push({id:id++,kind:'action',action});
- if(version===VERSION)for(let k=2;k<ACTIONS.burn;k++)a.push({id:id++,kind:'action',action:'burn'});
+ if(version===VERSION||version==='pilehead-1.6.0')for(let k=2;k<ACTIONS.burn;k++)a.push({id:id++,kind:'action',action:'burn'});
  return a;
 }
 function create({seed=20261113,players=4}={}){
  assert(Number.isInteger(seed)&&seed>=0&&seed<=0xffffffff,'Invalid seed');
  assert(Number.isInteger(players)&&players>=2&&players<=5,'2–5 players required');
- const g={version:VERSION,seed,rng:(seed^0x53a2d18b)>>>0,phase:'setup',turn:0,
+ const g={version:VERSION,endgameRule:'final-duel',seed,rng:(seed^0x53a2d18b)>>>0,phase:'setup',turn:0,
    moves:0,stock:[],pile:[],ashes:[],limit:null,slamOpen:false,finishedOrder:[],
    loser:null,people:Array.from({length:players},(_,seat)=>({seat,hand:[],up:[],down:[],pickups:0,out:false})),
    events:[]};
@@ -160,11 +160,35 @@ function followUpOptions(g,seat){
  if(!held.length||topRun(g).rank!==rank)return[];
  return [{type:'followup',source:'hand',ids:held.map(c=>c.id)}];
 }
+// v1.7 Final Duel: once the stock is empty and only two players remain,
+// the visible top card burns on any pickup, then the rest go to the recipient.
+// Earlier rules versions continue unchanged for existing games and room codes.
+function finalDuelActive(g){
+ return g.version===VERSION&&!g.stock.length&&g.people.filter(p=>!p.out).length===2;
+}
+function collectPile(g,target){
+ assert(g.people[target]&&!g.people[target].out,'Invalid pile recipient');
+ const offeredCount=g.pile.length;
+ let erodedCount=0;
+ if(offeredCount&&finalDuelActive(g)){
+  g.ashes.push(g.pile.pop());erodedCount=1;
+ }
+ const takenCount=g.pile.length;
+ g.people[target].hand.push(...g.pile.splice(0));
+ g.people[target].pickups++;
+ return {offeredCount,takenCount,erodedCount};
+}
 function take(g,seat){
  assert(g.pile.length>0,'Cannot take an empty pile');
- const n=g.pile.length;g.people[seat].hand.push(...g.pile.splice(0));g.people[seat].pickups++;
- g.limit=null;g.slamOpen=false;g.followUp=null;g.moves++;g.turn=next(g,seat);
- const event={type:'take',seat,count:n,move:g.moves};g.events.push(event);invariant(g);return event;
+ const pickup=collectPile(g,seat);
+ g.limit=null;g.slamOpen=false;g.followUp=null;g.moves++;
+ const event={type:'take',seat,count:pickup.offeredCount,
+  takenCount:pickup.takenCount,erodedCount:pickup.erodedCount,move:g.moves};
+ g.events.push(event);
+ // The last illegal blind card can burn, leaving no cards to collect.
+ const over=finish(g);
+ if(!over)g.turn=next(g,seat);
+ invariant(g);return event;
 }
 function move(g,seat,choice){
  assert(g.phase==='play','Game is not in progress');
@@ -245,12 +269,11 @@ function move(g,seat,choice){
  // Both DUMP copies burn if played together; each performs only one forced pickup.
  if(dump)g.ashes.push(...cards);
  else g.pile.push(...cards);
- let forcedTarget=null,forcedCount=0;
+ let forcedTarget=null,forcedCount=0,erodedCount=0;
  if(dump){
   forcedTarget=selectedTarget;
-  forcedCount=g.pile.length;
-  g.people[forcedTarget].hand.push(...g.pile.splice(0));
-  g.people[forcedTarget].pickups++;
+  const pickup=collectPile(g,forcedTarget);
+  forcedCount=pickup.takenCount;erodedCount=pickup.erodedCount;
   g.limit=null;g.slamOpen=false;
  }
  let burned=false,burnedCount=0,reason=choice.type==='slam'?'slam':isFollowup?'snap':'number';
@@ -280,7 +303,7 @@ function move(g,seat,choice){
   (freshlyDrawn.some(c=>c.kind==='number'&&c.rank===card.rank)?
    {seat,rank:card.rank,ids:freshlyDrawn.filter(c=>c.kind==='number'&&c.rank===card.rank).map(c=>c.id)}:null):null;
  g.moves++;const event={type:choice.type,seat,source:s,reason,count:cards.length,burned,burnedCount,
-  rank:card.rank??null,action:card.action??null,target:forcedTarget,takenCount:forcedCount,drawnCount:freshlyDrawn.length,bridgeCount:bridgedCount,
+  rank:card.rank??null,action:card.action??null,target:forcedTarget,takenCount:forcedCount,erodedCount,drawnCount:freshlyDrawn.length,bridgeCount:bridgedCount,
   move:g.moves};
  g.events.push(event);
  const over=finish(g);
@@ -293,13 +316,12 @@ function resolveDump(g,seat,target){
  assert(g.phase==='play'&&g.pendingDump?.seat===seat,'No DUMP awaiting your decision');
  assert(dumpTargets(g,seat).includes(target),'Invalid DUMP target');
  const pending=g.pendingDump;g.pendingDump=null;
- const takenCount=g.pile.length;
- g.people[target].hand.push(...g.pile.splice(0));
- g.people[target].pickups++;
+ const pickup=collectPile(g,target);
+ const takenCount=pickup.takenCount,erodedCount=pickup.erodedCount;
  g.limit=null;g.slamOpen=false;g.followUp=null;
  g.moves++;
  const event={type:'play',seat,source:pending.source,reason:'dump',count:pending.count,
-  burned:false,burnedCount:0,rank:null,action:'dump',target,takenCount,drawnCount:0,bridgeCount:0,move:g.moves};
+  burned:false,burnedCount:0,rank:null,action:'dump',target,takenCount,erodedCount,drawnCount:0,bridgeCount:0,move:g.moves};
  g.events.push(event);
  const over=finish(g);
  if(!over)g.turn=g.people[seat].out?next(g,seat):seat;
@@ -342,7 +364,7 @@ function autoSlam(g,style='greedy',exclude=-1){if(g.phase!=='play'||!g.pile.leng
  }return null;
 }
 const api={VERSION,DECK_SIZE,ACTIONS,deck,create,start,swap,autoSetup,stage,count,invariant,
- options,slamOptions,followUpOptions,finalHandBridge,topRun,isLegal,move,resolveDump,dumpTargets,botDumpTarget,choose,autoSlam,next};
+ options,slamOptions,followUpOptions,finalHandBridge,topRun,isLegal,finalDuelActive,move,resolveDump,dumpTargets,botDumpTarget,choose,autoSlam,next};
 root.PileheadEngine=api;
 if(typeof module!=='undefined')module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
