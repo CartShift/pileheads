@@ -20,7 +20,8 @@ async function run(){
  const fixture=path.resolve(__dirname,'fixtures/mock-neon-room.cjs');
  const server=fork(path.resolve(__dirname,'../scripts/render-server.cjs'),[],{
   execArgv:['--require',fixture],env:{...process.env,PORT:String(PORT),
-   PILEHEAD_DATABASE_URL:'postgresql://test-only:fake@neon.invalid/stack'},
+   PILEHEAD_DATABASE_URL:'postgresql://test-only:fake@neon.invalid/stack',
+   NODE_ENV:'test',STACK_TEST_WS_HEARTBEAT_MS:'200'},
   stdio:['ignore','pipe','pipe','ipc']
  });
  let logs='',browser,hostContext,guestContext;
@@ -52,6 +53,22 @@ async function run(){
   await host.locator('.table').waitFor();
   await guest.locator('.table').waitFor();
   await Promise.all([waitLive(host),waitLive(guest)]);
+  // Isolate one authenticated WebSocket and leave it connected for five
+  // test heartbeats. Browsers respond to server ping with automatic pong.
+  const remainsHealthy=await host.evaluate(roomCode=>new Promise(resolve=>{
+   const token=localStorage.getItem('pilehead-online-session-'+roomCode);
+   const ws=new WebSocket('ws://'+location.host+'/api/pilehead/live');
+   let ready=false,closed=false;
+   ws.onopen=()=>ws.send(JSON.stringify({type:'auth',code:roomCode,token}));
+   ws.onmessage=event=>{try{if(JSON.parse(event.data).type==='ready')ready=true}catch{}};
+   ws.onclose=()=>closed=true;
+   ws.onerror=()=>closed=true;
+   setTimeout(()=>{
+    const healthy=ready&&!closed&&ws.readyState===WebSocket.OPEN;
+    ws.close();resolve(healthy);
+   },1150);
+  }),room);
+  assert.equal(remainsHealthy,true,'healthy pong responses keep the socket open for 5 cycles');
   await Promise.all([host.locator('.stack-starter-reveal').waitFor({state:'hidden'}),
    guest.locator('.stack-starter-reveal').waitFor({state:'hidden'})]);
 
@@ -120,7 +137,7 @@ async function run(){
   await Promise.all([host.locator('.online-lobby').waitFor(),guest.locator('.online-lobby').waitFor()]);
   assert.equal(new URL(host.url()).searchParams.get('room'),room,'rematch preserves room');
   assert.deepEqual(errors,[],'two-device browser JavaScript must remain error-free');
-  console.log('PASS live STACK: 2 private touch devices, authenticated WS, reaction without revision, SNAP race, reconnect, rematch');
+  console.log('PASS live STACK: 2 private touch devices, authenticated WS 5-ping survival, reaction without revision, SNAP race, reconnect, rematch');
  }catch(e){console.error(logs.slice(-3000));throw e}
  finally{
   await hostContext?.close().catch(()=>{});
