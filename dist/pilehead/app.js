@@ -480,7 +480,7 @@ app.addEventListener('click',e=>{
  const b=e.target.closest('button');
  if(b?.dataset.card){handleCard(Number(b.dataset.card),b.dataset.source);return}
  if(b?.dataset.do){execute(b.dataset.do,b);return}
- if(e.target.closest('[data-play-target]')&&selection.length&&isTurn())submitPlay(selectedPlay());
+ if(!e.target.closest('[data-do="inspect-pile"]')&&e.target.closest('[data-play-target]')&&selection.length&&isTurn())submitPlay(selectedPlay());
 });
 // The new-game modal is keyboard dismissible and focus remains inside it.
 document.addEventListener('keydown',e=>{
@@ -519,7 +519,7 @@ app.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&!e.target.closest('[role="dialog"]')&&selection.length){
   e.preventDefault();selection=[];render();return;
  }
- if(e.target.closest('[data-play-target]')&&(e.key==='Enter'||e.key===' ')&&selection.length&&isTurn()){
+ if(!e.target.closest('[data-do="inspect-pile"]')&&e.target.closest('[data-play-target]')&&(e.key==='Enter'||e.key===' ')&&selection.length&&isTurn()){
   e.preventDefault();submitPlay(selectedPlay());
  }
 });
