@@ -3,7 +3,7 @@
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
 document.body.classList.add('stack-classic');
 const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11',FINAL_DUEL_KEY='stack-final-duel-default-v1';
-let finalDuelEnabled=false;
+let finalDuelEnabled=false,pileOpen=false;
 try{finalDuelEnabled=localStorage.getItem(FINAL_DUEL_KEY)==='final-duel'}catch{}
 let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,botQueuedFor=null,notice='',lastMove=null,sortMode='dealt',endDismissed=false,dumpDraft=null,starterTimer=null,practiceMode=false,undoState=null,restartPrompt=false;
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
@@ -59,15 +59,37 @@ function opponents(){return '<div class="opponents">'+g.people.filter(p=>p.seat!
  playerName(p.seat)+(isCurrent?' · TURN':'')+(p.out?' · OUT':'')+'</strong><small>'+p.hand.length+
  ' in hand · '+p.up.length+' up · '+p.down.length+' blind</small><div class="held-cards" aria-label="Opponent holds '+p.hand.length+' private cards">'+Array.from({length:Math.min(p.hand.length,8)},(_,i)=>'<span class="held-back" aria-hidden="true" style="--hold-angle:'+((i-(Math.min(p.hand.length,8)-1)/2)*5)+'deg"></span>').join('')+'</div><div class="mini-cards">'+
  p.up.map(mini).join('')+p.down.slice(0,3).map(()=>mini(null)).join('')+'</div></div>'}).join('')+'</div>'}
-function pile(){const top=E.topRun(g),a=g.pile.slice(-4);return '<div class="table-center"><div class="stack">'+
- '<div class="stack-label">DRAW</div><div class="pile-card">'+(g.stock.length?'<div class="card back ph-card ph-back" style="pointer-events:none">'+A.back()+'</div>':'<div class="placeholder">EMPTY</div>')+'</div>'+
- '<div class="stack-count">'+g.stock.length+' cards</div></div><div class="stack" data-play-target="pile" role="button" tabindex="0" aria-label="Play selected cards on the pile"><div class="stack-label">THE PILE</div>'+
- '<div class="pile-card">'+(a.length?a.map((c,i)=>'<div class="card-wrap" style="--offset:'+((i-(a.length-1)/2)*8)+
- 'px;--angle:'+((i-(a.length-1)/2)*5)+'deg">'+card(c)+'</div>').join(''):'<div class="placeholder">CLEAR</div>')+
- '</div><div class="stack-count">'+g.pile.length+' cards'+(top.count>=2?' · '+top.count+' × '+top.rank:'')+'</div>'+
- '<div class="stack-count">'+(g.limit?.type==='under'?'NEXT: 1–4':g.limit?.type==='min'?'NEXT: '+g.limit.value+' or higher':'ANY NUMBER')+'</div>'+
- '</div><div class="stack"><div class="stack-label">BURNED</div><div class="pile-card"><div class="placeholder">✕</div></div>'+
- '<div class="stack-count">'+g.ashes.length+' removed</div></div></div>'}
+function blindOverlay(){
+ const reveal=g?.blindReveal;
+ if(!reveal?.card||Date.now()>=reveal.expiresAt)return '';
+ const failed=g.events?.at(-1)?.type==='blind-fail'&&g.events.at(-1).move===reveal.move;
+ return '<div class="pile-blind-reveal'+(failed?' is-invalid':'')+'" role="status" aria-label="'+
+   playerName(reveal.seat)+' revealed a '+(failed?'non-playable ':'')+'face-down card on the pile">'+
+   card({...reveal.card,id:-1})+'</div>';
+}
+function pileInspector(){
+ if(!pileOpen||!g)return '';
+ return '<div class="pile-inspect-shade"><section class="pile-inspect-panel" role="dialog" aria-modal="true" aria-label="Played pile cards">'+
+  '<header><div><strong>THE PILE</strong><span>'+g.pile.length+' played cards · oldest to newest</span></div>'+
+  '<button type="button" class="action secondary" data-do="close-pile" aria-label="Close pile inspection">Close ✕</button></header>'+
+  '<div class="pile-inspect-grid">'+(g.pile.length?g.pile.map(c=>card(c)).join(''):'<p>The pile is empty.</p>')+'</div>'+
+  '<p>Only previously played cards are visible. The draw deck stays face down.</p></section></div>';
+}
+function pile(){
+ const top=E.topRun(g),a=g.pile.slice(-5);
+ return '<div class="table-center"><div class="stack">'+
+  '<div class="stack-label">DRAW</div><div class="pile-card">'+
+  (g.stock.length?'<div class="card back ph-card ph-back" style="pointer-events:none">'+A.back()+'</div>':'<div class="placeholder">EMPTY</div>')+'</div>'+
+  '<div class="stack-count">'+g.stock.length+' cards</div></div>'+
+  '<div class="stack" data-play-target="pile" role="button" tabindex="0" aria-label="Play selected cards on the pile"><div class="stack-label">THE PILE</div>'+
+  '<div class="pile-card">'+(a.length?a.map((c,i)=>'<div class="card-wrap" style="--offset:'+((i-(a.length-1)/2)*10)+
+  'px;--angle:'+((i-(a.length-1)/2)*5)+'deg">'+card(c)+'</div>').join(''):'<div class="placeholder">CLEAR</div>')+
+  blindOverlay()+'</div><div class="stack-count">'+g.pile.length+' cards'+(top.count>=2?' · '+top.count+' × '+top.rank:'')+'</div>'+
+  '<div class="stack-count">'+(g.limit?.type==='under'?'NEXT: 1–4':g.limit?.type==='min'?'NEXT: '+g.limit.value+' or higher':'ANY NUMBER')+'</div>'+
+  '<button type="button" class="pile-inspect-button" data-do="inspect-pile" '+(!g.pile.length?'disabled':'')+' aria-label="Inspect all played cards">Inspect pile</button>'+
+  '</div><div class="stack"><div class="stack-label">BURNED</div><div class="pile-card"><div class="placeholder">✕</div></div>'+
+  '<div class="stack-count">'+g.ashes.length+' removed</div></div></div>';
+}
 function bridgeAvailable(){
  if(!g||g.phase!=='play'||!isTurn())return false;
  return !!E.finalHandBridge(g,viewSeat());
@@ -173,7 +195,7 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  const top=E.topRun(g),summary=g.phase==='over'?'Game over. '+playerName(g.loser)+' is the PILEHEAD.':
   turn?'Your turn · '+(stage==='down'?'Flip one blind card':stage==='up'?'Play from your face-up row':'Choose cards from your hand'):
   playerName(g.turn)+' is playing · watch for a SLAM!';
- return '<div class="pitch"><h1>'+summary+'</h1><p>'+E.deck(g.version).length+' custom cards · 40 numbers · '+(E.deck(g.version).length-40)+' actions · '+g.people.length+' players</p></div>'+
+ return '<div class="pitch"><h1>'+summary+'</h1><p>'+E.effectiveDeck(g).length+' custom cards · 40 numbers · '+(E.effectiveDeck(g).length-40)+' actions · '+g.people.length+' players</p></div>'+
  tableHUD()+'<section class="table" aria-label="PILEHEAD physical table">'+opponents()+pile()+
  upAndDown(p,selectable)+
  '<div class="hand-area"><div class="area-label"><span>YOUR HAND <b>· '+p.hand.length+'</b></span><span class="hand-controls">'+
@@ -241,7 +263,7 @@ function render(){
  const key=focused?.tagName==='SUMMARY'&&focused.parentElement?.classList.contains('move-history')?{type:'history'}:
   focused?.dataset?.card?{type:'card',id:focused.dataset.card,source:focused.dataset.source}:
   focused?.dataset?.do?{type:'action',name:focused.dataset.do}:null;
- app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay()+
+ app.innerHTML=(g&&g.phase!=='setup'?gameView():setupView())+overlay()+pileInspector()+
   (g&&g.phase==='play'?(window.PileheadTableFX?.starterHTML?.({
    names:g.people.map(p=>playerName(p.seat)),seat:g.starterSeat??0,
    reason:g.starterReason||'draw',startedAt:g.startedAt
@@ -325,7 +347,7 @@ function queueBot(){
  }catch(e){notice='Bot error: '+e.message;render()}
  },canSlam?780:600);
 }
-function startGame(previousWinner=null){endDismissed=false;dumpDraft=null;undoState=null;restartPrompt=false;g=E.create({players:seats,seed:Date.now()>>>0,endgameRule:finalDuelEnabled?'final-duel':'classic'});
+function startGame(previousWinner=null){endDismissed=false;dumpDraft=null;undoState=null;restartPrompt=false;pileOpen=false;g=E.create({players:seats,seed:Date.now()>>>0,endgameRule:finalDuelEnabled?'final-duel':'classic'});
  const starter=practiceMode?0:previousWinner===null?Math.floor(Math.random()*seats):previousWinner;
  g.starterSeat=starter;g.starterReason=practiceMode?'practice':previousWinner===null?'draw':'winner';
  setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
@@ -390,7 +412,9 @@ function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat()
  notice='';render();
 }
 function execute(action,button){
- if(action==='cancel-new'){restartPrompt=false;render();return}
+ if(action==='inspect-pile'){pileOpen=true;render();app.querySelector('[data-do="close-pile"]')?.focus();return}
+  if(action==='close-pile'){pileOpen=false;render();app.querySelector('[data-do="inspect-pile"]')?.focus();return}
+  if(action==='cancel-new'){restartPrompt=false;render();return}
  if(action==='confirm-new'){
   restartPrompt=false;g=null;undoState=null;dumpDraft=null;selection=[];swapFrom=null;covered=false;
   challengeOpen=false;endDismissed=false;practiceMode=false;notice='';render();return;
@@ -491,7 +515,8 @@ document.addEventListener('keydown',e=>{
  }
 });
 app.addEventListener('keydown',e=>{
- if(e.key==='Escape'&&!e.target.closest('[role="dialog"]')&&selection.length){
+ if(e.key==='Escape'&&pileOpen){e.preventDefault();pileOpen=false;render();return}
+  if(e.key==='Escape'&&!e.target.closest('[role="dialog"]')&&selection.length){
   e.preventDefault();selection=[];render();return;
  }
  if(e.target.closest('[data-play-target]')&&(e.key==='Enter'||e.key===' ')&&selection.length&&isTurn()){
