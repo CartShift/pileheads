@@ -646,6 +646,41 @@ async function sharedMoveAnimationScenarios(browser) {
    console.log("PASS Next motion: "+action.toUpperCase()+" visible card movement and effect");
   }finally{await context.close()}
  }
+ // Force an illegal blind card without leaking its identity before the flip.
+ const fail=E.create({players:2,seed:33497});
+ E.start(fail);
+ const down=fail.people[0].down;
+ fail.ashes.push(...fail.stock.splice(0),...fail.people[0].hand.splice(0),
+  ...fail.people[0].up.splice(0),...down.splice(1));
+ if(!(down[0].kind==="number"&&down[0].rank<10)){
+  const zones=[fail.ashes,fail.pile,...fail.people.flatMap(p=>[p.hand,p.up,p.down])];
+  const source=zones.find(arr=>arr.some(c=>c.kind==="number"&&c.rank===1));
+  const index=source.findIndex(c=>c.kind==="number"&&c.rank===1);
+  [source[index],down[0]]=[down[0],source[index]];
+ }
+ fail.limit={type:"min",value:10};
+ fail.pile.push(fail.ashes.pop());
+ E.invariant(fail);
+ const blindCtx=await browser.newContext({viewport:{width:390,height:844},
+  reducedMotion:"no-preference",isMobile:true,hasTouch:true});
+ await blindCtx.addInitScript(game=>localStorage.setItem("stack-next-local-save-v1",
+  JSON.stringify({version:1,game})),fail);
+ const blindPage=await blindCtx.newPage();
+ try{
+  await blindPage.goto(WEB+"/play");
+  await blindPage.getByRole("button",{name:"Resume game"}).click();
+  await blindPage.locator(".faceup-row .blind-under .card-hit").first().click();
+  const scene=blindPage.locator('.move-story-overlay[data-kind="reject"]');
+  await scene.waitFor({timeout:6000});
+  assert.ok(await scene.locator('.move-story-flight[data-blind="true"]').count(),
+   "the failed blind card must fly and reveal on the pile");
+  assert.ok(await scene.locator(".move-story-front .playing-card:not(.is-back)").count(),
+   "the public face is revealed on both displays");
+  const late=await scene.locator(".move-story-transfer").evaluate(el=>
+   getComputedStyle(el).animationDelay);
+  assert.equal(late,"1.13s","red flash must happen before pile collection");
+  console.log("PASS Next blind flip: revealed face, red rejection, then pile pickup");
+ }finally{await blindCtx.close()}
  // System reduced motion still communicates what happened, without flying cards.
  const g=E.create({players:2,seed:28111});
  E.start(g);
