@@ -89,6 +89,7 @@ function asLocalRoom(game: Game): RoomGame {
     events: game.events,
     reactions: [],
     blindReveal: game.blindReveal || null,
+    omitSkip: game.omitSkip === true,
     legal: game.phase === "play" && game.turn === 0 ? Engine.options(game, 0) : [],
     slam: game.phase === "play" ? Engine.slamOptions(game, 0) : [],
     followup: game.phase === "play" ? Engine.followUpOptions(game, 0) : [],
@@ -168,7 +169,7 @@ function PlayerPosition({ name, seat, active, self, out, handCount, up, downCoun
   handCount: number; up: Card[]; downCount: number; presence?: string; reaction?: string;
 }) {
   return <div className={`opponent-seat ${active ? "seat-active" : ""} ${out ? "seat-out" : ""}`}
-    aria-label={`${name}: ${handCount} in hand, ${up.length} face-up, ${downCount} face-down`}>
+    data-seat={seat} aria-label={`${name}: ${handCount} in hand, ${up.length} face-up, ${downCount} face-down`}>
     <div className="seat-heading">
       <span className="avatar" aria-hidden="true">{self ? "Y" : String(seat + 1)}</span>
       <div><strong>{name}</strong><small>{out ? "Finished" : presence === "offline" ? "Offline" :
@@ -233,6 +234,11 @@ export default function GameTable() {
   const [practiceMode, setPracticeMode] = useState(false);
   const [coachDismissed, setCoachDismissed] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const [pileOpen, setPileOpen] = useState(false);
+  const [specialFx, setSpecialFx] = useState<string | null>(null);
+  const [pickupFx, setPickupFx] = useState<{key:string;x:number;y:number;dx:number;dy:number}|null>(null);
+  const lastPickupMove = useRef("");
+  const lastAnimatedMove = useRef("");
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -526,6 +532,43 @@ export default function GameTable() {
 
   const g = useMemo(() => mode === "local" && local ? asLocalRoom(local) : mode === "online" ? room?.game : null,
     [mode, local, room]);
+  useEffect(() => {
+    const key = [mode, room?.code || "local", g?.round || 1, g?.moves || 0].join(":");
+    if (lastAnimatedMove.current === key) return;
+    const previouslyMounted = !!lastAnimatedMove.current;
+    lastAnimatedMove.current = key;
+    const event = g?.events.at(-1);
+    if (!previouslyMounted || !event) return;
+    const action = event.action || (event.burned ? "burn" : null);
+    if (!action) return;
+    setSpecialFx(action);
+    const timeout = window.setTimeout(() => setSpecialFx(null), 950);
+    return () => window.clearTimeout(timeout);
+  }, [mode, room?.code, g?.round, g?.moves]);
+
+  // An invalid blind card glows first, then the pile flies toward the actual
+  // recipient hand on both client screens without exposing any private faces.
+  useEffect(() => {
+    const event = g?.events.at(-1);
+    if (!g || event?.type !== "blind-fail") return;
+    const key = [mode, room?.code || "local", g.round || 1, event.move].join(":");
+    if (lastPickupMove.current === key) return;
+    const raf = window.requestAnimationFrame(() => {
+      const pile = document.querySelector<HTMLElement>(".pile-slot.played");
+      const seat = mode === "local" ? 0 : room?.me ?? 0;
+      const target = event.seat === seat
+        ? document.querySelector<HTMLElement>(".hand-stage")
+        : document.querySelector<HTMLElement>(
+            '.opponent-seat[data-seat="' + event.seat + '"] .opponent-card-stack');
+      if (!pile || !target) return;
+      const from = pile.getBoundingClientRect(), to = target.getBoundingClientRect();
+      const x = from.left + from.width / 2, y = from.top + from.height / 2;
+      lastPickupMove.current = key;
+      setPickupFx({key, x, y, dx:to.left + to.width/2 - x, dy:to.top + to.height/2 - y});
+    });
+    const timeout = window.setTimeout(() => setPickupFx(null), 2150);
+    return () => { window.cancelAnimationFrame(raf); window.clearTimeout(timeout); };
+  }, [mode, room?.code, room?.me, g?.round, g?.moves]);
 
   // Keep every card in view as the hand grows. Measure the real rendered
   // width (not a guessed viewport) so Safari, browser zoom and desktop all
@@ -552,6 +595,7 @@ export default function GameTable() {
   const me = mode === "local" ? 0 : room?.me ?? 0;
   const face = g?.blindReveal;
   const showFlip = !!face && face.expiresAt > Date.now();
+  const invalidFlip = showFlip && g?.events.at(-1)?.type === "blind-fail" && g?.events.at(-1)?.move === face?.move;
   const newestReactions = (g?.reactions || []).filter(r => Date.now() - r.at < 8000);
   useEffect(() => {
     if (!newestReactions.length && !showFlip) return;
@@ -741,7 +785,7 @@ export default function GameTable() {
     if (wsRef.current) wsRef.current.close();
     setMode("home"); setLocal(null); setRoom(null); roomRef.current = null;
     tokenRef.current = null; setBusy(false); inFlight.current = false;
-    setConnected(false); setConfirmRestart(false); setShowRules(false);
+    setConnected(false); setConfirmRestart(false); setShowRules(false); setPileOpen(false);
     setShowSettings(false); setPendingRule(null); setCopiedInvite(false);
     setSelection([]); setNotice("");
     history.replaceState(null, "", "/play");
@@ -750,13 +794,13 @@ export default function GameTable() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        if (showRules || showSettings || confirmRestart || needsTarget || selection.length) {
+        if (showRules || showSettings || confirmRestart || pileOpen || needsTarget || selection.length) {
           event.preventDefault();
-          setShowRules(false); setShowSettings(false); setConfirmRestart(false); setNeedsTarget(false); setSelection([]);
+          setShowRules(false); setShowSettings(false); setConfirmRestart(false); setPileOpen(false); setNeedsTarget(false); setSelection([]);
         }
         return;
       }
-      if (showRules || showSettings || confirmRestart || event.altKey || event.metaKey || event.ctrlKey) return;
+      if (showRules || showSettings || confirmRestart || pileOpen || event.altKey || event.metaKey || event.ctrlKey) return;
       const target = event.target;
       if (target instanceof HTMLElement &&
           target.closest("input,textarea,select,[contenteditable=true]")) return;
@@ -770,10 +814,10 @@ export default function GameTable() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showRules, showSettings, confirmRestart, needsTarget, selection.length]);
+  }, [showRules, showSettings, confirmRestart, pileOpen, needsTarget, selection.length]);
 
   useEffect(() => {
-    if (!showRules && !showSettings && !confirmRestart) return;
+    if (!showRules && !showSettings && !confirmRestart && !pileOpen) return;
     const previous = document.activeElement as HTMLElement | null;
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
     const buttons = [...(dialog?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") || [])];
@@ -789,7 +833,7 @@ export default function GameTable() {
     };
     dialog?.addEventListener("keydown", trap);
     return () => { dialog?.removeEventListener("keydown", trap); previous?.focus?.(); };
-  }, [showRules, showSettings, confirmRestart]);
+  }, [showRules, showSettings, confirmRestart, pileOpen]);
 
   async function copyInvite() {
     if (!room) return;
@@ -998,14 +1042,24 @@ export default function GameTable() {
                 }
               }}>
               <AnimatePresence initial={false}>
-                {g.pile.slice(-4).map((card, i) => <div key={card.id}
-                  className="pile-layer" style={{ transform: `translate(${(i - 1.5) * 6}px, ${(i - 1.5) * -2}px) rotate(${(i - 1.5) * 3}deg)` }}>
+                {g.pile.slice(-5).map((card, i) => <div key={card.id}
+                  className="pile-layer" style={{ transform: `translate(${(i - 2) * 10}px, ${(i - 2) * -3}px) rotate(${(i - 2) * 3}deg)` }}>
                   <PlayingCard card={card} theme={deckTheme} />
                 </div>)}
               </AnimatePresence>
               {!g.pile.length && <div className="slot-empty">Pile clear</div>}
+               {showFlip && face && <div key={face.move}
+                 className={"react-blind-reveal" + (invalidFlip ? " is-invalid" : "")}
+                 role="status" aria-label={nameForSeat(face.seat) + " revealed a " + (invalidFlip ? "non-playable " : "") + "blind card"}>
+                 <PlayingCard card={{ ...face.card, id: -1, rank: face.card.rank ?? undefined,
+                   action: face.card.action ?? undefined }} theme={deckTheme} />
+               </div>}
+               {specialFx && <span key={g.moves} className="react-special-ring"
+                 data-action={specialFx} aria-hidden="true" />}
             </div>
             <span className="pile-counter">{g.pile.length} cards · {rule}</span>
+             <button type="button" className="react-pile-inspect" disabled={!g.pile.length}
+               onClick={() => setPileOpen(true)}>Inspect pile</button>
           </div>
           <div className="pile-zone">
             <span className="pile-title">BURNED</span>
@@ -1014,13 +1068,6 @@ export default function GameTable() {
           </div>
         </div>
 
-        {showFlip && face && <div className="blind-flip" role="status">
-          <PlayingCard card={{ ...face.card, id: -1, rank: face.card.rank ?? undefined,
-            action: face.card.action ?? undefined }} theme={deckTheme} small />
-          <div><strong>{nameForSeat(face.seat)} flipped a blind card</strong>
-            <span>{face.card.kind === "number" ? "Number " + face.card.rank :
-              face.card.action?.toUpperCase()}</span></div>
-        </div>}
         {finalDuel && <div className="duel-banner" role="status">
           <strong>FINAL DUEL</strong><span>Every pickup burns the visible top card first.</span>
         </div>}
@@ -1099,7 +1146,23 @@ export default function GameTable() {
         </motion.section>}
       </div>
 
-      <div className="control-panel" aria-label="Game actions">
+      {pickupFx && createPortal(<div key={pickupFx.key} className="react-pickup-transfer"
+         style={{left:pickupFx.x,top:pickupFx.y,
+           "--travel-x":pickupFx.dx+"px","--travel-y":pickupFx.dy+"px"} as CSSProperties}
+         aria-hidden="true"><PlayingCard hidden theme={deckTheme} /></div>,document.body)}
+       {pileOpen && <div className="react-pile-backdrop" onClick={() => setPileOpen(false)}>
+         <section className="react-pile-panel" role="dialog" aria-modal="true" aria-label="All played pile cards"
+           onClick={e => e.stopPropagation()}>
+           <header><div><strong>THE PILE</strong><small>{g.pile.length} played cards · oldest to newest</small></div>
+             <button type="button" className="secondary-button" onClick={() => setPileOpen(false)}>Close</button></header>
+           <div className="react-pile-grid">{g.pile.length
+             ? g.pile.map(card => <div className="react-pile-item" key={card.id}>
+                 <PlayingCard card={card} theme={deckTheme} /></div>)
+             : <p>The pile is empty.</p>}</div>
+           <p>Only cards that have been played are visible. The draw deck stays hidden.</p>
+         </section>
+       </div>}
+       <div className="control-panel" aria-label="Game actions">
         {g.phase === "setup" ? (
           <div className="setup-controls">
             <div><strong>{mode === "online" ? `${room?.members.length || 0} joined · ${g.players.length - g.botSeats.length} humans required` : "Set up your cards"}</strong>
@@ -1196,7 +1259,7 @@ export default function GameTable() {
           <p>Play a number equal to or higher than the current restriction, or play any special card.
             Keep three cards in hand while the draw deck lasts. Empty your hand, then your face-up cards,
             then flip your face-down cards without looking. The last player with cards loses.</p>
-          <div className="quick-rules">{ACTIONS.map(action => <div key={action}>
+          <div className="quick-rules">{ACTIONS.filter(action => !(action === "skip" && g.omitSkip)).map(action => <div key={action}>
             <strong>{action.toUpperCase()}</strong><span>{ACTION_DESCRIPTIONS[action]}</span>
           </div>)}</div>
           <p><strong>SNAP:</strong> A matching number you just drew may be played until another player acts.

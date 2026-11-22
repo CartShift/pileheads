@@ -19,6 +19,7 @@ export type Event = {
   type: string;
   seat: number;
   reason?: string;
+  action?: string;
   count?: number;
   target?: number;
   burned?: boolean;
@@ -34,6 +35,7 @@ export type Game = {
   version: string;
   phase: "setup" | "play" | "over";
   endgameRule?: "classic" | "final-duel";
+  omitSkip?: boolean;
   turn: number;
   moves: number;
   stock: Card[];

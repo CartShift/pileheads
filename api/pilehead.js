@@ -55,6 +55,7 @@ function freshGame({players,humans,bots,round=1,starterSeat=null,endgameRule='cl
 function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCount:g.stock.length,
   rulesVersion:g.version,
   endgameRule:g.version===E.VERSION&&g.endgameRule==='final-duel'?'final-duel':'classic',
+   omitSkip:g.omitSkip===true,
  round:g.round||1,humanCount:humanCount(g),botSeats:botSeats(g),
  starterSeat:g.starterSeat??0,starterReason:g.starterReason||'draw',startedAt:g.startedAt||null,
  blindReveal:g.blindReveal?.expiresAt>Date.now()?g.blindReveal:null,
