@@ -31,7 +31,8 @@ function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
  // 1.1 sessions stay on the 52-card rules rather than acquiring non-dealt cards.
  if(x.g.version==='pilehead-1.1.0')x.g.version='pilehead-1.2.0';
  E.invariant(x.g);g=x.g;mode=x.mode;seats=x.seats;setupSeat=x.setupSeat??0;practiceMode=x.practiceMode===true&&mode==='bots'&&seats===2;
- covered=mode==='hotseat'&&g.phase!=='over';challengeOpen=false;notice=x.notice||'';lastMove=x.lastMove||null;
+ covered=mode==='hotseat'&&g.phase!=='over';challengeOpen=false;lastMove=x.lastMove||null;
+  notice=x.notice&&(!lastMove||x.notice!==eventName(lastMove))?x.notice:'';
   undoState=null;
   if(mode==='bots'&&x.undoState){
    try{E.invariant(x.undoState);if(x.undoState.seed===g.seed)undoState=x.undoState}catch{}
