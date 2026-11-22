@@ -26,3 +26,11 @@ jobs:
       - run: npm install --no-save --no-audit --no-fund playwright@1.56.1
       - run: npx playwright install --with-deps chromium
       - run: node tests/stack-next-browser.cjs
+      - name: Save React tabletop visual QA
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: stack-next-tabletop-visuals
+          path: artifacts/next/
+          if-no-files-found: ignore
+          retention-days: 7

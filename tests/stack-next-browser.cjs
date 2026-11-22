@@ -5,6 +5,7 @@
  */
 const assert = require("node:assert/strict");
 const path = require("node:path");
+const fs = require("node:fs");
 const { spawn, fork } = require("node:child_process");
 const { chromium } = require("playwright");
 
@@ -83,6 +84,10 @@ async function localScenarios(browser) {
       }));
       assert.ok(viewport.page <= viewport.viewport + 2,
         "table horizontally overflows: " + JSON.stringify(viewport));
+      await page.screenshot({
+        path: path.resolve(ROOT, "artifacts/next/local-" + device.width + ".png"),
+        fullPage: true
+      });
       assert.deepEqual(errors, [], "no local client exceptions");
       console.log("PASS Next local " + device.width + "x" + device.height +
         ": play, undo, resume, themes, rules, layout");
@@ -115,6 +120,7 @@ async function onlineScenarios(browser, server) {
       null, { timeout: 14000 });
     await start.click();
     await host.getByRole("heading", { name: "Your move." }).waitFor({ timeout: 14000 });
+    await host.screenshot({path:path.resolve(ROOT,"artifacts/next/online-host.png"),fullPage:true});
     await guest.locator(".player-hand .playing-card").first().waitFor();
 
     const guestView = await guest.evaluate(async args => {
@@ -161,6 +167,7 @@ async function onlineScenarios(browser, server) {
   } finally { await Promise.all([hostCtx.close(), guestCtx.close()]); }
 }
 async function main() {
+  fs.mkdirSync(path.resolve(ROOT, "artifacts/next"), {recursive:true});
   const webProc = spawn(process.execPath, [
     path.resolve(ROOT, "apps/web/node_modules/next/dist/bin/next"), "start", "-p", String(WEB_PORT)
   ], {
