@@ -205,3 +205,51 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 @media(prefers-reduced-motion:reduce){
  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
+
+/* Progressive interaction refinements for the opt-in React table. */
+.playing-card.theme-original .card-art{
+  background-image:url("/pilehead/assets/stack-sheet.webp");
+}
+.resume-panel{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  background:linear-gradient(105deg,#275342,#153b31);
+  border:1px solid #cfe8a476;border-radius:18px;padding:18px 20px}
+.resume-panel strong{font:800 19px/1.3 Georgia,serif;display:block;margin-top:5px}
+.resume-panel p{font-size:12px;color:var(--muted);margin:5px 0 0}
+.connection-chip{border:1px solid #ebc9996c;border-radius:999px;padding:8px 12px;
+  font-size:11px;font-weight:800;white-space:nowrap}
+.connection-chip::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:#e5a867;margin-right:8px;box-shadow:0 0 9px #e5a86766}
+.connection-chip.is-online{border-color:#b8e3b270;color:#d2edc9}
+.connection-chip.is-online::before{background:#a8efb8;box-shadow:0 0 9px #a8efb87d}
+.theme-control{color:var(--muted);font-size:11px;display:flex;align-items:center;gap:8px}
+.theme-control select{color:var(--ink);background:#164134;border:1px solid var(--line);
+  padding:8px 9px;border-radius:10px;min-height:35px}
+.modal-backdrop{position:fixed;z-index:90;inset:0;background:#031512e8;
+  padding:20px;display:grid;place-items:center;backdrop-filter:blur(12px)}
+.game-modal{background:linear-gradient(150deg,#235341,#0a2a25);border:1px solid #f1daa969;
+  box-shadow:0 25px 90px #000a;border-radius:23px;width:min(540px,100%);
+  max-height:min(790px,90dvh);overflow:auto;padding:clamp(20px,4vw,34px)}
+.game-modal h2{font:900 clamp(29px,4vw,44px)/1.1 Georgia,serif;margin:8px 0 15px;letter-spacing:-.03em}
+.game-modal p{font-size:13px;color:#d9e7d5;line-height:1.65;margin:12px 0 18px}
+.game-modal .button-group{justify-content:flex-end}
+.quick-rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:20px 0}
+.quick-rules>div{padding:12px;background:#15382f;border:1px solid #aec3a453;border-radius:11px}
+.quick-rules strong{color:var(--gold);font-size:12px;display:block;margin-bottom:4px}
+.quick-rules span{font-size:11px;line-height:1.4;color:#d8e6ce}
+.playing-card.is-interactive{touch-action:manipulation}
+@media(max-width:720px){
+  .connection-chip{padding:7px 9px;font-size:10px}
+  .theme-control{font-size:0;gap:0}
+  .theme-control select{padding:7px 8px;max-width:115px}
+  .game-head-actions{gap:5px}
+  .resume-panel{padding:13px 15px}
+  .resume-panel strong{font-size:16px}
+  .game-modal{padding:22px}
+}
+@media(max-width:390px){
+  .game-header{align-items:flex-start;padding-top:11px}
+  .game-head-actions{justify-content:flex-end}
+  .exit-button{padding:7px 9px;font-size:11px}
+  .theme-control select{max-width:95px;font-size:10px}
+  .connection-chip{font-size:9px}
+}
