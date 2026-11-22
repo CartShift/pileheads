@@ -195,20 +195,6 @@ function PlayerPosition({ name, seat, active, self, out, handCount, up, downCoun
   </div>;
 }
 
-function eventText(e: Event | undefined, name: (seat: number) => string) {
-  if (!e) return "Choose your move. Every card changes the table.";
-  if (e.type === "take" || e.type === "blind-fail")
-    return `${name(e.seat)} picked up the pile${e.erodedCount ? " · top card burned" : ""}`;
-  if (e.reason === "burn" || e.burned) return `${name(e.seat)} burned the pile!`;
-  if (e.reason === "dump")
-    return `${name(e.seat)} dumped the pile on ${name(e.target ?? -1)}${e.erodedCount ? " · top card burned" : ""}`;
-  if (e.type === "slam") return `${name(e.seat)} made a SLAM!`;
-  if (e.reason === "snap") return `${name(e.seat)} snapped another card!`;
-  if (e.reason === "skip") return `${name(e.seat)} skipped a turn`;
-  if (e.reason === "number") return `${name(e.seat)} played ${e.rank}`;
-  return `${name(e.seat)} played ${e.reason || "a card"}`;
-}
-
 export default function GameTable() {
   const [mode, setMode] = useState<Mode>("home");
   const [local, setLocal] = useState<Game | null>(null);
@@ -1025,11 +1011,6 @@ export default function GameTable() {
         {finalDuel && <div className="duel-banner" role="status">
           <strong>FINAL DUEL</strong><span>Every pickup burns the visible top card first.</span>
         </div>}
-        <div className="event-banner" role="status" aria-live="polite">
-          <span className="event-spark" aria-hidden="true" />
-          {eventText(g.events.at(-1), nameForSeat)}
-        </div>
-
         <div className="player-zones">
           <div className="zone-heading"><strong>YOUR FACE-UP CARDS</strong><span>{current.up.length} cards · {current.downCount} blind</span></div>
           <div className="faceup-row">
