@@ -82,11 +82,20 @@ async function run(browser,width,height,mobile){
   assert.ok(await page.locator('.stack-classic-dialog').count(),'restarting shows a designed confirmation');
   await page.locator('[data-do="cancel-new"]').click();
   assert.deepEqual(await state(page),before,'cancelled restart preserves current game');
-  // One-key commands activate exactly the same Play and Take buttons.
+  // Begin an independent seeded round so Undo/restart/possible bot reactions
+  // do not compete with the keyboard shortcut timing.
+  await stage(page,{mode:'bots',seed:117});
   await page.locator('.hand-area button[data-card]').first().click();
+  assert.ok(await page.locator('.table-actions [data-do="play"]').count(),
+   'a valid card selection must expose Play for keyboard access');
   await page.keyboard.press('p');
-  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pilehead-playtest-v11')).g.moves>=1);
-  assert.equal((await state(page)).moves,1,'P shortcut submits a validated card play');
+  const shortcutOutcome=await page.evaluate(()=>{
+   const saved=JSON.parse(localStorage.getItem('pilehead-playtest-v11'));
+   return{moves:saved.g.moves,notice:saved.notice,
+    playVisible:!!document.querySelector('.table-actions [data-do="play"]')};
+  });
+  assert.equal(shortcutOutcome.moves,1,
+   'P shortcut submits the same validated Play button: '+JSON.stringify(shortcutOutcome));
   await stage(page,{mode:'bots',seed:119});
   await page.locator('.hand-area button[data-card]').first().dragTo(page.locator('[data-play-target]'));
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pilehead-playtest-v11')).g.moves>=1);
