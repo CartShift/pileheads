@@ -15,7 +15,9 @@ test('54 distinct physical cards: forty numbers and fourteen actions',()=>{
  for(const [kind,count]of Object.entries(E.ACTIONS))assert.equal(a.filter(c=>c.action===kind).length,count);
  assert.deepEqual(E.deck('pilehead-1.5.0'),a.filter(c=>c.id<52));
  assert.deepEqual(a.filter(c=>c.id>=52).map(c=>c.action),['burn','burn']);
- for(let players=2;players<=5;players++){const g=E.create({players});assert.equal(g.stock.length,54-players*9);assert.equal(E.count(g),54);
+ for(let players=2;players<=5;players++){const g=E.create({players});const total=players===2?52:54;
+   assert.equal(g.stock.length,total-players*9);assert.equal(E.count(g),total);
+   assert.equal(g.omitSkip,players===2);assert.equal(E.effectiveDeck(g).some(c=>c.action==='skip'),players!==2);
   for(const p of g.people)assert.deepEqual([p.hand.length,p.up.length,p.down.length],[3,3,3])}
 });
 test('reproducible shuffle and legal setup exchange',()=>{
@@ -46,7 +48,8 @@ test('RESET cancels UNDER and BURN clears pile and grants a repeat turn',()=>{
  assert.equal(event.burned,true);assert.equal(g.pile.length,0);assert.equal(g.turn,1);E.invariant(g);
 });
 test('SKIP jumps to player after next, and in two seats grants extra turn',()=>{
- for(const players of [2,3]){const g=opened(players),skip=inject(g,0,'hand',c=>c.action==='skip');
+ for(const players of [2,3]){const g=players===2?E.create({players,seed:42,omitSkip:false}):opened(players);
+  if(players===2)E.start(g);const skip=inject(g,0,'hand',c=>c.action==='skip');
  E.move(g,0,{type:'play',source:'hand',ids:[skip.id]});
  assert.equal(g.turn,players===2?0:2);E.invariant(g)}
 });
