@@ -56,6 +56,16 @@ async function localScenarios(browser) {
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves === 0
       );
       assert.equal((await readGame(page)).moves, 0, "Undo restores previous turn");
+      // Drag directly from a real card onto the center pile, without a Play click.
+      const target = page.getByRole("button", { name: "Play selected cards onto the pile" });
+      await page.locator(".player-hand .card-hit").first().dragTo(target, { timeout: 10000 });
+      await page.waitForFunction(() =>
+        JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves >= 1
+      );
+      await page.getByRole("button", { name: "Undo" }).click();
+      await page.waitForFunction(() =>
+        JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves === 0
+      );
       await page.getByRole("button", { name: "Rules" }).click();
       await page.getByRole("dialog", { name: "STACK quick rules" }).waitFor();
       assert.ok(await page.getByText("Final Duel:", { exact: false }).count(), "rules explain duel");

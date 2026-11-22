@@ -253,3 +253,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
   .theme-control select{max-width:95px;font-size:10px}
   .connection-chip{font-size:9px}
 }
+
+/* The real card stays interactive and accessible; a pointer-only visual
+   clone follows finger/mouse until released over the central pile. */
+.playing-card.is-interactive .card-hit{touch-action:none;cursor:grab}
+.playing-card.is-interactive .card-hit:active{cursor:grabbing}
+.drag-ghost{pointer-events:none;position:fixed;z-index:150;width:102px;
+  aspect-ratio:252/355;transform:translate(-50%,-50%) rotate(5deg) scale(1.07);
+  border:3px solid #fff0ca;background:#f4e3c3;border-radius:11px;
+  box-shadow:0 20px 55px #001710c7,0 0 0 3px #f7d38b8c;overflow:hidden}
+.drag-ghost .card-art{position:absolute;inset:2px;border-radius:7px}
+.drag-ghost.theme-original .card-art{
+  background-image:url("/pilehead/assets/stack-sheet.webp")}
+.pile-slot.played.is-drop-ready{border-radius:13px;
+  box-shadow:0 0 0 2px #f1d99c88,inset 0 0 25px #ffe6a41d;cursor:pointer}
+.pile-slot.played:focus-visible{outline:3px solid #f9e1ac;outline-offset:7px}
+@media(max-width:720px){.drag-ghost{width:76px;border-width:2px}}
