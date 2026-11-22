@@ -283,6 +283,9 @@ function render(){
   if(left>0)starterTimer=setTimeout(()=>{starterTimer=null;render()},left+25);
  }
  if(historyOpen&&app.querySelector('.move-history'))app.querySelector('.move-history').open=true;
+ if(restartPrompt&&!app.querySelector('.stack-classic-dialog')?.contains(document.activeElement)){
+  app.querySelector('.stack-classic-dialog [data-do="cancel-new"]')?.focus({preventScroll:true});
+ }
  if(key){
   const next=key.type==='history'?app.querySelector('.move-history summary'):
    key.type==='card'?app.querySelector('[data-card="'+key.id+'"][data-source="'+key.source+'"]'):
@@ -474,6 +477,21 @@ app.addEventListener('click',e=>{
  if(b?.dataset.do){execute(b.dataset.do,b);return}
  if(e.target.closest('[data-play-target]')&&selection.length&&isTurn())submitPlay(selectedPlay());
 });
+// The new-game modal is keyboard dismissible and focus remains inside it.
+document.addEventListener('keydown',e=>{
+ if(!restartPrompt)return;
+ if(e.key==='Escape'){
+  e.preventDefault();e.stopImmediatePropagation();restartPrompt=false;render();return;
+ }
+ if(e.key==='Tab'){
+  const btns=[...app.querySelectorAll('.stack-classic-dialog button:not(:disabled)')];
+  if(!btns.length)return;
+  const first=btns[0],last=btns.at(-1),active=document.activeElement;
+  if(!btns.includes(active)){e.preventDefault();first.focus();return}
+  if(e.shiftKey&&active===first){e.preventDefault();last.focus()}
+  else if(!e.shiftKey&&active===last){e.preventDefault();first.focus()}
+ }
+},true);
 // A keyboard player can operate the same validated buttons as a touch player.
  // No separate engine pathway and no shortcuts while a private overlay is open.
 document.addEventListener('keydown',e=>{
