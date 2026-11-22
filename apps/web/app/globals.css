@@ -682,3 +682,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
  .move-story-flight,.move-story-transfer,.move-story-refill,.move-story-impact{display:none!important}
  .move-story-caption{animation:none!important;opacity:1!important}
 }
+
+/* Preserve the reveal-then-reject-then-transfer order. */
+.move-story-overlay[data-kind="reject"] .move-story-transfer{
+ animation-delay:1130ms;animation-duration:840ms
+}
+.move-story-overlay[data-kind="pickup"] .move-story-transfer{
+ animation-delay:250ms;animation-duration:1150ms
+}
