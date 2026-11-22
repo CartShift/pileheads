@@ -269,3 +269,29 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
   box-shadow:0 0 0 2px #f1d99c88,inset 0 0 25px #ffe6a41d;cursor:pointer}
 .pile-slot.played:focus-visible{outline:3px solid #f9e1ac;outline-offset:7px}
 @media(max-width:720px){.drag-ghost{width:76px;border-width:2px}}
+
+/* Seat reactions stay near people rather than becoming permanent HUD clutter. */
+.opponent-seat{position:relative}
+.seat-reaction{position:absolute;right:-4px;top:-17px;font-size:29px;z-index:8;
+  filter:drop-shadow(0 5px 5px #001b1599);animation:reaction-pop .35s ease-out both}
+@keyframes reaction-pop{from{opacity:0;transform:scale(.5) translateY(15px)}
+  to{opacity:1;transform:scale(1) translateY(0)}}
+.blind-flip{display:flex;gap:12px;align-items:center;justify-content:center;
+  border:1px solid #d9c1a777;background:#533e358c;border-radius:12px;
+  width:fit-content;max-width:calc(100% - 20px);margin:4px auto 9px;padding:7px 13px;
+  color:#fff0d3;font-size:11px}
+.blind-flip span{color:#fbd091;font-weight:900;font-size:13px}
+.reaction-menu{position:relative;display:flex}
+.reaction-picker{position:absolute;z-index:45;bottom:calc(100% + 12px);right:0;
+  background:#092a26;border:1px solid #dbe7b17c;display:flex;gap:4px;
+  padding:8px;border-radius:14px;box-shadow:0 9px 30px #0008}
+.reaction-picker button{background:transparent;border:1px solid transparent;
+  font-size:23px;line-height:1;padding:8px;border-radius:9px}
+.reaction-picker button:hover,.reaction-picker button:focus-visible{
+  background:#315b49;border-color:#e2e5bc7a}
+@media(max-width:720px){
+  .seat-reaction{font-size:22px;top:-11px}
+  .reaction-menu{flex:0 0 auto}
+  .reaction-menu .reaction-trigger{font-size:10px}
+  .reaction-picker{right:auto;left:0}
+}

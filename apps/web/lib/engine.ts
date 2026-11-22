@@ -44,6 +44,7 @@ export type Game = {
   finishedOrder: number[];
   loser: number | null;
   events: Event[];
+  blindReveal?: { seat: number; card: Omit<Card,"id">; move: number; expiresAt: number };
   setupReady?: boolean[];
 };
 export type EngineApi = {

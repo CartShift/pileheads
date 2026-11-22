@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
-import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame } from "../lib/room";
+import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame, type Reaction } from "../lib/room";
 
 type Mode = "home" | "local" | "online";
 const ACTIONS = ["reset", "ghost", "under", "skip", "burn", "dump"];
@@ -56,6 +56,8 @@ function asLocalRoom(game: Game): RoomGame {
       pickups: p.pickups
     })),
     events: game.events,
+    reactions: [],
+    blindReveal: game.blindReveal || null,
     legal: game.phase === "play" && game.turn === 0 ? Engine.options(game, 0) : [],
     slam: game.phase === "play" ? Engine.slamOptions(game, 0) : [],
     followup: game.phase === "play" ? Engine.followUpOptions(game, 0) : [],
@@ -129,16 +131,18 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
   );
 }
 
-function PlayerPosition({ name, seat, active, self, out, handCount, up, downCount }: {
+function PlayerPosition({ name, seat, active, self, out, handCount, up, downCount, presence, reaction }: {
   name: string; seat: number; active: boolean; self: boolean; out: boolean;
-  handCount: number; up: Card[]; downCount: number;
+  handCount: number; up: Card[]; downCount: number; presence?: string; reaction?: string;
 }) {
   return <div className={`opponent-seat ${active ? "seat-active" : ""} ${out ? "seat-out" : ""}`}
     aria-label={`${name}: ${handCount} in hand, ${up.length} face-up, ${downCount} face-down`}>
     <div className="seat-heading">
       <span className="avatar" aria-hidden="true">{self ? "Y" : String(seat + 1)}</span>
-      <div><strong>{name}</strong><small>{out ? "Finished" : active ? "Playing now" : `${handCount} in hand`}</small></div>
+      <div><strong>{name}</strong><small>{out ? "Finished" : presence === "offline" ? "Offline" :
+          presence === "away" ? "Away" : active ? "Playing now" : `${handCount} in hand`}</small></div>
       {active && <span className="turn-dot" aria-label="Current turn" />}
+      {reaction && <span className="seat-reaction" role="status">{reaction}</span>}
     </div>
     <div className="opponent-card-stack" aria-hidden="true">
       {Array.from({ length: Math.min(5, handCount) }, (_, i) =>
@@ -191,6 +195,8 @@ export default function GameTable() {
   const [connected, setConnected] = useState(false);
   const [connectionRetry, setConnectionRetry] = useState(0);
   const [lastSyncAt, setLastSyncAt] = useState(0);
+  const [reactionsOpen, setReactionsOpen] = useState(false);
+  const [reactionClock, setReactionClock] = useState(0);
   const inFlight = useRef(false);
   const roomRef = useRef<Room | null>(null);
   const tokenRef = useRef<string | null>(null);
@@ -290,6 +296,32 @@ export default function GameTable() {
     try { localStorage.setItem(THEME_KEY, deckTheme); } catch {}
   }, [deckTheme]);
 
+  const applyReaction = useCallback((reaction: Reaction) => {
+    const old = roomRef.current;
+    if (!old || !Number.isInteger(reaction.seat) ||
+        reaction.seat < 0 || reaction.seat >= old.game.players.length) return;
+    if (old.game.reactions?.some(event => event.id === reaction.id)) return;
+    const next: Room = { ...old, game: { ...old.game,
+      reactions: [...(old.game.reactions || []), reaction].slice(-24) } };
+    roomRef.current = next;
+    setRoom(next);
+  }, []);
+
+  async function sendReaction(kind: Reaction["kind"]) {
+    if (mode !== "online" || !roomRef.current || !tokenRef.current) return;
+    setReactionsOpen(false);
+    const socket = wsRef.current;
+    if (connected && socket?.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: "react", kind }));
+      return;
+    }
+    try {
+      const response = await requestRoom({ action: "react", code: roomRef.current.code, kind },
+        tokenRef.current) as unknown as { reaction: Reaction };
+      if (response.reaction) applyReaction(response.reaction);
+    } catch (error) { setNotice(error instanceof Error ? error.message.replaceAll("_", " ") : "Reaction unavailable"); }
+  }
+
   // One socket per room: a missed 'ready' handshake is treated as offline.
   // Reconnect after a close, then reconcile the authoritative HTTP snapshot.
   useEffect(() => {
@@ -310,6 +342,8 @@ export default function GameTable() {
       try {
         const packet = JSON.parse(ev.data);
         if (packet.type === "ready") { setConnected(true); void synchronize(code, token, true); }
+        if (packet.type === "reaction" && packet.reaction) applyReaction(packet.reaction as Reaction);
+        if (packet.type === "reaction-error") setNotice("Reactions are limited. Try again soon.");
         if (packet.type === "invalidate" &&
             (packet.force || packet.revision > (roomRef.current?.revision ?? -1))) {
           void synchronize(code, token, true);
@@ -328,7 +362,7 @@ export default function GameTable() {
       ws.close();
       if (wsRef.current === ws) wsRef.current = null;
     };
-  }, [mode, room?.code, connectionRetry, synchronize]);
+  }, [mode, room?.code, connectionRetry, synchronize, applyReaction]);
 
   // Polling is a recovery path when push is active, never the renderer.
   useEffect(() => {
@@ -418,6 +452,17 @@ export default function GameTable() {
   const g = useMemo(() => mode === "local" && local ? asLocalRoom(local) : mode === "online" ? room?.game : null,
     [mode, local, room]);
   const me = mode === "local" ? 0 : room?.me ?? 0;
+  const face = g?.blindReveal;
+  const showFlip = !!face && face.expiresAt > Date.now();
+  const newestReactions = (g?.reactions || []).filter(r => Date.now() - r.at < 8000);
+  useEffect(() => {
+    if (!newestReactions.length && !showFlip) return;
+    const id = window.setTimeout(() => setReactionClock(n => n + 1), 1100);
+    return () => clearTimeout(id);
+  }, [reactionClock, room?.game.reactions, face?.expiresAt, local?.moves, mode]);
+  const reactionSymbols: Record<Reaction["kind"],string> = {
+    fire: "🔥", wow: "😮", laugh: "😂", ouch: "😬", gg: "🏆"
+  };
   const current = g?.players[me];
   const stage = current ? current.handCount || g?.stockCount ? "hand" :
     current.up.length ? "up" : current.downCount ? "down" : "out" : "out";
@@ -676,7 +721,10 @@ export default function GameTable() {
           {g.players.filter(p => p.seat !== me).map(p =>
             <PlayerPosition key={p.seat} seat={p.seat} name={nameForSeat(p.seat)} self={false} out={p.out}
               active={g.phase === "play" && g.turn === p.seat}
-              handCount={p.handCount} up={p.up} downCount={p.downCount} />)}
+              handCount={p.handCount} up={p.up} downCount={p.downCount}
+              presence={room?.members.find(m => m.seat === p.seat)?.presence}
+              reaction={newestReactions.filter(r => r.seat === p.seat).slice(-1)
+                .map(r => reactionSymbols[r.kind]).join("")} />)}
         </div>
         <div className="table-center">
           <div className="pile-zone">
@@ -716,6 +764,11 @@ export default function GameTable() {
           </div>
         </div>
 
+        {showFlip && face && <div className="blind-flip" role="status">
+          <strong>{nameForSeat(face.seat)} flipped a blind card</strong>
+          <span>{face.card.kind === "number" ? "Number " + face.card.rank :
+            face.card.action?.toUpperCase()}</span>
+        </div>}
         <div className="event-banner" role="status" aria-live="polite">
           <span className="event-spark" aria-hidden="true" />
           {eventText(g.events.at(-1), nameForSeat)}
@@ -796,6 +849,16 @@ export default function GameTable() {
               <><strong>{active ? "Your turn" : `Waiting for ${nameForSeat(g.turn)}`}</strong>
                 <span>{active ? "Select one or more matching cards." : "Watch for a SNAP or SLAM opportunity."}</span></>}</div>
             <div className="button-group">
+              {mode === "online" && <div className="reaction-menu">
+                <button className="secondary-button reaction-trigger"
+                  aria-expanded={reactionsOpen} aria-label="Send a reaction"
+                  onClick={() => setReactionsOpen(open => !open)}>React</button>
+                {reactionsOpen && <div className="reaction-picker" role="group" aria-label="Choose a reaction">
+                  {(Object.keys(reactionSymbols) as Reaction["kind"][]).map(kind =>
+                    <button key={kind} title={kind} aria-label={"React " + kind}
+                      onClick={() => void sendReaction(kind)}>{reactionSymbols[kind]}</button>)}
+                </div>}
+              </div>}
               {mode === "local" && undoAvailable && <button className="secondary-button" data-hotkey="undo" onClick={undo}>Undo</button>}
               {!!g.followup.length && <button className="snap-button" data-hotkey="snap" disabled={busy}
                 onClick={() => playMove(g.followup[0])}>SNAP</button>}

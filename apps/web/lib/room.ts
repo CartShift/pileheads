@@ -1,5 +1,7 @@
 import type { Card, Event, Move } from "./engine";
 
+export type Reaction = { id: string; seat: number; kind: "fire" | "wow" | "laugh" | "ouch" | "gg"; at: number };
+export type BlindReveal = { seat: number; card: Omit<Card,"id">; move: number; expiresAt: number };
 export type PublicSeat = {
   seat: number; out: boolean; up: Card[]; handCount: number; downCount: number;
   hand?: Card[]; blindSlots?: number[]; pickups: number;
@@ -12,6 +14,8 @@ export type RoomGame = {
   botSeats: number[];
   botFollowupReady?: boolean;
   botSlamReady?: boolean;
+  reactions?: Reaction[];
+  blindReveal?: BlindReveal | null;
   stockCount: number;
   pile: Card[];
   ashesCount: number;
