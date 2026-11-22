@@ -409,11 +409,11 @@ function specialEffect(table,action,delay=0){
  },delay);
 }
 function cue(table,text){
- if(!table||document.visibilityState==='hidden')return;
+ if(!text||!table||document.visibilityState==='hidden')return;
  const el=document.createElement('div');el.className='pilehead-cue pilehead-cue-fixed';
  el.setAttribute('role','status');el.setAttribute('aria-live','polite');el.textContent=text;
  const point=center(landmark(table,'pile'));
- el.style.left=point.x+'px';el.style.top=point.y+'px';
+ el.style.left=point.x+'px';el.style.top=Math.max(46,point.y-92)+'px';
  document.body.appendChild(el);motionGhosts.add(el);
  later(()=>{el.remove();motionGhosts.delete(el)},1050);
 }
@@ -474,17 +474,17 @@ function drawCards(table,ev,ownSeat,delay=0){
  later(()=>pulse(hand,'turn'),delay+340);
 }
 function publicMoveCaption(ev){
- const actor=Number.isInteger(ev?.seat)?'PLAYER '+(ev.seat+1):'PLAYER';
- if(ev?.type==='blind-fail')return actor+' · BLIND CARD FAILED · PILE PICKUP';
- if(ev?.type==='take')return actor+' · PICKED UP '+(ev.takenCount??ev.count)+' CARDS';
- if(ev?.action==='dump')return actor+' · DUMP TO PLAYER '+(Number(ev.target)+1);
- if(ev?.type==='slam')return actor+' · SLAM!';
- if(ev?.burned)return actor+' · PILE BURNED';
- const messages={reset:'RESET · ANY NUMBER',ghost:'GHOST · RULE STAYS',
-  under:'UNDER · NEXT 1–4',skip:'SKIP · NEXT TURN MISSED'};
- if(messages[ev?.action])return actor+' · '+messages[ev.action];
- if(ev?.type==='followup')return actor+' · SNAP!';
- return actor+' · PLAYED '+(ev.count||1)+' × '+(ev.rank??'CARD');
+ // Standard card placement is self-explanatory and must never produce a toast.
+ if(ev?.type==='blind-fail')return 'INVALID';
+ if(ev?.type==='take')return 'PICKUP';
+ if(ev?.action==='dump')return 'DUMP';
+ if(ev?.type==='slam')return 'SLAM';
+ if(ev?.burned)return 'BURN';
+ const labels={reset:'RESET',ghost:'GHOST',under:'1–4',skip:'SKIP'};
+ if(labels[ev?.action])return labels[ev.action];
+ if(ev?.type==='followup')return 'SNAP';
+ if(ev?.bridgeCount)return 'COMBO';
+ return null;
 }
 function celebrate(table,ev,ownSeat){
  if(!table||!ev||!canMove())return 0;
@@ -494,9 +494,9 @@ function celebrate(table,ev,ownSeat){
    // The revealed face and red rejection flash now live directly on the shared pile.
    moveCard(table,placeFor(table,ev.seat,'down',ownSeat),landmark(table,'pile'),ev,
     {hidden:true,duration:260,fade:true});
-  }else cue(table,'TAKE THE PILE · '+ev.count+' CARDS');
+  }else cue(table,'PICKUP');
   if(ev.erodedCount){
-   cue(table,'FINAL DUEL · TOP CARD BURNS');
+   cue(table,'TOP CARD BURNS');
    moveCard(table,landmark(table,'pile'),landmark(table,'ashes'),ev,
     {hidden:true,delay:ev.type==='blind-fail'?260:0,duration:320,fade:true});
   }
@@ -505,7 +505,7 @@ function celebrate(table,ev,ownSeat){
  }
  if(ev.action==='dump'){
    specialEffect(table,'dump',280);
-  cue(table,'DUMP · PILE TO CHOSEN PLAYER');
+  cue(table,'DUMP');
   // DUMP itself is burned: it must NEVER enter the recipient's hand.
   playCards(table,ev,ownSeat,{to:landmark(table,'ashes'),via:landmark(table,'pile'),fade:true});
   later(()=>particles(landmark(table,'ashes'),'burn'),330);
@@ -522,15 +522,13 @@ function celebrate(table,ev,ownSeat){
  playCards(table,ev,ownSeat);
  if(ev.burned){
    specialEffect(table,'burn',350);
-  cue(table,ev.type==='slam'?'SLAM! · FOUR OF A KIND':
-   ev.reason==='four'?'FOUR MATCHING · PILE BURNS':'BURN · PILE REMOVED');
+  cue(table,ev.type==='slam'?'SLAM':'BURN');
   burnPile(table,ev,ev.type==='slam'?350:390);
- }else if(ev.type==='followup'){cue(table,'SNAP · MATCHING DRAW');snap('play');particles(landmark(table,'pile'),'slam')}
- else if(ev.bridgeCount){cue(table,'HAND + FACE UP · COMBO');snap('play')}
+ }else if(ev.type==='followup'){cue(table,'SNAP');snap('play');particles(landmark(table,'pile'),'slam')}
+ else if(ev.bridgeCount){cue(table,'COMBO');snap('play')}
  else if(ev.action){
    specialEffect(table,ev.action,310);
-  const messages={skip:'SKIP · NEXT PLAYER MISSES TURN',under:'UNDER · PLAY 1–4',
-   reset:'RESET · ANY NUMBER',ghost:'GHOST · RESTRICTION STAYS'};
+  const messages={skip:'SKIP',under:'1–4',reset:'RESET',ghost:'GHOST'};
   if(messages[ev.action])cue(table,messages[ev.action]);
   if(ev.action==='skip'&&Number.isInteger(ev.target)){
    const skipped=placeFor(table,ev.target,'hand',ownSeat);
@@ -542,7 +540,7 @@ function celebrate(table,ev,ownSeat){
    pulse($('[data-play-target] .stack-count:last-child',table),'hit');
   if(ev.action==='ghost')pulse(landmark(table,'pile'),'turn');
   snap('play');
- }else{cue(table,publicMoveCaption(ev));snap('play')}
+ }else snap('play');
  drawCards(table,ev,ownSeat,ev.burned?530:310);
  return ev.burned?1050:Math.max(650,Number(ev.drawnCount)?910:620);
 }
@@ -562,7 +560,7 @@ function firstDeal(table,ownSeat){
    spreadX:(i-1)*19,spreadY:-i*5
   });
  });
- cue(table,'CARDS DEALT · PLAY BEGINS');
+
 }
 function animateQueue(ownSeat){
  if(motionPlaying)return;
