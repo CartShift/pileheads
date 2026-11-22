@@ -98,11 +98,19 @@ async function localScenarios(browser) {
       await page.getByRole("button", { name: "Resume game" }).click();
       assert.equal((await readGame(page)).moves, 0, "resume recovers saved state");
       assert.equal(await page.locator(".player-hand .playing-card.theme-original").count(), 3);
-      const handRect = await page.locator(".player-hand").boundingBox();
-      const dockRect = await page.locator(".control-panel").boundingBox();
-      assert.ok(handRect && dockRect &&
-        dockRect.y >= handRect.y + handRect.height - 2,
-        "action dock must never obstruct hand cards on any viewport");
+      const geometry = await page.evaluate(() => {
+        // Atomic snapshot, not two async measurements while Motion is still
+        // settling a restored hand.
+        const hand = document.querySelector(".player-hand")?.getBoundingClientRect();
+        const dock = document.querySelector(".control-panel")?.getBoundingClientRect();
+        const tabletop = document.querySelector(".tabletop")?.getBoundingClientRect();
+        return hand && dock && tabletop ? {
+          handBottom: hand.bottom, dockTop: dock.top, tableBottom: tabletop.bottom,
+          handHeight: hand.height, dockPosition: getComputedStyle(document.querySelector(".control-panel")).position
+        } : null;
+      });
+      assert.ok(geometry && geometry.dockTop >= geometry.handBottom - 2,
+        "action dock must never obstruct hand cards: " + JSON.stringify(geometry));
       const drawBack = await page.locator(".pile-zone .playing-card.is-back .card-art").first()
         .evaluate(el => getComputedStyle(el).backgroundImage);
       assert.match(drawBack, /stack-back\.webp/, "draw pile uses a real card back, not the face sprite");

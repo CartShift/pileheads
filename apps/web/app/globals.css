@@ -416,3 +416,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 @media(max-width:720px){
   .room-code.is-copied span{display:inline;font-size:10px;color:var(--lime)}
 }
+
+/* Keep the entire physical hand in the table's normal flow before controls.
+   flow-root contains intrinsic card rows even during React FLIP transitions. */
+.tabletop{display:flow-root}
+.player-zones{display:flow-root}
+.control-panel{position:relative;bottom:auto;margin:18px auto 0;clear:both}
+@media(max-width:720px){
+  .tabletop{height:auto;min-height:0;padding-bottom:12px}
+  .player-zones{padding-bottom:20px}
+  .control-panel{position:relative;bottom:auto;margin:18px auto 0}
+}
