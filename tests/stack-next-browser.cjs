@@ -278,6 +278,57 @@ async function mixedBotScenarios(browser) {
     console.log("PASS Next online: authoritative server bot completes turn in mixed human+bot room");
   } finally {await context.close()}
 }
+
+async function abandonedRoomScenario(browser) {
+  // A slow move from an abandoned room must never resurrect its table after
+  // the user moves on to a new offline game. No server-side move is retried.
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: "reduce"
+  });
+  const page = await context.newPage();
+  let releaseMove;
+  const releaseGate = new Promise(resolve => { releaseMove = resolve; });
+  let notifyHeld;
+  const moveHeld = new Promise(resolve => { notifyHeld = resolve; });
+  try {
+    await page.goto(WEB + "/play");
+    await page.getByRole("textbox", { name: "Your name" }).fill("Network race");
+    await page.getByRole("combobox", { name: "Humans" }).selectOption("1");
+    await page.getByRole("combobox", { name: "Bots" }).selectOption("1");
+    await page.getByRole("button", { name: /Create a room/ }).click();
+    await page.getByRole("button", { name: "I'm ready" }).click();
+    await page.getByRole("button", { name: "Start round" }).click();
+    await page.getByRole("heading", { name: "Your move." }).waitFor({ timeout: 14000 });
+    await page.route(API + "/api/pilehead", async route => {
+      if (route.request().method() === "POST") {
+        let body;
+        try { body = route.request().postDataJSON(); } catch { body = null; }
+        if (body?.action === "move") {
+          notifyHeld();
+          await releaseGate;
+        }
+      }
+      await route.continue();
+    });
+    await page.locator(".player-hand .card-hit").first().click();
+    await page.getByRole("button", { name: /Play cards/ }).click();
+    await moveHeld;
+    await page.getByRole("button", { name: "Leave table" }).click();
+    await page.getByRole("button", { name: /Start game/ }).click();
+    await page.getByRole("heading", { name: "Choose your opening cards" }).waitFor();
+    releaseMove();
+    await page.waitForTimeout(650);
+    assert.equal(await page.locator(".room-code").count(), 0,
+      "late online response must not resurrect abandoned room");
+    await page.getByRole("button", { name: "Start round" }).click();
+    await page.getByRole("heading", { name: "Your move." }).waitFor();
+    console.log("PASS Next recovery: late online request cannot overwrite a new local session");
+  } finally {
+    releaseMove();
+    await context.close();
+  }
+}
+
 async function main() {
   fs.mkdirSync(path.resolve(ROOT, "artifacts/next"), {recursive:true});
   const webProc = spawn(process.execPath, [
@@ -307,6 +358,7 @@ async function main() {
     await guidedPracticeScenario(browser);
     await onlineScenarios(browser, apiProc);
     await mixedBotScenarios(browser);
+    await abandonedRoomScenario(browser);
   } catch (e) {
     console.error("Next browser acceptance failed:", e);
     console.error("WEB LOGS", webLog.slice(-6000));
