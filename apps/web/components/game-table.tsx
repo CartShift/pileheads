@@ -258,7 +258,7 @@ export default function GameTable() {
     const epoch = roomEpoch.current;
     try {
       const next = await requestRoom({ action: "state", code, heartbeat: true }, token);
-      if (epoch !== roomEpoch.current) return;
+      if (epoch !== roomEpoch.current || (roomRef.current && roomRef.current.code !== code)) return;
       applyRoom(next);
       setLastSyncAt(Date.now());
       if (!quiet) setNotice("");
@@ -317,8 +317,12 @@ export default function GameTable() {
         }
       }
     } finally {
-      inFlight.current = false;
-      if (epoch === roomEpoch.current) setBusy(false);
+      // A request belonging to a room the player has already left must not
+      // clear the in-flight lock for a newer room's request.
+      if (epoch === roomEpoch.current) {
+        inFlight.current = false;
+        setBusy(false);
+      }
     }
   }, [applyRoom, synchronize]);
 

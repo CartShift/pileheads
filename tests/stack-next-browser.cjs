@@ -194,6 +194,22 @@ async function onlineScenarios(browser, server) {
     server.send({ type: "finish", code });
     await host.getByRole("button", { name: "Play another round" }).waitFor({ timeout: 16000 });
     await host.getByRole("region", { name: "Round results" }).waitFor();
+    const resultsGeometry = await host.evaluate(() => {
+      const table = document.querySelector(".tabletop").getBoundingClientRect();
+      const result = document.querySelector(".results-overlay").getBoundingClientRect();
+      return {
+        deltaX: Math.abs((result.left + result.width / 2) - (table.left + table.width / 2)),
+        deltaY: Math.abs((result.top + result.height / 2) - (table.top + table.height / 2)),
+        resultWidth: result.width, tableWidth: table.width
+      };
+    });
+    assert.ok(resultsGeometry.deltaX < 10 && resultsGeometry.deltaY < 30,
+      "round results must be centered in the table: " + JSON.stringify(resultsGeometry));
+    assert.ok(resultsGeometry.resultWidth <= resultsGeometry.tableWidth,
+      "round results must fit in mobile table");
+    await host.screenshot({
+      path:path.resolve(ROOT, "artifacts/next/online-results.png"),fullPage:true
+    });
     await host.getByRole("button", { name: "Play another round" }).click();
     await host.getByRole("button", { name: "Deal again" }).click();
     await host.getByRole("button", { name: "I'm ready" }).waitFor({ timeout: 15000 });

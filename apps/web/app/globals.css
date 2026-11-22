@@ -298,7 +298,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 
 /* Results are part of the physical table, not a navigation interruption. */
 .results-overlay{position:absolute;z-index:15;top:50%;left:50%;
-  transform:translate(-50%,-50%);width:min(510px,calc(100% - 24px));max-height:90%;
+  /* 'translate' is independent from Motion's animated transform property. */
+  translate:-50% -50%;width:min(510px,calc(100% - 24px));max-height:90%;
   background:linear-gradient(160deg,#123d35f5,#0a2825f9);border:1px solid #e8ddad85;
   border-radius:22px;padding:clamp(18px,2.5vw,30px);box-shadow:0 25px 70px #0009;
   text-align:center;overflow:auto;backdrop-filter:blur(13px)}

@@ -60,7 +60,7 @@ export async function requestRoom<T extends object>(payload: T, token?: string |
       },
       body: JSON.stringify(payload),
       cache: "no-store",
-      signal: signal ?? timeout.signal
+      signal: signal ? AbortSignal.any([signal, timeout.signal]) : timeout.signal
     });
     const result = await response.json().catch(() => null);
     if (!response.ok || !result?.ok)
