@@ -3,7 +3,7 @@ const assert=require('node:assert/strict');
 const E=require('../dist/pilehead/engine.js');
 const test=(name,fn)=>{fn();console.log('PASS '+name)};
 function fixture({players=3,active=players,stockEmpty=true,pileCount=3,legacy=false,endgameRule='final-duel'}={}){
- const g=E.create({players,seed:20261122,endgameRule});
+ const g=E.create({players,seed:20261122,endgameRule,omitSkip:legacy?false:players===2});
  for(const p of g.people)E.autoSetup(g,p.seat);
  E.start(g);
  if(stockEmpty)g.people[1].hand.push(...g.stock.splice(0));
@@ -31,6 +31,7 @@ test('v1.7 gives the existing 54-card deck a new ruleset, preserving old decks',
  assert.equal(E.deck('pilehead-1.6.0').length,54);
  assert.equal(E.deck('pilehead-1.5.0').length,52);
  assert.equal(E.create({players:2}).endgameRule,'classic','default remains the trusted Classic rules');
+ assert.equal(E.effectiveDeck(E.create({players:2})).length,52,'new two-seat rounds exclude SKIP');
  assert.equal(E.create({players:2,endgameRule:'final-duel'}).endgameRule,'final-duel');
 });
 test('stock and three-player stage keep all normal pickups intact',()=>{
