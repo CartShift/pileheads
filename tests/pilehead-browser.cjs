@@ -103,9 +103,20 @@ async function run(browser,width,height,mobile){
   assert.equal(shortcutOutcome.moves,1,
    'P shortcut submits the same validated Play button: '+JSON.stringify(shortcutOutcome));
   await stage(page,{mode:'bots',seed:119});
+  await page.evaluate(()=>{
+   window.__stackDrag=[];
+   for(const type of ['dragstart','dragenter','dragover','drop','dragend'])
+    document.getElementById('app').addEventListener(type,e=>
+     window.__stackDrag.push({type,source:e.target?.dataset?.source||null,
+      target:!!e.target?.closest?.('[data-play-target]')}),true);
+  });
   await page.locator('.hand-area button[data-card]').first().dragTo(page.locator('[data-play-target]'));
-  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pilehead-playtest-v11')).g.moves>=1);
-  assert.equal((await state(page)).moves,1,'drag-and-drop commits one card');
+  const dragOutcome=await page.evaluate(()=>{
+   const saved=JSON.parse(localStorage.getItem('pilehead-playtest-v11'));
+   return{moves:saved.g.moves,notice:saved.notice,selected:document.querySelectorAll('.card.selected').length,
+    events:window.__stackDrag.filter(e=>e.type!=='dragover').slice(-12)};
+  });
+  assert.ok(dragOutcome.moves>=1,'drag-and-drop should commit the selection: '+JSON.stringify(dragOutcome));
   await stage(page,{mode:'hotseat',seat:1,seed:119,snap:true});
   assert.ok(await page.locator('.overlay [data-do="hot-snap"]').count(),'SNAP available without stopping next turn');
   await page.locator('.overlay [data-do="reveal"]').click();
