@@ -47,6 +47,8 @@ async function run(browser,width,height,mobile){
  page.on('pageerror',e=>errors.push(e.message));
  try{
   await page.goto(URL,{waitUntil:'domcontentloaded'});
+  assert.equal(await page.locator('body').evaluate(el=>el.classList.contains('stack-classic')),
+   true,'Classic enhancement must be scoped to the local simulator');
   assert.ok(await page.locator('[data-do="create"]').count(),'new game available');
   await page.locator('#seat-count').selectOption('2');
   await page.locator('[data-do="create"]').click();
@@ -56,12 +58,30 @@ async function run(browser,width,height,mobile){
   await stage(page,{mode:'bots',seed:117});
   let before=await state(page);
   assert.equal(before.moves,0);
+  assert.equal(await page.locator('.stack-progress-step').count(),3,'three physical card layers are visible');
+  assert.equal(await page.locator('.stack-progress-step.is-current strong').innerText(),'In hand');
   const first=page.locator('.hand-area button[data-card]').first();
   await first.click();
+  assert.ok(await page.locator('.stack-classic-preview').count(),'selected-card preview is visible');
+  assert.ok(await page.locator('.stack-classic-preview').innerText(),'preview is legible');
   assert.equal(await page.locator('.hand-area button[aria-pressed="true"]').count(),1,'tap selects one card');
   await page.locator('[data-play-target]').click({position:{x:9,y:9}});
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pilehead-playtest-v11')).g.moves>=1);
   assert.equal((await state(page)).moves,1,'pile click commits selected card');
+  // Undo returns the *entire* authoritative local state, including the stock,
+  // last action and any bot response. It never constructs a reverse move.
+  await page.locator('.playtest-tools summary').click();
+  await page.locator('[data-do="undo"]').click();
+  assert.deepEqual(await state(page),before,'solo Undo must restore every deterministic card ID and turn');
+  await page.locator('#new').click();
+  assert.ok(await page.locator('.stack-classic-dialog').count(),'restarting shows a designed confirmation');
+  await page.locator('[data-do="cancel-new"]').click();
+  assert.deepEqual(await state(page),before,'cancelled restart preserves current game');
+  // One-key commands activate exactly the same Play and Take buttons.
+  await page.locator('.hand-area button[data-card]').first().click();
+  await page.keyboard.press('p');
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pilehead-playtest-v11')).g.moves>=1);
+  assert.equal((await state(page)).moves,1,'P shortcut submits a validated card play');
   await stage(page,{mode:'bots',seed:119});
   await page.locator('.hand-area button[data-card]').first().dragTo(page.locator('[data-play-target]'));
   await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pilehead-playtest-v11')).g.moves>=1);
@@ -98,6 +118,11 @@ async function run(browser,width,height,mobile){
   await page.locator('.stack-practice-coach').waitFor();
   assert.ok(await page.locator('.stack-rules-peek summary').count(),'in-game quick rules are available');
   if(mobile){
+   assert.equal(await page.locator('.stack-classic-hotkeys').isVisible(),false,
+    'keyboard hints do not crowd the phone table');
+   const bounds=await page.locator('.stack-classic-progress').boundingBox();
+   assert.ok(bounds&&bounds.x>=-2&&bounds.x+bounds.width<=width+2,
+    'mobile progress stays inside the viewport');
    const dock=await page.locator('.table-actions').evaluate(el=>getComputedStyle(el).position);
    assert.equal(dock,'fixed','phone actions stay reachable while navigating the table');
    const overlay=await page.evaluate(()=>getComputedStyle(document.querySelector('.stack-rules-peek')).position);
@@ -108,7 +133,7 @@ async function run(browser,width,height,mobile){
   assert.equal(await page.locator('.stack-practice-coach').count(),0,'coaching can be dismissed');
   assert.ok(errors.length===0,'browser errors: '+errors.join('; '));
   console.log('PASS browser '+width+'x'+height+' '+(mobile?'touch':'desktop')+
-   ': deal, tap/pile, drag, hotseat SNAP/turn/privacy');
+   ': premium HUD, layer progress, selection preview, Undo, restart, shortcut, drag, hotseat SNAP/privacy');
  }catch(error){
   fs.mkdirSync('artifacts/browser',{recursive:true});
   await page.screenshot({path:path.resolve('artifacts/browser/failure-'+width+'.png'),fullPage:true}).catch(()=>{});
