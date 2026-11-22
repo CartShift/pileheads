@@ -258,7 +258,21 @@ export default function GameTable() {
       const message = err instanceof Error ? err.message : "Network request failed";
       setNotice(message === "stale_revision" ? "Someone moved first. Updating the table…" : message.replaceAll("_", " "));
       if (message === "stale_revision" && roomRef.current && tokenRef.current) {
-        await synchronize(roomRef.current.code, tokenRef.current, true);
+        const code = roomRef.current.code, token = tokenRef.current;
+        try {
+          const fresh = await requestRoom({ action: "state", code, heartbeat: true }, token);
+          applyRoom(fresh);
+          // Safe repeatable lobby operations must not become a manual race
+          // between guests. NEVER silently retry a card move, SNAP or SLAM.
+          if (payload.action === "ready" || payload.action === "swap") {
+            const retry = await requestRoom({ ...payload, revision: fresh.revision }, token);
+            applyRoom(retry);
+            setNotice("");
+          }
+        } catch (retryError) {
+          setNotice(retryError instanceof Error ? retryError.message.replaceAll("_", " ") :
+            "Unable to recover the room. Please try again.");
+        }
       }
     } finally { inFlight.current = false; setBusy(false); }
   }, [applyRoom, synchronize]);
