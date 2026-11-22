@@ -147,3 +147,9 @@ Five short, pre-defined reactions (fire, wow, laugh, ouch, gg) are accepted from
 The in-process WebSocket hub immediately pushes local changes. When Render has more than one instance, each connected instance reconciles the existing Neon room state every 1.2 seconds per active room. This is eventually consistent, not a low-latency Redis pub/sub system. At higher scale, replace the Neon reconciliation query with an explicit shared broker and measure latency/cost. No database schema migration or new Render environment variable is required; `ws@8.23.0` is a pinned runtime dependency.
 
 Automated two-context Chromium integration exercises the real server, engine and API with a separate test-only mocked Neon backend: room creation, independently authenticated seats, reaction delivery without consuming a move revision, SNAP vs the next player's immediate move, reconnect, invalid socket credentials and rematch. It does not establish the behavior of the live Neon database or actual physical phones. Validate those separately against the Render deployment.
+
+## v1.7 Final Duel and connection stability
+
+New games and rematches use v1.7. When exactly two players remain and the draw stock is empty, picking up the pile permanently burns its visible top card before transferring the rest. Failed blind flips and DUMP use the identical logic. Existing v1.6 54-card games and v1.2–1.5 52-card games remain under classic pickup rules until the round ends, preserving cards, memberships and room tokens. The API publishes `endgameRule` and `erodedCount` for synchronized notices and animations.
+
+The realtime server now resets the same socket-level `isAlive` flag on WebSocket pong that its heartbeat loop checks. Previously a healthy websocket could be terminated after two pings regardless of pong replies. Browser acceptance checks the transport with an isolated mocked Neon backend; actual phone and production-DB QA remain separate.

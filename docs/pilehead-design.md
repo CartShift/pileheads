@@ -1,6 +1,6 @@
-# PILEHEAD — Official external playtest rules (v1.6, revised 2026-11-20)
+# PILEHEAD — Official external playtest rules (v1.7 Final Duel, revised 2026-11-22)
 
-Status: **canonical rules for the controlled external playtest**, not a retail-approved ruleset. Rule changes require a documented variant and a new playtest cohort. See `docs/pilehead-playtest-kit.md` and the printable `/pilehead/playtest.html` for facilitators. STACK is now the only maintained game in `yotamon/spark-card-game`; the internal PILEHEAD name and existing browser storage keys remain for compatibility.
+Status: **v1.7 versioned digital playtest rules**, not a retail-approved ruleset. Rule changes require a documented variant and a new playtest cohort. See `docs/pilehead-playtest-kit.md` and the printable `/pilehead/playtest.html` for facilitators. STACK is now the only maintained game in `yotamon/spark-card-game`; the internal PILEHEAD name and existing browser storage keys remain for compatibility.
 
 ## Design target
 
@@ -38,7 +38,7 @@ Play **one** legal card or a group of matching numbered cards **or identical spe
 - While UNDER is active, only numbers 1–4 are legal.
 - Any action card is legal, at any time, even on an empty pile. Any two or more identical action cards may be played together; resolve the effect once.
 - Multiple number cards may be played simultaneously if they have the same rank and all are in the active layer. Matching action cards follow the same grouping rule.
-- **Strategic pickup:** on your turn, you may take the entire pile into your hand whenever it is nonempty, even when you have a legal play. Taking ends your turn and clears the active number restriction. This remains available in the hand, face-up and blind layers. You cannot take an empty pile, interrupt someone else's turn with pickup, or bypass an unresolved DUMP target.
+- **Strategic pickup:** on your turn, you may take the pile into your hand whenever it is nonempty, even when you have a legal play. In Final Duel, burn the visible top card first and take the rest. Taking ends your turn and clears the active number restriction. This remains available in the hand, face-up and blind layers. You cannot take an empty pile, interrupt someone else's turn with pickup, or bypass an unresolved DUMP target.
 - After playing from the hand, draw back up to three cards from the stock if possible. Do not draw just because you had to take the pile.
 - Turns may be changed by SKIP, BURN, DUMP, or SLAM. BURN, DUMP and a successful four-of-a-kind or out-of-turn SLAM always grant the actor another turn while the actor remains in play.
 - Numeric four-of-a-kind burns the pile, clears the restriction, and grants the actor another turn.
@@ -78,13 +78,15 @@ For online play, simultaneous response ordering requires server-authoritative ti
 - When the actor goes out on BURN, DUMP, a normal four-of-a-kind or SLAM, the next active player takes the next turn instead; if only one player remains, game ends. Choosing a DUMP recipient does not change clockwise turn order; the actor plays again if still in the game.
 - Any last-card finish removes that player immediately; when only one remains, the game is over.
 - Action cards never contribute to a SLAM. There are four BURN cards and two copies of every other action in this 54-card deck.
-- Normal turns and SLAM must not use face-up or face-down cards before those layers are available, except the explicit LAST-HAND COMBO bridge from the final numeric hand card. Face-up pairs may be grouped when their layer is active, but blind cards remain one-per-turn.
+- Normal turns and SLAM must not use face-up or face-down cards before those layers are available, except the explicit LAST-HAND COMBO bridge from the complete matching final hand. Face-up pairs may be grouped when their layer is active, but blind cards remain one-per-turn.
 
 ## SNAP and LAST-HAND COMBO — additional frozen rules
 
 - **SNAP:** After playing a number from the hand, newly replenished cards from the stock matching that played number can be thrown immediately, before the next player's move. Only cards drawn in **that same move** are eligible; old matching cards in the hand do not count. This does not steal the next turn unless a group of four burns the pile. Online there is no time-based priority or delay: the next player can act immediately. The SNAP button remains available only while the opportunity exists; the first move committed by the server wins. Once another action resolves, the previous player's SNAP opportunity ends.
 - **LAST-HAND COMBO:** With empty stock and a homogeneous hand containing one to three cards, play the complete remaining hand together with identical face-up cards as one atomic group (up to four). Matching action cards can also bridge, resolving their effect once. Numbers obey the pile restriction; no bridge is allowed while stock remains.
-- **Endgame:** No rule change for the final two players in the canonical rules. The experimental three-of-a-kind final-duel rule is documented **only as an optional separate trial** in `docs/pilehead-playtest-kit.md`; do not silently enable it in production or mix results without recording the variant.
+- **Final Duel (v1.7):** Once the draw stock is **empty** and exactly **two active players remain**, any pile pickup permanently burns the **visible top card** before transferring the rest to the recipient. This includes voluntary pickups, failed blind flips (where the revealed card becomes topmost), and DUMP. If the top card is the last card in the pile, the recipient takes none. Before the trigger there is no erosion. A player whose last blind card burns immediately finishes. No counters or tracked repeated states are required.
+- **Legacy compatibility:** Existing v1.6 54-card games and v1.2–1.5 52-card games retain their original pickup rules for the entire ongoing round. New rooms and rematches use v1.7. Keep all playtest outcomes version-labeled.
+- **Separate experiment:** The three-of-a-kind final-duel SLAM variant remains optional and is not enabled in v1.7.
 
 ## Implementation map
 

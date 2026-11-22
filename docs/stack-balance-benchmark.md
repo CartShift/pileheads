@@ -1,18 +1,14 @@
-# STACK synthetic balance benchmark — 20 November 2026
+# STACK Final Duel v1.7 balance benchmark, 22 November 2026
 
-The machine-readable evidence is in \`docs/stack-balance-benchmark-20261120.json\`. This is an **engineering diagnostic**, not a live-player win-rate or retention study.
+See `docs/stack-balance-benchmark-20261122.json` for reproducible machine-readable data. The earlier v1.6 report remains preserved in `docs/stack-balance-benchmark-20261120.json`.
 
-- 1,000 seeded games per player count (2, 3, 4, 5) and deck variant (historical 52 versus current 54): 8,000 total.
-- Same seeded bot policy rotation and probabilistic reaction profile across cohorts.
-- Current 54-card games averaged fewer simulated actions in all four player-count cohorts, but both deck variants retained occasional rounds that hit the 1,200-action simulation cap.
-- Higher BURN availability changes both the number of burns and the occurrence of out-of-turn SLAMs. Those shifts are not sufficient evidence that players enjoy the game more or less.
-- The older deck is reconstructed by removing the additional two BURN identities from a shuffled current deck while preserving the original 52 identities. This compares **deck composition** with stable engine mechanics rather than emulating every historical UI/rule revision.
+**12,000 seeded synthetic matches:** 1,000 for each of 2–5 players in three cohorts. `current54` (v1.7) and `classic54` (v1.6) have the **same 54-card deck**; only the Final Duel rule changes. `legacy52` uses the old 52-card deck and classic pickups.
 
-## Next human-study questions
+| Players | Classic 54 mean moves | Final Duel 54 mean moves | Classic capped at 1,200 | Final Duel capped at 1,200 |
+|---|---:|---:|---:|---:|
+| 2 | 128.49 | **107.65** | 1/1,000 | 0/1,000 |
+| 3 | 141.09 | **119.26** | 0/1,000 | 0/1,000 |
+| 4 | 165.38 | **139.93** | 4/1,000 | 0/1,000 |
+| 5 | 187.08 | **156.16** | 3/1,000 | 0/1,000 |
 
-1. In 2-player play, do long pickup cycles feel tense or tedious? Observe any 10-turn repeated endgame state.
-2. After a BURN play, does the actor feel strategic agency or just luck?
-3. How often do real players miss a SNAP/SLAM that a simulated attentive player would claim?
-4. Do groups voluntarily start a new round, without prompting?
-
-Do not change canonical cards or rules inside a test cohort; clearly label the variant and preserve comparable observations.
+Under these synthetic bot strategies, the new rule eliminated all 1,200-move caps in 4,000 v1.7 simulations while preserving every deck identity. It does not prove every possible game terminates or that players prefer this rule. Complete real-player testing, real-device multiplayer QA and fair-play review before claiming retail readiness.

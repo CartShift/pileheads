@@ -1,10 +1,10 @@
 # PILEHEAD — official external playtest kit
 
-**Current deck revision:** 2026-11-20. **Canonical rules:** `docs/pilehead-design.md` (engine `pilehead-1.6.0`). **Status:** controlled human test, **not** manufacturing / commercial approval.
+**Current deck revision:** 2026-11-22. **Canonical rules:** `docs/pilehead-design.md` (engine `pilehead-1.7.0`, Final Duel). **Status:** controlled human test, **not** manufacturing / commercial approval.
 
 ## Goal and scope
 
-Find out whether unfamiliar players can learn PILEHEAD, choose to replay it, and prefer its purpose-built deck to traditional Shithead. Evaluate **the game itself**, separately from the browser simulator's look and feel. Do not change the deck or core rules within a cohort. The old 52-card deck and new 54-card BURN ×4 deck must be identified as separate cohorts. The digital engine remains unchanged; only clearly labeled trials may use experimental rules in physical play.
+Find out whether unfamiliar players can learn PILEHEAD, choose to replay it, and prefer its purpose-built deck to traditional Shithead. Evaluate **the game itself**, separately from the browser simulator's look and feel. Do not change the deck or core rules within a cohort. Separate the historical 52-card deck, classic 54-card v1.6, and Final Duel 54-card v1.7 into distinct cohorts. The digital engine remains unchanged; only clearly labeled trials may use experimental rules in physical play.
 
 ## Ready-to-use assets
 
@@ -92,6 +92,10 @@ If players repeatedly ask for rules, no one spontaneously replays, or the endgam
 
 ## Version-aware diagnostic simulator (engineering use only)
 
-\`npm run simulate -- 120 4 20261113 mixed current54\` records 54-card v1.6 seeded diagnostic results; append \`legacy52\` to model the prior 52-card composition under the same engine mechanics. Reaction profiles: \`perfect\`, \`attentive\`, \`casual\`, \`mixed\`.
+\`npm run simulate -- 120 4 20261113 mixed current54\` records 54-card v1.7 Final Duel diagnostics; use \`classic54\` to compare the same 54-card deck with v1.6 pickup rules or \`legacy52\` for the old 52-card composition. Reaction profiles: \`perfect\`, \`attentive\`, \`casual\`, \`mixed\`.
 
 The simulator records how often SNAP and SLAM opportunities occur, how often modeled players successfully claim them, BURN effects, pickups, long-game percentiles, two-player endgames, and seat outcomes. It does **not** simulate human response latency, physical reactions, perceived tension, skill learning or willingness to replay. Compare matched player counts, seeds, profiles and deck variants before claiming a balance improvement. Keep the real-human study as a separate mandatory release gate.
+
+## v1.7 Final Duel study
+
+Explain before playing: with an empty draw stock and only two surviving players, a pile pickup burns the visible top card, then the remaining cards are collected. This includes DUMP and failed blind flips. Observe comprehension, the physical top-card burn, late-game loops, fairness and replay willingness. Keep earlier rule cohorts separate; the optional three-of-a-kind experiment is unrelated.
