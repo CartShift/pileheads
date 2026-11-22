@@ -581,19 +581,46 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 .move-story-overlay[data-kind="under"]{--story-accent:#82e8d5;--story-glow:#59d9bc66}
 .move-story-overlay[data-kind="skip"]{--story-accent:#ffe293;--story-glow:#ffe29366}
 .move-story-overlay[data-kind="snap"]{--story-accent:#d6f29a;--story-glow:#d6f29a66}
-.move-story-caption{position:absolute;z-index:90;translate:-50% -50%;
-  width:max-content;max-width:min(340px,calc(100vw - 28px));min-width:min(210px,calc(100vw - 28px));
-  display:flex;flex-direction:column;align-items:center;gap:4px;padding:11px 16px;
-  border:1.5px solid var(--story-accent);border-radius:15px;
-  color:#fff6de;background:#092921f2;box-shadow:0 0 32px var(--story-glow),0 12px 30px #0009;
-  text-align:center;animation:stack-story-caption 2050ms ease both}
-.move-story-caption strong{color:var(--story-accent);font-size:clamp(17px,4vw,27px);
-  font-weight:950;line-height:1.05;letter-spacing:.03em}
-.move-story-caption span{color:#f0efdd;font-size:11px;font-weight:650;line-height:1.35}
+/* A restrained marker follows a special effect, not every played card. */
+.move-story-caption{position:absolute;z-index:92;translate:-50% -50%;
+  display:grid;place-items:center;min-height:27px;padding:5px 11px;
+  border:1px solid var(--story-accent);border-radius:999px;
+  background:#092a24e8;color:var(--story-accent);
+  box-shadow:0 4px 14px #0007,0 0 13px var(--story-glow);
+  text-align:center;animation:stack-story-caption 2100ms ease both}
+.move-story-caption strong{font-size:11px;font-weight:900;letter-spacing:.14em;line-height:1.1}
+.move-story-sigil{position:absolute;z-index:91;translate:-50% -50%;
+  min-width:72px;min-height:72px;display:grid;place-items:center;
+  color:var(--story-accent);font-size:clamp(34px,6vw,58px);font-weight:950;
+  text-shadow:0 0 18px var(--story-glow),0 2px 12px #001c14;
+  pointer-events:none;animation:stack-story-sigil 2100ms cubic-bezier(.18,.75,.23,1) both}
+.move-story-sigil[data-kind="under"]{font-size:31px;letter-spacing:-.08em}
+.move-story-sigil[data-kind="reset"]{animation:stack-story-reset 2100ms ease both}
+.move-story-sigil[data-kind="ghost"]{animation:stack-story-ghost 2100ms ease both}
+.move-story-sigil[data-kind="reject"]{text-shadow:0 0 26px #fa2e52,0 0 9px #f5a3aa}
 @keyframes stack-story-caption{
-  0%{opacity:0;transform:translateY(14px) scale(.93)}
-  12%,79%{opacity:1;transform:translateY(0) scale(1)}
-  100%{opacity:0;transform:translateY(-7px) scale(.98)}
+  0%,13%{opacity:0;transform:translateY(6px) scale(.86)}
+  24%,65%{opacity:1;transform:translateY(0) scale(1)}
+  85%,100%{opacity:0;transform:translateY(-7px) scale(.96)}
+}
+@keyframes stack-story-sigil{
+  0%,17%{opacity:0;transform:scale(.3) rotate(-14deg)}
+  32%{opacity:1;transform:scale(1.14) rotate(5deg)}
+  52%{opacity:.95;transform:scale(.95) rotate(0)}
+  75%{opacity:.7;transform:scale(1.1)}
+  100%{opacity:0;transform:scale(1.35)}
+}
+@keyframes stack-story-reset{
+  0%,16%{opacity:0;transform:scale(.4) rotate(-160deg)}
+  35%{opacity:1;transform:scale(1.08) rotate(35deg)}
+  65%{opacity:.95;transform:scale(1) rotate(290deg)}
+  100%{opacity:0;transform:scale(1.18) rotate(380deg)}
+}
+@keyframes stack-story-ghost{
+  0%,15%{opacity:0;transform:translateY(13px) scale(.7);filter:blur(5px)}
+  34%{opacity:.95;transform:translateY(-3px) scale(1);filter:blur(0)}
+  68%{opacity:.65;transform:translateY(-13px) scale(1.1);filter:blur(2px)}
+  100%{opacity:0;transform:translateY(-28px) scale(1.2);filter:blur(6px)}
 }
 .move-story-flight,.move-story-transfer,.move-story-refill{
   position:absolute;z-index:80;will-change:transform,opacity;
@@ -673,14 +700,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 @media(max-width:650px){
  .move-story-flight,.move-story-transfer{width:64px}
  .move-story-impact{width:120px;height:120px}
- .move-story-caption{padding:10px 12px;max-width:calc(100vw - 28px)}
- .move-story-caption strong{font-size:17px}
- .move-story-caption span{font-size:10px}
+ .move-story-sigil{min-width:58px;min-height:58px;font-size:39px}
+ .move-story-sigil[data-kind="under"]{font-size:26px}
+ .move-story-caption{padding:5px 9px;max-width:calc(100vw - 28px)}
+ .move-story-caption strong{font-size:10px}
 }
 @media(prefers-reduced-motion:reduce){
- /* Keep an informative public action card visible without forced motion. */
+ /* Retain a compact static action label, not movement or a giant message. */
  .move-story-flight,.move-story-transfer,.move-story-refill,.move-story-impact{display:none!important}
- .move-story-caption{animation:none!important;opacity:1!important}
+ .move-story-caption,.move-story-sigil{animation:none!important;opacity:1!important}
+ .move-story-sigil{opacity:.6!important}
 }
 
 /* Preserve the reveal-then-reject-then-transfer order. */
