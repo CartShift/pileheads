@@ -446,3 +446,20 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 .hand-tool{background:none;border:1px solid #b6d1ab88;border-radius:8px;
   color:#def0cd;padding:5px 9px;font-size:11px;font-weight:800;min-height:29px}
 .hand-tool:hover,.hand-tool:focus-visible{background:#295b49}
+
+/* Adaptive physical hand: all cards remain visible and selectable.
+   Narrow screens show a readable left strip; very large hands use two or
+   more vertically staggered rows rather than an invisible overflow. */
+.hand-stage{width:100%;min-width:0;box-sizing:border-box;padding:18px 4px 18px;overflow:visible}
+.player-hand.is-adaptive{display:grid;position:relative;grid-auto-flow:row;
+  align-items:start;justify-content:start;gap:0;min-width:0;min-height:0;
+  max-width:100%;padding:0;margin:0 auto;overflow:visible}
+.player-hand.is-adaptive .playing-card{min-width:0;max-width:none;
+  transform-origin:center bottom}
+.player-hand.is-adaptive .playing-card.is-selected{z-index:12}
+.player-hand.is-empty{width:100%;justify-content:center;min-height:90px}
+@media(max-width:720px){
+  .hand-stage{padding:18px 2px 18px}
+  .player-hand.is-adaptive{min-height:0}
+  .player-hand.is-adaptive .playing-card.is-selected{z-index:16}
+}

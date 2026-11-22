@@ -223,6 +223,8 @@ export default function GameTable() {
   const [resumeGame, setResumeGame] = useState<Game | null>(null);
   const [deckTheme, setDeckTheme] = useState<DeckTheme>("characters");
   const [handSort, setHandSort] = useState<HandSort>("dealt");
+  const handStageRef = useRef<HTMLDivElement | null>(null);
+  const [handArea, setHandArea] = useState({ width: 0, cardWidth: 0 });
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [endgameRule, setEndgameRule] = useState<EndgameRule>("classic");
   const [pendingRule, setPendingRule] = useState<EndgameRule | null>(null);
@@ -523,6 +525,29 @@ export default function GameTable() {
 
   const g = useMemo(() => mode === "local" && local ? asLocalRoom(local) : mode === "online" ? room?.game : null,
     [mode, local, room]);
+
+  // Keep every card in view as the hand grows. Measure the real rendered
+  // width (not a guessed viewport) so Safari, browser zoom and desktop all
+  // use the same layout. A new row is preferred over unreadably thin slivers.
+  useEffect(() => {
+    const stage = handStageRef.current;
+    if (!stage) return;
+    const measure = () => {
+      const style = getComputedStyle(stage);
+      const horizontalPadding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+      const width = Math.max(0, stage.clientWidth - horizontalPadding);
+      const card = stage.querySelector<HTMLElement>(".playing-card");
+      const cardWidth = card ? parseFloat(getComputedStyle(card).width) :
+        window.innerWidth <= 720 ? Math.max(51, Math.min(77, window.innerWidth * .15)) : 85;
+      setHandArea(prev => Math.abs(prev.width - width) < .5 &&
+        Math.abs(prev.cardWidth - cardWidth) < .5 ? prev : {width, cardWidth});
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(stage);
+    window.addEventListener("resize", measure);
+    return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
+  }, [mode, g?.phase, !!g]);
   const me = mode === "local" ? 0 : room?.me ?? 0;
   const face = g?.blindReveal;
   const showFlip = !!face && face.expiresAt > Date.now();
@@ -536,6 +561,29 @@ export default function GameTable() {
     fire: "🔥", wow: "😮", laugh: "😂", ouch: "😬", gg: "🏆"
   };
   const current = g?.players[me];
+  const handCards = orderedHand(current?.hand || [], handSort);
+  const handCount = handCards.length;
+  const cardWidth = handArea.cardWidth || 58;
+  const availableHandWidth = Math.max(cardWidth, handArea.width || 300);
+  // Show a readable card-number strip on each overlapped card. Long hands
+  // flow into compact stacked rows rather than being clipped off-screen.
+  const visibleStrip = availableHandWidth < 520 ? 32 : 44;
+  const maxColumns = Math.max(1, Math.floor(
+    Math.max(0, availableHandWidth - cardWidth) / visibleStrip
+  ) + 1);
+  const handColumns = Math.max(1, Math.min(handCount, maxColumns));
+  const handRows = handCount ? Math.ceil(handCount / handColumns) : 0;
+  const handStep = handColumns <= 1 ? cardWidth :
+    Math.min(cardWidth + (availableHandWidth < 520 ? 3 : 8),
+      (availableHandWidth - cardWidth) / (handColumns - 1));
+  const cardHeight = cardWidth * 355 / 252;
+  const handRowStep = Math.max(34, Math.round(cardHeight * (handRows > 3 ? .49 : .64)));
+  const handLayout: CSSProperties = {
+    gridTemplateColumns: `repeat(${handColumns}, ${handStep}px)`,
+    gridAutoRows: `${handRowStep}px`,
+    width: `${cardWidth + (handColumns - 1) * handStep}px`,
+    height: `${cardHeight + Math.max(0, handRows - 1) * handRowStep}px`
+  };
   const lastEvent = g?.events.at(-1);
   const soundEventId = lastEvent ? String(g?.round || 1) + ":" +
     lastEvent.move + ":" + lastEvent.seat + ":" + lastEvent.type : null;
@@ -1007,15 +1055,20 @@ export default function GameTable() {
                   Sort {handSort === "dealt" ? "↑" : handSort === "asc" ? "↓" : "↺"}
                 </button>}
             </span></div>
-          <div className="player-hand">
-            <AnimatePresence initial={false}>
-              {orderedHand(current.hand || [], handSort).map(card =>
+          <div className="hand-stage" ref={handStageRef}
+            role="group" aria-label={`Your hand, ${current.handCount} cards`}>
+            <div className={`player-hand ${handCount ? "is-adaptive" : "is-empty"}`}
+              style={handCount ? handLayout : undefined} data-hand-rows={handRows}
+              data-hand-columns={handColumns}>
+              <AnimatePresence initial={false}>
+              {handCards.map(card =>
                 <PlayingCard key={card.id} card={card} theme={deckTheme} selected={selection.includes(card.id) || swapHand === card.id}
                   onClick={g.phase === "setup" ? (!ready ? () => swap(card, "hand") : undefined) :
                     (active || g.followup.length > 0) && stage === "hand" ? () => chooseCard(card) : undefined}
                   onDrop={active && stage === "hand" ? () => playCardDirect(card) : undefined} />)}
-            </AnimatePresence>
-            {!current.handCount && <span className="hand-placeholder">No cards in hand</span>}
+              {!current.handCount && <span className="hand-placeholder">No cards in hand</span>}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
         {g.phase === "over" && <motion.section className="results-overlay"
