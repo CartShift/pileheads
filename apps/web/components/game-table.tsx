@@ -383,6 +383,7 @@ export default function GameTable() {
       const next = structuredClone(previous);
       change(next);
       Engine.invariant(next);
+      if (next.events.length > 96) next.events.splice(0, next.events.length - 96);
       if (recordUndo) {
         undoRef.current = structuredClone(previous);
         setUndoAvailable(true);
@@ -807,6 +808,24 @@ export default function GameTable() {
             {!current.handCount && <span className="hand-placeholder">No cards in hand</span>}
           </div>
         </div>
+        {g.phase === "over" && <motion.section className="results-overlay"
+          initial={{opacity:0, y:20, scale:.96}}
+          animate={{opacity:1,y:0,scale:1}}
+          transition={{type:"spring",stiffness:220,damping:25}}
+          role="region" aria-label="Round results">
+          <div className="eyebrow">ROUND COMPLETE</div>
+          <h2>{g.loser === me ? "You're the PILEHEAD!" : "You escaped the pile!"}</h2>
+          <p>The cards are down. Here is how everyone finished.</p>
+          <ol className="results-standings">
+            {[...g.finishedOrder, ...(g.loser === null ? [] : [g.loser])].map((seat, index) =>
+              <li key={seat} className={seat === g.loser ? "results-loser" : ""}>
+                <span>{index + 1}</span><strong>{nameForSeat(seat)}</strong>
+                <small>{seat === g.loser ? "PILEHEAD" : index === 0 ? "First out" : "Escaped"}</small>
+              </li>)}
+          </ol>
+          <div className="results-stats"><span>{g.moves} plays</span>
+            <span>{g.ashesCount} cards burned</span><span>{g.players.length} players</span></div>
+        </motion.section>}
       </div>
 
       <div className="control-panel" aria-label="Game actions">
@@ -827,7 +846,12 @@ export default function GameTable() {
           </div>
         ) : g.phase === "over" ? <div className="setup-controls">
           <div><strong>Game over</strong><p>First out: {nameForSeat(g.finishedOrder[0] ?? -1)}</p></div>
-          <button className="primary-button" disabled={busy} onClick={() => setConfirmRestart(true)}>Play another round</button>
+          <div className="button-group">
+            {mode === "local" && undoAvailable &&
+              <button className="secondary-button" data-hotkey="undo" onClick={undo}>Undo last move</button>}
+            <button className="primary-button" disabled={busy}
+              onClick={() => setConfirmRestart(true)}>Play another round</button>
+          </div>
         </div> : g.pendingDump?.seat === me ? <div className="setup-controls">
           <div><strong>Choose who takes the pile</strong><p>DUMP can target any active opponent.</p></div>
           <div className="button-group">{liveSeats.map(seat =>

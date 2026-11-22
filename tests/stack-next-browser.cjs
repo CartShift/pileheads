@@ -89,7 +89,7 @@ async function localScenarios(browser) {
     } finally { await context.close(); }
   }
 }
-async function onlineScenarios(browser) {
+async function onlineScenarios(browser, server) {
   const hostCtx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const guestCtx = await browser.newContext({ viewport: { width: 360, height: 740 }, isMobile: true, hasTouch: true });
   const host = await hostCtx.newPage(), guest = await guestCtx.newPage();
@@ -132,6 +132,10 @@ async function onlineScenarios(browser) {
     assert.ok(Array.isArray(guestView.data.game.players[1].hand));
     assert.ok(!host.url().includes(guestView.token), "no bearer token in room link");
 
+    await guest.getByRole("button", { name: "Send a reaction" }).click();
+    await guest.getByRole("button", { name: "React fire" }).click();
+    await host.locator(".opponent-seat .seat-reaction").first().waitFor({ timeout: 12000 });
+
     await host.locator(".player-hand .card-hit").first().click();
     await host.getByRole("button", { name: /Play cards/ }).click();
     await host.getByRole("button", { name: "SNAP" }).waitFor({ timeout: 10000 });
@@ -142,6 +146,16 @@ async function onlineScenarios(browser) {
     await guest.locator(".tabletop").waitFor({ timeout: 14000 });
     assert.ok(await guest.locator(".player-hand .playing-card").count() > 0,
       "reconnect restores seat");
+    // A real server-side finish should render the same results to both seats,
+    // and the existing room/session must survive a rematch.
+    server.send({ type: "finish", code });
+    await host.getByRole("button", { name: "Play another round" }).waitFor({ timeout: 16000 });
+    await host.getByRole("region", { name: "Round results" }).waitFor();
+    await host.getByRole("button", { name: "Play another round" }).click();
+    await host.getByRole("button", { name: "Deal again" }).click();
+    await host.getByRole("button", { name: "I'm ready" }).waitFor({ timeout: 15000 });
+    assert.equal(new URL(host.url()).searchParams.get("room"), code,
+      "rematch must preserve private room identity");
     assert.deepEqual(errors, [], "no multiplayer client exceptions");
     console.log("PASS Next online: dual mobile seats, CORS, private hands, SNAP race, reconnect");
   } finally { await Promise.all([hostCtx.close(), guestCtx.close()]); }
@@ -171,7 +185,7 @@ async function main() {
     await Promise.all([waitReady(WEB + "/play", () => webLog), waitReady(API + "/livez", () => apiLog)]);
     browser = await chromium.launch({ headless: true });
     await localScenarios(browser);
-    await onlineScenarios(browser);
+    await onlineScenarios(browser, apiProc);
   } catch (e) {
     console.error("Next browser acceptance failed:", e);
     console.error("WEB LOGS", webLog.slice(-6000));
