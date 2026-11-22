@@ -37,9 +37,9 @@ async function quota(req,action,max){const ip=String(req.headers['x-forwarded-fo
  if(rows[0].hits>max)fail(429,'rate_limited')}
 function humanCount(g){return Number.isInteger(g.humanCount)?g.humanCount:g.people.length}
 function botSeats(g){return Array.isArray(g.botSeats)?g.botSeats:[]}
-function freshGame({players,humans,bots,round=1,starterSeat=null}){
+function freshGame({players,humans,bots,round=1,starterSeat=null,endgameRule='classic'}){
  const seed=crypto.randomBytes(4).readUInt32BE(0);
- const game=E.create({players,seed});
+ const game=E.create({players,seed,endgameRule});
  game.humanCount=humans;
  game.botSeats=Array.from({length:bots},(_,i)=>humans+i);
  game.round=round;
@@ -54,7 +54,7 @@ function freshGame({players,humans,bots,round=1,starterSeat=null}){
 }
 function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCount:g.stock.length,
   rulesVersion:g.version,
-  endgameRule:g.version===E.VERSION?'final-duel':'classic',
+  endgameRule:g.version===E.VERSION&&g.endgameRule==='final-duel'?'final-duel':'classic',
  round:g.round||1,humanCount:humanCount(g),botSeats:botSeats(g),
  starterSeat:g.starterSeat??0,starterReason:g.starterReason||'draw',startedAt:g.startedAt||null,
  blindReveal:g.blindReveal?.expiresAt>Date.now()?g.blindReveal:null,
@@ -87,8 +87,10 @@ async function create(req,b){
  const bots=b.bots===undefined?0:Number(b.bots);
  const cap=humans+bots;
  if(!Number.isInteger(humans)||!Number.isInteger(bots)||humans<1||bots<0||cap<2||cap>5)fail(400,'invalid_capacity');
+ const endgameRule=b.endgameRule===undefined?'classic':b.endgameRule;
+ if(endgameRule!=='classic'&&endgameRule!=='final-duel')fail(400,'invalid_endgame_rule');
  const t=secret();
- for(let tries=0;tries<4;tries++){const id=makeCode(),game=freshGame({players:cap,humans,bots});
+ for(let tries=0;tries<4;tries++){const id=makeCode(),game=freshGame({players:cap,humans,bots,endgameRule});
   try{await query("INSERT INTO pilehead_rooms(code,capacity,status,state) VALUES($1,$2,'lobby',$3::jsonb)",[id,cap,JSON.stringify(game)]);
    await query('INSERT INTO pilehead_members(code,seat,display_name,token_hash) VALUES($1,0,$2,$3)',[id,nick,h(t)]);
    return {...await view(await load(id),0),session:t};
@@ -107,6 +109,12 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
  g.setupReady??=g.people.map(()=>false);
  if(b.action==='swap'){if(g.phase!=='setup')fail(409,'already_started');if(g.setupReady[seat])fail(409,'unready_to_swap');
   if(!Number.isInteger(b.handId)||!Number.isInteger(b.upId))fail(400,'bad_swap');try{E.swap(g,seat,b.handId,b.upId)}catch{fail(400,'illegal_swap')}}
+ else if(b.action==='settings'){
+  if(seat!==0)fail(403,'host_only');
+  if(g.phase!=='setup')fail(409,'already_started');
+  if(b.endgameRule!=='classic'&&b.endgameRule!=='final-duel')fail(400,'invalid_endgame_rule');
+  g.endgameRule=b.endgameRule;
+ }
  else if(b.action==='ready'){if(g.phase!=='setup')fail(409,'already_started');
   if(typeof b.ready!=='boolean')fail(400,'bad_ready');g.setupReady[seat]=b.ready}
  else if(b.action==='start'){
@@ -126,7 +134,8 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
   // whereas the final player still holding cards is the PILEHEAD.
   const winner=g.finishedOrder?.[0];
   const next=freshGame({players:g.people.length,humans:humanCount(g),bots:botSeats(g).length,
-   round:(g.round||1)+1,starterSeat:Number.isInteger(winner)?winner:null});
+   round:(g.round||1)+1,starterSeat:Number.isInteger(winner)?winner:null,
+   endgameRule:g.endgameRule==='final-duel'?'final-duel':'classic'});
   Object.assign(g,next);
  }
  else if(b.action==='advance'){

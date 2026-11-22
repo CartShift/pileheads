@@ -13,10 +13,11 @@ function deck(version=VERSION){const a=[];let id=0;for(let n=1;n<=10;n++)for(let
  if(version===VERSION||version==='pilehead-1.6.0')for(let k=2;k<ACTIONS.burn;k++)a.push({id:id++,kind:'action',action:'burn'});
  return a;
 }
-function create({seed=20261113,players=4}={}){
+function create({seed=20261113,players=4,endgameRule='classic'}={}){
+ assert(['classic','final-duel'].includes(endgameRule),'Invalid endgame rule');
  assert(Number.isInteger(seed)&&seed>=0&&seed<=0xffffffff,'Invalid seed');
  assert(Number.isInteger(players)&&players>=2&&players<=5,'2–5 players required');
- const g={version:VERSION,endgameRule:'final-duel',seed,rng:(seed^0x53a2d18b)>>>0,phase:'setup',turn:0,
+ const g={version:VERSION,endgameRule,seed,rng:(seed^0x53a2d18b)>>>0,phase:'setup',turn:0,
    moves:0,stock:[],pile:[],ashes:[],limit:null,slamOpen:false,finishedOrder:[],
    loser:null,people:Array.from({length:players},(_,seat)=>({seat,hand:[],up:[],down:[],pickups:0,out:false})),
    events:[]};
@@ -28,6 +29,8 @@ function create({seed=20261113,players=4}={}){
 function count(g){return g.stock.length+g.pile.length+g.ashes.length+
  g.people.reduce((n,p)=>n+p.hand.length+p.up.length+p.down.length,0)}
 function invariant(g){const expected=deck(g.version);
+ assert(g.endgameRule===undefined||g.endgameRule==='classic'||g.endgameRule==='final-duel',
+   'Invalid endgame rule');
  assert(count(g)===expected.length,'Card conservation failed: '+count(g));
  const cards=[...g.stock,...g.pile,...g.ashes,...g.people.flatMap(p=>[...p.hand,...p.up,...p.down])];
  const ids=cards.map(c=>c.id);
@@ -160,11 +163,11 @@ function followUpOptions(g,seat){
  if(!held.length||topRun(g).rank!==rank)return[];
  return [{type:'followup',source:'hand',ids:held.map(c=>c.id)}];
 }
-// v1.7 Final Duel: once the stock is empty and only two players remain,
+// Optional Final Duel (OFF by default): once the stock is empty and only two players remain,
 // the visible top card burns on any pickup, then the rest go to the recipient.
 // Earlier rules versions continue unchanged for existing games and room codes.
 function finalDuelActive(g){
- return g.version===VERSION&&!g.stock.length&&g.people.filter(p=>!p.out).length===2;
+ return g.version===VERSION&&g.endgameRule==='final-duel'&&!g.stock.length&&g.people.filter(p=>!p.out).length===2;
 }
 function collectPile(g,target){
  assert(g.people[target]&&!g.people[target].out,'Invalid pile recipient');

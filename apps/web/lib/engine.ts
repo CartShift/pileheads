@@ -32,6 +32,7 @@ export type Player = {
 export type Game = {
   version: string;
   phase: "setup" | "play" | "over";
+  endgameRule?: "classic" | "final-duel";
   turn: number;
   moves: number;
   stock: Card[];
@@ -49,7 +50,7 @@ export type Game = {
 };
 export type EngineApi = {
   VERSION: string;
-  create(input: { seed: number; players: number }): Game;
+  create(input: { seed: number; players: number; endgameRule?: "classic" | "final-duel" }): Game;
   autoSetup(game: Game, seat: number): Game;
   start(game: Game): Game;
   swap(game: Game, seat: number, handId: number, upId: number): Game;
