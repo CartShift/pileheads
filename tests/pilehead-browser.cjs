@@ -66,7 +66,12 @@ async function run(browser,width,height,mobile){
   assert.ok(await page.locator('.stack-classic-preview').innerText(),'preview is legible');
   assert.equal(await page.locator('.hand-area button[aria-pressed="true"]').count(),1,'tap selects one card');
   await page.locator('[data-play-target]').click({position:{x:9,y:9}});
-  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pilehead-playtest-v11')).g.moves>=1);
+  const firstOutcome=await page.evaluate(()=>{
+   const state=JSON.parse(localStorage.getItem('pilehead-playtest-v11'));
+   return{moves:state.g.moves,notice:state.notice,selected:document.querySelectorAll('.card.selected').length,
+    actions:document.querySelector('.table-actions')?.innerText};
+  });
+  assert.ok(firstOutcome.moves>=1,'pile click must commit the validated selection: '+JSON.stringify(firstOutcome));
   assert.equal((await state(page)).moves,1,'pile click commits selected card');
   // Undo returns the *entire* authoritative local state, including the stock,
   // last action and any bot response. It never constructs a reverse move.
