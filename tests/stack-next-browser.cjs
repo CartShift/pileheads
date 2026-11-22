@@ -474,9 +474,29 @@ async function onlineScenarios(browser, server) {
 
     await host.locator(".player-hand .card-hit").first().click();
     await host.getByRole("button", { name: /Play cards/ }).click();
+    // Both displays must animate the same committed public move, but from
+    // their own seat positions; the opponent cannot read the actor's hand.
+    const hostMove=host.locator(".move-story-overlay[data-kind]");
+    const guestMove=guest.locator(".move-story-overlay[data-kind]");
+    await Promise.all([hostMove.waitFor({timeout:11000}),guestMove.waitFor({timeout:11000})]);
+    const guestFlight=await guestMove.evaluate(el=>{
+      const card=el.querySelector(".move-story-flight");
+      return{moves:Number(el.dataset.move),fly:!!card,
+        animation:card?getComputedStyle(card).animationName:null};
+    });
+    assert.equal(guestFlight.fly,true,"opponent sees played card moving onto central pile");
+    assert.match(guestFlight.animation,/stack-story-throw/);
+    assert.equal(guestFlight.moves,1,"both clients present the same authoritative move");
+    console.log("PASS Next multiplayer motion: both live seats see a physical card fly");
     await host.getByRole("button", { name: "SNAP" }).waitFor({ timeout: 10000 });
     await guest.getByRole("button", { name: "Take pile" }).waitFor({ timeout: 12000 });
     await guest.getByRole("button", { name: "Take pile" }).click();
+    const guestPickup=guest.locator('.move-story-overlay[data-kind="pickup"]');
+    const hostPickup=host.locator('.move-story-overlay[data-kind="pickup"]');
+    await Promise.all([guestPickup.waitFor({timeout:8500}),hostPickup.waitFor({timeout:8500})]);
+    assert.ok(await hostPickup.locator(".move-story-transfer").count(),
+      "remote player sees pile flying to the recipient's hand");
+    console.log("PASS Next multiplayer motion: pickup is visible on both screens");
     await host.getByRole("button", { name: "SNAP" }).waitFor({ state: "hidden", timeout: 13000 });
     await guest.reload({ waitUntil: "domcontentloaded" });
     await guest.locator(".tabletop").waitFor({ timeout: 14000 });
@@ -578,6 +598,82 @@ async function mixedBotScenarios(browser) {
   } finally {await context.close()}
 }
 
+
+/** Actual animated cards, not just event labels, in both client viewports. */
+async function sharedMoveAnimationScenarios(browser) {
+ const E=require("../dist/pilehead/engine.js");
+ const actions=["burn","dump","under","reset","ghost"];
+ for(const [i,action] of actions.entries()){
+  const g=E.create({players:2,seed:20261123+i});
+  E.start(g);
+  const destination=g.people[0].hand, zones=[g.stock,g.pile,g.ashes,
+   ...g.people.flatMap(p=>[p.hand,p.up,p.down])];
+  const source=zones.find(arr=>arr.some(card=>card.action===action));
+  assert.ok(source,"fixture must contain "+action);
+  const index=source.findIndex(card=>card.action===action);
+  [source[index],destination[0]]=[destination[0],source[index]];
+  g.pile.push(g.stock.pop());
+  E.invariant(g);
+  const context=await browser.newContext({
+   viewport:{width:390,height:844},isMobile:true,hasTouch:true,
+   reducedMotion:"no-preference"
+  });
+  await context.addInitScript(game=>{
+   localStorage.setItem("stack-next-local-save-v1",JSON.stringify({version:1,game}));
+  },g);
+  const page=await context.newPage();
+  try{
+   await page.goto(WEB+"/play");
+   await page.getByRole("button",{name:"Resume game"}).click();
+   await page.getByRole("button",{name:new RegExp("^"+action.toUpperCase()+":")}).click();
+   await page.getByRole("button",{name:/Play cards/}).click();
+   const theater=page.locator('.move-story-overlay[data-kind="'+action+'"]');
+   await theater.waitFor({timeout:6000});
+   assert.ok(await theater.locator(".move-story-flight").count(),"played "+action+" card must physically fly");
+   const measured=await theater.evaluate(el=>{
+    const flight=el.querySelector(".move-story-flight");
+    const caption=el.querySelector(".move-story-caption");
+    return{animation:getComputedStyle(flight).animationName,
+      endX:flight.style.getPropertyValue("--move-x"),
+      caption:caption.textContent,
+      hasTransfer:!!el.querySelector(".move-story-transfer")};
+   });
+   assert.match(measured.animation,/stack-story-throw/,"actual card flight must animate");
+   assert.ok(measured.endX.endsWith("px"));
+   assert.match(measured.caption,new RegExp(action==="under"?"1–4":action.toUpperCase(),"i"));
+   if(["burn","dump"].includes(action))assert.ok(measured.hasTransfer,
+    action+" must physically clear or transfer the pile");
+   console.log("PASS Next motion: "+action.toUpperCase()+" visible card movement and effect");
+  }finally{await context.close()}
+ }
+ // System reduced motion still communicates what happened, without flying cards.
+ const g=E.create({players:2,seed:28111});
+ E.start(g);
+ const zones=[g.stock,...g.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const z=zones.find(list=>list.some(c=>c.action==="burn"));
+ const j=z.findIndex(c=>c.action==="burn");
+ [z[j],g.people[0].hand[0]]=[g.people[0].hand[0],z[j]];
+ const c=await browser.newContext({viewport:{width:390,height:844},reducedMotion:"reduce"});
+ await c.addInitScript(game=>localStorage.setItem("stack-next-local-save-v1",
+  JSON.stringify({version:1,game})),g);
+ const page=await c.newPage();
+ try{
+  await page.goto(WEB+"/play");
+  await page.getByRole("button",{name:"Resume game"}).click();
+  await page.getByRole("button",{name:/^BURN:/}).click();
+  await page.getByRole("button",{name:/Play cards/}).click();
+  const theater=page.locator('.move-story-overlay[data-kind="burn"]');
+  await theater.waitFor({timeout:7000});
+  const style=await theater.evaluate(el=>({
+   caption:getComputedStyle(el.querySelector(".move-story-caption")).opacity,
+   flying:getComputedStyle(el.querySelector(".move-story-flight")).display
+  }));
+  assert.equal(style.flying,"none");
+  assert.equal(style.caption,"1","reduced-motion users still see a readable action");
+  console.log("PASS Next reduced motion: public action stays readable without animated flights");
+ }finally{await c.close()}
+}
+
 async function abandonedRoomScenario(browser) {
   // A slow move from an abandoned room must never resurrect its table after
   // the user moves on to a new offline game. No server-side move is retried.
@@ -662,6 +758,7 @@ async function main() {
     await adaptiveHandFitScenarios(browser);
     await guidedPracticeScenario(browser);
     await onlineScenarios(browser, apiProc);
+    await sharedMoveAnimationScenarios(browser);
     await mixedBotScenarios(browser);
     await abandonedRoomScenario(browser);
   } catch (e) {
