@@ -141,6 +141,11 @@ export default function GameTable() {
 
   const applyRoom = useCallback((next: Room) => {
     if (roomRef.current?.code === next.code && next.revision < roomRef.current.revision) return;
+    // An authoritative move supersedes any locally selected cards.
+    if (roomRef.current?.code === next.code && next.revision !== roomRef.current.revision) {
+      setSelection([]);
+      setNeedsTarget(false);
+    }
     if (next.session) {
       tokenRef.current = next.session;
       localStorage.setItem(sessionKey(next.code), next.session);
@@ -409,7 +414,7 @@ export default function GameTable() {
   );
 
   const liveSeats = g.players.filter(p => !p.out && p.seat !== me).map(p => p.seat);
-  const canPlay = !!legal.find(m => m.type === "play" && identicalIds(m.ids || [], selection));
+  const canPlay = !!legal.find(m => m.type === "play" && m.source !== "down" && identicalIds(m.ids || [], selection));
   const canTake = legal.some(m => m.type === "take");
   const rule = g.limit?.type === "under" ? "Next number: 1–4" : g.limit?.type === "min"
     ? `Next number: ${g.limit.value} or higher` : "Any number can follow";
