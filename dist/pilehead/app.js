@@ -1,8 +1,9 @@
 /* STACK physical playtest UI; preserve its existing local storage key. */
 (function(){'use strict';
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
+document.body.classList.add('stack-classic');
 const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11';
-let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,botQueuedFor=null,notice='',lastMove=null,sortMode='dealt',endDismissed=false,dumpDraft=null,starterTimer=null,practiceMode=false;
+let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,botQueuedFor=null,notice='',lastMove=null,sortMode='dealt',endDismissed=false,dumpDraft=null,starterTimer=null,practiceMode=false,undoState=null,restartPrompt=false;
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
  (a.kind==='number'?a.rank===b.rank:a.action===b.action)}
 function orderedHand(cards){
@@ -23,14 +24,19 @@ function viewSeat(){return mode==='bots'?0:g?.turn??0}
 function getPlayer(){return g.people[viewSeat()]}
 function currentStage(){return E.stage(g,viewSeat())}
 function isTurn(){return g.phase==='play'&&g.turn===viewSeat()}
-function save(){try{localStorage.setItem(KEY,JSON.stringify({g,mode,seats,setupSeat,covered,notice,lastMove,practiceMode}))}catch(e){console.warn('Save unavailable',e)}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({g,mode,seats,setupSeat,covered,notice,lastMove,practiceMode,undoState}))}catch(e){console.warn('Save unavailable',e)}}
 function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
  if(!x||!['pilehead-1.1.0','pilehead-1.2.0','pilehead-1.3.0','pilehead-1.4.0','pilehead-1.5.0','pilehead-1.6.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
  // Keep the existing 1.2 DUMP behavior during saved games.
  // 1.1 sessions stay on the 52-card rules rather than acquiring non-dealt cards.
  if(x.g.version==='pilehead-1.1.0')x.g.version='pilehead-1.2.0';
  E.invariant(x.g);g=x.g;mode=x.mode;seats=x.seats;setupSeat=x.setupSeat??0;practiceMode=x.practiceMode===true&&mode==='bots'&&seats===2;
- covered=mode==='hotseat'&&g.phase!=='over';challengeOpen=false;notice=x.notice||'';lastMove=x.lastMove||null;return true;
+ covered=mode==='hotseat'&&g.phase!=='over';challengeOpen=false;notice=x.notice||'';lastMove=x.lastMove||null;
+  undoState=null;
+  if(mode==='bots'&&x.undoState){
+   try{E.invariant(x.undoState);if(x.undoState.seed===g.seed)undoState=x.undoState}catch{}
+  }
+  restartPrompt=false;return true;
  }catch{return false}}
 function card(c,{interactive=false,selected=false,back=false,source='',small=false}={}){
  if(back)return '<button type="button" class="card back ph-card ph-back" '+(interactive?'draggable="true" data-card="'+c.id+'" data-source="'+source+'"':'disabled')+
@@ -164,21 +170,56 @@ function tableActions({turn,legal,pick,slams,snap,stage}){
  }
  return '<div class="toolbar table-actions" role="group" aria-label="Game actions">'+buttons+'</div>';
 }
+function layerProgress(){
+ const p=getPlayer(),stage=currentStage();
+ const layers=[
+  {id:'hand',label:'In hand',detail:p.hand.length+(g.stock.length?' · '+g.stock.length+' to draw':'')},
+  {id:'up',label:'Face up',detail:p.up.length+' cards'},
+  {id:'down',label:'Blind',detail:p.down.length+' cards'}
+ ];
+ const index=['hand','up','down','out'].indexOf(stage);
+ return '<div class="stack-classic-progress" aria-label="Your progress through the card layers">'+
+  '<span class="stack-progress-title">YOUR JOURNEY</span>'+
+  '<div class="stack-progress-steps">'+layers.map((step,i)=>
+   '<div class="stack-progress-step '+(index===i?'is-current':index>i?'is-done':'is-future')+'"'+
+    (index===i?' aria-current="step"':'')+'>'+
+   '<span class="stack-progress-index">'+(index>i?'✓':'0'+(i+1))+'</span>'+
+   '<span class="stack-progress-copy"><strong>'+step.label+'</strong><small>'+step.detail+'</small></span></div>'
+  ).join('')+'</div></div>';
+}
+function selectedPreview(){
+ if(!selection.length||!isTurn()||covered)return '';
+ const p=getPlayer(),cards=selection.map(id=>[...p.hand,...p.up].find(c=>c.id===id)).filter(Boolean);
+ if(!cards.length)return '';
+ const first=cards[0],face=first.kind==='number'?String(first.rank):first.action.toUpperCase();
+ const valid=E.options(g,viewSeat()).some(o=>o.type==='play'&&o.ids?.length===selection.length&&o.ids.every(id=>selection.includes(id)));
+ const isBridge=selection.some(id=>p.up.some(c=>c.id===id))&&currentStage()==='hand';
+ const label=cards.length>1?cards.length+' × '+face:face;
+ const description=valid?'Tap the pile or Play to place '+(cards.length===1?'this card':'these cards')+'.':
+  'This selection cannot be played. Adjust the cards or take the pile.';
+ return '<div class="stack-classic-preview '+(valid?'is-valid':'is-invalid')+'" role="status">'+
+  '<span class="stack-preview-flag">'+(valid?'READY TO PLAY':'CHECK SELECTION')+'</span>'+
+  '<strong>'+label+(isBridge?' · Hand + face up':'')+'</strong>'+
+  '<span class="stack-preview-instruction">'+description+'</span></div>';
+}
 function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotseat'||viewer===0,turn=isTurn(),stage=currentStage();
  const selectable=turn&&g.phase==='play'&&!covered,slams=E.slamOptions(g,viewer),snap=E.followUpOptions(g,viewer),legal=E.options(g,viewer),pick=legal.some(o=>o.type==='take');
  const top=E.topRun(g),summary=g.phase==='over'?'Game over. '+playerName(g.loser)+' is the PILEHEAD.':
   turn?'Your turn · '+(stage==='down'?'Flip one blind card':stage==='up'?'Play from your face-up row':'Choose cards from your hand'):
   playerName(g.turn)+' is playing · watch for a SLAM!';
  return '<div class="pitch"><h1>'+summary+'</h1><p>'+E.deck(g.version).length+' custom cards · 40 numbers · '+(E.deck(g.version).length-40)+' actions · '+g.people.length+' players</p></div>'+
- tableHUD()+(E.finalDuelActive(g)?'<p class="pilehead-bridge-hint" role="status">FINAL DUEL · Two players remain. Each pile pickup permanently burns its top card.</p>':'')+'<section class="table" aria-label="PILEHEAD physical table">'+opponents()+pile()+
+ tableHUD()+layerProgress()+(E.finalDuelActive(g)?'<p class="pilehead-bridge-hint" role="status">FINAL DUEL · Two players remain. Each pile pickup permanently burns its top card.</p>':'')+'<section class="table" aria-label="PILEHEAD physical table">'+opponents()+pile()+
  upAndDown(p,selectable)+
  '<div class="hand-area"><div class="area-label"><span>YOUR HAND <b>· '+p.hand.length+'</b></span><span class="hand-controls">'+
  (selection.length?'<button type="button" class="hand-clear-button" data-do="clear-selection" aria-label="Clear selected cards">'+selection.length+' selected · Clear</button>':'')+
  '<button type="button" class="hand-sort-button" data-do="sort">Sort '+(sortMode==='dealt'?'↑':sortMode==='asc'?'↓':'↺')+'</button></span></div>'+
  rowCards(p.hand,'hand',selectable&&stage==='hand')+'</div></section>'+
  (bridgeAvailable()?'<p class="pilehead-bridge-hint">MATCHING FACE-UP · Your final matching hand cards can be played with matching exposed cards, including a four-card SLAM. Tap either to select the group.</p>':'')+
- (selectedEffect()||lastEffect())+tableActions({turn,legal,pick,slams,snap,stage})+
- '<details class="playtest-tools"><summary>Playtest tools</summary><button class="action secondary" data-do="export">Export QA state</button></details>'+
+ (selectedEffect()||lastEffect())+selectedPreview()+tableActions({turn,legal,pick,slams,snap,stage})+
+ '<div class="stack-classic-hotkeys" aria-label="Keyboard shortcuts"><span>SHORTCUTS</span><kbd>P</kbd> Play <kbd>T</kbd> Take <kbd>S</kbd> Sort <kbd>?</kbd> Rules</div>'+
+ '<details class="playtest-tools"><summary>Game tools</summary>'+
+ (mode==='bots'&&undoState?'<button type="button" class="action secondary" data-do="undo">Undo your last play</button><small class="stack-undo-note">Restores the previous turn, including any bot responses.</small>':'')+
+ '<button class="action secondary" data-do="export">Export QA state</button></details>'+
  (notice?'<div class="message" role="status" aria-live="polite">'+notice+'</div>':'')+
  '<div class="meta"><span>Moves <strong>'+g.moves+'</strong></span><span>Draw stock <strong>'+g.stock.length+'</strong></span>'+
  '<span>Burned <strong>'+g.ashes.length+'</strong></span><span>Pickups <strong>'+g.people.reduce((n,x)=>n+x.pickups,0)+'</strong></span></div>'+
@@ -194,6 +235,13 @@ function endScreen(){
  })||'';
 }
 function overlay(){
+ if(restartPrompt){
+  return '<div class="overlay stack-classic-dialog"><div class="panel" role="dialog" aria-modal="true" aria-label="Start a new game">'+
+   '<span class="eyebrow">FRESH DEAL</span><h2>Leave this round?</h2>'+
+   '<p>Your current game is saved on this device. Starting again replaces it. You can continue playing instead.</p>'+
+   '<div class="toolbar"><button class="action secondary" data-do="cancel-new">Keep playing</button>'+
+   '<button class="action primary" data-do="confirm-new">Start fresh</button></div></div></div>';
+ }
  if((dumpDraft||g?.pendingDump?.seat===viewSeat())&&g?.phase==='play'){
   const targets=E.dumpTargets(g,viewSeat());
   return '<div class="overlay"><div class="panel" role="dialog" aria-modal="true" aria-label="Choose DUMP target">'+
@@ -272,7 +320,7 @@ function celebrate(ev){
  setTimeout(()=>table.classList.remove('just-burned'),550);
 }
 function queueBot(){
- if(!g||g.phase!=='play'||mode!=='bots'){
+ if(!g||g.phase!=='play'||mode!=='bots'||restartPrompt){
   if(timer!==null)clearTimeout(timer);
   timer=null;botQueuedFor=null;return;
  }
@@ -300,7 +348,7 @@ function queueBot(){
  }catch(e){notice='Bot error: '+e.message;render()}
  },canSlam?780:600);
 }
-function startGame(previousWinner=null){endDismissed=false;dumpDraft=null;g=E.create({players:seats,seed:Date.now()>>>0});
+function startGame(previousWinner=null){endDismissed=false;dumpDraft=null;undoState=null;restartPrompt=false;g=E.create({players:seats,seed:Date.now()>>>0});
  const starter=practiceMode?0:previousWinner===null?Math.floor(Math.random()*seats):previousWinner;
  g.starterSeat=starter;g.starterReason=practiceMode?'practice':previousWinner===null?'draw':'winner';
  setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
@@ -332,10 +380,14 @@ function submitPlay(choice){
 }
 function perform(choice,seat=viewSeat()){
  try{
+  const before=mode==='bots'&&seat===0?structuredClone(g):null;
+  const candidate=structuredClone(g);
   if(choice?.source)window.PileheadTableFX?.captureMove?.({
    gameKey:'local:'+g.seed,seat,moveNo:g.moves+1,move:choice
   });
-  const previousTurn=g.turn,ev=E.move(g,seat,choice);afterMove(ev,previousTurn)
+  const previousTurn=g.turn,ev=E.move(candidate,seat,choice);g=candidate;
+  if(before)undoState=before;
+  afterMove(ev,previousTurn)
  }catch(e){notice=e.message;render()}
 }
 function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat(),p=g.people[seat];
@@ -361,11 +413,21 @@ function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat()
  notice='';render();
 }
 function execute(action,button){
+ if(action==='cancel-new'){restartPrompt=false;render();return}
+ if(action==='confirm-new'){
+  restartPrompt=false;g=null;undoState=null;dumpDraft=null;selection=[];swapFrom=null;covered=false;
+  challengeOpen=false;endDismissed=false;practiceMode=false;notice='';render();return;
+ }
+ if(action==='undo'&&mode==='bots'&&undoState){
+  if(timer!==null)clearTimeout(timer);
+  timer=null;botQueuedFor=null;g=undoState;undoState=null;selection=[];challengeOpen=false;dumpDraft=null;
+  lastMove=g.events.at(-1)||null;notice='Last play reversed. Your cards and the bot moves are restored.';render();return;
+ }
  if(action==='practice'){mode='bots';seats=2;practiceMode=true;window.StackUX?.resetPractice();startGame();return}
  if(action==='create'){practiceMode=false;seats=Number($('seat-count')?.value)||seats;mode=$('game-mode')?.value==='hotseat'?'hotseat':'bots';startGame();return}
  if(action==='dismiss-result'){endDismissed=true;render();return}
  if(action==='rematch'){startGame(g?.finishedOrder?.[0]??null);return}
- if(action==='new'){g=null;dumpDraft=null;selection=[];swapFrom=null;covered=false;endDismissed=false;practiceMode=false;render();return}
+ if(action==='new'){if(g){restartPrompt=true;render()}else{undoState=null;practiceMode=false;render()}return}
  if(action==='ready'){
   selection=[];swapFrom=null;
   if(mode==='hotseat'&&setupSeat<seats-1){setupSeat++;covered=true}
@@ -411,6 +473,23 @@ app.addEventListener('click',e=>{
  if(b?.dataset.card){handleCard(Number(b.dataset.card),b.dataset.source);return}
  if(b?.dataset.do){execute(b.dataset.do,b);return}
  if(e.target.closest('[data-play-target]')&&selection.length&&isTurn())submitPlay(selectedPlay());
+});
+// A keyboard player can operate the same validated buttons as a touch player.
+ // No separate engine pathway and no shortcuts while a private overlay is open.
+document.addEventListener('keydown',e=>{
+ if(!g||g.phase!=='play'||covered||restartPrompt||challengeOpen||dumpDraft||g.pendingDump||
+  e.altKey||e.ctrlKey||e.metaKey||e.repeat||/^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName||'')||
+  document.activeElement?.isContentEditable)return;
+ const key=e.key.toLowerCase();
+ const action=key==='p'?'play':key==='t'?'take':key==='s'?'sort':null;
+ if(action){
+  const button=app.querySelector('.table-actions [data-do="'+action+'"],.hand-controls [data-do="'+action+'"]');
+  if(button&&!button.disabled){e.preventDefault();button.click()}
+ }
+ if(e.key==='?'){
+  const peek=app.querySelector('.stack-rules-peek');
+  if(peek){e.preventDefault();peek.open=!peek.open}
+ }
 });
 app.addEventListener('keydown',e=>{
  if(e.key==='Escape'&&!e.target.closest('[role="dialog"]')&&selection.length){
@@ -478,7 +557,7 @@ window.addEventListener('pointerup',endTouch);
 window.addEventListener('pointercancel',e=>{const d=touchGesture;touchGesture=null;d?.el?.remove();app.querySelector('[data-play-target]')?.classList.remove('drop-hover')});
 
 
-$('new').addEventListener('click',()=>{if(g&&!confirm('Start a new game and replace the current local save?'))return;g=null;notice='';selection=[];challengeOpen=false;covered=false;render()});
+$('new').addEventListener('click',()=>{if(g){restartPrompt=true;render()}else{g=null;undoState=null;notice='';selection=[];challengeOpen=false;covered=false;render()}});
 window.addEventListener('stack-deck-theme-change',()=>render());
 restore();render();
 })();
