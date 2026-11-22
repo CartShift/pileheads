@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
+import { createPortal } from "react-dom";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
 import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame } from "../lib/room";
 
@@ -62,14 +63,39 @@ function asLocalRoom(game: Game): RoomGame {
   };
 }
 
-function PlayingCard({ card, hidden = false, selected = false, small = false, onClick, disabled = false, theme = "characters",
+function PlayingCard({ card, hidden = false, selected = false, small = false, onClick, onDrop, disabled = false, theme = "characters",
   description }: {
   card?: Card; hidden?: boolean; selected?: boolean; small?: boolean; theme?: DeckTheme;
-  onClick?: () => void; disabled?: boolean; description?: string;
+  onClick?: () => void; onDrop?: () => void; disabled?: boolean; description?: string;
 }) {
   const index = !hidden && card
     ? card.kind === "number" ? (card.rank || 1) - 1 : 10 + ACTIONS.indexOf(card.action || "")
     : -1;
+  const gesture = useRef<{x: number; y: number; moved: boolean} | null>(null);
+  const blockClick = useRef(false);
+  const [floating, setFloating] = useState<{x: number; y: number} | null>(null);
+  function pointerDown(e: ReactPointerEvent<HTMLButtonElement>) {
+    if (!onDrop || e.button !== 0) return;
+    blockClick.current = false;
+    gesture.current = { x: e.clientX, y: e.clientY, moved: false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+  function pointerMove(e: ReactPointerEvent<HTMLButtonElement>) {
+    const start = gesture.current;
+    if (!start) return;
+    if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 8) return;
+    start.moved = true;
+    setFloating({ x: e.clientX, y: e.clientY });
+  }
+  function pointerUp(e: ReactPointerEvent<HTMLButtonElement>) {
+    const start = gesture.current;
+    if (!start) return;
+    gesture.current = null; setFloating(null);
+    if (!start.moved) return;
+    blockClick.current = true;
+    if (document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-drop-target="pile"]'))
+      onDrop?.();
+  }
   const faceStyle: CSSProperties = index >= 0 ? {
     backgroundPosition: `${(index % 4) * 100 / 3}% ${Math.floor(index / 4) * 100 / 3}%`
   } : {};
@@ -85,8 +111,20 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
         <button type="button" className="card-hit"
           aria-label={description || (hidden ? "Flip a face-down card" : card ? cardLabel(card) : "Card")}
           aria-pressed={selected}
-          onClick={onClick} />
+          onPointerDown={pointerDown}
+          onPointerMove={pointerMove}
+          onPointerUp={pointerUp}
+          onPointerCancel={() => { gesture.current = null; setFloating(null); }}
+          onClick={e => {
+            if (blockClick.current) { blockClick.current = false; e.preventDefault(); return; }
+            onClick();
+          }} />
       ) : null}
+      {floating && createPortal(
+        <div className={"drag-ghost theme-" + theme}
+          style={{left:floating.x,top:floating.y}} aria-hidden="true">
+          <div className="card-art" style={faceStyle} />
+        </div>, document.body)}
     </motion.div>
   );
 }
