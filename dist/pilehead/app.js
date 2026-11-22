@@ -25,7 +25,7 @@ function currentStage(){return E.stage(g,viewSeat())}
 function isTurn(){return g.phase==='play'&&g.turn===viewSeat()}
 function save(){try{localStorage.setItem(KEY,JSON.stringify({g,mode,seats,setupSeat,covered,notice,lastMove,practiceMode}))}catch(e){console.warn('Save unavailable',e)}}
 function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
- if(!x||!['pilehead-1.1.0','pilehead-1.2.0','pilehead-1.3.0','pilehead-1.4.0','pilehead-1.5.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
+ if(!x||!['pilehead-1.1.0','pilehead-1.2.0','pilehead-1.3.0','pilehead-1.4.0','pilehead-1.5.0','pilehead-1.6.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
  // Keep the existing 1.2 DUMP behavior during saved games.
  // 1.1 sessions stay on the 52-card rules rather than acquiring non-dealt cards.
  if(x.g.version==='pilehead-1.1.0')x.g.version='pilehead-1.2.0';
@@ -94,13 +94,14 @@ function lastEffect(){
  'PLAY · '+playerName(e.seat)+' placed '+e.count+' card'+(e.count===1?'':'s')+'.';
  return '<div class="pilehead-effect-note" role="status" aria-live="polite"><span class="effect-label">'+
   (e.bridgeCount?'COMBO':e.action?e.action.toUpperCase():e.type==='followup'?'SNAP':e.burned?'BURN':'LAST MOVE')+
-  '</span><span>'+message+'</span></div>';
+  '</span><span>'+message+(e.erodedCount?' Final Duel: the visible top card is permanently burned.':'')+'</span></div>';
 }
-function eventName(e){const who=playerName(e.seat);if(e.type==='take')return who+' picked up '+e.count;
- if(e.type==='blind-fail')return who+' flipped an illegal card and took '+e.count;
+function eventName(e){const who=playerName(e.seat),erosion=e.erodedCount?' · top card burned (Final Duel)':'';
+ if(e.type==='take')return who+' picked up '+(e.takenCount??e.count)+erosion;
+ if(e.type==='blind-fail')return who+' flipped an illegal card and took '+(e.takenCount??e.count)+erosion;
  if(e.type==='followup')return who+' snapped the just-drawn '+e.rank+' onto the pile';
  if(e.type==='dump-pending')return who+' revealed DUMP! Choose who must take the pile.';
- if(e.action==='dump')return who+' burned DUMP: '+playerName(e.target)+' took '+e.takenCount+' pile cards; '+who+' plays again';
+ if(e.action==='dump')return who+' burned DUMP: '+playerName(e.target)+' took '+e.takenCount+' pile cards'+erosion+'; '+who+' plays again';
  if(e.reason==='slam')return who+' SLAM! Burned the pile';
  if(e.burned)return who+' burned the pile';
  if(e.action)return who+' played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase();
@@ -169,7 +170,7 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
   turn?'Your turn · '+(stage==='down'?'Flip one blind card':stage==='up'?'Play from your face-up row':'Choose cards from your hand'):
   playerName(g.turn)+' is playing · watch for a SLAM!';
  return '<div class="pitch"><h1>'+summary+'</h1><p>'+E.deck(g.version).length+' custom cards · 40 numbers · '+(E.deck(g.version).length-40)+' actions · '+g.people.length+' players</p></div>'+
- tableHUD()+'<section class="table" aria-label="PILEHEAD physical table">'+opponents()+pile()+
+ tableHUD()+(E.finalDuelActive(g)?'<p class="pilehead-bridge-hint" role="status">FINAL DUEL · Two players remain. Each pile pickup permanently burns its top card.</p>':'')+'<section class="table" aria-label="PILEHEAD physical table">'+opponents()+pile()+
  upAndDown(p,selectable)+
  '<div class="hand-area"><div class="area-label"><span>YOUR HAND <b>· '+p.hand.length+'</b></span><span class="hand-controls">'+
  (selection.length?'<button type="button" class="hand-clear-button" data-do="clear-selection" aria-label="Clear selected cards">'+selection.length+' selected · Clear</button>':'')+
@@ -303,8 +304,10 @@ function startGame(previousWinner=null){endDismissed=false;dumpDraft=null;g=E.cr
  const starter=practiceMode?0:previousWinner===null?Math.floor(Math.random()*seats):previousWinner;
  g.starterSeat=starter;g.starterReason=practiceMode?'practice':previousWinner===null?'draw':'winner';
  setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
-function afterMove(ev){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
- if(mode==='hotseat'&&g.phase!=='over')covered=!g.pendingDump&&g.turn!==ev.seat;
+function afterMove(ev,previousTurn=ev.seat){lastMove=ev;selection=[];challengeOpen=false;notice=eventName(ev);
+ // The prior seat's optional SNAP must not suddenly hide the current seat.
+ // Only a real change of the active turn requires passing the device.
+ if(mode==='hotseat'&&g.phase!=='over'&&g.turn!==previousTurn)covered=!g.pendingDump;
  render()}
 // A final-hand bridge requires the complete hand to precede face-up copies.
 // Every input path (button, pile tap, keyboard and drag) must use this order.
@@ -332,7 +335,7 @@ function perform(choice,seat=viewSeat()){
   if(choice?.source)window.PileheadTableFX?.captureMove?.({
    gameKey:'local:'+g.seed,seat,moveNo:g.moves+1,move:choice
   });
-  const ev=E.move(g,seat,choice);afterMove(ev)
+  const previousTurn=g.turn,ev=E.move(g,seat,choice);afterMove(ev,previousTurn)
  }catch(e){notice=e.message;render()}
 }
 function handleCard(id,source){const seat=g.phase==='setup'?setupSeat:viewSeat(),p=g.people[seat];
@@ -377,7 +380,7 @@ function execute(action,button){
   const target=Number(button.dataset.seat);
   if(dumpDraft){const move={...dumpDraft,target};dumpDraft=null;perform(move);return}
   if(g.pendingDump?.seat===viewSeat()){
-   try{afterMove(E.resolveDump(g,viewSeat(),target))}
+   try{const previousTurn=g.turn;afterMove(E.resolveDump(g,viewSeat(),target),previousTurn)}
    catch(e){notice=e.message;render()}
   }
   return;

@@ -305,13 +305,13 @@ function lastEffect(){
  if(!message)return '';
  return '<div class="pilehead-effect-note" role="status" aria-live="polite"><span class="effect-label">'+
   safe(e.bridgeCount?'COMBO':e.action?e.action.toUpperCase():e.type==='followup'?'SNAP':e.burned?'BURN':'LAST MOVE')+
-  '</span><span>'+safe(message)+'</span></div>';
+  '</span><span>'+safe(message+(e.erodedCount?' Final Duel: the visible top card is permanently burned.':''))+'</span></div>';
 }
 function events(){return data.game.events.slice(-7).reverse().map(e=>{
- const n=safe(displayName(e.seat));let s=e.type==='take'?'picked up '+e.count+' cards':e.type==='blind-fail'?'picked up after a blind flip':
+ const n=safe(displayName(e.seat));let s=e.type==='take'?'picked up '+(e.takenCount??e.count)+' cards':e.type==='blind-fail'?'picked up after a blind flip':
  e.type==='followup'?'SNAP! threw the freshly drawn matching '+e.rank:
  e.action==='dump'?'burned DUMP; '+displayName(e.target)+' took '+e.takenCount+' pile cards':e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
- return '<span class="event" role="listitem">'+n+' '+safe(s)+'</span>';
+ return '<span class="event" role="listitem">'+n+' '+safe(s+(e.erodedCount?' · top card burned (Final Duel)':''))+'</span>';
  }).join('')}
 function lobby(){
  const joined=data.members.length,humans=data.humanCount||data.capacity,bots=data.game.botSeats||[],me=current(),ready=data.game.setupReady||[];
@@ -384,7 +384,7 @@ function playView(){
  return '<div class="pitch"><h1>'+safe(statusTitle())+'</h1><p>ROUND '+(g.round||1)+' · ROOM '+safe(room)+' · '+(data.humanCount||data.capacity)+' humans · '+(data.botCount||0)+' bots</p></div>'+
   '<div class="online-room-tools"><span class="room-identity"><span class="online-pulse" aria-hidden="true"></span> Room <strong>'+safe(room)+'</strong></span>'+
   '<button class="action secondary room-invite" data-do="copy" aria-label="Copy room invitation link">Copy invite</button><span class="my-seat">Seat '+(data.me+1)+' · '+safe(displayName(data.me))+'</span></div>'+
-  playerWaitingAlert()+tableHUD()+(window.StackLive?.buttonMarkup?.()||'')+blindRevealBanner()+
+  playerWaitingAlert()+tableHUD()+(g.endgameRule==='final-duel'&&g.stockCount===0&&g.players.filter(p=>!p.out).length===2?'<p class="pilehead-bridge-hint" role="status">FINAL DUEL · Each pile pickup permanently burns its top card.</p>':'')+(window.StackLive?.buttonMarkup?.()||'')+blindRevealBanner()+
   '<section class="table" aria-label="Live physical PILEHEAD table">'+opponentCards()+stack()+upDown()+
   '<div class="hand-area"><div class="area-label"><span>YOUR HAND <b>· '+p.handCount+'</b></span><span class="hand-controls">'+
  (selection.length?'<button type="button" class="hand-clear-button" data-do="clear-selection" aria-label="Clear selected cards">'+selection.length+' selected · Clear</button>':'')+
@@ -425,7 +425,7 @@ function welcome(){
   (valid?total+' players · '+draftHumans+' human'+(draftHumans===1?'':'s')+' + '+draftBots+' bot'+(draftBots===1?'':'s')+' (max 5)':total+' players selected · choose 2 to 5 total')+'</p>'+
   '<button type="button" class="action primary" data-do="create" '+(!valid||busy?'disabled':'')+(busy?' aria-busy="true"':'')+'>'+(busy?'Creating room…':'Create online room')+'</button>'+
   (notice?'<p id="online-form-message" class="message online-form-message" role="alert">'+safe(notice)+'</p>':'')+
-  '<p class="small">Rooms last for 24 hours. No sign-in required; keep this browser to retain your seat.</p></section>';
+  '<p class="small">New games use Final Duel: with two players left and an empty draw stock, each pickup burns the top card. Rooms last 24 hours. Keep this browser to retain your seat.</p></section>';
 }
 function dumpTargetOverlay(){
  if(!data||data.game.phase!=='play'||!dumpDraft&&data.game.pendingDump?.seat!==data.me)return '';
