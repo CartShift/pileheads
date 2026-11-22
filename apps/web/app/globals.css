@@ -381,3 +381,31 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
   .game-head-actions .room-code{flex:0 1 auto}
   .game-head-actions .theme-control{margin-left:auto}
 }
+
+/* The coach is opt-in and visible only in the real practice match. */
+.learn-button{display:block;width:100%;margin-top:12px;background:transparent;
+  color:var(--lime);font-size:13px;font-weight:850;border:1px solid #b7d7a870;
+  border-radius:12px;padding:12px 15px;min-height:43px}
+.learn-button:hover{background:#306a4c77}
+.coach-tip{width:min(1100px,100%);margin:0 auto 12px;padding:12px 17px;
+  background:#224c3ec7;border:1px solid #c4eba18c;border-radius:14px;
+  display:flex;align-items:center;justify-content:space-between;gap:16px}
+.coach-tip div{display:flex;flex-direction:column;gap:3px}
+.coach-tip strong{font-size:10px;letter-spacing:.13em;color:var(--gold);font-weight:950}
+.coach-tip span{color:#e4edd8;font-size:12px;line-height:1.4}
+.coach-tip button{flex:none;border:1px solid #d5eab87a;border-radius:9px;
+  background:#113a30;color:var(--ink);font-size:11px;padding:8px 12px;font-weight:850}
+.blind-flip .playing-card{width:47px}
+.blind-flip .playing-card.is-small{width:47px}
+.blind-flip>div:not(.playing-card){display:flex;flex-direction:column;gap:3px;text-align:left}
+.duel-banner{width:fit-content;max-width:calc(100% - 22px);margin:2px auto 10px;
+  border:1px solid #e8b98c8a;background:#73412f88;padding:7px 14px;border-radius:999px;
+  display:flex;gap:12px;align-items:center;justify-content:center;text-align:center}
+.duel-banner strong{font-size:10px;letter-spacing:.14em;color:#fff1ba}
+.duel-banner span{font-size:11px;color:#ffe5d0}
+@media(max-width:650px){
+  .coach-tip{padding:10px 11px}
+  .coach-tip span{font-size:11px}
+  .coach-tip button{padding:7px;font-size:10px}
+  .duel-banner{flex-wrap:wrap;gap:4px 8px}
+}

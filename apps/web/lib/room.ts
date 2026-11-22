@@ -12,6 +12,7 @@ export type RoomGame = {
   moves: number;
   round: number;
   botSeats: number[];
+  endgameRule?: "final-duel" | "classic";
   botFollowupReady?: boolean;
   botSlamReady?: boolean;
   reactions?: Reaction[];

@@ -203,6 +203,25 @@ async function onlineScenarios(browser, server) {
     console.log("PASS Next online: dual mobile seats, CORS, private hands, SNAP race, reconnect");
   } finally { await Promise.all([hostCtx.close(), guestCtx.close()]); }
 }
+async function guidedPracticeScenario(browser) {
+  const context=await browser.newContext({
+    viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:"reduce"
+  });
+  const page=await context.newPage();
+  try {
+    await page.goto(WEB+"/play");
+    await page.getByRole("button",{name:"Learn with a bot"}).click();
+    await page.getByRole("complementary",{name:"Learning coach"}).waitFor();
+    assert.equal(await page.locator(".opponent-seat").count(),1,"practice uses one opponent");
+    await page.getByRole("button",{name:"Start round"}).click();
+    await page.getByRole("heading",{name:"Your move."}).waitFor();
+    const coaching=await page.getByRole("complementary",{name:"Learning coach"}).innerText();
+    assert.match(coaching,/select a card/i,"coach teaches a real opening move");
+    await page.getByRole("button",{name:"Hide tips"}).click();
+    assert.equal(await page.getByRole("complementary",{name:"Learning coach"}).count(),0);
+    console.log("PASS Next practice: guided first move, one bot, dismissible coaching");
+  } finally {await context.close()}
+}
 async function mixedBotScenarios(browser) {
   const context = await browser.newContext({
     viewport: {width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:"reduce"
@@ -269,6 +288,7 @@ async function main() {
     await Promise.all([waitReady(WEB + "/play", () => webLog), waitReady(API + "/livez", () => apiLog)]);
     browser = await chromium.launch({ headless: true });
     await localScenarios(browser);
+    await guidedPracticeScenario(browser);
     await onlineScenarios(browser, apiProc);
     await mixedBotScenarios(browser);
   } catch (e) {

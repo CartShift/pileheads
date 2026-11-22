@@ -20,6 +20,7 @@ const ACTION_DESCRIPTIONS: Record<string, string> = {
 const SAVE_KEY = "stack-next-local-save-v1";
 const THEME_KEY = "stack-next-deck-theme-v1";
 const SOUND_KEY = "stack-next-sound-enabled-v1";
+const PRACTICE_KEY = "stack-next-practice-mode-v1";
 type DeckTheme = "characters" | "original";
 function loadSavedGame(): Game | null {
   try {
@@ -66,6 +67,7 @@ function asLocalRoom(game: Game): RoomGame {
   return {
     phase: game.phase, turn: game.turn, moves: game.moves, round: 1,
     botSeats: game.people.slice(1).map(p => p.seat),
+    endgameRule: game.version === Engine.VERSION ? "final-duel" : "classic",
     stockCount: game.stock.length, pile: game.pile, ashesCount: game.ashes.length,
     limit: game.limit, pendingDump: game.pendingDump || null,
     finishedOrder: game.finishedOrder, loser: game.loser,
@@ -209,6 +211,8 @@ export default function GameTable() {
   const [resumeGame, setResumeGame] = useState<Game | null>(null);
   const [deckTheme, setDeckTheme] = useState<DeckTheme>("characters");
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [practiceMode, setPracticeMode] = useState(false);
+  const [coachDismissed, setCoachDismissed] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [undoAvailable, setUndoAvailable] = useState(false);
@@ -273,6 +277,7 @@ export default function GameTable() {
     if (savedTheme === "characters" || savedTheme === "original") setDeckTheme(savedTheme);
     setResumeGame(loadSavedGame());
     setSoundEnabled(localStorage.getItem(SOUND_KEY) === "true");
+    setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
     if (!code) return;
     setJoinCode(code);
     const token = localStorage.getItem(sessionKey(code));
@@ -332,6 +337,10 @@ export default function GameTable() {
   useEffect(() => {
     try { localStorage.setItem(SOUND_KEY, String(soundEnabled)); } catch {}
   }, [soundEnabled]);
+  useEffect(() => {
+    if (mode !== "local" || !local) return;
+    try { localStorage.setItem(PRACTICE_KEY, String(practiceMode)); } catch {}
+  }, [mode, local, practiceMode]);
 
   const applyReaction = useCallback((reaction: Reaction) => {
     const old = roomRef.current;
@@ -600,16 +609,18 @@ export default function GameTable() {
     setSwapHand(null);
   }
 
-  function startLocalGame() {
+  function startLocalGame(withCoach = practiceMode) {
     roomEpoch.current++;
-    const game = createGame(players);
+    setPracticeMode(withCoach);
+    setCoachDismissed(false);
+    const game = createGame(withCoach ? 2 : players);
     localRef.current = game;
     undoRef.current = null; setUndoAvailable(false);
     setLocal(game); setRoom(null); setMode("local"); setSelection([]); setNotice("");
   }
 
   function newRound() {
-    if (mode === "local") startLocalGame();
+    if (mode === "local") startLocalGame(practiceMode);
     else if (room) void submit({ action: "rematch", code: room.code, revision: room.revision });
   }
 
@@ -618,6 +629,8 @@ export default function GameTable() {
     const saved = loadSavedGame();
     if (!saved) { setResumeGame(null); setNotice("Saved game is unavailable."); return; }
     localRef.current = saved; undoRef.current = null; setUndoAvailable(false);
+    setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
+    setCoachDismissed(false);
     setLocal(saved); setRoom(null); setMode("local"); setSelection([]); setNotice("");
     history.replaceState(null, "", "/play");
   }
@@ -713,7 +726,8 @@ export default function GameTable() {
             <label>Players <select value={players} onChange={e => setPlayers(Number(e.target.value))}>
               {[2, 3, 4, 5].map(n => <option key={n} value={n}>{n} players</option>)}
             </select></label>
-            <button className="cta" onClick={startLocalGame}>Start game <span aria-hidden>→</span></button>
+            <button className="cta" onClick={() => startLocalGame(false)}>Start game <span aria-hidden>→</span></button>
+            <button className="learn-button" onClick={() => startLocalGame(true)}>Learn with a bot</button>
           </div>
           <div className="mode-card">
             <div className="eyebrow">WITH FRIENDS</div><h2>Private room</h2>
@@ -741,6 +755,18 @@ export default function GameTable() {
   const canTake = legal.some(m => m.type === "take");
   const rule = g.limit?.type === "under" ? "Next number: 1–4" : g.limit?.type === "min"
     ? `Next number: ${g.limit.value} or higher` : "Any number can follow";
+  const finalDuel = g.endgameRule === "final-duel" && g.phase === "play" &&
+    g.stockCount === 0 && g.players.filter(p => !p.out).length === 2;
+  const coachText = g.phase === "setup" ?
+    "Choose three face-up cards. Tap a hand card, then a face-up card to swap. Auto arrange can help." :
+    g.moves === 0 ?
+    "Your first move: select a card in your hand, then Play cards. You can also drag it onto the pile." :
+    !active ? "Watch the bot's move. SNAP and SLAM opportunities can interrupt a turn." :
+    g.stockCount > 0 ? "Play numbers at least as high as the restriction. Your hand refills to three while the deck lasts." :
+    stage === "hand" ? "The deck is empty. Empty your hand to uncover your face-up cards." :
+    stage === "up" ? "Play your visible face-up cards before touching the blind cards." :
+    stage === "down" ? "Flip a blind card and hope it plays. An invalid flip makes you collect the pile." :
+    "Keep an eye on the pile and your opponents.";
   const ready = !!g.setupReady[me];
   const allReady = g.setupReady.every(Boolean);
   const joined = mode === "local" ? true : room?.members.length === g.players.length - g.botSeats.length;
@@ -773,6 +799,11 @@ export default function GameTable() {
             active ? "Your move." : `${nameForSeat(g.turn)} is playing.`}</h1></div>
         <div className="meta-right"><span>{g.moves} moves</span><span>{g.players.length} players</span></div>
       </section>
+      {mode === "local" && practiceMode && !coachDismissed && g.phase !== "over" &&
+        <aside className="coach-tip" aria-label="Learning coach" role="status">
+          <div><strong>LEARN BY PLAYING</strong><span>{coachText}</span></div>
+          <button type="button" onClick={() => setCoachDismissed(true)}>Hide tips</button>
+        </aside>}
 
       <div className="tabletop" role="region" aria-label="STACK card game">
         <div className="table-texture" aria-hidden="true" />
@@ -824,9 +855,14 @@ export default function GameTable() {
         </div>
 
         {showFlip && face && <div className="blind-flip" role="status">
-          <strong>{nameForSeat(face.seat)} flipped a blind card</strong>
-          <span>{face.card.kind === "number" ? "Number " + face.card.rank :
-            face.card.action?.toUpperCase()}</span>
+          <PlayingCard card={{ ...face.card, id: -1, rank: face.card.rank ?? undefined,
+            action: face.card.action ?? undefined }} theme={deckTheme} small />
+          <div><strong>{nameForSeat(face.seat)} flipped a blind card</strong>
+            <span>{face.card.kind === "number" ? "Number " + face.card.rank :
+              face.card.action?.toUpperCase()}</span></div>
+        </div>}
+        {finalDuel && <div className="duel-banner" role="status">
+          <strong>FINAL DUEL</strong><span>Every pickup burns the visible top card first.</span>
         </div>}
         <div className="event-banner" role="status" aria-live="polite">
           <span className="event-spark" aria-hidden="true" />
