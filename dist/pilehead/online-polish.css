@@ -57,3 +57,14 @@
 }
 .pilehead-online .table-actions.is-submitting .action{opacity:.67;cursor:progress}
 @media(prefers-reduced-motion:reduce){.pilehead-online .opponent{transition:none}}
+
+/* Final Duel is an opt-in setting, kept out of the active table. */
+.stack-final-duel-option{display:flex;gap:12px;align-items:flex-start;
+  background:#173c34;border:1px solid #baceac6b;border-radius:12px;
+  padding:12px;margin:12px 0;color:#e5efde}
+.stack-final-duel-option input{appearance:auto;width:21px;height:21px;flex:0 0 21px;
+  accent-color:#cbea9f;margin:2px 0 0}
+.stack-final-duel-option input:disabled{opacity:.45}
+.stack-final-duel-option span{display:flex;flex-direction:column;gap:4px}
+.stack-final-duel-option strong{font-size:13px}
+.stack-final-duel-option small{font-size:11px;color:#d5e2ce;line-height:1.45}

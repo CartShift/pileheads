@@ -21,7 +21,17 @@ const SAVE_KEY = "stack-next-local-save-v1";
 const THEME_KEY = "stack-next-deck-theme-v1";
 const SOUND_KEY = "stack-next-sound-enabled-v1";
 const PRACTICE_KEY = "stack-next-practice-mode-v1";
+const FINAL_DUEL_KEY = "stack-final-duel-default-v1";
+type EndgameRule = "classic" | "final-duel";
 type DeckTheme = "characters" | "original";
+type HandSort = "dealt" | "asc" | "desc";
+function orderedHand(cards: Card[], mode: HandSort) {
+  if (mode === "dealt") return cards;
+  const weight = (card: Card) => card.kind === "number" ? card.rank || 0 :
+    11 + ACTIONS.indexOf(card.action || "reset");
+  return [...cards].sort((a,b) =>
+    (mode === "asc" ? 1 : -1) * (weight(a) - weight(b)) || a.id - b.id);
+}
 function loadSavedGame(): Game | null {
   try {
     const data = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
@@ -56,8 +66,8 @@ const cardLabel = (card: Card) => card.kind === "number" ? `Number ${card.rank}`
 const identicalIds = (left: number[], right: number[]) =>
   left.length === right.length && left.every(id => right.includes(id));
 
-function createGame(players: number): Game {
-  const g = Engine.create({ players, seed: Math.floor(Math.random() * 4294967296) });
+function createGame(players: number, endgameRule: EndgameRule): Game {
+  const g = Engine.create({ players, endgameRule, seed: Math.floor(Math.random() * 4294967296) });
   for (let seat = 1; seat < players; seat++) Engine.autoSetup(g, seat);
   g.setupReady = Array.from({ length: players }, (_, i) => i !== 0);
   return g;
@@ -67,7 +77,7 @@ function asLocalRoom(game: Game): RoomGame {
   return {
     phase: game.phase, turn: game.turn, moves: game.moves, round: 1,
     botSeats: game.people.slice(1).map(p => p.seat),
-    endgameRule: game.version === Engine.VERSION ? "final-duel" : "classic",
+    endgameRule: game.endgameRule === "final-duel" ? "final-duel" : "classic",
     stockCount: game.stock.length, pile: game.pile, ashesCount: game.ashes.length,
     limit: game.limit, pendingDump: game.pendingDump || null,
     finishedOrder: game.finishedOrder, loser: game.loser,
@@ -184,9 +194,11 @@ function PlayerPosition({ name, seat, active, self, out, handCount, up, downCoun
 
 function eventText(e: Event | undefined, name: (seat: number) => string) {
   if (!e) return "Choose your move. Every card changes the table.";
-  if (e.type === "take" || e.type === "blind-fail") return `${name(e.seat)} picked up the pile`;
+  if (e.type === "take" || e.type === "blind-fail")
+    return `${name(e.seat)} picked up the pile${e.erodedCount ? " · top card burned" : ""}`;
   if (e.reason === "burn" || e.burned) return `${name(e.seat)} burned the pile!`;
-  if (e.reason === "dump") return `${name(e.seat)} dumped the pile on ${name(e.target ?? -1)}`;
+  if (e.reason === "dump")
+    return `${name(e.seat)} dumped the pile on ${name(e.target ?? -1)}${e.erodedCount ? " · top card burned" : ""}`;
   if (e.type === "slam") return `${name(e.seat)} made a SLAM!`;
   if (e.reason === "snap") return `${name(e.seat)} snapped another card!`;
   if (e.reason === "skip") return `${name(e.seat)} skipped a turn`;
@@ -210,7 +222,11 @@ export default function GameTable() {
   const [busy, setBusy] = useState(false);
   const [resumeGame, setResumeGame] = useState<Game | null>(null);
   const [deckTheme, setDeckTheme] = useState<DeckTheme>("characters");
+  const [handSort, setHandSort] = useState<HandSort>("dealt");
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [endgameRule, setEndgameRule] = useState<EndgameRule>("classic");
+  const [pendingRule, setPendingRule] = useState<EndgameRule | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const [practiceMode, setPracticeMode] = useState(false);
   const [coachDismissed, setCoachDismissed] = useState(false);
   const [showRules, setShowRules] = useState(false);
@@ -281,6 +297,7 @@ export default function GameTable() {
     setResumeGame(loadSavedGame());
     setSoundEnabled(localStorage.getItem(SOUND_KEY) === "true");
     setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
+    setEndgameRule(localStorage.getItem(FINAL_DUEL_KEY) === "final-duel" ? "final-duel" : "classic");
     if (!code) return;
     setJoinCode(code);
     const token = localStorage.getItem(sessionKey(code));
@@ -308,7 +325,8 @@ export default function GameTable() {
           applyRoom(fresh);
           // Safe repeatable lobby operations must not become a manual race
           // between guests. NEVER silently retry a card move, SNAP or SLAM.
-          if (payload.action === "ready" || payload.action === "swap") {
+          if (payload.action === "ready" || payload.action === "swap" ||
+              payload.action === "settings") {
             const retry = await requestRoom({ ...payload, revision: fresh.revision }, token);
             if (epoch !== roomEpoch.current) return;
             applyRoom(retry);
@@ -537,6 +555,12 @@ export default function GameTable() {
   const stage = current ? current.handCount || g?.stockCount ? "hand" :
     current.up.length ? "up" : current.downCount ? "down" : "out" : "out";
   const active = g?.phase === "play" && g.turn === me && !g.pendingDump;
+  // Match Classic: bridge only when the full final hand is homogeneous and
+  // matching face-up cards exist. No other face-up selection is legal.
+  const bridgeCard = active && g?.stockCount === 0 && stage === "hand" && current?.hand?.length &&
+    current.hand.every(c => sameFace(c, current.hand![0])) &&
+    current.up.some(c => sameFace(c, current.hand![0])) ? current.hand[0] : null;
+  const canBridge = (card: Card) => !!bridgeCard && sameFace(card, bridgeCard);
   const legal = g?.legal || [];
   const selectedCards = selection.map(id =>
     [...(current?.hand || []), ...(current?.up || [])].find(card => card.id === id)).filter((card): card is Card => !!card);
@@ -551,9 +575,20 @@ export default function GameTable() {
     if (soundEnabled) playSound("select");
     setNotice("");
     setSelection(prev => {
-      if (prev.includes(card.id)) return prev.filter(id => id !== card.id);
-      const cards = prev.map(id => [...(current?.hand || []), ...(current?.up || [])].find(c => c.id === id));
-      return cards.length && !cards.every(c => sameFace(c, card)) ? [card.id] : [...prev, card.id];
+      const hand = current?.hand || [], up = current?.up || [];
+      const remaining = prev.includes(card.id) ? prev.filter(id => id !== card.id) :
+        (prev.length && !prev.every(id => sameFace([...hand, ...up].find(c => c.id === id), card)))
+          ? [card.id] : [...prev, card.id];
+      const upSelected = remaining.filter(id => up.some(c => c.id === id));
+      if (upSelected.length && canBridge(card)) {
+        // Engine requires the COMPLETE remaining hand first, then visible cards.
+        return [...hand.map(c => c.id), ...upSelected];
+      }
+      if (upSelected.length && bridgeCard && upSelected.every(id =>
+        sameFace(up.find(c => c.id === id), bridgeCard))) {
+        return [...hand.map(c => c.id), ...upSelected];
+      }
+      return remaining;
     });
   }
 
@@ -570,7 +605,11 @@ export default function GameTable() {
   }
 
   function playCardDirect(card: Card) {
-    const ids = selection.includes(card.id) ? selection : [card.id];
+    const ids = canBridge(card) ? [
+      ...(current?.hand || []).map(c => c.id),
+      ...selection.filter(id => current?.up.some(c => c.id === id) && id !== card.id),
+      card.id
+    ] : selection.includes(card.id) ? selection : [card.id];
     const choice = legal.find(m => m.type === "play" && m.source !== "down" &&
       identicalIds(m.ids || [], ids));
     if (!choice) {
@@ -620,7 +659,7 @@ export default function GameTable() {
     roomEpoch.current++;
     setPracticeMode(withCoach);
     setCoachDismissed(false);
-    const game = createGame(withCoach ? 2 : players);
+    const game = createGame(withCoach ? 2 : players, endgameRule);
     localRef.current = game;
     undoRef.current = null; setUndoAvailable(false);
     setLocal(game); setRoom(null); setMode("local"); setSelection([]); setNotice("");
@@ -637,6 +676,7 @@ export default function GameTable() {
     if (!saved) { setResumeGame(null); setNotice("Saved game is unavailable."); return; }
     localRef.current = saved; undoRef.current = null; setUndoAvailable(false);
     setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
+    setEndgameRule(saved.endgameRule === "final-duel" ? "final-duel" : "classic");
     setCoachDismissed(false);
     setLocal(saved); setRoom(null); setMode("local"); setSelection([]); setNotice("");
     history.replaceState(null, "", "/play");
@@ -647,7 +687,8 @@ export default function GameTable() {
     if (wsRef.current) wsRef.current.close();
     setMode("home"); setLocal(null); setRoom(null); roomRef.current = null;
     tokenRef.current = null; setBusy(false); inFlight.current = false;
-    setConnected(false); setConfirmRestart(false); setShowRules(false); setCopiedInvite(false);
+    setConnected(false); setConfirmRestart(false); setShowRules(false);
+    setShowSettings(false); setPendingRule(null); setCopiedInvite(false);
     setSelection([]); setNotice("");
     history.replaceState(null, "", "/play");
   }
@@ -655,13 +696,13 @@ export default function GameTable() {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        if (showRules || confirmRestart || needsTarget || selection.length) {
+        if (showRules || showSettings || confirmRestart || needsTarget || selection.length) {
           event.preventDefault();
-          setShowRules(false); setConfirmRestart(false); setNeedsTarget(false); setSelection([]);
+          setShowRules(false); setShowSettings(false); setConfirmRestart(false); setNeedsTarget(false); setSelection([]);
         }
         return;
       }
-      if (showRules || confirmRestart || event.altKey || event.metaKey || event.ctrlKey) return;
+      if (showRules || showSettings || confirmRestart || event.altKey || event.metaKey || event.ctrlKey) return;
       const target = event.target;
       if (target instanceof HTMLElement &&
           target.closest("input,textarea,select,[contenteditable=true]")) return;
@@ -675,10 +716,10 @@ export default function GameTable() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showRules, confirmRestart, needsTarget, selection.length]);
+  }, [showRules, showSettings, confirmRestart, needsTarget, selection.length]);
 
   useEffect(() => {
-    if (!showRules && !confirmRestart) return;
+    if (!showRules && !showSettings && !confirmRestart) return;
     const previous = document.activeElement as HTMLElement | null;
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
     const buttons = [...(dialog?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") || [])];
@@ -694,7 +735,7 @@ export default function GameTable() {
     };
     dialog?.addEventListener("keydown", trap);
     return () => { dialog?.removeEventListener("keydown", trap); previous?.focus?.(); };
-  }, [showRules, confirmRestart]);
+  }, [showRules, showSettings, confirmRestart]);
 
   async function copyInvite() {
     if (!room) return;
@@ -711,12 +752,37 @@ export default function GameTable() {
     }
   }
 
+  function changeEndgameRule(next: EndgameRule) {
+    if (mode === "online" && roomRef.current) {
+      const activeRoom = roomRef.current;
+      if (!activeRoom.host || activeRoom.game.phase !== "setup") return;
+      // Optimistic feedback for the checkbox, but the server remains the
+      // single source of truth. Concurrent host/guest lobby changes may require
+      // one safe revision retry, unlike card moves.
+      setPendingRule(next);
+      void submit({ action: "settings", code: activeRoom.code, revision: activeRoom.revision,
+        endgameRule: next }).then(() => {
+          if (roomRef.current?.game.endgameRule === next) {
+            setEndgameRule(next);
+            try { localStorage.setItem(FINAL_DUEL_KEY, next); } catch {}
+          }
+        }).finally(() => setPendingRule(null));
+      return;
+    }
+    setEndgameRule(next);
+    try { localStorage.setItem(FINAL_DUEL_KEY, next); } catch {}
+    if (mode === "local" && local?.phase === "setup") {
+      commitLocal(game => { game.endgameRule = next; });
+    }
+  }
+
   async function createOnlineRoom() {
     if (onlineHumans + onlineBots < 2 || onlineHumans + onlineBots > 5) {
       setNotice("Choose 2–5 seats in total."); return;
     }
     localStorage.setItem("stack-next-display-name", name);
-    await submit({ action: "create", name, humans: onlineHumans, bots: onlineBots }, true);
+    await submit({ action: "create", name, humans: onlineHumans, bots: onlineBots,
+      endgameRule }, true);
   }
 
   async function joinOnlineRoom() {
@@ -733,6 +799,9 @@ export default function GameTable() {
           <h1>One pile.<br /><em>One loser.</em></h1>
           <p>Play the real STACK rules with a refreshed, tactile React tabletop. Your original Classic game stays untouched.</p>
           <a href={classicHref} className="subtle-link">Open original Classic ↗</a>
+          <button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>
+            Game settings
+          </button>
         </div>
         <div className="entry-options">
           {resumeGame && <div className="resume-panel">
@@ -769,6 +838,18 @@ export default function GameTable() {
         </div>
       </section>
       {notice && <div className="alert" role="status">{notice}</div>}
+      {showSettings && <div className="modal-backdrop" onClick={() => setShowSettings(false)}>
+        <section className="game-modal" role="dialog" aria-label="Game settings" aria-modal="true"
+          onClick={event => event.stopPropagation()}>
+          <div className="eyebrow">GAME SETTINGS</div><h2>Make it your game.</h2>
+          <label className="rule-toggle"><input type="checkbox" checked={endgameRule === "final-duel"}
+            onChange={event => changeEndgameRule(event.target.checked ? "final-duel" : "classic")} />
+            <span><strong>Final Duel</strong><small>Optional: with two players left and no draw cards,
+              every pile pickup burns the visible top card. Off by default.</small></span>
+          </label>
+          <button className="primary-button" onClick={() => setShowSettings(false)}>Done</button>
+        </section>
+      </div>}
     </main>
   );
 
@@ -807,6 +888,7 @@ export default function GameTable() {
             role="status">{connected ? "Live" : "Reconnecting"}</span>}
           <span className="beta-tag">REACT TABLE · PREVIEW</span>
           <button className="exit-button" onClick={() => setShowRules(true)}>Rules</button>
+          <button className="exit-button" onClick={() => setShowSettings(true)}>Settings</button>
           <label className="theme-control">Deck
             <select aria-label="Deck style" value={deckTheme}
               onChange={e => setDeckTheme(e.target.value as DeckTheme)}>
@@ -899,7 +981,7 @@ export default function GameTable() {
             {Array.from({ length: Math.max(current.up.length, current.downCount) }, (_, index) => {
               const upCard = current.up[index];
               const canUp = g.phase === "setup" ? !ready : active &&
-                (stage === "up" || (stage === "hand" && g.stockCount === 0));
+                (stage === "up" || canBridge(upCard));
               return <div className="faceup-pair" key={index}>
                 {index < current.downCount && <div className="blind-under">
                   <PlayingCard hidden theme={deckTheme} onClick={stage === "down" && active ? () => clickBlind(index) : undefined} />
@@ -913,11 +995,21 @@ export default function GameTable() {
             })}
           </div>
           <div className="zone-heading hand-heading"><strong>YOUR HAND</strong>
-            <span>{g.phase === "setup" ? "Select a hand card, then a face-up card to swap" :
-              stage === "hand" ? "Tap matching cards to build a group" : "Finish your visible cards first"}</span></div>
+            <span className="hand-utilities">
+              {selection.length > 0 && <button type="button" className="hand-tool"
+                onClick={() => {setSelection([]);setNeedsTarget(false);}}>
+                Clear {selection.length}
+              </button>}
+              {g.phase === "setup" ? "Swap cards before starting" :
+                <button type="button" className="hand-tool" aria-label="Sort hand"
+                  onClick={() => setHandSort(order => order === "dealt" ? "asc" :
+                    order === "asc" ? "desc" : "dealt")}>
+                  Sort {handSort === "dealt" ? "↑" : handSort === "asc" ? "↓" : "↺"}
+                </button>}
+            </span></div>
           <div className="player-hand">
             <AnimatePresence initial={false}>
-              {(current.hand || []).map(card =>
+              {orderedHand(current.hand || [], handSort).map(card =>
                 <PlayingCard key={card.id} card={card} theme={deckTheme} selected={selection.includes(card.id) || swapHand === card.id}
                   onClick={g.phase === "setup" ? (!ready ? () => swap(card, "hand") : undefined) :
                     (active || g.followup.length > 0) && stage === "hand" ? () => chooseCard(card) : undefined}
@@ -1015,6 +1107,27 @@ export default function GameTable() {
         )}
       </div>
       {notice && <div className="alert" role="alert">{notice}</div>}
+      {showSettings && <div className="modal-backdrop" onClick={() => setShowSettings(false)}>
+        <section className="game-modal" role="dialog" aria-label="Game settings" aria-modal="true"
+          onClick={event => event.stopPropagation()}>
+          <div className="eyebrow">GAME SETTINGS</div><h2>Table rules</h2>
+          <label className="rule-toggle">
+            <input type="checkbox" checked={(mode === "online" && pendingRule ? pendingRule : g.endgameRule) === "final-duel"}
+              disabled={busy || g.phase !== "setup" || (mode === "online" && !room?.host)}
+              onChange={event => changeEndgameRule(event.target.checked ? "final-duel" : "classic")} />
+            <span><strong>Final Duel</strong><small>
+              When the stock is empty and exactly two players remain, each pile pickup
+              permanently burns its visible top card. Disabled by default.
+            </small></span>
+          </label>
+          <p className="settings-hint">{g.phase !== "setup"
+            ? "Rules are locked once the round begins. The setting stays the same for rematches."
+            : mode === "online" && !room?.host
+              ? "Only the room host can change the rules before the round begins."
+              : "Change this before the round starts. Everyone at the table will see the choice."}</p>
+          <button className="primary-button" onClick={() => setShowSettings(false)}>Back to table</button>
+        </section>
+      </div>}
       {showRules && <div className="modal-backdrop" role="presentation" onClick={() => setShowRules(false)}>
         <section className="game-modal" role="dialog" aria-modal="true" aria-label="STACK quick rules"
           onClick={e => e.stopPropagation()}>
@@ -1027,7 +1140,8 @@ export default function GameTable() {
           </div>)}</div>
           <p><strong>SNAP:</strong> A matching number you just drew may be played until another player acts.
             <strong> SLAM:</strong> Complete four matching numbers to burn the pile. <strong>Final Duel:</strong> When
-            only two players remain and the deck is empty, the top card burns before pile pickup.</p>
+            only two players remain and the deck is empty, the top card burns before pile pickup
+            <em> only when enabled in Settings</em>.</p>
           <div className="button-group">
             <button className="secondary-button" aria-pressed={soundEnabled}
               onClick={() => {

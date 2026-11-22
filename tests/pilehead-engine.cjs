@@ -7,7 +7,7 @@ function zones(g){return[g.stock,g.pile,g.ashes,...g.people.flatMap(p=>[p.hand,p
 function extract(g,predicate){for(const z of zones(g)){const i=z.findIndex(predicate);if(i>=0)return z.splice(i,1)[0]}
  throw Error('Fixture card not found')}
 function inject(g,seat,source,predicate){const card=extract(g,predicate),arr=g.people[seat][source],old=arr.pop();if(old)g.stock.push(old);arr.push(card);return card}
-function opened(players=2,seed=42){const g=E.create({players,seed});E.start(g);return g}
+function opened(players=2,seed=42,endgameRule='classic'){const g=E.create({players,seed,endgameRule});E.start(g);return g}
 
 test('54 distinct physical cards: forty numbers and fourteen actions',()=>{
  const a=E.deck();assert.equal(a.length,54);assert.equal(new Set(a.map(c=>c.id)).size,54);
@@ -89,7 +89,7 @@ test('SLAM cannot use blind cards; action breaks the numeric streak',()=>{
  assert.equal(E.topRun(g).count,0);E.invariant(g);
 });
 test('illegal blind flip joins the pile and is picked up to the hand',()=>{
- const g=opened();g.ashes.push(...g.stock.splice(0),...g.people[0].hand.splice(0),...g.people[0].up.splice(0));
+ const g=opened(2,42,'final-duel');g.ashes.push(...g.stock.splice(0),...g.people[0].hand.splice(0),...g.people[0].up.splice(0));
  const card=g.people[0].down[0],replacement=extract(g,c=>c.kind==='number'&&c.rank===1);
  g.ashes.push(card);g.people[0].down[0]=replacement;
  g.pile.push(g.ashes.pop());g.limit={type:'min',value:10};

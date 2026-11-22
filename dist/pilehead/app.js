@@ -2,7 +2,9 @@
 (function(){'use strict';
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
 document.body.classList.add('stack-classic');
-const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11';
+const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-playtest-v11',FINAL_DUEL_KEY='stack-final-duel-default-v1';
+let finalDuelEnabled=false;
+try{finalDuelEnabled=localStorage.getItem(FINAL_DUEL_KEY)==='final-duel'}catch{}
 let g=null,mode='bots',seats=4,setupSeat=0,selection=[],swapFrom=null,covered=false,challengeOpen=false,timer=null,botQueuedFor=null,notice='',lastMove=null,sortMode='dealt',endDismissed=false,dumpDraft=null,starterTimer=null,practiceMode=false,undoState=null,restartPrompt=false;
 function sameFace(a,b){return !!a&&!!b&&a.kind===b.kind&&
  (a.kind==='number'?a.rank===b.rank:a.action===b.action)}
@@ -30,7 +32,7 @@ function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
  // Keep the existing 1.2 DUMP behavior during saved games.
  // 1.1 sessions stay on the 52-card rules rather than acquiring non-dealt cards.
  if(x.g.version==='pilehead-1.1.0')x.g.version='pilehead-1.2.0';
- E.invariant(x.g);g=x.g;mode=x.mode;seats=x.seats;setupSeat=x.setupSeat??0;practiceMode=x.practiceMode===true&&mode==='bots'&&seats===2;
+ E.invariant(x.g);g=x.g;finalDuelEnabled=g.endgameRule==='final-duel';mode=x.mode;seats=x.seats;setupSeat=x.setupSeat??0;practiceMode=x.practiceMode===true&&mode==='bots'&&seats===2;
  covered=mode==='hotseat'&&g.phase!=='over';challengeOpen=false;lastMove=x.lastMove||null;
   notice=x.notice&&(!lastMove||x.notice!==eventName(lastMove))?x.notice:'';
   undoState=null;
@@ -117,10 +119,16 @@ function setupView(){if(!g)return '<section class="setup panel"><div class="eyeb
  '<h2>ONE PILE. ONE LOSER.</h2><p>Make your move, stack the pressure, and be the first to lose every card. Six action types can turn the table, including four BURN cards. The last player holding cards loses.</p>'+
  '<div class="fields"><label>Players<select id="seat-count">'+[2,3,4,5].map(n=>'<option value="'+n+'" '+(seats===n?'selected':'')+'>'+n+' players</option>').join('')+'</select></label>'+
  '<label>Play against<select id="game-mode"><option value="bots" '+(mode==='bots'?'selected':'')+'>Computer opponents</option><option value="hotseat" '+(mode==='hotseat'?'selected':'')+'>Local pass-and-play</option></select></label></div>'+
+ '<details class="stack-classic-more"><summary>Game settings</summary><label class="stack-final-duel-option">'+
+ '<input id="classic-final-duel" type="checkbox" '+(finalDuelEnabled?'checked':'')+' />'+
+ '<span><strong>Final Duel</strong><small>Optional: with two players left and no draw cards, each pile pickup burns the visible top card. Off by default.</small></span></label></details>'+
  '<div class="toolbar"><button class="action primary" data-do="practice">Learn with a bot</button><button class="action secondary" data-do="create">Deal cards</button><a class="action secondary" href="?online=1">Play with friends online</a></div><p class="stack-intro-note">New here? Learn by playing one round. Already know the rules? Deal cards or invite friends.</p></section>';
  const p=g.people[setupSeat],had=swapFrom!==null;
  return '<section class="setup panel"><div class="eyebrow">STACK / OPENING HAND · '+playerName(setupSeat)+'</div><h2>SET THE TABLE.</h2>'+
- '<p>Tap a card in your hand, then a face-up card to swap them. Face-up cards become playable after your draw deck and hand are gone. Three blind cards stay hidden.</p>'+(practiceMode?'<p class="stack-practice-setup"><strong>Practice · Step 1:</strong> Pick three cards you want to keep face-up for later, then select Start the game. You can play normally against a bot.</p>':'')+
+ '<p>Tap a card in your hand, then a face-up card to swap them. Face-up cards become playable after your draw deck and hand are gone. Three blind cards stay hidden.</p>'+
+ '<details class="stack-classic-more"><summary>Game settings · Final Duel '+(g.endgameRule==='final-duel'?'ON':'OFF')+'</summary>'+
+ '<label class="stack-final-duel-option"><input id="classic-final-duel" type="checkbox" '+(g.endgameRule==='final-duel'?'checked':'')+' />'+
+ '<span><strong>Final Duel</strong><small>Burn the visible top card on each pickup with two players remaining and an empty draw deck. Off by default.</small></span></label></details>'+(practiceMode?'<p class="stack-practice-setup"><strong>Practice · Step 1:</strong> Pick three cards you want to keep face-up for later, then select Start the game. You can play normally against a bot.</p>':'')+
  '<div class="area-label"><span>YOUR FACE-UP CARDS</span></div>'+rowCards(p.up,'up',true)+
  '<div class="area-label"><span>YOUR HAND</span><span>'+(had?'Now tap the card to exchange':'Tap any card to select')+'</span></div>'+
  rowCards(p.hand,'hand',true)+'<div class="toolbar"><button class="action primary" data-do="ready">'+
@@ -176,7 +184,7 @@ function gameView(){const viewer=viewSeat(),p=getPlayer(),isHuman=mode==='hotsea
  tableActions({turn,legal,pick,slams,snap,stage})+
  (notice?'<div class="message stack-classic-error" role="status" aria-live="polite">'+notice+'</div>':'')+
  '<details class="stack-classic-more"><summary>Game details</summary><div class="stack-classic-more-body">'+
- '<div class="meta"><span>Moves <strong>'+g.moves+'</strong></span><span>Draw stock <strong>'+g.stock.length+'</strong></span>'+
+ '<div class="meta"><span>Final Duel <strong>'+(g.endgameRule==='final-duel'?'ON':'OFF')+'</strong></span><span>Moves <strong>'+g.moves+'</strong></span><span>Draw stock <strong>'+g.stock.length+'</strong></span>'+
  '<span>Burned <strong>'+g.ashes.length+'</strong></span><span>Pickups <strong>'+g.people.reduce((n,x)=>n+x.pickups,0)+'</strong></span></div>'+
  '<details class="move-history"><summary>Move history <span>'+g.moves+' moves</span></summary>'+
  '<div class="event-list" role="list" aria-label="Recent moves">'+g.events.slice(-8).reverse().map(e=>'<span class="event" role="listitem">'+eventName(e)+'</span>').join('')+'</div></details>'+
@@ -317,7 +325,7 @@ function queueBot(){
  }catch(e){notice='Bot error: '+e.message;render()}
  },canSlam?780:600);
 }
-function startGame(previousWinner=null){endDismissed=false;dumpDraft=null;undoState=null;restartPrompt=false;g=E.create({players:seats,seed:Date.now()>>>0});
+function startGame(previousWinner=null){endDismissed=false;dumpDraft=null;undoState=null;restartPrompt=false;g=E.create({players:seats,seed:Date.now()>>>0,endgameRule:finalDuelEnabled?'final-duel':'classic'});
  const starter=practiceMode?0:previousWinner===null?Math.floor(Math.random()*seats):previousWinner;
  g.starterSeat=starter;g.starterReason=practiceMode?'practice':previousWinner===null?'draw':'winner';
  setupSeat=0;selection=[];swapFrom=null;challengeOpen=false;covered=false;notice='';if(mode==='bots')for(let i=1;i<seats;i++)E.autoSetup(g,i);render()}
@@ -437,6 +445,13 @@ function execute(action,button){
  }
  if(action==='export'&&g){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([JSON.stringify(g,null,2)],{type:'application/json'}));a.href=u;a.download='pilehead-state-seed-'+g.seed+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1200)}
 }
+app.addEventListener('change',e=>{
+ if(e.target?.id!=='classic-final-duel')return;
+ finalDuelEnabled=!!e.target.checked;
+ if(g?.phase==='setup')g.endgameRule=finalDuelEnabled?'final-duel':'classic';
+ try{localStorage.setItem(FINAL_DUEL_KEY,finalDuelEnabled?'final-duel':'classic')}catch{}
+ render();
+});
 app.addEventListener('click',e=>{
  const b=e.target.closest('button');
  if(b?.dataset.card){handleCard(Number(b.dataset.card),b.dataset.source);return}

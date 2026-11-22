@@ -43,13 +43,23 @@ for (let players = 2; players <= 5; players++) {
         } else loopCount = 0;
         if (game.stock.length === 0 && game.people.filter(p => !p.out).length === 2)
           duelMoves++;
-        // Use only public state here: it is an early-warning signal for
-        // recurrent hand/pile cycles, not proof that a game is impossible.
-        const fingerprint = [game.turn, game.stock.length, game.pile.map(c => c.id).join(","),
-          ...game.people.map(p => p.hand.length + ":" + p.up.length + ":" + p.down.length)].join("|");
+        // A repeated count-only summary is NOT evidence of a loop: a valid
+        // Classic duel can revisit an empty pile dozens of times while the
+        // actual cards, ownership and move opportunities keep changing.
+        // Detect repeats only when the complete physical state matches.
+        const fingerprint = JSON.stringify({
+          turn:game.turn, limit:game.limit, pendingDump:game.pendingDump,
+          slamOpen:game.slamOpen, followUp:game.followUp, rng:game.rng,
+          stock:game.stock.map(c=>c.id),pile:game.pile.map(c=>c.id),
+          ashes:game.ashes.map(c=>c.id),
+          people:game.people.map(p=>({
+            out:p.out,hand:p.hand.map(c=>c.id),up:p.up.map(c=>c.id),
+            down:p.down.map(c=>c.id)
+          }))
+        });
         seen.set(fingerprint, (seen.get(fingerprint) || 0) + 1);
         if (seen.get(fingerprint) > 40)
-          throw Error("repeated coarse public game state over 40 times");
+          throw Error("Exact physical game state repeated over 40 times without progress");
         previousMove = game.moves;
       }
       assert.equal(game.phase, "over", "game exceeded 3000 moves without finishing");
