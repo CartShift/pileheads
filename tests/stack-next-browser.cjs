@@ -25,6 +25,23 @@ async function waitReady(url, logs) {
 function readGame(page) {
   return page.evaluate(() => JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game);
 }
+async function sameOriginNavigation(browser) {
+  const context = await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  const page = await context.newPage();
+  try {
+    await page.goto(WEB + "/stack", {waitUntil:"domcontentloaded"});
+    await page.getByRole("link",{name:/Enter the table/}).click();
+    await page.getByRole("button",{name:/Start game/}).waitFor();
+    assert.equal(new URL(page.url()).pathname,"/play","Next landing should lead to the real playable table");
+    await page.locator(".game-header .logo").click();
+    await page.getByRole("heading",{name:/Play your cards/}).waitFor();
+    assert.equal(new URL(page.url()).pathname,"/stack","logo returns to Next landing, not Classic redirect");
+    const classic=page.getByRole("link",{name:/Original Classic/});
+    assert.equal(new URL(await classic.getAttribute("href"), WEB).pathname,
+      "/pilehead/index.html","Classic remains available on same origin");
+    console.log("PASS one-server Next route transitions: /stack → /play → /stack, Classic link preserved");
+  } finally { await context.close(); }
+}
 async function localScenarios(browser) {
   for (const device of [
     { width: 1280, height: 860, mobile: false },
@@ -417,6 +434,7 @@ async function main() {
     assert.match(html, /_next\/static\//, "Next scripts must be included");
     browser = await chromium.launch({ headless: true });
     console.log("PASS one Render server: Classic, /stack, /play, Next assets and API use one origin");
+    await sameOriginNavigation(browser);
     await localScenarios(browser);
     await seatLayoutScenarios(browser);
     await guidedPracticeScenario(browser);
