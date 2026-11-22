@@ -507,6 +507,8 @@ async function run(){
  // avoid consuming an additional room-creation quota in this API test.
  const old15=old14;
  // A v1.6 54-card room continues with classic pickups, not Final Duel.
+ // Begin an independent testing quota window: legacy scenarios do not share users.
+ buckets.clear();
  const old16=await request({action:'create',humans:2,bots:0,name:'Old 54-card host'});
  rooms.get(old16.data.code).state.version='pilehead-1.6.0';
  delete rooms.get(old16.data.code).state.endgameRule;
