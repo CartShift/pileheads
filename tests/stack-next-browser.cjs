@@ -152,6 +152,13 @@ async function onlineScenarios(browser, server) {
     await host.waitForURL(/room=[A-HJ-NP-Z2-9]{8}/, { timeout: 14000 });
     const code = new URL(host.url()).searchParams.get("room");
     assert.match(code, /^[A-HJ-NP-Z2-9]{8}$/);
+    // Invite-copy is a real user action and must produce a usable room URL,
+    // not merely change its button label or depend on browser alerts.
+    await hostCtx.grantPermissions(["clipboard-read","clipboard-write"], {origin:WEB});
+    await host.getByRole("button", {name:"Copy invitation for room " + code}).click();
+    await host.getByText("Copied",{exact:true}).waitFor();
+    const invite = await host.evaluate(() => navigator.clipboard.readText());
+    assert.equal(invite, WEB + "/play?room=" + code, "invite URL is shareable");
     await guest.goto(WEB + "/play?room=" + code);
     await guest.getByRole("textbox", { name: "Your name" }).fill("Guest");
     await guest.getByRole("button", { name: "Join" }).click();
