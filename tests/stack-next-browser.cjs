@@ -45,7 +45,10 @@ async function localScenarios(browser) {
       await page.getByRole("heading", { name: "Your move." }).waitFor({ timeout: 10000 });
       const hand = page.locator(".player-hand .card-hit");
       assert.equal(await hand.count(), 3, "opening hand holds three cards");
-      await hand.first().click();
+      // DUMP intentionally asks for a target in 3+ player matches. Avoid
+      // assuming that the first randomly dealt card is a simple immediate play.
+      const safeFirst = page.locator('.player-hand .card-hit:not([aria-label^="DUMP"])').first();
+      await safeFirst.click();
       const play = page.getByRole("button", { name: /Play cards/ });
       assert.equal(await play.isEnabled(), true, "first opening card is legal");
       await play.click();
@@ -59,7 +62,7 @@ async function localScenarios(browser) {
       assert.equal((await readGame(page)).moves, 0, "Undo restores previous turn");
       // Drag directly from a real card onto the center pile, without a Play click.
       const target = page.getByRole("button", { name: "Play selected cards onto the pile" });
-      await page.locator(".player-hand .card-hit").first().dragTo(target, { timeout: 10000 });
+      await page.locator('.player-hand .card-hit:not([aria-label^="DUMP"])').first().dragTo(target, { timeout: 10000 });
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves >= 1
       );
