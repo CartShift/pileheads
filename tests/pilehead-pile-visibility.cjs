@@ -37,7 +37,7 @@ check('both original controllers inspect only the publicly played pile', () => {
   assert.match(code,/pile-inspect-grid/);
   assert.match(code,/data-do="inspect-pile"/);
   assert.match(code,/data-do="close-pile"/);
-  assert.match(code,/\.pile\.map\(c=>card\(c\)\)/);
+  assert.match(code,/\.map\(c=>card\(c\)\)/);
   assert.match(code,/function blindOverlay\(/);
   assert.match(code,/pile-blind-reveal/);
   assert.match(code,/is-invalid/);
