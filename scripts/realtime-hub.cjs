@@ -43,8 +43,10 @@ function attachRealtime(server,api){
   if(pathname!=='/api/pilehead/live'){socket.destroy();return}
   const host=String(req.headers['x-forwarded-host']||req.headers.host||'').split(',')[0].trim();
   let origin;
-  try{origin=new URL(req.headers.origin||'').host}catch{return rejectUpgrade(socket,'403 Forbidden')}
-  if(!host||origin!==host)return rejectUpgrade(socket,'403 Forbidden');
+  try{origin=new URL(req.headers.origin||'')}catch{return rejectUpgrade(socket,'403 Forbidden')}
+  const trusted=String(process.env.STACK_WEB_ORIGIN||'').trim().replace(/[/]$/,'');
+  if(!host||(origin.host!==host&&(!trusted||origin.origin!==trusted)))
+   return rejectUpgrade(socket,'403 Forbidden');
   if(allPeers.size>=MAX_CONNECTIONS||wss.clients.size>=MAX_CONNECTIONS+25)
    return rejectUpgrade(socket,'429 Too Many Requests');
   wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws,req));
