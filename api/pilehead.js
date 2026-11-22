@@ -15,10 +15,10 @@ const secret=()=>crypto.randomBytes(32).toString('base64url');
 function code(x){if(typeof x!=='string'||!/^[A-HJ-NP-Z2-9]{8}$/.test(x.toUpperCase()))fail(400,'invalid_code');return x.toUpperCase()}
 function makeCode(){const a='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';return Array.from(crypto.randomBytes(8),n=>a[n%a.length]).join('')}
 function name(v){const x=typeof v==='string'?v.trim().replace(/[\u0000-\u001f\u007f<>]/g,'').slice(0,24):'';if(!x)fail(400,'name_required');return x}
-// Preserve active 52-card rooms from releases 1.2–1.5 after the 54-card v1.6 update.
+// Preserve active 52-card rounds from 1.2–1.5 and 54-card v1.6 rounds after v1.7.
 // Validate old card identities and conservation before accepting saved room state.
 function compatibleLegacy(g){
- if(!['pilehead-1.2.0','pilehead-1.3.0','pilehead-1.4.0','pilehead-1.5.0'].includes(g?.version))return false;
+ if(!['pilehead-1.2.0','pilehead-1.3.0','pilehead-1.4.0','pilehead-1.5.0','pilehead-1.6.0'].includes(g?.version))return false;
  try{
   E.invariant(g);
   if(!['setup','play','over'].includes(g.phase)||g.people.length<2||g.people.length>5)return false;
@@ -54,6 +54,7 @@ function freshGame({players,humans,bots,round=1,starterSeat=null}){
 }
 function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCount:g.stock.length,
   rulesVersion:g.version,
+  endgameRule:g.version===E.VERSION?'final-duel':'classic',
  round:g.round||1,humanCount:humanCount(g),botSeats:botSeats(g),
  starterSeat:g.starterSeat??0,starterReason:g.starterReason||'draw',startedAt:g.startedAt||null,
  blindReveal:g.blindReveal?.expiresAt>Date.now()?g.blindReveal:null,
@@ -64,7 +65,7 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
  reactions:recentReactions(g),
  players:g.people.map((p,i)=>({seat:i,out:p.out,up:p.up,handCount:p.hand.length,downCount:p.down.length,pickups:p.pickups,
  ...(i===seat?{hand:p.hand,blindSlots:p.down.map((_,j)=>j)}:{})})),
- events:g.events.slice(-24).map(({type,seat,source,reason,count,burned,burnedCount,rank,action,target,takenCount,drawnCount,bridgeCount,move})=>({type,seat,source,reason,count,burned,burnedCount,rank,action,target,takenCount,drawnCount,bridgeCount,move})),
+ events:g.events.slice(-24).map(({type,seat,source,reason,count,burned,burnedCount,rank,action,target,takenCount,erodedCount,drawnCount,bridgeCount,move})=>({type,seat,source,reason,count,burned,burnedCount,rank,action,target,takenCount,erodedCount,drawnCount,bridgeCount,move})),
  legal:g.phase==='play'&&g.turn===seat?E.options(g,seat).map(m=>m.source==='down'?{type:'play',source:'down',index:g.people[seat].down.findIndex(c=>c.id===m.ids[0])}:m):[],
  slam:g.phase==='play'?E.slamOptions(g,seat):[],
  followup:g.phase==='play'?E.followUpOptions(g,seat):[]

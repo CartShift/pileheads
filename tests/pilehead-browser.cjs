@@ -15,11 +15,16 @@ async function ready(){
 async function state(page){
  return page.evaluate(()=>JSON.parse(localStorage.getItem('pilehead-playtest-v11')).g);
 }
-async function stage(page,{seed=489,mode='bots',seat=0,snap=false}={}){
- await page.evaluate(({seed,mode,seat,snap})=>{
+async function stage(page,{seed=489,mode='bots',seat=0,snap=false,finale=false}={}){
+ await page.evaluate(({seed,mode,seat,snap,finale})=>{
   const E=globalThis.PileheadEngine,g=E.create({seed,players:2});
   if(mode==='bots')E.autoSetup(g,1);
   E.start(g);g.turn=seat;g.startedAt=Date.now()-5000;
+  if(finale){
+   g.people[1].hand.push(...g.stock.splice(0));
+   g.pile.push(g.people[1].hand.pop());
+   g.turn=0;g.limit=null;
+  }
   if(snap){
    const rank=6,ids=E.deck().filter(c=>c.rank===rank).slice(0,2).map(c=>c.id);
    const zones=[g.stock,g.pile,g.ashes,...g.people.flatMap(p=>[p.hand,p.up,p.down])];
@@ -31,7 +36,7 @@ async function stage(page,{seed=489,mode='bots',seat=0,snap=false}={}){
   E.invariant(g);
   localStorage.setItem('pilehead-playtest-v11',JSON.stringify({
    g,mode,seats:2,setupSeat:1,covered:mode==='hotseat',notice:'',lastMove:null}));
- },{seed,mode,seat,snap});
+ },{seed,mode,seat,snap,finale});
  await page.reload({waitUntil:'domcontentloaded'});
 }
 async function run(browser,width,height,mobile){
@@ -72,6 +77,18 @@ async function run(browser,width,height,mobile){
   const after=await state(page);
   assert.equal(after.turn,1,'out-of-turn SNAP does not steal next turn');
   assert.equal(after.events.at(-1).reason,'snap');
+  assert.equal(await page.locator('.overlay [data-do="reveal"]').count(),0,
+   'out-of-turn SNAP must not re-cover the current seat');
+  await stage(page,{mode:'bots',seed:3207,finale:true});
+  assert.ok(await page.getByText(/FINAL DUEL · Two players remain/).count(),
+   'final-duel rule is communicated when it activates');
+  const beforePickup=await state(page),lastTop=beforePickup.pile.at(-1).id;
+  await page.locator('[data-do="take"]').click();
+  await page.waitForFunction(()=>JSON.parse(localStorage.getItem('pilehead-playtest-v11')).g.moves===1);
+  const afterPickup=await state(page);
+  assert.equal(afterPickup.events.at(-1).erodedCount,1,'top card burns before pickup');
+  assert.ok(afterPickup.ashes.some(c=>c.id===lastTop),'burned top card reaches ashes');
+  assert.ok(!afterPickup.people[0].hand.some(c=>c.id===lastTop),'top card is not handed back');
   // A first-time player can learn in a real two-player bot round, not a modal tutorial.
   await page.evaluate(()=>localStorage.removeItem('pilehead-playtest-v11'));
   await page.reload({waitUntil:'domcontentloaded'});

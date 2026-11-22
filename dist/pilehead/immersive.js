@@ -472,7 +472,12 @@ function celebrate(table,ev,ownSeat){
    moveCard(table,placeFor(table,ev.seat,'down',ownSeat),landmark(table,'pile'),ev,
     {hidden:true,duration:260,fade:true});
   }else cue(table,'TAKE THE PILE · '+ev.count+' CARDS');
-  snap('pickup');pickupCards(table,ev,ownSeat,ev.seat,ev.type==='blind-fail'?250:50,ev.count);
+  if(ev.erodedCount){
+   cue(table,'FINAL DUEL · TOP CARD BURNS');
+   moveCard(table,landmark(table,'pile'),landmark(table,'ashes'),ev,
+    {hidden:true,delay:ev.type==='blind-fail'?260:0,duration:320,fade:true});
+  }
+  snap('pickup');pickupCards(table,ev,ownSeat,ev.seat,ev.type==='blind-fail'?460:ev.erodedCount?300:50,ev.takenCount??ev.count);
   return 720;
  }
  if(ev.action==='dump'){
@@ -480,7 +485,12 @@ function celebrate(table,ev,ownSeat){
   // DUMP itself is burned: it must NEVER enter the recipient's hand.
   playCards(table,ev,ownSeat,{to:landmark(table,'ashes'),via:landmark(table,'pile'),fade:true});
   later(()=>particles(landmark(table,'ashes'),'burn'),330);
-  pickupCards(table,ev,ownSeat,ev.target,370,ev.takenCount);
+  if(ev.erodedCount){
+   cue(table,'FINAL DUEL · TOP CARD BURNS');
+   moveCard(table,landmark(table,'pile'),landmark(table,'ashes'),ev,
+    {hidden:true,delay:370,duration:320,fade:true});
+  }
+  pickupCards(table,ev,ownSeat,ev.target,ev.erodedCount?670:370,ev.takenCount);
   snap('pickup');
   drawCards(table,ev,ownSeat,530);
   return 1050;

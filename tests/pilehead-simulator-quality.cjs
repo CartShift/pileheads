@@ -54,7 +54,7 @@ assert.equal((local.match(/submitPlay\(selectedPlay\(\)\)/g)||[]).length,5,
 assert.match(local,/botQueuedFor===key/,'UI renders must not restart the same bot turn timer');
 assert.match(local,/function viewSeat\(\)\{return mode==='bots'\?0:g\?\.turn\?\?0\}/,'Hotseat view not blocked by earlier SNAP');
 assert.match(local,/data-do="hot-snap"/,'Shared-device SNAP voluntarily claimable');
-assert.match(local,/covered=!g\.pendingDump&&g\.turn!==ev\.seat/,'Hotseat privacy follows actual turn');
+assert.match(local,/g\.turn!==previousTurn\)covered=!g\.pendingDump/,'Hotseat privacy follows actual turn, not a late SNAP actor');
 assert.match(local,/function selectedPlay\(\)\{[\s\S]*?selection=\[\.\.\.getPlayer\(\)\.hand/,'Local drag/drop normalizes bridge');
 assert.match(online,/function legalMove\(\)\{[\s\S]*?selection=\[\.\.\.current\(\)\.hand/,'Online drag/drop normalizes bridge');
 assert.match(online,/t\.source==='up'&&bridgeAvailable\(\)/,'Mobile drag supports face-up bridge');

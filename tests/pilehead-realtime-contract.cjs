@@ -17,6 +17,8 @@ assert.match(hub,/maxPayload:1024,perMessageDeflate:false/);
 assert.match(hub,/req\.headers\.origin/);
 assert.match(hub,/api\.realtimeAuth\(msg\.code,msg\.token\)/);
 assert.match(hub,/ws\.ping\(\)/);
+assert.match(hub,/ws\.on\('pong',\(\)=>\{ws\.isAlive=true\}\)/,'pong must re-arm the exact heartbeat flag');
+assert.match(hub,/ws\.isAlive=true/,'healthy sockets must start alive');
 assert.match(hub,/ws\.close\(1008/);
 assert.match(hub,/async function|async\(\)=>/);
 assert.match(api,/module\.exports\.realtimeSnapshot/);

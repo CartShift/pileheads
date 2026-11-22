@@ -17,7 +17,7 @@ assert.match(kit,/lang-he/);
 for(const action of Object.keys(E.ACTIONS)){
  assert.match(kit,new RegExp('data-action="'+action+'"'),'Printable rules must explain '+action);
 }
-for(const feature of ['SLAM','SNAP','LAST-HAND COMBO','DUMP','54-card','2026-11-20']){
+for(const feature of ['SLAM','SNAP','LAST-HAND COMBO','DUMP','54-card','2026-11-22','FINAL DUEL']){
  assert.ok(kit.includes(feature),'Missing public playtest detail: '+feature);
 }
 for(const field of ['sessionId','players','experience','medium','variant','learnMinutes','roundMinutes',
@@ -38,7 +38,7 @@ assert.match(vercel,/'playtest\.html'/,'Vercel build must include playtest.html'
 assert.match(readme,/Official playtest kit/);
 assert.match(protocol,/Default OFF/,'Experimental rule must not silently affect canonical play');
 assert.match(protocol,/no personal/i,'Playtest scorecard must avoid PII');
-assert.match(design,/v1\.6, revised 2026-11-20/,'54-card BURN x4 ruleset must supersede the previous playtest deck');
+assert.match(design,/v1\.7 Final Duel, revised 2026-11-22/,'Current playtest rules must identify the v1.7 release');
 assert.match(design,/burn DUMP itself/i,'Canonical design must reflect current DUMP behavior');
 assert.match(design,/independent four/i,'Canonical design must reflect independent SLAM');
 assert.match(design,/LAST-HAND COMBO/);

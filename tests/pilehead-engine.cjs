@@ -95,7 +95,8 @@ test('illegal blind flip joins the pile and is picked up to the hand',()=>{
  g.pile.push(g.ashes.pop());g.limit={type:'min',value:10};
  assert.equal(E.stage(g,0),'down');
  const ev=E.move(g,0,{type:'play',source:'down',ids:[replacement.id]});
- assert.equal(ev.type,'blind-fail');assert.equal(g.people[0].hand.length,2);
+ assert.equal(ev.type,'blind-fail');assert.equal(ev.erodedCount,1);
+ assert.equal(g.people[0].hand.length,1,'Final Duel burns the exposed failed card');
  assert.equal(g.blindReveal.seat,0);
  assert.deepEqual(g.blindReveal.card,{kind:'number',rank:1,action:null});
  assert.equal(g.blindReveal.move,g.moves);

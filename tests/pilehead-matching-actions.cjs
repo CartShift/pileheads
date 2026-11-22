@@ -17,7 +17,8 @@ function choices(g,two,source='hand'){
  pair:opts.find(o=>o.ids.length===2&&two.every(c=>o.ids.includes(c.id)))};
 }
 test('v1.6 with all 54 cards and unpowered numbers',()=>{
- assert.equal(E.VERSION,'pilehead-1.6.0');assert.equal(E.deck().length,54);
+ assert.equal(E.VERSION,'pilehead-1.7.0');assert.equal(E.deck().length,54);
+ assert.equal(E.deck('pilehead-1.6.0').length,54,'existing v1.6 room remains 54 cards');
  assert.equal(E.deck().filter(c=>c.kind==='number').length,40);
  for(const [action,n] of Object.entries(E.ACTIONS))assert.equal(n,action==='burn'?4:2);
 });

@@ -14,6 +14,9 @@ function load(code,rule){
 const variants={Classic:load(regular),'Final Burn':load(lab,'final-burn'),'Final Duel':load(lab,'final-duel')};
 function simulate(E,players,seed,maxMoves=1800){
  const g=E.create({players,seed});
+ // The control cohort is the pre-v1.7 classic 54-card rule, not the new
+ // Final Duel default. Only the named experimental engines enable erosion.
+ if(E.VERSION==='pilehead-1.7.0'){g.version='pilehead-1.6.0';delete g.endgameRule}
  for(let i=0;i<players;i++)E.autoSetup(g,i);
  E.start(g);
  let longestStall=0,stalled=0;

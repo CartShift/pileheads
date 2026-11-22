@@ -14,7 +14,7 @@ function engine(rule,code=source){
  return root.PileheadEngine;
 }
 const canonical=engine('final-burn',original);
-assert.equal(canonical.VERSION,'pilehead-1.6.0');
+assert.equal(canonical.VERSION,'pilehead-1.7.0');
 assert.equal(canonical.ENDGAME_RULE,undefined);
 assert(!classic.includes('endgame-lab-app.js'));
 assert(!classic.includes('endgame-lab-engine.js'));

@@ -50,11 +50,14 @@ function attachRealtime(server,api){
   wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws,req));
  });
  wss.on('connection',ws=>{
-  let peer=null,pending=false,alive=true;
+  let peer=null,pending=false;
+  // Health belongs to the socket. The pong listener must reset the exact
+  // flag the keepalive scheduler checks, otherwise every socket dies in 50s.
+  ws.isAlive=true;
   const timeout=setTimeout(()=>{if(!peer)ws.close(1008,'Authentication required')},6000);
   timeout.unref?.();
   allPeers.add(ws);
-  ws.on('pong',()=>{alive=true});
+  ws.on('pong',()=>{ws.isAlive=true});
   ws.on('message',async bytes=>{
    if(pending)return;
    let msg;
@@ -120,6 +123,10 @@ function attachRealtime(server,api){
   }finally{checking=false}
  },1200);
  reconcile.unref?.();
+ // Production pings every 25 seconds. Test-only override makes a real
+ // browser exercise three pong cycles in a short deterministic CI run.
+ const testInterval=process.env.NODE_ENV==='test'?Number(process.env.STACK_TEST_WS_HEARTBEAT_MS):NaN;
+ const heartbeatMs=Number.isInteger(testInterval)&&testInterval>=100&&testInterval<=1000?testInterval:25000;
  const keepalive=setInterval(()=>{
   for(const ws of allPeers){
    if(ws.readyState!==WebSocket.OPEN)continue;
@@ -127,7 +134,7 @@ function attachRealtime(server,api){
    ws.isAlive=false;
    try{ws.ping()}catch{ws.terminate()}
   }
- },25000);
+ },heartbeatMs);
  keepalive.unref?.();
  function shutdown(){
   clearInterval(reconcile);clearInterval(keepalive);

@@ -1,0 +1,593 @@
+{
+  "title": "STACK v1.7 Final Duel synthetic diagnostics, 22 November 2026",
+  "conditions": {
+    "gamesPerCohort": 1000,
+    "playerCounts": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "variants": [
+      "current54",
+      "classic54",
+      "legacy52"
+    ],
+    "seed": 20261122,
+    "reactionProfile": "mixed",
+    "maxActions": 1200
+  },
+  "interpretation": "classic54 and current54 share the same 54-card deck; only Final Duel changes. legacy52 has the older 52-card composition. Synthetic bot performance is not human enjoyment.",
+  "cohorts": [
+    {
+      "players": 2,
+      "variant": "current54",
+      "version": "pilehead-1.7.0",
+      "summary": {
+        "games": 1000,
+        "completed": 1000,
+        "completionPct": 100,
+        "capped": 0,
+        "meanActions": 107.65,
+        "medianActions": 99,
+        "p90Actions": 152,
+        "p95Actions": 175,
+        "meanPickups": 13.37,
+        "meanSlams": 1.72,
+        "meanSlamOpportunities": 2.1,
+        "meanSnapOpportunities": 1.56,
+        "meanSnaps": 1.02,
+        "meanFourBurns": 0.2,
+        "meanBurnCards": 3.02,
+        "meanTotalBurns": 4.94,
+        "meanBlindFailures": 0.84,
+        "meanActionsPlayed": 22.14,
+        "meanTwoPlayerActions": 107.65,
+        "meanErodedCards": 4.81,
+        "meanRemainingStock": 0,
+        "loserBySeat": [
+          {
+            "seat": 0,
+            "losses": 503,
+            "pct": 50.3
+          },
+          {
+            "seat": 1,
+            "losses": 497,
+            "pct": 49.7
+          }
+        ]
+      }
+    },
+    {
+      "players": 2,
+      "variant": "classic54",
+      "version": "pilehead-1.6.0",
+      "summary": {
+        "games": 1000,
+        "completed": 999,
+        "completionPct": 99.9,
+        "capped": 1,
+        "meanActions": 128.49,
+        "medianActions": 110,
+        "p90Actions": 195,
+        "p95Actions": 237,
+        "meanPickups": 16.59,
+        "meanSlams": 1.9,
+        "meanSlamOpportunities": 2.34,
+        "meanSnapOpportunities": 1.56,
+        "meanSnaps": 1.02,
+        "meanFourBurns": 0.25,
+        "meanBurnCards": 3.07,
+        "meanTotalBurns": 5.22,
+        "meanBlindFailures": 1.09,
+        "meanActionsPlayed": 26.3,
+        "meanTwoPlayerActions": 128.49,
+        "meanErodedCards": 0,
+        "meanRemainingStock": 0,
+        "loserBySeat": [
+          {
+            "seat": 0,
+            "losses": 506,
+            "pct": 50.65
+          },
+          {
+            "seat": 1,
+            "losses": 493,
+            "pct": 49.35
+          }
+        ]
+      }
+    },
+    {
+      "players": 2,
+      "variant": "legacy52",
+      "version": "pilehead-1.5.0",
+      "summary": {
+        "games": 1000,
+        "completed": 999,
+        "completionPct": 99.9,
+        "capped": 1,
+        "meanActions": 136.6,
+        "medianActions": 118,
+        "p90Actions": 209,
+        "p95Actions": 268,
+        "meanPickups": 17.66,
+        "meanSlams": 2.54,
+        "meanSlamOpportunities": 3.16,
+        "meanSnapOpportunities": 1.62,
+        "meanSnaps": 1.07,
+        "meanFourBurns": 0.34,
+        "meanBurnCards": 1.66,
+        "meanTotalBurns": 4.54,
+        "meanBlindFailures": 1.14,
+        "meanActionsPlayed": 27.52,
+        "meanTwoPlayerActions": 136.6,
+        "meanErodedCards": 0,
+        "meanRemainingStock": 0,
+        "loserBySeat": [
+          {
+            "seat": 0,
+            "losses": 524,
+            "pct": 52.45
+          },
+          {
+            "seat": 1,
+            "losses": 475,
+            "pct": 47.55
+          }
+        ]
+      }
+    },
+    {
+      "players": 3,
+      "variant": "current54",
+      "version": "pilehead-1.7.0",
+      "summary": {
+        "games": 1000,
+        "completed": 1000,
+        "completionPct": 100,
+        "capped": 0,
+        "meanActions": 119.26,
+        "medianActions": 115,
+        "p90Actions": 158,
+        "p95Actions": 176,
+        "meanPickups": 16.45,
+        "meanSlams": 2.04,
+        "meanSlamOpportunities": 2.95,
+        "meanSnapOpportunities": 1.21,
+        "meanSnaps": 0.72,
+        "meanFourBurns": 0.32,
+        "meanBurnCards": 3.19,
+        "meanTotalBurns": 5.55,
+        "meanBlindFailures": 1.8,
+        "meanActionsPlayed": 24.34,
+        "meanTwoPlayerActions": 26.67,
+        "meanErodedCards": 4.21,
+        "meanRemainingStock": 0,
+        "loserBySeat": [
+          {
+            "seat": 0,
+            "losses": 345,
+            "pct": 34.5
+          },
+          {
+            "seat": 1,
+            "losses": 320,
+            "pct": 32
+          },
+          {
+            "seat": 2,
+            "losses": 335,
+            "pct": 33.5
+          }
+        ]
+      }
+    },
+    {
+      "players": 3,
+      "variant": "classic54",
+      "version": "pilehead-1.6.0",
+      "summary": {
+        "games": 1000,
+        "completed": 1000,
+        "completionPct": 100,
+        "capped": 0,
+        "meanActions": 141.09,
+        "medianActions": 124,
+        "p90Actions": 210,
+        "p95Actions": 261,
+        "meanPickups": 19.58,
+        "meanSlams": 2.23,
+        "meanSlamOpportunities": 3.23,
+        "meanSnapOpportunities": 1.21,
+        "meanSnaps": 0.72,
+        "meanFourBurns": 0.36,
+        "meanBurnCards": 3.22,
+        "meanTotalBurns": 5.8,
+        "meanBlindFailures": 1.98,
+        "meanActionsPlayed": 29.14,
+        "meanTwoPlayerActions": 48.5,
+        "meanErodedCards": 0,
+        "meanRemainingStock": 0,
+        "loserBySeat": [
+          {
+            "seat": 0,
+            "losses": 322,
+            "pct": 32.2
+          },
+          {
+            "seat": 1,
+            "losses": 330,
+            "pct": 33
+          },
+          {
+            "seat": 2,
+            "losses": 348,
+            "pct": 34.8
+          }
+        ]
+      }
+    },
+    {
+      "players": 3,
+      "variant": "legacy52",
+      "version": "pilehead-1.5.0",
+      "summary": {
+        "games": 1000,
+        "completed": 1000,
+        "completionPct": 100,
+        "capped": 0,
+        "meanActions": 144.45,
+        "medianActions": 131,
+        "p90Actions": 206,
+        "p95Actions": 241,
+        "meanPickups": 19.98,
+        "meanSlams": 2.88,
+        "meanSlamOpportunities": 4.12,
+        "meanSnapOpportunities": 1.24,
+        "meanSnaps": 0.73,
+        "meanFourBurns": 0.44,
+        "meanBurnCards": 1.72,
+        "meanTotalBurns": 5.04,
+        "meanBlindFailures": 2.14,
+        "meanActionsPlayed": 29.52,
+        "meanTwoPlayerActions": 46.85,
+        "meanErodedCards": 0,
+        "meanRemainingStock": 0,
+        "loserBySeat": [
+          {
+            "seat": 0,
+            "losses": 314,
+            "pct": 31.4
+          },
+          {
+            "seat": 1,
+            "losses": 334,
+            "pct": 33.4
+          },
+          {
+            "seat": 2,
+            "losses": 352,
+            "pct": 35.2
+          }
+        ]
+      }
+    },
+    {
+      "players": 4,
+      "variant": "current54",
+      "version": "pilehead-1.7.0",
+      "summary": {
+        "games": 1000,
+        "completed": 1000,
+        "completionPct": 100,
+        "capped": 0,
+        "meanActions": 139.93,
+        "medianActions": 133,
+        "p90Actions": 194,
+        "p95Actions": 219,
+        "meanPickups": 21.29,
+        "meanSlams": 2.28,
+        "meanSlamOpportunities": 3.94,
+        "meanSnapOpportunities": 0.81,
+        "meanSnaps": 0.41,
+        "meanFourBurns": 0.45,
+        "meanBurnCards": 3.29,
+        "meanTotalBurns": 6.01,
+        "meanBlindFailures": 2.77,
+        "meanActionsPlayed": 28.53,
+        "meanTwoPlayerActions": 27.78,
+        "meanErodedCards": 4.32,
+        "meanRemainingStock": 0,
+        "loserBySeat": [
+          {
+            "seat": 0,
+            "losses": 221,
+            "pct": 22.1
+          },
+          {
+            "seat": 1,
+            "losses": 238,
+            "pct": 23.8
+          },
+          {
+            "seat": 2,
+            "losses": 281,
+            "pct": 28.1
+          },
+          {
+            "seat": 3,
+            "losses": 260,
+            "pct": 26
+          }
+        ]
+      }
+    },
+    {
+      "players": 4,
+      "variant": "classic54",
+      "version": "pilehead-1.6.0",
+      "summary": {
+        "games": 1000,
+        "completed": 996,
+        "completionPct": 99.6,
+        "capped": 4,
+        "meanActions": 165.38,
+        "medianActions": 140,
+        "p90Actions": 240,
+        "p95Actions": 315,
+        "meanPickups": 24.99,
+        "meanSlams": 2.48,
+        "meanSlamOpportunities": 4.32,
+        "meanSnapOpportunities": 0.81,
+        "meanSnaps": 0.41,
+        "meanFourBurns": 0.51,
+        "meanBurnCards": 3.31,
+        "meanTotalBurns": 6.3,
+        "meanBlindFailures": 2.91,
+        "meanActionsPlayed": 34.15,
+        "meanTwoPlayerActions": 53.23,
+        "meanErodedCards": 0,
+        "meanRemainingStock": 0,
+        "loserBySeat": [
+          {
+            "seat": 0,
+            "losses": 219,
+            "pct": 21.99
+          },
+          {
+            "seat": 1,
+            "losses": 241,
+            "pct": 24.2
+          },
+          {
+            "seat": 2,
+            "losses": 285,
+            "pct": 28.61
+          },
+          {
+            "seat": 3,
+            "losses": 251,
+            "pct": 25.2
+          }
+        ]
+      }
+    },
+    {
+      "players": 4,
+      "variant": "legacy52",
+      "version": "pilehead-1.5.0",
+      "summary": {
+        "games": 1000,
+        "completed": 998,
+        "completionPct": 99.8,
+        "capped": 2,
+        "meanActions": 171.58,
+        "medianActions": 146,
+        "p90Actions": 254,
+        "p95Actions": 332,
+        "meanPickups": 25.68,
+        "meanSlams": 3.01,
+        "meanSlamOpportunities": 5.36,
+        "meanSnapOpportunities": 0.73,
+        "meanSnaps": 0.38,
+        "meanFourBurns": 0.62,
+        "meanBurnCards": 1.73,
+        "meanTotalBurns": 5.37,
+        "meanBlindFailures": 3.12,
+        "meanActionsPlayed": 35.57,
+        "meanTwoPlayerActions": 54.91,
+        "meanErodedCards": 0,
+        "meanRemainingStock": 0,
+        "loserBySeat": [
+          {
+            "seat": 0,
+            "losses": 222,
+            "pct": 22.24
+          },
+          {
+            "seat": 1,
+            "losses": 258,
+            "pct": 25.85
+          },
+          {
+            "seat": 2,
+            "losses": 262,
+            "pct": 26.25
+          },
+          {
+            "seat": 3,
+            "losses": 256,
+            "pct": 25.65
+          }
+        ]
+      }
+    },
+    {
+      "players": 5,
+      "variant": "current54",
+      "version": "pilehead-1.7.0",
+      "summary": {
+        "games": 1000,
+        "completed": 1000,
+        "completionPct": 100,
+        "capped": 0,
+        "meanActions": 156.16,
+        "medianActions": 147,
+        "p90Actions": 215,
+        "p95Actions": 251,
+        "meanPickups": 25.49,
+        "meanSlams": 2.57,
+        "meanSlamOpportunities": 4.39,
+        "meanSnapOpportunities": 0.4,
+        "meanSnaps": 0.21,
+        "meanFourBurns": 0.45,
+        "meanBurnCards": 3.38,
+        "meanTotalBurns": 6.39,
+        "meanBlindFailures": 3.54,
+        "meanActionsPlayed": 30.94,
+        "meanTwoPlayerActions": 27.35,
+        "meanErodedCards": 4.15,
+        "meanRemainingStock": 0,
+        "loserBySeat": [
+          {
+            "seat": 0,
+            "losses": 200,
+            "pct": 20
+          },
+          {
+            "seat": 1,
+            "losses": 188,
+            "pct": 18.8
+          },
+          {
+            "seat": 2,
+            "losses": 227,
+            "pct": 22.7
+          },
+          {
+            "seat": 3,
+            "losses": 188,
+            "pct": 18.8
+          },
+          {
+            "seat": 4,
+            "losses": 197,
+            "pct": 19.7
+          }
+        ]
+      }
+    },
+    {
+      "players": 5,
+      "variant": "classic54",
+      "version": "pilehead-1.6.0",
+      "summary": {
+        "games": 1000,
+        "completed": 997,
+        "completionPct": 99.7,
+        "capped": 3,
+        "meanActions": 187.08,
+        "medianActions": 152,
+        "p90Actions": 278,
+        "p95Actions": 396,
+        "meanPickups": 30.25,
+        "meanSlams": 2.71,
+        "meanSlamOpportunities": 4.64,
+        "meanSnapOpportunities": 0.4,
+        "meanSnaps": 0.21,
+        "meanFourBurns": 0.48,
+        "meanBurnCards": 3.4,
+        "meanTotalBurns": 6.59,
+        "meanBlindFailures": 3.61,
+        "meanActionsPlayed": 37.58,
+        "meanTwoPlayerActions": 58.26,
+        "meanErodedCards": 0,
+        "meanRemainingStock": 0,
+        "loserBySeat": [
+          {
+            "seat": 0,
+            "losses": 196,
+            "pct": 19.66
+          },
+          {
+            "seat": 1,
+            "losses": 188,
+            "pct": 18.86
+          },
+          {
+            "seat": 2,
+            "losses": 222,
+            "pct": 22.27
+          },
+          {
+            "seat": 3,
+            "losses": 190,
+            "pct": 19.06
+          },
+          {
+            "seat": 4,
+            "losses": 201,
+            "pct": 20.16
+          }
+        ]
+      }
+    },
+    {
+      "players": 5,
+      "variant": "legacy52",
+      "version": "pilehead-1.5.0",
+      "summary": {
+        "games": 1000,
+        "completed": 989,
+        "completionPct": 98.9,
+        "capped": 11,
+        "meanActions": 197.89,
+        "medianActions": 161,
+        "p90Actions": 290,
+        "p95Actions": 396,
+        "meanPickups": 31.47,
+        "meanSlams": 3.33,
+        "meanSlamOpportunities": 5.75,
+        "meanSnapOpportunities": 0.31,
+        "meanSnaps": 0.17,
+        "meanFourBurns": 0.6,
+        "meanBurnCards": 1.78,
+        "meanTotalBurns": 5.7,
+        "meanBlindFailures": 3.94,
+        "meanActionsPlayed": 40.59,
+        "meanTwoPlayerActions": 61.61,
+        "meanErodedCards": 0,
+        "meanRemainingStock": 0,
+        "loserBySeat": [
+          {
+            "seat": 0,
+            "losses": 181,
+            "pct": 18.3
+          },
+          {
+            "seat": 1,
+            "losses": 196,
+            "pct": 19.82
+          },
+          {
+            "seat": 2,
+            "losses": 218,
+            "pct": 22.04
+          },
+          {
+            "seat": 3,
+            "losses": 208,
+            "pct": 21.03
+          },
+          {
+            "seat": 4,
+            "losses": 186,
+            "pct": 18.81
+          }
+        ]
+      }
+    }
+  ]
+}

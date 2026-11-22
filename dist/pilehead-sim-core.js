@@ -3,7 +3,7 @@
 const E=root.PileheadEngine;if(!E)throw Error('STACK engine required');
 const POLICIES=['greedy','saver','random'];
 const PROFILES=['perfect','attentive','casual','mixed'];
-const DECKS=['current54','legacy52'];
+const DECKS=['current54','classic54','legacy52'];
 const maxActions=1200;
 const valid=(x,lo,hi,label)=>{if(!Number.isInteger(x)||x<lo||x>hi)throw Error('Invalid '+label);return x};
 const decimal=x=>Number(x.toFixed(2));
@@ -23,7 +23,7 @@ function legacyDeck(game){
    source[index]=game.stock.splice(replacement,1)[0];
   }
  }
- game.version='pilehead-1.5.0';
+ game.version='pilehead-1.5.0';delete game.endgameRule;
  E.invariant(game);
 }
 function reactionChance(profile,seat,type){
@@ -39,6 +39,7 @@ function one(seed,players,profile='mixed',variant='current54'){
  if(!DECKS.includes(variant))throw Error('Invalid deck variant');
  const g=E.create({seed,players}),random=seeded(seed);
  if(variant==='legacy52')legacyDeck(g);
+ if(variant==='classic54'){g.version='pilehead-1.6.0';delete g.endgameRule;E.invariant(g)}
  g.people.forEach(p=>E.autoSetup(g,p.seat));E.start(g);
  let iterations=0,snapOpportunities=0,slamOpportunities=0,twoPlayerActions=0;
  while(g.phase==='play'&&iterations++<maxActions){
@@ -68,7 +69,7 @@ function one(seed,players,profile='mixed',variant='current54'){
   blindFailures:count(e=>e.type==='blind-fail'),
   actionsPlayed:count(e=>e.action!==null&&e.action!==undefined),
   recoveredPiles:g.people.reduce((n,p)=>n+p.pickups,0),
-  twoPlayerActions,remainingStock:g.stock.length};
+  twoPlayerActions,erodedCount:g.events.reduce((n,e)=>n+(e.erodedCount||0),0),remainingStock:g.stock.length};
 }
 function runSimulation({games=120,players=4,seed=20261113,reactionProfile='mixed',deckVariant='current54'}={}){
  valid(games,1,5000,'games');valid(players,2,5,'players');valid(seed,0,0xffffffff,'seed');
@@ -82,7 +83,7 @@ function runSimulation({games=120,players=4,seed=20261113,reactionProfile='mixed
   seat,losses:completed.filter(r=>r.loser===seat).length,
   pct:completed.length?decimal(completed.filter(r=>r.loser===seat).length/completed.length*100):0
  }));
- return{game:'pilehead',version:deckVariant==='current54'?E.VERSION:'pilehead-1.5.0',
+ return{game:'pilehead',version:deckVariant==='current54'?E.VERSION:deckVariant==='classic54'?'pilehead-1.6.0':'pilehead-1.5.0',
   conditions:{games,players,seed,maxActions,deckVariant,reactionProfile,
    botPolicies:POLICIES,policyAssignment:'rotated by game seed',
    reactionModel:'deterministic seeded independent recognition probabilities; no wall-clock latency',
@@ -94,7 +95,7 @@ function runSimulation({games=120,players=4,seed=20261113,reactionProfile='mixed
    meanSnaps:mean('snaps'),meanFourBurns:mean('fours'),
    meanBurnCards:mean('burnCards'),meanTotalBurns:mean('burns'),
    meanBlindFailures:mean('blindFailures'),meanActionsPlayed:mean('actionsPlayed'),
-   meanTwoPlayerActions:mean('twoPlayerActions'),meanRemainingStock:mean('remainingStock'),
+   meanTwoPlayerActions:mean('twoPlayerActions'),meanErodedCards:mean('erodedCount'),meanRemainingStock:mean('remainingStock'),
    loserBySeat:losers},sample:rows.slice(0,Math.min(rows.length,10))};
 }
 root.PileheadSim={runSimulation,one,PROFILES,DECKS};

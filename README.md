@@ -62,7 +62,7 @@ These guarantees are covered in `tests/pilehead-simulator-quality.cjs` alongside
 
 This repo now builds only STACK. Experimental SPARK and TILT apps, the separate Sites/Cloudflare Worker, and their tests were retired from current source. Historical sources remain recoverable via Git history. Existing ChatGPT Sites deployments are **not changed** by this cleanup.
 
-The game retains its `/pilehead/` URLs, browser save keys, `/api/pilehead`, database schema and backward-compatible room handling. This v1.6 release changes the production deck from 52 to 54 cards by adding two BURN copies. Other action counts and all number-card counts remain unchanged. Existing 52-card rooms continue with their historical deck until rematch. Passing source tests alone does not certify production multiplayer; test real devices, reconnect and rematch. See `docs/repository.md`.
+The game retains its `/pilehead/` URLs, browser save keys, `/api/pilehead`, database schema and backward-compatible room handling. v1.6 added two BURN copies, moving the deck from 52 to 54 cards. **v1.7 now introduces Final Duel**: after stock exhaustion, when only two players remain, each pile pickup burns its visible top card first and transfers the rest. This applies to voluntary takes, invalid blind flips and DUMP; previous rounds retain their original pickup rule. All 54 card identities and special-action counts remain unchanged. Existing v1.2–v1.6 rooms continue with their original rules until rematch. Passing source tests alone does not certify production multiplayer; test real devices, reconnect and rematch. See `docs/repository.md`.
 
 ## Mobile UX clarity pass (21 November 2026)
 
@@ -72,4 +72,8 @@ The STACK table includes a compact mobile layout, safe-area-aware action control
 
 On Render, STACK now pushes room changes through a same-origin authenticated WebSocket while keeping game moves server-authoritative. Players can send five synchronized, rate-limited reactions. On reconnect or when WebSockets are unavailable, HTTP polling still restores the correct state; multiple Render instances reconcile using only shared room revisions and recent public reactions. The system does not require a new database or migration. See [the online protocol and operational limits](docs/pilehead-online.md).
 
-The browser acceptance workflow runs **two independent mobile browser contexts** against the actual HTTP/WebSocket server and game engine with an isolated Neon test fixture. It checks seat privacy, socket auth, SNAP race, reaction delivery, reconnect and rematch. Live Render/Neon and physical-device QA remain separate from that automated test.
+The browser acceptance workflow runs **two independent mobile browser contexts** against the actual HTTP/WebSocket server and game engine with an isolated Neon test fixture. It checks seat privacy, socket auth, SNAP race, reaction delivery, a five-cycle WebSocket ping/pong survival test, reconnect and rematch. Live Render/Neon and physical-device QA remain separate from that automated test.
+
+### Final Duel balance diagnostics
+
+The reproducible comparison in `docs/stack-balance-benchmark-20261122.json` simulates 12,000 matches, contrasting **the same 54-card deck** with classic v1.6 versus Final Duel v1.7 pickup rules, plus a separate historical 52-card cohort. This models bot behavior, not actual player enjoyment, and is not a substitute for external human playtests or on-device production QA.

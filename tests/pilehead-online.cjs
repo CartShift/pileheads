@@ -506,6 +506,17 @@ async function run(){
  // v1.4 and v1.5 share the same 52 physical cards. Reuse the room to
  // avoid consuming an additional room-creation quota in this API test.
  const old15=old14;
+ // A v1.6 54-card room continues with classic pickups, not Final Duel.
+ // Begin an independent testing quota window: legacy scenarios do not share users.
+ buckets.clear();
+ const old16=await request({action:'create',humans:2,bots:0,name:'Old 54-card host'});
+ rooms.get(old16.data.code).state.version='pilehead-1.6.0';
+ delete rooms.get(old16.data.code).state.endgameRule;
+ const read16=await request({action:'state',code:old16.data.code},old16.data.session);
+ assert.equal(read16.status,200,JSON.stringify(read16));
+ assert.equal(read16.data.game.rulesVersion,'pilehead-1.6.0');
+ assert.equal(read16.data.game.endgameRule,'classic');
+ Engine.invariant(rooms.get(old16.data.code).state);checks++;
  rooms.get(old15.data.code).state.version='pilehead-1.5.0';
  const read15=await request({action:'state',code:old15.data.code},old15.data.session);
  assert.equal(read15.status,200,JSON.stringify(read15));
