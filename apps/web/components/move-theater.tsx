@@ -162,7 +162,7 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
     clear();
     // Only the *current* authoritative move is eligible. Replaying backlogged
     // bot turns makes card motion contradict the already-updated table.
-    const latest = events.findLast(event => event.move === moveNo && event.move > previous);
+    const latest = [...events].reverse().find(event => event.move === moveNo && event.move > previous);
     if (!latest || document.visibilityState === "hidden") {
       setScene(null);
       return;
@@ -209,7 +209,7 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
         style={{left: scene.at.x, top: scene.at.y}} aria-hidden="true" />
       {scene.reveal && <div className={"move-story-flip theme-" + theme}
         style={{left: scene.at.x, top: scene.at.y}} aria-hidden="true">
-        <div className="playing-card theme-characters">
+        <div className={"playing-card theme-" + theme}>
           <div className="card-art" style={cardFaceStyle(scene.reveal)} />
         </div>
       </div>}
@@ -219,7 +219,7 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
         <div className="move-story-stack">
           <div className="move-story-stack-back" />
           <div className="move-story-stack-back" />
-          <div className="playing-card is-back theme-characters">
+          <div className={"playing-card is-back theme-" + theme}>
             <div className="card-art" />
           </div>
           <b>×{scene.count}</b>
