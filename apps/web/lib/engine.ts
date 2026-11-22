@@ -33,6 +33,7 @@ export type Player = {
 };
 export type Game = {
   version: string;
+  seed: number;
   phase: "setup" | "play" | "over";
   endgameRule?: "classic" | "final-duel";
   omitSkip?: boolean;
