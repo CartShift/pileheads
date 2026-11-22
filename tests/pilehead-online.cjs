@@ -11,7 +11,13 @@ const rooms=new Map(),members=new Map(),buckets=new Map();
 let joinContentionOnce=false;
 // Convert synthetic new-room fixtures into true pre-v1.6 52-card games.
 // Preserve all dealt slots by replacing each extra BURN with a stock card.
+function restoreLegacySkips(g){
+ if(!g.omitSkip)return;
+ g.stock.push(...Engine.deck(g.version).filter(c=>c.action==='skip'));
+ g.omitSkip=false;
+}
 function oldDeck(g,version){
+ restoreLegacySkips(g);
  const zones=[g.stock,g.pile,g.ashes,...g.people.flatMap(p=>[p.hand,p.up,p.down])];
  for(const id of [52,53]){
   const zone=zones.find(z=>z.some(c=>c.id===id));
@@ -510,6 +516,7 @@ async function run(){
  // Begin an independent testing quota window: legacy scenarios do not share users.
  buckets.clear();
  const old16=await request({action:'create',humans:2,bots:0,name:'Old 54-card host'});
+ restoreLegacySkips(rooms.get(old16.data.code).state);
  rooms.get(old16.data.code).state.version='pilehead-1.6.0';
  delete rooms.get(old16.data.code).state.endgameRule;
  const read16=await request({action:'state',code:old16.data.code},old16.data.session);
