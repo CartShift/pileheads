@@ -128,7 +128,7 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
     : -1;
   const gesture = useRef<{x: number; y: number; moved: boolean} | null>(null);
   const blockClick = useRef(false);
-  const [floating, setFloating] = useState<{x: number; y: number} | null>(null);
+  const [floating, setFloating] = useState<{x: number; y: number; touch: boolean} | null>(null);
   function pointerDown(e: ReactPointerEvent<HTMLButtonElement>) {
     if (!onDrop || e.button !== 0) return;
     blockClick.current = false;
@@ -138,9 +138,10 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
   function pointerMove(e: ReactPointerEvent<HTMLButtonElement>) {
     const start = gesture.current;
     if (!start) return;
-    if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 8) return;
+    if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) <
+        (e.pointerType === "touch" ? 12 : 8)) return;
     start.moved = true;
-    setFloating({ x: e.clientX, y: e.clientY });
+    setFloating({ x: e.clientX, y: e.clientY, touch: e.pointerType === "touch" });
   }
   function pointerUp(e: ReactPointerEvent<HTMLButtonElement>) {
     const start = gesture.current;
@@ -181,7 +182,7 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
           }} />
       ) : null}
       {floating && createPortal(
-        <div className={"drag-ghost theme-" + theme}
+        <div className={"drag-ghost theme-" + theme + (floating.touch ? " is-touch" : "")}
           style={{left:floating.x,top:floating.y}} aria-hidden="true">
           <div className="card-art" style={faceStyle} />
         </div>, document.body)}
