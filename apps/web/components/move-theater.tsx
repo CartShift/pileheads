@@ -200,7 +200,8 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
   const showTransfer = !!scene.to && scene.count > 0;
   return createPortal(
     <div className="move-story-overlay move-story-stable" key={scene.key}
-      data-move={scene.move} data-kind={scene.kind}>
+      data-move={scene.move} data-kind={scene.kind}
+      data-eroded={scene.erodedCount > 0 ? "true" : undefined}>
       <span className="move-story-caption" role="status" aria-live="polite"
         aria-label={scene.detail} style={{
           left: scene.at.x, top: Math.max(36, scene.at.y - 94)
