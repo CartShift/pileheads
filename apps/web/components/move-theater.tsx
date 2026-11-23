@@ -164,6 +164,7 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
   return createPortal(
     <div className="move-story-overlay move-story-stable" key={scene.key}
       data-move={scene.move} data-kind={scene.kind} data-motion={motionLevel}
+      data-eroded={scene.erodedCount > 0}
       style={{ "--story-ms": scene.duration + "ms" } as CSSProperties}>
       <span className="move-story-caption" role="status" aria-live="polite"
         aria-label={scene.detail} style={{
