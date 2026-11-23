@@ -52,3 +52,29 @@ No SPA catch-all that could affect legacy routes is introduced.
 
 The Next preview is a product-development preview, not automatically
 production-ready solely because CI is green.
+
+## Review hardening (23 November 2026)
+
+- React local bots now share Classic's interrupt priority: pending DUMP, bot SNAP,
+  bot SLAM, then normal bot turn. Tests exercise a real off-turn SLAM.
+- Blind-slot bot decisions use the deterministic RNG to pick a position, never
+  the hidden card's numeric rank or special action.
+- Local React rematches preserve the previous winner as first player; guided
+  practice still gives the learner the first turn.
+- The latest committed effect may display SNAP + BURN rather than SNAP alone
+  when a follow-up completes a four-card run.
+- Socket reconciliation batches up to 100 rooms per database read every 2.5s,
+  reducing per-room read amplification. Compare Neon usage before/after rollout.
+- /livez is process liveness; /readyz is database health. Keep Render's external
+  health path on /livez until production DB access and monitoring are verified.
+- The existing GitHub Actions workflow runs static, engine, real-browser
+  integration and a dual-device socket simulation. Real devices and the actual
+  Render/Neon environment remain mandatory release checks.
+
+### Reproducible dependency installs
+
+Root and `apps/web` npm lockfiles are committed from the same Node 24
+GitHub Actions dependency resolution. CI, the Render Blueprint and the
+integrated builder use `npm ci` for locked installations instead of
+re-resolving dependencies. Update both locks in a reviewed PR when changing
+a package manifest.

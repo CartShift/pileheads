@@ -13,7 +13,7 @@ function run(label, command, args, env = process.env) {
 // Render still uses "npm run build" on its existing service. Install the
 // Next UI only when needed; never require a second web service/runtime.
 if (!fs.existsSync(path.join(root, 'apps/web/node_modules/next/package.json'))) {
-  run('Install Next.js frontend dependencies', npm, ['install', '--prefix', 'apps/web', '--no-audit', '--no-fund']);
+  run('Install Next.js frontend dependencies', npm, ['ci', '--prefix', 'apps/web', '--no-audit', '--no-fund']);
 }
 run('Build original Classic static site', process.execPath, ['scripts/build-vercel.mjs']);
 // Guarantee same-origin HTTP/WebSocket even if an obsolete env var is

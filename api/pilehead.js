@@ -246,4 +246,14 @@ module.exports.realtimeSnapshot=async function realtimeSnapshot(room){
  if(new Date(rows[0].expires_at)<=new Date())fail(410,'room_expired');
  return{revision:Number(rows[0].revision),reactions:recentReactions({reactionEvents:rows[0].reaction_events})};
 };
+// Batch public-only revision reads to avoid one database query per live room.
+module.exports.realtimeSnapshots=async function realtimeSnapshots(codes){
+ if(!Array.isArray(codes)||!codes.length)return[];
+ if(codes.length>100)fail(400,'too_many_rooms');
+ const ids=[...new Set(codes)];
+ const rows=await query("SELECT code,revision,state->'reactionEvents' AS reaction_events,expires_at FROM pilehead_rooms WHERE code=ANY($1::varchar(8)[])",[ids]);
+ return rows.map(row=>({code:row.code,revision:Number(row.revision),
+  expired:new Date(row.expires_at)<=new Date(),
+  reactions:recentReactions({reactionEvents:row.reaction_events})}));
+};
 module.exports.realtimeReact=realtimeReact;

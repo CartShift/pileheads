@@ -143,7 +143,7 @@ async function localScenarios(browser) {
     page.on("pageerror", error => errors.push(error.message));
     try {
       await page.goto(WEB + "/play", { waitUntil: "domcontentloaded" });
-      await page.getByRole("button", { name: /Start game/ }).click();
+      await page.getByRole("button", { name: "Learn with a bot" }).click();
       await page.getByRole("button", { name: "Start round" }).click();
       await page.getByRole("heading", { name: "Your move." }).waitFor({ timeout: 10000 });
       const hand = page.locator(".player-hand .card-hit");
@@ -476,7 +476,11 @@ async function onlineScenarios(browser, server) {
     await host.getByRole("button", { name: /Play cards/ }).click();
     // The authoritative pile is visible immediately on both displays.
     // A duplicate flying card would imply the actor played twice.
-    await guest.getByRole("button", { name: "Take pile" }).waitFor({ timeout: 12000 });
+    // The Take button exists even while disabled. Wait for both actually
+    // committed table snapshots, rather than asserting during socket transit.
+    await Promise.all([host,guest].map(page=>page.waitForFunction(()=>
+      document.querySelectorAll(".pile-slot.played .pile-layer").length > 0,
+      null,{timeout:14000})));
     const views=await Promise.all([host,guest].map(page=>page.evaluate(()=>({
       pile:document.querySelectorAll(".pile-slot.played .pile-layer").length,
       ghosts:document.querySelectorAll(".move-story-flight").length,
@@ -793,7 +797,7 @@ async function abandonedRoomScenario(browser) {
     await page.getByRole("button", { name: /Play cards/ }).click();
     await moveHeld;
     await page.getByRole("button", { name: "Leave table" }).click();
-    await page.getByRole("button", { name: /Start game/ }).click();
+    await page.getByRole("button", { name: "Learn with a bot" }).click();
     await page.getByRole("heading", { name: "Choose your opening cards" }).waitFor();
     releaseMove();
     await page.waitForTimeout(650);
@@ -806,6 +810,134 @@ async function abandonedRoomScenario(browser) {
     releaseMove();
     await context.close();
   }
+}
+
+
+/**
+ * Real React-browser parity: a bot can interrupt on a human turn, and
+ * SNAP that completes a four-card run must communicate the resulting BURN.
+ * Inject full valid engine states via localStorage, not synthetic UI events.
+ */
+
+async function localStarterAndRematchScenario(browser) {
+  const E=require("../dist/pilehead/engine.js");
+  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  const page=await context.newPage();
+  try {
+    await page.addInitScript(()=>{Math.random=()=>0.65});
+    await page.goto(WEB+"/play");
+    await page.getByRole("button",{name:/Start game/}).click();
+    await page.waitForFunction(()=>
+      JSON.parse(localStorage.getItem("stack-next-local-save-v1")||"null")?.game?.phase==="setup",
+      null,{timeout:5000});
+    const first=await readGame(page);
+    assert.equal(first.starterSeat,2,"regular 4-player games draw a nonzero starter");
+    assert.equal(first.starterReason,"draw");
+  }finally{await context.close()}
+  const finished=E.create({players:3,seed:2026112377});
+  E.start(finished);
+  for(const seat of [2,0]){
+    const player=finished.people[seat];
+    finished.ashes.push(...player.hand.splice(0),...player.up.splice(0),...player.down.splice(0));
+    player.out=true;
+  }
+  finished.finishedOrder=[2,0];finished.phase="over";finished.loser=1;finished.turn=1;
+  E.invariant(finished);
+  const replayCtx=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  const replay=await replayCtx.newPage();
+  await replay.addInitScript(serialized=>{
+    localStorage.setItem("stack-next-local-save-v1",serialized);
+  },JSON.stringify({version:1,game:finished}));
+  try {
+    await replay.goto(WEB+"/play");
+    await replay.getByRole("button",{name:"Resume game"}).click();
+    await replay.getByRole("button",{name:"Play another round"}).click();
+    await replay.getByRole("button",{name:"Deal again"}).click();
+    await replay.waitForFunction(()=>{
+      const saved=JSON.parse(localStorage.getItem("stack-next-local-save-v1")||"null");
+      return saved?.game?.phase==="setup"&&saved.game.starterReason==="winner";
+    },null,{timeout:5000});
+    const next=await readGame(replay);
+    assert.equal(next.starterSeat,2,"first player out wins the next round's opener");
+    assert.equal(next.people.length,3,"a local rematch must preserve the original seat count");
+    assert.equal(next.starterReason,"winner");
+    console.log("PASS React parity: randomized opener and winner-first local rematch");
+  }finally{await replayCtx.close()}
+}
+
+async function localInterruptParityScenarios(browser) {
+  const E=require("../dist/pilehead/engine.js");
+  const rankCards=rank=>E.deck().filter(c=>c.kind==="number"&&c.rank===rank);
+  const transfer=(g,id,to)=>{
+    const zones=[g.stock,g.pile,g.ashes,...g.people.flatMap(p=>[p.hand,p.up,p.down])];
+    const from=zones.find(zone=>zone.some(c=>c.id===id));
+    assert.ok(from,"card must exist: "+id);
+    if(from===to)return;
+    to.push(from.splice(from.findIndex(c=>c.id===id),1)[0]);
+  };
+  const open=seed=>{
+    const g=E.create({players:2,seed});
+    E.autoSetup(g,1);E.start(g);g.turn=0;
+    return g;
+  };
+  async function runSaved(game,exercise) {
+    E.invariant(game);
+    const context=await browser.newContext({viewport:{width:390,height:844},
+      isMobile:true,hasTouch:true,reducedMotion:"reduce"});
+    const page=await context.newPage();
+    await page.addInitScript(serialized=>{
+      localStorage.setItem("stack-next-local-save-v1",serialized);
+    },JSON.stringify({version:1,game}));
+    try{
+      await page.goto(WEB+"/play");
+      await page.getByRole("button",{name:"Resume game"}).click();
+      await exercise(page);
+    }finally{await context.close()}
+  }
+  const slam=open(2026112301);
+  for(const card of rankCards(7))transfer(slam,card.id,slam.people[1].hand);
+  const filler=slam.stock.find(c=>c.kind==="number"&&c.rank!==7);
+  assert.ok(filler);
+  transfer(slam,filler.id,slam.pile);
+  slam.slamOpen=false;slam.turn=0;
+  assert.ok(E.slamOptions(slam,1).length,"bot has an off-turn four-of-kind");
+  await runSaved(slam,async page=>{
+    await page.waitForFunction(()=>
+      JSON.parse(localStorage.getItem("stack-next-local-save-v1")||"null")
+        ?.game?.events?.some(e=>e.type==="slam"&&e.seat===1),
+      null,{timeout:5500});
+    const committed=await readGame(page);
+    assert.ok(committed.ashes.length>0,"off-turn bot SLAM burns the pile");
+  });
+  const snap=open(2026112302);
+  const cards=rankCards(6);
+  for(const card of cards.slice(0,3))transfer(snap,card.id,snap.pile);
+  transfer(snap,cards[3].id,snap.people[0].hand);
+  snap.turn=1;snap.slamOpen=true;
+  snap.followUp={seat:0,rank:6,ids:[cards[3].id]};
+  assert.equal(E.followUpOptions(snap,0).length,1);
+  await runSaved(snap,async page=>{
+    await page.getByRole("button",{name:"SNAP"}).click();
+    const theater=page.locator('.move-story-overlay[data-kind="burn"]');
+    await theater.waitFor({timeout:3000});
+    assert.match(await theater.innerText(),/SNAP \+ BURN/);
+    const committed=await readGame(page);
+    assert.equal(committed.events.at(-1).burned,true);
+    assert.equal(committed.pile.length,0,"four-number SNAP must clear pile");
+  });
+  const duel=E.create({seed:2026112303,players:2,endgameRule:"final-duel"});
+  E.autoSetup(duel,1);E.start(duel);
+  duel.ashes.push(...duel.stock.splice(0));
+  duel.pile.push(...duel.people[1].hand.splice(0,2));
+  duel.turn=0;
+  await runSaved(duel,async page=>{
+    await page.getByRole("button",{name:"Take pile"}).click();
+    await page.locator('.move-story-erosion[data-kind="erosion"]').waitFor({state:"attached",timeout:3000});
+    const committed=await readGame(page);
+    assert.equal(committed.events.at(-1).erodedCount,1);
+    assert.equal(committed.ashes.length,duel.ashes.length+1);
+  });
+  console.log("PASS React parity: off-turn bot SLAM, SNAP burn, Final Duel top-card erosion");
 }
 
 async function main() {
@@ -841,6 +973,8 @@ async function main() {
     await seatLayoutScenarios(browser);
     await adaptiveHandFitScenarios(browser);
     await guidedPracticeScenario(browser);
+    await localStarterAndRematchScenario(browser);
+    await localInterruptParityScenarios(browser);
     await onlineScenarios(browser, apiProc);
     await sharedMoveAnimationScenarios(browser);
     await mixedBotScenarios(browser);

@@ -67,8 +67,26 @@ const cardLabel = (card: Card) => card.kind === "number" ? `Number ${card.rank}`
 const identicalIds = (left: number[], right: number[]) =>
   left.length === right.length && left.every(id => right.includes(id));
 
-function createGame(players: number, endgameRule: EndgameRule): Game {
+function localBotOpportunity(game: Game): { seat: number; kind: "dump" | "snap" | "slam" | "turn"; ids: string } | null {
+  if (game.phase !== "play") return null;
+  if (game.pendingDump) return game.pendingDump.seat === 0 ? null :
+    { seat: game.pendingDump.seat, kind: "dump", ids: "" };
+  const bots = game.people.slice(1).filter(p => !p.out).map(p => p.seat);
+  const snap = bots.find(seat => Engine.followUpOptions(game, seat).length > 0);
+  if (snap !== undefined) return { seat: snap, kind: "snap",
+    ids: Engine.followUpOptions(game, snap)[0].ids?.join(",") || "" };
+  const slam = bots.find(seat => Engine.slamOptions(game, seat).length > 0);
+  if (slam !== undefined) return { seat: slam, kind: "slam",
+    ids: Engine.slamOptions(game, slam)[0].ids?.join(",") || "" };
+  return game.turn === 0 || game.people[game.turn]?.out ? null :
+    { seat: game.turn, kind: "turn", ids: "" };
+}
+
+function createGame(players: number, endgameRule: EndgameRule,
+  starterSeat: number | null = null, practice = false): Game {
   const g = Engine.create({ players, endgameRule, seed: Math.floor(Math.random() * 4294967296) });
+  g.starterSeat = starterSeat ?? (practice ? 0 : Math.floor(Math.random() * players));
+  g.starterReason = practice ? "practice" : starterSeat === null ? "draw" : "winner";
   for (let seat = 1; seat < players; seat++) Engine.autoSetup(g, seat);
   g.setupReady = Array.from({ length: players }, (_, i) => i !== 0);
   return g;
@@ -409,10 +427,17 @@ export default function GameTable() {
         }
       } catch { /* transport errors are recovered by polling */ }
     };
-    ws.onclose = () => {
+    ws.onclose = event => {
       if (cancelled) return;
       setConnected(false);
-      retryTimer = setTimeout(() => setConnectionRetry(n => n + 1), 3500);
+      // Invalid sessions and origin/policy rejections are not network outages.
+      if (event.code === 1008) {
+        setNotice("Room session rejected. Rejoin this room or create a new one.");
+        return;
+      }
+      const backoff = Math.min(20000, 1000 * 2 ** Math.min(connectionRetry, 5));
+      retryTimer = setTimeout(() => setConnectionRetry(n => n + 1),
+        backoff + Math.floor(Math.random() * 250));
     };
     ws.onerror = () => setConnected(false);
     return () => {
@@ -468,27 +493,28 @@ export default function GameTable() {
     setNotice("Previous turn restored.");
   }, []);
 
-  // A human SNAP is a legal interrupt, not a new turn. Do not re-arm the
-  // next bot's timer when that interrupt increments the move counter.
+  // SNAP/SLAM are interrupts: the bot can act even while it is a human's turn.
+  // This is the same priority contract used by Classic and the online server.
   const localBotKey = (() => {
     if (mode !== "local" || !local || local.phase !== "play") return null;
-    const seat = local.pendingDump?.seat ?? local.turn;
-    if (seat === 0) return null;
-    const lastNormalMove = [...local.events].reverse().find(e => e.type !== "followup");
-    return `${seat}:${local.pendingDump?.seat ?? "none"}:${lastNormalMove?.move ?? 0}`;
+    const opportunity = localBotOpportunity(local);
+    if (!opportunity) return null;
+    // Human SNAP must not restart an already scheduled rival turn.
+    const lastOrdinary = [...local.events].reverse().find(e => e.type !== "followup");
+    return [local.seed, opportunity.seat, opportunity.kind, opportunity.ids,
+      lastOrdinary?.move ?? 0].join(":");
   })();
   useEffect(() => {
     if (!localBotKey) return;
     const timer = window.setTimeout(() => {
-      commitLocal(g => {
-        const current = g.pendingDump?.seat ?? g.turn;
-        if (current === 0 || g.phase !== "play") return;
-        if (g.pendingDump) Engine.resolveDump(g, current, Engine.botDumpTarget(g, current));
-        else {
-          const snap = Engine.followUpOptions(g, current)[0];
-          const slam = Engine.slamOptions(g, current)[0];
-          Engine.move(g, current, snap || slam || Engine.choose(g, current));
-        }
+      commitLocal(game => {
+        const opportunity = localBotOpportunity(game);
+        if (!opportunity) return;
+        const { seat, kind } = opportunity;
+        if (kind === "dump") Engine.resolveDump(game, seat, Engine.botDumpTarget(game, seat));
+        else if (kind === "snap") Engine.move(game, seat, Engine.followUpOptions(game, seat)[0]);
+        else if (kind === "slam") Engine.move(game, seat, Engine.slamOptions(game, seat)[0]);
+        else Engine.move(game, seat, Engine.choose(game, seat));
       });
     }, 680);
     return () => clearTimeout(timer);
@@ -693,18 +719,20 @@ export default function GameTable() {
     setSwapHand(null);
   }
 
-  function startLocalGame(withCoach = practiceMode) {
+  function startLocalGame(withCoach = practiceMode, previousWinner: number | null = null,
+    seatCount: number | null = null) {
     roomEpoch.current++;
     setPracticeMode(withCoach);
     setCoachDismissed(false);
-    const game = createGame(withCoach ? 2 : players, endgameRule);
+    const game = createGame(seatCount ?? (withCoach ? 2 : players), endgameRule, previousWinner, withCoach);
     localRef.current = game;
     undoRef.current = null; setUndoAvailable(false);
     setLocal(game); setRoom(null); setMode("local"); setSelection([]); setNotice("");
   }
 
   function newRound() {
-    if (mode === "local") startLocalGame(practiceMode);
+    if (mode === "local") startLocalGame(practiceMode, local?.finishedOrder[0] ?? null,
+      local?.people.length ?? null);
     else if (room) void submit({ action: "rematch", code: room.code, revision: room.revision });
   }
 
