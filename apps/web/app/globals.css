@@ -785,9 +785,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 .move-story-stable .move-story-transfer.move-story-erosion{
   animation-delay:65ms;animation-duration:430ms;
 }
-.move-story-stable[data-kind="pickup"] .move-story-transfer:not(.move-story-erosion),
-.move-story-stable[data-kind="dump"] .move-story-transfer:not(.move-story-erosion),
-.move-story-stable[data-kind="reject"] .move-story-transfer:not(.move-story-erosion){
+.move-story-stable[data-eroded="true"] .move-story-transfer:not(.move-story-erosion){
   animation-delay:450ms;animation-duration:410ms;
 }
 @keyframes stack-stable-caption{
