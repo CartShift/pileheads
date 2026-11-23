@@ -165,6 +165,10 @@ async function localScenarios(browser) {
       await page.getByRole("heading", { name: "Your move." }).waitFor({ timeout: 10000 });
       const hand = page.locator(".player-hand .card-hit");
       assert.equal(await hand.count(), 3, "opening hand holds three cards");
+      const opponentArt = await page.locator(".opponent-up .mini-face").first()
+        .evaluate(node => getComputedStyle(node).backgroundImage);
+      assert.match(opponentArt, /stack-characters\.webp/,
+        "opponent face-up cards use the real public deck art");
       // DUMP intentionally asks for a target in 3+ player matches. Avoid
       // assuming that the first randomly dealt card is a simple immediate play.
       const safeFirst = page.locator('.player-hand .card-hit:not([aria-label^="DUMP"])').first();
@@ -175,6 +179,8 @@ async function localScenarios(browser) {
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves >= 1
       );
+      assert.equal(await page.locator(".pile-slot.played [data-arrival-motion]").count(), 0,
+        "OS reduced motion prevents native card flights");
       await page.getByRole("button", { name: "Undo" }).click();
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves === 0
@@ -648,6 +654,41 @@ async function mixedBotScenarios(browser) {
 
 
 /** Actual animated cards, not just event labels, in both client viewports. */
+async function dumpSeatTargetScenario(browser) {
+ const E=require("../dist/pilehead/engine.js");
+ const game=E.create({players:3,seed:20261124});
+ E.start(game);
+ const zones=[game.stock,game.pile,game.ashes,
+   ...game.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const source=zones.find(arr=>arr.some(card=>card.action==="dump"));
+ assert.ok(source,"DUMP test fixture has an action card");
+ const index=source.findIndex(card=>card.action==="dump");
+ [source[index],game.people[0].hand[0]]=[game.people[0].hand[0],source[index]];
+ game.turn=0;game.limit=null;game.pile.push(game.stock.pop());
+ E.invariant(game);
+ const context=await browser.newContext({viewport:{width:390,height:844},
+   isMobile:true,hasTouch:true,reducedMotion:"reduce"});
+ await context.addInitScript(saved=>localStorage.setItem("stack-next-local-save-v1",
+   JSON.stringify({version:1,game:saved})),game);
+ const page=await context.newPage();
+ try{
+   await page.goto(WEB+"/play");
+   await page.getByRole("button",{name:"Resume game"}).click();
+   await page.getByRole("button",{name:/^DUMP:/}).first().click();
+   await page.getByRole("button",{name:/Play cards/}).click();
+   const target=page.getByRole("button",{name:"Send the pile to Bot 2"});
+   assert.equal(await target.isVisible(),true,
+     "targetable real opponent seat is visible and accessible");
+   await target.click();
+   await page.waitForFunction(()=>
+     JSON.parse(localStorage.getItem("stack-next-local-save-v1"))?.game?.events?.at(-1)?.target===2,
+     null,{timeout:6000});
+   assert.equal((await readGame(page)).events.at(-1).target,2,
+     "clicking a seat sends DUMP to that exact player");
+   console.log("PASS Next DUMP: chosen seat matches authoritative recipient");
+ }finally{await context.close()}
+}
+
 async function sharedMoveAnimationScenarios(browser) {
  const E=require("../dist/pilehead/engine.js");
  const actions=["burn","dump","under","reset","ghost"];
@@ -760,6 +801,9 @@ async function sharedMoveAnimationScenarios(browser) {
   assert.equal(await quietPage.locator(".pile-slot.played .pile-layer").count(),1,
     "real played card appears exactly once");
   assert.equal(await quietPage.locator(".event-banner").count(),0);
+  assert.equal(await quietPage.locator(".pile-slot.played .pile-layer:last-child .playing-card")
+    .getAttribute("data-arrival-motion"), "1",
+    "the actual committed card animates from its old position, not a duplicate overlay");
   const moving=await quietPage.locator(".player-hand .playing-card").first().evaluate(el=>
     el.getAnimations().filter(anim=>anim.effect?.getKeyframes().some(frame=>
       frame.transform!==undefined)).length);
@@ -1047,6 +1091,7 @@ async function main() {
     await localStarterAndRematchScenario(browser);
     await localInterruptParityScenarios(browser);
     await onlineScenarios(browser, apiProc);
+    await dumpSeatTargetScenario(browser);
     await sharedMoveAnimationScenarios(browser);
     await mixedBotScenarios(browser);
     await abandonedRoomScenario(browser);
