@@ -931,7 +931,7 @@ async function localInterruptParityScenarios(browser) {
   duel.turn=0;
   await runSaved(duel,async page=>{
     await page.getByRole("button",{name:"Take pile"}).click();
-    await page.locator('.move-story-erosion[data-kind="erosion"]').waitFor({timeout:3000});
+    await page.locator('.move-story-erosion[data-kind="erosion"]').waitFor({state:"attached",timeout:3000});
     const committed=await readGame(page);
     assert.equal(committed.events.at(-1).erodedCount,1);
     assert.equal(committed.ashes.length,duel.ashes.length+1);
