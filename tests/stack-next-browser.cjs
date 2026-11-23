@@ -827,6 +827,9 @@ async function localStarterAndRematchScenario(browser) {
     await page.addInitScript(()=>{Math.random=()=>0.65});
     await page.goto(WEB+"/play");
     await page.getByRole("button",{name:/Start game/}).click();
+    await page.waitForFunction(()=>
+      JSON.parse(localStorage.getItem("stack-next-local-save-v1")||"null")?.game?.phase==="setup",
+      null,{timeout:5000});
     const first=await readGame(page);
     assert.equal(first.starterSeat,2,"regular 4-player games draw a nonzero starter");
     assert.equal(first.starterReason,"draw");
