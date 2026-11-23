@@ -474,20 +474,19 @@ async function onlineScenarios(browser, server) {
 
     await host.locator(".player-hand .card-hit").first().click();
     await host.getByRole("button", { name: /Play cards/ }).click();
-    // Both displays must animate the same committed public move, but from
-    // their own seat positions; the opponent cannot read the actor's hand.
-    const hostMove=host.locator(".move-story-overlay[data-kind]");
-    const guestMove=guest.locator(".move-story-overlay[data-kind]");
-    await Promise.all([hostMove.waitFor({timeout:11000}),guestMove.waitFor({timeout:11000})]);
-    const guestFlight=await guestMove.evaluate(el=>{
-      const card=el.querySelector(".move-story-flight");
-      return{moves:Number(el.dataset.move),fly:!!card,
-        animation:card?getComputedStyle(card).animationName:null};
-    });
-    assert.equal(guestFlight.fly,true,"opponent sees played card moving onto central pile");
-    assert.match(guestFlight.animation,/stack-story-throw/);
-    assert.equal(guestFlight.moves,1,"both clients present the same authoritative move");
-    console.log("PASS Next multiplayer motion: both live seats see a physical card fly");
+    // The authoritative pile is visible immediately on both displays.
+    // A duplicate flying card would imply the actor played twice.
+    await guest.getByRole("button", { name: "Take pile" }).waitFor({ timeout: 12000 });
+    const views=await Promise.all([host,guest].map(page=>page.evaluate(()=>({
+      pile:document.querySelectorAll(".pile-slot.played .pile-layer").length,
+      ghosts:document.querySelectorAll(".move-story-flight").length,
+      obsolete:document.querySelectorAll('.move-story-overlay[data-kind="number"]').length
+    }))));
+    assert.ok(views[0].pile>0 && views[0].pile===views[1].pile,
+      "both players must see the same actual played pile");
+    assert.ok(views.every(view=>view.ghosts===0 && view.obsolete===0),
+      "ordinary cards must not spawn duplicate or delayed animations");
+    console.log("PASS Next multiplayer: synchronized real played pile without ghosts");
     await host.getByRole("button", { name: "SNAP" }).waitFor({ timeout: 10000 });
     await guest.getByRole("button", { name: "Take pile" }).waitFor({ timeout: 12000 });
     await guest.getByRole("button", { name: "Take pile" }).click();
@@ -629,35 +628,37 @@ async function sharedMoveAnimationScenarios(browser) {
    await page.getByRole("button",{name:/Play cards/}).click();
    const theater=page.locator('.move-story-overlay[data-kind="'+action+'"]');
    await theater.waitFor({timeout:6000});
-   assert.ok(await theater.locator(".move-story-flight").count(),"played "+action+" card must physically fly");
+   assert.equal(await theater.locator(".move-story-flight").count(),0,
+     "the committed action card is already on the table");
    const measured=await theater.evaluate(el=>{
-    const flight=el.querySelector(".move-story-flight");
-    const caption=el.querySelector(".move-story-caption");
-    return{animation:getComputedStyle(flight).animationName,
-      endX:flight.style.getPropertyValue("--move-x"),
-      caption:caption.textContent,
-      hasTransfer:!!el.querySelector(".move-story-transfer")};
+     const sigil=el.querySelector(".move-story-sigil");
+     const caption=el.querySelector(".move-story-caption");
+     const transfer=el.querySelector(".move-story-transfer");
+     return{animation:getComputedStyle(sigil).animationName,
+       caption:caption.textContent,hasTransfer:!!transfer,
+       transferAnimation:transfer?getComputedStyle(transfer).animationName:null};
    });
-   assert.match(measured.animation,/stack-story-throw/,"actual card flight must animate");
-   assert.ok(measured.endX.endsWith("px"));
+   assert.match(measured.animation,/stack-stable-sigil/,
+     "effect markers should be short and bound to the real table");
    assert.match(measured.caption,new RegExp(action.toUpperCase(),"i"));
-   assert.ok(measured.caption.length<=6,"special popup should be only a short action name");
-   assert.equal(await theater.locator(".move-story-sigil").count(),1,
-      "special move has an animated emblem above the central pile");
-   if(["burn","dump"].includes(action))assert.ok(measured.hasTransfer,
-    action+" must physically clear or transfer the pile");
+   assert.ok(measured.caption.length<=6,"effect cue contains no instructional prose");
+   if(["burn","dump"].includes(action)){
+     assert.ok(measured.hasTransfer,action+" should move the public pile");
+     assert.match(measured.transferAnimation,/stack-stable-transfer/);
+   }else assert.equal(measured.hasTransfer,false,
+     "rule-only effects never invent a pile transfer");
    console.log("PASS Next motion: "+action.toUpperCase()+" visible card movement and effect");
   }finally{await context.close()}
  }
- // A normal card still flies, but no text appears on each ordinary play.
+ // Ordinary plays should update the actual pile without visual replay.
  const normal=E.create({players:2,seed:20261188});
  E.start(normal);
  const hand=normal.people[0].hand;
- const quietZones=[normal.stock,normal.ashes,...normal.people.flatMap(p=>[p.hand,p.up,p.down])];
- if(!hand.some(card=>card.kind==="number")){
-  const found=quietZones.find(arr=>arr.some(card=>card.kind==="number"));
-  const at=found.findIndex(card=>card.kind==="number");
-  [found[at],hand[0]]=[hand[0],found[at]];
+ const zonesQuiet=[normal.stock,normal.ashes,...normal.people.flatMap(p=>[p.hand,p.up,p.down])];
+ if(!hand.some(card=>card.kind==="number" && card.rank<10)){
+  const found=zonesQuiet.find(arr=>arr.some(card=>card.kind==="number" && card.rank<10));
+  const index=found.findIndex(card=>card.kind==="number" && card.rank<10);
+  [found[index],hand[0]]=[hand[0],found[index]];
  }
  normal.limit=null;normal.turn=0;
  E.invariant(normal);
@@ -669,18 +670,21 @@ async function sharedMoveAnimationScenarios(browser) {
  try{
   await quietPage.goto(WEB+"/play");
   await quietPage.getByRole("button",{name:"Resume game"}).click();
-  await quietPage.locator('.player-hand .card-hit[aria-label^="Number"]').first().click();
+  const rank=hand.find(card=>card.kind==="number"&&card.rank<10).rank;
+  await quietPage.getByRole("button",{name:"Number "+rank,exact:true}).first().click();
   await quietPage.getByRole("button",{name:/Play cards/}).click();
-  const scene=quietPage.locator('.move-story-overlay[data-kind="number"]');
-  await scene.waitFor({timeout:6000});
-  assert.equal(await scene.locator(".move-story-flight").count(),1);
-  assert.equal(await scene.locator(".move-story-caption").count(),0,
-    "regular play must never show a floating headline");
-  assert.equal(await scene.locator(".move-story-sigil").count(),0);
-  assert.equal(await scene.locator(".move-story-impact").count(),0);
-  assert.equal(await quietPage.locator(".event-banner").count(),0,
-    "the old always-on latest-card text banner must be gone");
-  console.log("PASS Next quiet motion: ordinary cards fly without narration");
+  await quietPage.waitForFunction(()=>
+    JSON.parse(localStorage.getItem("stack-next-local-save-v1"))?.game?.moves>=1);
+  assert.equal(await quietPage.locator(".move-story-overlay").count(),0,
+    "ordinary play should have no ghost scene");
+  assert.equal(await quietPage.locator(".pile-slot.played .pile-layer").count(),1,
+    "real played card appears exactly once");
+  assert.equal(await quietPage.locator(".event-banner").count(),0);
+  const moving=await quietPage.locator(".player-hand .playing-card").first().evaluate(el=>
+    el.getAnimations().filter(anim=>anim.effect?.getKeyframes().some(frame=>
+      frame.transform!==undefined)).length);
+  assert.equal(moving,0,"hand cards never spring/shake after a committed move");
+  console.log("PASS Next stable normal play: one card, zero ghost flights");
  }finally{await quiet.close()}
  // Force an illegal blind card without leaking its identity before the flip.
  const fail=E.create({players:2,seed:33497});
@@ -708,13 +712,12 @@ async function sharedMoveAnimationScenarios(browser) {
   await blindPage.locator(".faceup-row .blind-under .card-hit").first().click();
   const scene=blindPage.locator('.move-story-overlay[data-kind="reject"]');
   await scene.waitFor({timeout:6000});
-  assert.ok(await scene.locator('.move-story-flight[data-blind="true"]').count(),
-   "the failed blind card must fly and reveal on the pile");
-  assert.ok(await scene.locator(".move-story-front .playing-card:not(.is-back)").count(),
-   "the public face is revealed on both displays");
-  const late=await scene.locator(".move-story-transfer").evaluate(el=>
+  assert.equal(await scene.locator(".move-story-flight").count(),0);
+  assert.equal(await scene.locator(".move-story-flip .playing-card:not(.is-back)").count(),1,
+    "the real face is publicly revealed once on the central pile");
+    const late=await scene.locator(".move-story-transfer").evaluate(el=>
    getComputedStyle(el).animationDelay);
-  assert.equal(late,"1.13s","red flash must happen before pile collection");
+  assert.equal(late,"0.75s","the red rejection comes before pile collection");
   console.log("PASS Next blind flip: revealed face, red rejection, then pile pickup");
  }finally{await blindCtx.close()}
  // System reduced motion still communicates what happened, without flying cards.
@@ -737,7 +740,7 @@ async function sharedMoveAnimationScenarios(browser) {
   await theater.waitFor({timeout:7000});
   const style=await theater.evaluate(el=>({
    caption:getComputedStyle(el.querySelector(".move-story-caption")).opacity,
-   flying:getComputedStyle(el.querySelector(".move-story-flight")).display
+   flying:getComputedStyle(el.querySelector(".move-story-transfer")).display
   }));
   assert.equal(style.flying,"none");
   assert.equal(style.caption,"1","reduced-motion users still see a readable action");
