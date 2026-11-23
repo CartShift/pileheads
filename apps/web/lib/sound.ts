@@ -3,7 +3,7 @@
  * audio services or copyrighted melodies. Starts only after a user gesture
  * enables sound; muted by default and harmless when Web Audio is unavailable.
  */
-export type SoundEffect = "select" | "play" | "take" | "burn" | "snap" | "win";
+export type SoundEffect = "select" | "play" | "take" | "burn" | "snap" | "win" | "slam" | "dump" | "reset" | "ghost" | "under" | "skip";
 let audioContext: AudioContext | null = null;
 
 function context(): AudioContext | null {
@@ -45,6 +45,20 @@ export function playSound(effect: SoundEffect) {
     case "snap":
       tone(ctx, 740, start, .08, .027, 310, "square");
       tone(ctx, 1010, start + .035, .1, .016, 640); break;
+    case "slam":
+      tone(ctx, 180, start, .12, .027, 75, "triangle");
+      tone(ctx, 620, start + .024, .12, .014, 205, "square"); break;
+    case "dump":
+      tone(ctx, 420, start, .12, .015, 220, "triangle");
+      tone(ctx, 250, start + .085, .14, .012, 105); break;
+    case "reset":
+      tone(ctx, 360, start, .11, .012, 510, "sine"); break;
+    case "ghost":
+      tone(ctx, 480, start, .14, .008, 250, "sine"); break;
+    case "under":
+      tone(ctx, 290, start, .12, .014, 210, "triangle"); break;
+    case "skip":
+      tone(ctx, 510, start, .07, .011, 680); break;
     case "win":
       tone(ctx, 392, start, .15, .018);
       tone(ctx, 494, start + .12, .16, .018);

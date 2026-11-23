@@ -85,7 +85,7 @@ async function endgameSettingsAndBridge(browser) {
     await regular.goto(WEB + "/play");
     await regular.getByRole("button",{name:"Game settings"}).click();
     const settings=regular.getByRole("dialog",{name:"Game settings"});
-    const input=settings.getByRole("checkbox");
+    const input=settings.getByRole("checkbox",{name:/Final Duel/i});
     assert.equal(await input.isChecked(),false,"Final Duel defaults OFF in clean local storage");
     await input.check();
     await settings.getByRole("button",{name:"Done"}).click();
@@ -93,7 +93,7 @@ async function endgameSettingsAndBridge(browser) {
     assert.equal((await readGame(regular)).endgameRule,"final-duel",
       "chosen Final Duel rule must be in actual local engine state");
     await regular.getByRole("button",{name:"Settings"}).click();
-    const inMatch=regular.getByRole("dialog",{name:"Game settings"}).getByRole("checkbox");
+    const inMatch=regular.getByRole("dialog",{name:"Game settings"}).getByRole("checkbox",{name:/Final Duel/i});
     assert.equal(await inMatch.isChecked(),true);
     await inMatch.uncheck();
     assert.equal((await readGame(regular)).endgameRule,"classic",
@@ -102,7 +102,7 @@ async function endgameSettingsAndBridge(browser) {
     await regular.getByRole("button",{name:"Start round"}).click();
     await regular.getByRole("button",{name:"Settings"}).click();
     assert.equal(await regular.getByRole("dialog",{name:"Game settings"})
-      .getByRole("checkbox").isDisabled(),true,"live round rules must be locked");
+      .getByRole("checkbox",{name:/Final Duel/i}).isDisabled(),true,"live round rules must be locked");
     await regular.reload();
     await regular.getByRole("button",{name:"Resume game"}).click();
     assert.equal((await readGame(regular)).endgameRule,"classic",
@@ -378,7 +378,7 @@ async function onlineScenarios(browser, server) {
     await guest.getByRole("button", { name: "I'm ready" }).waitFor();
     // Settings are server-owned, host-only during setup, and off by default.
     await host.getByRole("button", { name: "Settings" }).click();
-    const hostRule = host.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox");
+    const hostRule = host.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox",{name:/Final Duel/i});
     assert.equal(await hostRule.isChecked(), false, "online Final Duel starts OFF");
     await hostRule.check();
     await host.getByRole("dialog", { name: "Game settings" })
@@ -388,7 +388,7 @@ async function onlineScenarios(browser, server) {
       return !!element && !document.querySelector('[role="dialog"]');
     });
     await guest.getByRole("button", { name: "Settings" }).click();
-    const guestRule = guest.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox");
+    const guestRule = guest.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox",{name:/Final Duel/i});
     await guest.waitForFunction(() => {
       const box = document.querySelector('.game-modal [type="checkbox"]');
       return !!box && box.checked && box.disabled;
@@ -396,7 +396,7 @@ async function onlineScenarios(browser, server) {
     await guest.getByRole("dialog", { name: "Game settings" })
       .getByRole("button", { name: "Back to table" }).click();
     await host.getByRole("button", { name: "Settings" }).click();
-    await host.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox").uncheck();
+    await host.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox",{name:/Final Duel/i}).uncheck();
     await host.getByRole("dialog", { name: "Game settings" })
       .getByRole("button", { name: "Back to table" }).click();
     await guest.getByRole("button", { name: "Settings" }).click();
@@ -533,7 +533,7 @@ async function onlineScenarios(browser, server) {
       "rematch must preserve private room identity");
     await host.getByRole("button", { name: "Settings" }).click();
     assert.equal(await host.getByRole("dialog", { name: "Game settings" })
-      .getByRole("checkbox").isChecked(), false,
+      .getByRole("checkbox",{name:/Final Duel/i}).isChecked(), false,
       "room rematch must preserve the authoritative Classic rule");
     await host.getByRole("dialog", { name: "Game settings" })
       .getByRole("button", { name: "Back to table" }).click();
@@ -627,11 +627,30 @@ async function sharedMoveAnimationScenarios(browser) {
   const page=await context.newPage();
   try{
    await page.goto(WEB+"/play");
+   await page.bringToFront();
    await page.getByRole("button",{name:"Resume game"}).click();
    await page.getByRole("button",{name:new RegExp("^"+action.toUpperCase()+":")}).click();
-   await page.getByRole("button",{name:/Play cards/}).click();
+   // Observe before committing. The semantic cue is intentionally short and
+   // must never be extended just to satisfy a slower headless test runner.
    const theater=page.locator('.move-story-overlay[data-kind="'+action+'"]');
-   await theater.waitFor({timeout:6000});
+   const observed=theater.waitFor({timeout:6000});
+   await page.getByRole("button",{name:/Play cards/}).click();
+   await observed.catch(async error => {
+     const diagnostic = await page.evaluate(() => {
+       const saved = JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game;
+       return {
+         visibility: document.visibilityState,
+         savedPhase: saved?.phase, savedMove: saved?.moves,
+         savedLastEvent: saved?.events?.at(-1),
+         visibleMove: document.querySelector(".game-meta h1")?.textContent,
+         scenes: [...document.querySelectorAll(".move-story-overlay")]
+           .map(el => ({kind:el.getAttribute("data-kind"),move:el.getAttribute("data-move")})),
+         pile: document.querySelectorAll(".pile-slot.played .pile-layer").length
+       };
+     });
+     console.error("Motion test diagnostic", action, JSON.stringify(diagnostic));
+     throw error;
+   });
    assert.equal(await theater.locator(".move-story-flight").count(),0,
      "the committed action card is already on the table");
    const measured=await theater.evaluate(el=>{
@@ -642,12 +661,14 @@ async function sharedMoveAnimationScenarios(browser) {
        caption:caption.textContent,hasTransfer:!!transfer,
        transferAnimation:transfer?getComputedStyle(transfer).animationName:null};
    });
-   assert.match(measured.animation,/stack-stable-sigil/,
+   assert.match(measured.animation,/stack-stable-(sigil|ghost|reset)/,
      "effect markers should be short and bound to the real table");
-   assert.match(measured.caption,new RegExp(action.toUpperCase(),"i"));
+   assert.match(measured.caption,action==="under"?/^1–4$/:new RegExp(action.toUpperCase(),"i"));
    assert.ok(measured.caption.length<=6,"effect cue contains no instructional prose");
    if(["burn","dump"].includes(action)){
      assert.ok(measured.hasTransfer,action+" should move the public pile");
+     assert.equal(await theater.locator(".move-story-transfer .playing-card.is-back").count(),1,
+       "public transfer is an opaque silhouette, not a duplicated played card");
      assert.match(measured.transferAnimation,/stack-stable-transfer/);
    }else assert.equal(measured.hasTransfer,false,
      "rule-only effects never invent a pile transfer");
@@ -731,7 +752,7 @@ async function sharedMoveAnimationScenarios(browser) {
     "the real face is publicly revealed once on the central pile");
     const late=await scene.locator(".move-story-transfer").evaluate(el=>
    getComputedStyle(el).animationDelay);
-  assert.equal(late,"0.75s","the red rejection comes before pile collection");
+  assert.equal(late,"0.79s","the red rejection comes before pile collection");
   console.log("PASS Next blind flip: revealed face, red rejection, then pile pickup");
  }finally{await blindCtx.close()}
  // System reduced motion still communicates what happened, without flying cards.
@@ -758,7 +779,12 @@ async function sharedMoveAnimationScenarios(browser) {
   }));
   assert.equal(style.flying,"none");
   assert.equal(style.caption,"1","reduced-motion users still see a readable action");
+  assert.equal(await theater.getAttribute("data-motion"),"balanced");
   console.log("PASS Next reduced motion: public action stays readable without animated flights");
+  await page.getByRole("button",{name:"Settings"}).click();
+  await page.getByRole("combobox",{name:"Motion and effects"}).selectOption("reduced");
+  assert.equal(await page.evaluate(() => localStorage.getItem("stack-motion-level-v1")),"reduced");
+  await page.getByRole("button",{name:"Back to table"}).click();
  }finally{await c.close()}
 }
 

@@ -61,15 +61,18 @@ check('React table renders flip and invalid flash directly on the pile, not a se
   assert.doesNotMatch(theater,/move-story-flight/,'do not duplicate already-committed played cards');
  assert.match(theater,/move-story-impact/);
  assert.match(theater,/move-story-transfer/);
- assert.match(theater,/blind-fail/);
+ const motionCore=read("apps/web/lib/motion-core.cjs");
+ assert.match(motionCore,/blind-fail/);
+ assert.match(theater,/blindReveal\?\.move === cue\.move/);
  assert.match(code,/className="react-pile-backdrop"/);
  assert.match(code,/setPileOpen\(true\)/);
  assert.match(code,/g\.pile\.map\(card =>/);
  assert.match(code,/g\.omitSkip/);
  assert.doesNotMatch(code,/className="blind-flip"/);
- assert.match(theater,/event\.type === "blind-fail"/);
+ assert.match(motionCore,/event\.type === "blind-fail"/);
   assert.match(theater,/setScene\(null\)/);
-  assert.match(theater,/const latest =/);
+  assert.match(theater,/Motion\.advanceCursor/);
+  assert.match(motionCore,/advanceCursor/);
 });
 check('shared animations respect reduced motion and serialize invalid flip before pile pickup', () => {
  const css=read('dist/pilehead/table-feedback.css');

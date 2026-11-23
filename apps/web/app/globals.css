@@ -846,3 +846,140 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
     animation:none!important;opacity:1!important
   }
 }
+
+
+/* STACK Motion UX 2.0: a single semantics-first presentation layer.
+   Existing pile/hand DOM is the truth; these effects are non-interactive. */
+.move-story-stable{--story-ms:520ms}
+.move-story-stable .move-story-caption{animation-duration:var(--story-ms)}
+.move-story-stable .move-story-sigil{animation-duration:var(--story-ms)}
+.move-story-stable .move-story-impact{animation-duration:var(--story-ms)}
+.move-story-stable .move-story-recipient{animation-duration:var(--story-ms)}
+.move-story-stable[data-kind="burn"] .move-story-sigil,
+.move-story-stable[data-kind="slam"] .move-story-sigil{
+  text-shadow:0 0 14px #ffc270a8,0 0 34px #f66c398a;
+}
+.move-story-stable[data-kind="slam"] .move-story-impact{
+  animation-name:stack-stable-slam-impact;
+}
+@keyframes stack-stable-slam-impact{
+  0%,12%{opacity:0;transform:scale(.2)}
+  25%{opacity:1;transform:scale(.9)}
+  43%{opacity:.7;transform:scale(1.16)}
+  100%{opacity:0;transform:scale(1.48)}
+}
+.move-story-stable[data-kind="ghost"] .move-story-sigil{
+  animation-name:stack-stable-ghost;
+}
+@keyframes stack-stable-ghost{
+  0%{opacity:0;transform:scale(.9)}
+  35%{opacity:.75;transform:scale(1.07)}
+  68%{opacity:.25;transform:scale(1)}
+  100%{opacity:0;transform:scale(1.05)}
+}
+.move-story-stable[data-kind="reset"] .move-story-sigil{
+  animation-name:stack-stable-reset;
+}
+@keyframes stack-stable-reset{
+  0%{opacity:0;transform:rotate(-35deg) scale(.7)}
+  44%{opacity:.9;transform:rotate(8deg) scale(1.1)}
+  100%{opacity:0;transform:rotate(40deg) scale(1)}
+}
+.move-story-stable[data-kind="dump"] .move-story-transfer{
+  animation-duration:440ms;animation-delay:90ms;
+}
+.move-story-stable[data-kind="pickup"] .move-story-transfer{
+  animation-duration:390ms;animation-delay:70ms;
+}
+.move-story-stable[data-kind="burn"] .move-story-transfer{
+  animation-duration:430ms;animation-delay:70ms;
+}
+.move-story-stable[data-kind="slam"] .move-story-transfer{
+  animation-duration:440ms;animation-delay:120ms;
+}
+.move-story-stable[data-kind="snap"] .move-story-transfer{
+  animation-duration:380ms;animation-delay:60ms;
+}
+.move-story-stable[data-eroded="true"] .move-story-transfer{
+  animation-delay:390ms;
+}
+.move-story-stable[data-kind="reject"] .move-story-transfer{
+  animation-duration:430ms;animation-delay:790ms;
+}
+.move-story-erosion{
+  position:absolute;pointer-events:none;z-index:88;
+  width:clamp(40px,7vw,66px);aspect-ratio:252/355;
+  animation:stack-motion-erosion 340ms 50ms cubic-bezier(.25,.69,.25,1) both;
+}
+.move-story-erosion .playing-card{position:absolute;inset:0;width:100%!important}
+.move-story-erosion b{position:absolute;right:-9px;bottom:-10px;border-radius:20px;
+  color:#fff5db;background:#b95d35;padding:2px 6px;font-size:12px}
+@keyframes stack-motion-erosion{
+  0%{opacity:.1;transform:translate3d(0,0,0) scale(.9) rotate(0)}
+  15%{opacity:1}
+  78%{opacity:.95;transform:translate3d(var(--move-x),var(--move-y),0) scale(.72) rotate(10deg)}
+  100%{opacity:0;transform:translate3d(var(--move-x),var(--move-y),0) scale(.58) rotate(13deg)}
+}
+.move-story-spent{
+  position:absolute;pointer-events:none;z-index:89;translate:-50% -50%;
+  display:grid;place-items:center;width:26px;height:26px;border-radius:50%;
+  color:#ffbcd9;background:#742f4b;box-shadow:0 0 22px #ff72af6b;
+  font-size:18px;font-weight:900;
+  animation:stack-stable-caption 600ms ease-out both;
+}
+.move-story-recipient[data-target-kind="skipped"]{
+  border-color:#ffe293;box-shadow:0 0 20px #ffe29366;
+}
+.move-story-recipient[data-target-kind="skipped"]::after{
+  content:"";position:absolute;inset:27px -6px auto;height:3px;border-radius:2px;
+  transform:rotate(-38deg);background:#ffe293;
+}
+.pile-rule-marker{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:3px 8px;border:1px solid #8de9d977;border-radius:99px;
+  background:#153c38d9;color:#a6f5de;font-size:11px;font-weight:900;
+  letter-spacing:.06em;white-space:nowrap;
+}
+.pile-rule-marker[data-rule="min"]{
+  border-color:#f3d49c66;color:#ffe2b6;
+}
+.motion-setting{display:grid;gap:8px;margin:13px 0}
+.motion-setting select{
+  min-height:42px;width:100%;max-width:260px;padding:9px 10px;
+  border:1px solid #f5deb077;border-radius:10px;
+  background:#15392e;color:#fff1d5
+}
+.motion-setting small{color:#bbd2c7;line-height:1.45}
+.move-story-overlay[data-motion="full"] .move-story-impact{
+  filter:drop-shadow(0 0 13px var(--story-glow));
+}
+.move-story-overlay[data-motion="reduced"] .move-story-transfer,
+.move-story-overlay[data-motion="reduced"] .move-story-erosion,
+.move-story-overlay[data-motion="reduced"] .move-story-impact,
+.move-story-overlay[data-motion="reduced"] .move-story-recipient,
+.move-story-overlay[data-motion="reduced"] .move-story-spent{display:none!important}
+.move-story-overlay[data-motion="reduced"] .move-story-caption,
+.move-story-overlay[data-motion="reduced"] .move-story-sigil{
+  animation:none!important;opacity:1!important
+}
+.move-story-overlay[data-motion="reduced"] .move-story-flip{animation:none!important}
+@media(prefers-reduced-motion:reduce){
+  .move-story-erosion,.move-story-spent{display:none!important}
+  .move-story-stable .move-story-recipient[data-target-kind="skipped"]{display:none!important}
+}
+
+
+/* An accepted face-down play flips the *actual* rendered card exactly once.
+   No duplicate face is ever drawn above the authoritative pile. */
+.pile-layer.is-blind-reveal .playing-card{
+  animation:stack-blind-actual-reveal 360ms cubic-bezier(.2,.7,.2,1) both;
+  backface-visibility:hidden;
+}
+@keyframes stack-blind-actual-reveal{
+  0%{opacity:.6;transform:perspective(500px) rotateY(70deg)}
+  65%{opacity:1;transform:perspective(500px) rotateY(-7deg)}
+  100%{opacity:1;transform:perspective(500px) rotateY(0)}
+}
+@media(prefers-reduced-motion:reduce){
+  .pile-layer.is-blind-reveal .playing-card{animation:none!important}
+}

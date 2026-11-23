@@ -6,8 +6,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { playSound } from "../lib/sound";
-import MoveTheater from "./move-theater";
+import MoveTheater, { type MotionLevel } from "./move-theater";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
+const MotionAudio = require("../lib/motion-core.cjs") as { fromCommittedEvent: (event: Event) => { kind: string; destination: string | null } | null };
 import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame, type Reaction } from "../lib/room";
 
 type Mode = "home" | "local" | "online";
@@ -229,6 +230,7 @@ export default function GameTable() {
   const handStageRef = useRef<HTMLDivElement | null>(null);
   const [handArea, setHandArea] = useState({ width: 0, cardWidth: 0 });
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [motionLevel, setMotionLevel] = useState<MotionLevel>("balanced");
   const [endgameRule, setEndgameRule] = useState<EndgameRule>("classic");
   const [pendingRule, setPendingRule] = useState<EndgameRule | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -246,6 +248,29 @@ export default function GameTable() {
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [reactionClock, setReactionClock] = useState(0);
+  // Presentation preference is local-only; never part of multiplayer game state.
+  useEffect(() => {
+    try {
+      const value = localStorage.getItem("stack-motion-level-v1");
+      if (value === "full" || value === "balanced" || value === "reduced")
+        setMotionLevel(value);
+    } catch {}
+  }, []);
+  const changeMotionLevel = (next: MotionLevel) => {
+    setMotionLevel(next);
+    try { localStorage.setItem("stack-motion-level-v1", next); } catch {}
+  };
+  const motionSetting = <label className="motion-setting">
+    <strong>Motion & effects</strong>
+    <select aria-label="Motion and effects" value={motionLevel}
+      onChange={event => changeMotionLevel(event.target.value as MotionLevel)}>
+      <option value="balanced">Balanced (recommended)</option>
+      <option value="full">Full effects</option>
+      <option value="reduced">Reduced motion</option>
+    </select>
+    <small>Only confirmed actions produce effects. System reduced-motion preferences always take priority.</small>
+  </label>;
+
   const inFlight = useRef(false);
   const roomRef = useRef<Room | null>(null);
   const tokenRef = useRef<string | null>(null);
@@ -254,6 +279,10 @@ export default function GameTable() {
   const undoRef = useRef<Game | null>(null);
   const roomEpoch = useRef(0);
   const lastSoundEvent = useRef<string | null>(null);
+  // A successful blind flip animates only on a *new committed move*, never when
+  // resuming an old local game or reconnecting to an existing online room.
+  const blindMotionCursor = useRef({ key: "", move: 0 });
+  const [freshBlindMove, setFreshBlindMove] = useState<number | null>(null);
 
   const applyRoom = useCallback((next: Room) => {
     if (roomRef.current?.code === next.code && next.revision < roomRef.current.revision) return;
@@ -537,6 +566,16 @@ export default function GameTable() {
 
   const g = useMemo(() => mode === "local" && local ? asLocalRoom(local) : mode === "online" ? room?.game : null,
     [mode, local, room]);
+  const visualGameKey = mode === "local" ? "local:" + local?.seed :
+    mode === "online" ? "online:" + room?.code + ":" + room?.game.round : "home";
+  useEffect(() => {
+    const move = g?.moves ?? 0;
+    const previous = blindMotionCursor.current;
+    const fresh = previous.key === visualGameKey && move > previous.move &&
+      g?.events.at(-1)?.source === "down" && g?.events.at(-1)?.type !== "blind-fail";
+    blindMotionCursor.current = { key: visualGameKey, move };
+    setFreshBlindMove(fresh ? move : null);
+  }, [visualGameKey, g?.moves]);
   // Keep every card in view as the hand grows. Measure the real rendered
   // width (not a guessed viewport) so Safari, browser zoom and desktop all
   // use the same layout. A new row is preferred over unreadably thin slivers.
@@ -606,12 +645,18 @@ export default function GameTable() {
   useEffect(() => {
     if (!soundEventId) { lastSoundEvent.current = null; return; }
     if (lastSoundEvent.current !== null && lastSoundEvent.current !== soundEventId && soundEnabled) {
+      const cue = lastEvent ? MotionAudio.fromCommittedEvent(lastEvent) : null;
       if (g?.phase === "over") playSound("win");
-      else if (lastEvent?.reason === "burn" || lastEvent?.burned) playSound("burn");
-      else if (lastEvent?.reason === "snap" || lastEvent?.type === "followup" ||
-        lastEvent?.type === "slam") playSound("snap");
-      else if (lastEvent?.type === "take" || lastEvent?.type === "blind-fail" ||
-        lastEvent?.reason === "dump") playSound("take");
+      else if (cue?.kind === "slam" || (lastEvent?.type === "followup" && lastEvent.burned))
+        playSound("slam");
+      else if (cue?.kind === "burn") playSound("burn");
+      else if (cue?.kind === "snap") playSound("snap");
+      else if (cue?.kind === "pickup" || cue?.kind === "reject") playSound("take");
+      else if (cue?.kind === "dump") playSound("dump");
+      else if (cue?.kind === "reset") playSound("reset");
+      else if (cue?.kind === "ghost") playSound("ghost");
+      else if (cue?.kind === "under") playSound("under");
+      else if (cue?.kind === "skip") playSound("skip");
       else playSound("play");
     }
     lastSoundEvent.current = soundEventId;
@@ -913,6 +958,14 @@ export default function GameTable() {
             <span><strong>Final Duel</strong><small>Optional: with two players left and no draw cards,
               every pile pickup burns the visible top card. Off by default.</small></span>
           </label>
+          {motionSetting}
+          <label className="rule-toggle">
+            <input type="checkbox" checked={soundEnabled} onChange={event => {
+              setSoundEnabled(event.target.checked);
+              if (event.target.checked) playSound("select");
+            }} />
+            <span><strong>Sound feedback</strong><small>Original short effects, off until you opt in.</small></span>
+          </label>
           <button className="primary-button" onClick={() => setShowSettings(false)}>Done</button>
         </section>
       </div>}
@@ -980,7 +1033,7 @@ export default function GameTable() {
       <MoveTheater gameKey={mode === "local" ? "local:" + local?.seed :
         "online:" + room?.code + ":" + g.round}
         moveNo={g.moves} phase={g.phase} events={g.events} blindReveal={g.blindReveal} me={me}
-        theme={deckTheme} nameForSeat={nameForSeat} />
+        theme={deckTheme} nameForSeat={nameForSeat} motionLevel={motionLevel} />
       <div className="tabletop" role="region" aria-label="STACK card game">
         <div className="table-texture" aria-hidden="true" />
         <div className="opponents-row">
@@ -1014,12 +1067,14 @@ export default function GameTable() {
                 }
               }}>
               {g.pile.slice(-5).map((card, i) => <div key={card.id}
-                  className="pile-layer" style={{ transform: `translate(${(i - 2) * 10}px, ${(i - 2) * -3}px) rotate(${(i - 2) * 3}deg)` }}>
+                  className={"pile-layer" + (freshBlindMove === g.moves && g.pile.at(-1)?.id === card.id ? " is-blind-reveal" : "")} style={{ transform: `translate(${(i - 2) * 10}px, ${(i - 2) * -3}px) rotate(${(i - 2) * 3}deg)` }}>
                   <PlayingCard card={card} theme={deckTheme} />
                 </div>)}
               {!g.pile.length && <div className="slot-empty">Pile clear</div>}
             </div>
-            <span className="pile-counter">{g.pile.length} cards · {rule}</span>
+            {g.limit && <span className="pile-rule-marker" data-rule={g.limit.type}
+                aria-label={rule}>{g.limit.type === "under" ? "1–4" : "≥ " + g.limit.value}</span>}
+              <span className="pile-counter">{g.pile.length} cards{g.limit ? "" : " · Any number can follow"}</span>
              <button type="button" className="react-pile-inspect" disabled={!g.pile.length}
                onClick={() => setPileOpen(true)}>Inspect pile</button>
           </div>
@@ -1194,6 +1249,14 @@ export default function GameTable() {
               When the stock is empty and exactly two players remain, each pile pickup
               permanently burns its visible top card. Disabled by default.
             </small></span>
+          </label>
+          {motionSetting}
+          <label className="rule-toggle">
+            <input type="checkbox" checked={soundEnabled} onChange={event => {
+              setSoundEnabled(event.target.checked);
+              if (event.target.checked) playSound("select");
+            }} />
+            <span><strong>Sound feedback</strong><small>Original short effects, off until you opt in.</small></span>
           </label>
           <p className="settings-hint">{g.phase !== "setup"
             ? "Rules are locked once the round begins. The setting stays the same for rematches."
