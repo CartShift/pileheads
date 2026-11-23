@@ -859,6 +859,7 @@ async function localStarterAndRematchScenario(browser) {
     },null,{timeout:5000});
     const next=await readGame(replay);
     assert.equal(next.starterSeat,2,"first player out wins the next round's opener");
+    assert.equal(next.people.length,3,"a local rematch must preserve the original seat count");
     assert.equal(next.starterReason,"winner");
     console.log("PASS React parity: randomized opener and winner-first local rematch");
   }finally{await replayCtx.close()}
