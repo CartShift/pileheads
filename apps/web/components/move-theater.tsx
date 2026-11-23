@@ -44,17 +44,6 @@ type Props = {
   blindReveal?: BlindReveal | null;
 };
 const ACTIONS = ["reset", "ghost", "under", "skip", "burn", "dump"];
-type QaWindow = Window & { __stackMotionQA?: boolean; __stackMotionTrace?: unknown[] };
-function traceMotion(stage: string, data: Record<string, unknown>) {
-  // Explicitly opt-in QA only. Never report hidden faces, player hands or tokens.
-  const w = window as QaWindow;
-  if (!w.__stackMotionQA) return;
-  const trace = w.__stackMotionTrace ?? (w.__stackMotionTrace = []);
-  trace.push({ stage, at: performance.now(), ...data });
-  if (trace.length > 30) trace.shift();
-}
-
-
 function center(element: Element | null): Point | null {
   if (!element) return null;
   const rect = element.getBoundingClientRect();
@@ -130,28 +119,20 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
   };
 
   useEffect(() => {
-    const previousCursor = cursor.current;
     const decision = Motion.advanceCursor(cursor.current, {
       gameKey, moveNo, phase, events,
       visible: document.visibilityState !== "hidden"
     });
-    traceMotion("cursor", { prior: previousCursor, after: decision.cursor,
-      moveNo, phase, visible: document.visibilityState, kind: decision.cue?.kind || null,
-      clear: decision.clear, eventCount: events.length });
     cursor.current = decision.cursor;
     if (!decision.clear) return;
     cancel();
     const last = decision.cue ? events.findLast(event => event.move === moveNo) : null;
     const next = decision.cue && last ?
       buildScene(last, decision.cue, gameKey, me, nameForSeat, blindReveal) : null;
-    traceMotion("scene", { kind: next?.kind || null, pileFound: !!document.querySelector(".pile-slot.played"),
-      pileRect: document.querySelector(".pile-slot.played")?.getBoundingClientRect().toJSON(),
-      to: !!next?.to });
     setScene(next);
     if (next) {
       timer.current = setTimeout(() => {
         timer.current = null;
-        traceMotion("timeout", { kind: next.kind, move: next.move });
         setScene(current => current?.key === next.key ? null : current);
       }, next.duration);
     }
@@ -162,8 +143,6 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
     // tab. Do NOT cancel on scroll: mobile focus/Play actions can scroll the
     // document during the same commit and instantly erase the visual cue.
     const dismiss = () => {
-      traceMotion("dismiss", { visibility: document.visibilityState,
-        viewportWidth: window.visualViewport?.width });
       cancel();
       setScene(null);
     };
