@@ -7,6 +7,7 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { playSound } from "../lib/sound";
 import MoveTheater, { type MotionLevel } from "./move-theater";
+import { useCommittedCardTravel } from "../lib/use-committed-card-travel";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
 const MotionAudio = require("../lib/motion-core.cjs") as { fromCommittedEvent: (event: Event) => { kind: string; destination: string | null } | null };
 import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame, type Reaction } from "../lib/room";
@@ -159,7 +160,8 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
   } : {};
   return (
     <div
-      className={`playing-card theme-${theme} ${hidden ? "is-back" : ""} ${selected ? "is-selected" : ""} ${small ? "is-small" : ""} ${onClick && !disabled ? "is-interactive" : ""}`}
+      className={`playing-card theme-${theme} ${hidden ? "is-back" : ""} ${selected ? "is-selected" : ""} ${floating ? "is-dragging" : ""} ${small ? "is-small" : ""} ${onClick && !disabled ? "is-interactive" : ""}`}
+      data-card-id={card?.id}
       style={offsetX ? {left: offsetX} : undefined}>
       <div aria-hidden="true" className="card-art" style={faceStyle} />
       {onClick && !disabled ? (
@@ -187,9 +189,9 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
   );
 }
 
-function PlayerPosition({ name, seat, active, self, out, handCount, up, downCount, presence, reaction }: {
+function PlayerPosition({ name, seat, active, self, out, handCount, up, downCount, presence, reaction, theme }: {
   name: string; seat: number; active: boolean; self: boolean; out: boolean;
-  handCount: number; up: Card[]; downCount: number; presence?: string; reaction?: string;
+  handCount: number; up: Card[]; downCount: number; presence?: string; reaction?: string; theme: DeckTheme;
 }) {
   return <div className={`opponent-seat ${active ? "seat-active" : ""} ${out ? "seat-out" : ""}`}
     data-seat={seat} aria-label={`${name}: ${handCount} in hand, ${up.length} face-up, ${downCount} face-down`}>
@@ -206,13 +208,17 @@ function PlayerPosition({ name, seat, active, self, out, handCount, up, downCoun
       {!handCount && <span className="empty-seat">No hand cards</span>}
     </div>
     <div className="opponent-up">
-      {Array.from({ length: Math.max(up.length, downCount) }, (_, i) =>
-        <div className="mini-pair" key={i}>
+      {Array.from({ length: Math.max(up.length, downCount) }, (_, i) => {
+        const card = up[i];
+        const artIndex = card?.kind === "number" ? (card.rank ?? 1) - 1 :
+          card ? 10 + ACTIONS.indexOf(card.action || "") : -1;
+        return <div className="mini-pair" key={i}>
           {i < downCount && <span className="mini-back" />}
-          {up[i] && <span className="mini-face" title={cardLabel(up[i])}>
-            {up[i].kind === "number" ? up[i].rank : up[i].action?.slice(0, 1).toUpperCase()}
-          </span>}
-        </div>)}
+          {card && <span className={`mini-face theme-${theme}`} data-card-id={card.id}
+            title={cardLabel(card)} aria-label={cardLabel(card)}
+            style={{ backgroundPosition: `${(artIndex % 4) * 100 / 3}% ${Math.floor(artIndex / 4) * 100 / 3}%` }} />}
+        </div>;
+      })}
     </div>
   </div>;
 }
@@ -647,6 +653,8 @@ export default function GameTable() {
     height: `${cardHeight + Math.max(0, handRows - 1) * handRowStep}px`
   };
   const lastEvent = g?.events.at(-1);
+  useCommittedCardTravel({ gameKey: visualGameKey, moveNo: g?.moves ?? 0,
+    phase: g?.phase ?? "setup", pile: g?.pile ?? [], event: lastEvent, me, motionLevel });
   const soundEventId = lastEvent ? String(g?.round || 1) + ":" +
     lastEvent.move + ":" + lastEvent.seat + ":" + lastEvent.type : null;
   useEffect(() => {
@@ -1024,7 +1032,6 @@ export default function GameTable() {
           {mode === "online" && <span className={`connection-chip ${connected ? "is-online" : "is-offline"}`}
             title={`Last sync: ${lastSyncAt.current ? new Date(lastSyncAt.current).toLocaleTimeString() : "pending"}`}
             role="status">{connected ? "Live" : "Reconnecting"}</span>}
-          <span className="beta-tag">REACT TABLE · PREVIEW</span>
           <button className="exit-button" onClick={() => setShowRules(true)}>Rules</button>
           <button className="exit-button" onClick={() => setShowSettings(true)}>Settings</button>
           <label className="theme-control">Deck
@@ -1057,7 +1064,7 @@ export default function GameTable() {
         <div className="table-texture" aria-hidden="true" />
         <div className="opponents-row">
           {g.players.filter(p => p.seat !== me).map(p =>
-            <PlayerPosition key={p.seat} seat={p.seat} name={nameForSeat(p.seat)} self={false} out={p.out}
+            <PlayerPosition key={p.seat} seat={p.seat} theme={deckTheme} name={nameForSeat(p.seat)} self={false} out={p.out}
               active={g.phase === "play" && g.turn === p.seat}
               handCount={p.handCount} up={p.up} downCount={p.downCount}
               presence={room?.members.find(m => m.seat === p.seat)?.presence}
@@ -1321,7 +1328,7 @@ export default function GameTable() {
           </div>
         </section>
       </div>}
-      <div className="table-footer"><span>STACK · React tabletop migration preview</span>
+      <div className="table-footer"><span>STACK · The digital tabletop</span>
         <a href={classicHref}>Original Classic ↗</a></div>
     </main>
   );
