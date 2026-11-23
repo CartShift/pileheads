@@ -893,6 +893,18 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
   content:"";position:absolute;left:16px;right:16px;bottom:0;height:3px;
   border-radius:8px 8px 0 0;background:#f7d99a;box-shadow:0 0 14px #efc77b72
 }
+.opponent-seat.is-dump-target{
+  cursor:pointer;border-color:#ffbbd2;background:linear-gradient(145deg,#5a3d4dc7,#163e34);
+  box-shadow:0 0 0 2px #ffb6ce99,0 0 28px #f487a947
+}
+.opponent-seat.is-dump-target:focus-visible{
+  outline:3px solid #fff1c1;outline-offset:4px
+}
+.opponent-seat.is-dump-target::before{
+  content:"SEND PILE";position:absolute;z-index:5;top:-12px;left:50%;
+  transform:translateX(-50%);border-radius:99px;background:#f7c3d3;color:#512d39;
+  padding:3px 7px;font-size:9px;font-weight:900;letter-spacing:.05em;white-space:nowrap
+}
 /* Public face-up cards should never be represented by anonymous letters.
    The 4x4 sprite sheet is exactly the same as the user's chosen deck. */
 .opponent-up{height:43px;gap:clamp(2px,.5vw,5px)}
