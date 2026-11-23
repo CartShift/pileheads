@@ -960,3 +960,19 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
   .move-story-erosion,.move-story-spent{display:none!important}
   .move-story-stable .move-story-recipient[data-target-kind="skipped"]{display:none!important}
 }
+
+
+/* An accepted face-down play flips the *actual* rendered card exactly once.
+   No duplicate face is ever drawn above the authoritative pile. */
+.pile-layer.is-blind-reveal .playing-card{
+  animation:stack-blind-actual-reveal 360ms cubic-bezier(.2,.7,.2,1) both;
+  backface-visibility:hidden;
+}
+@keyframes stack-blind-actual-reveal{
+  0%{opacity:.6;transform:perspective(500px) rotateY(70deg)}
+  65%{opacity:1;transform:perspective(500px) rotateY(-7deg)}
+  100%{opacity:1;transform:perspective(500px) rotateY(0)}
+}
+@media(prefers-reduced-motion:reduce){
+  .pile-layer.is-blind-reveal .playing-card{animation:none!important}
+}
