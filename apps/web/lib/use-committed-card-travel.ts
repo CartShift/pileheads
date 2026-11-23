@@ -75,9 +75,10 @@ export function useCommittedCardTravel({
 
     // A single newer authoritative move wins. Never animate room hydration,
     // snapshots that skip moves, replay, setup swaps, or post-game screens.
-    if (!before || before.gameKey !== gameKey || before.move === moveNo) return;
+    if (!before || (before.gameKey === gameKey && before.move === moveNo)) return;
     for (const animation of running.current) animation.cancel();
     running.current = [];
+    if (before.gameKey !== gameKey) return;
 
     if (before.move + 1 !== moveNo || phase !== "play" ||
         !event || event.move !== moveNo ||
@@ -105,6 +106,8 @@ export function useCommittedCardTravel({
       if (!from || !to) continue;
       const dx = from.x - to.x, dy = from.y - to.y;
       if (Math.hypot(dx, dy) < 12) continue;
+      // Stable testing evidence on the real pile card, never an extra DOM face.
+      node.dataset.arrivalMotion = String(moveNo);
       const animation = node.animate([
         { transform: `translate3d(${dx}px,${dy}px,0) rotate(-5deg) scale(.96)`,
           opacity: .88, offset: 0 },
