@@ -19,6 +19,10 @@ on:
       - 'package-lock.json'
       - 'render.yaml'
 
+concurrency:
+  group: stack-render-production
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
