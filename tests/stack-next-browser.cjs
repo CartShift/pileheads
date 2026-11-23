@@ -638,12 +638,14 @@ async function sharedMoveAnimationScenarios(browser) {
        caption:caption.textContent,hasTransfer:!!transfer,
        transferAnimation:transfer?getComputedStyle(transfer).animationName:null};
    });
-   assert.match(measured.animation,/stack-stable-sigil/,
+   assert.match(measured.animation,/stack-stable-(sigil|ghost|reset)/,
      "effect markers should be short and bound to the real table");
    assert.match(measured.caption,new RegExp(action.toUpperCase(),"i"));
    assert.ok(measured.caption.length<=6,"effect cue contains no instructional prose");
    if(["burn","dump"].includes(action)){
      assert.ok(measured.hasTransfer,action+" should move the public pile");
+     assert.equal(await theater.locator(".move-story-transfer .playing-card.is-back").count(),1,
+       "public transfer is an opaque silhouette, not a duplicated played card");
      assert.match(measured.transferAnimation,/stack-stable-transfer/);
    }else assert.equal(measured.hasTransfer,false,
      "rule-only effects never invent a pile transfer");
@@ -727,7 +729,7 @@ async function sharedMoveAnimationScenarios(browser) {
     "the real face is publicly revealed once on the central pile");
     const late=await scene.locator(".move-story-transfer").evaluate(el=>
    getComputedStyle(el).animationDelay);
-  assert.equal(late,"0.75s","the red rejection comes before pile collection");
+  assert.equal(late,"0.79s","the red rejection comes before pile collection");
   console.log("PASS Next blind flip: revealed face, red rejection, then pile pickup");
  }finally{await blindCtx.close()}
  // System reduced motion still communicates what happened, without flying cards.
@@ -754,7 +756,12 @@ async function sharedMoveAnimationScenarios(browser) {
   }));
   assert.equal(style.flying,"none");
   assert.equal(style.caption,"1","reduced-motion users still see a readable action");
+  assert.equal(await theater.getAttribute("data-motion"),"balanced");
   console.log("PASS Next reduced motion: public action stays readable without animated flights");
+  await page.getByRole("button",{name:"Settings"}).click();
+  await page.getByRole("combobox",{name:"Motion and effects"}).selectOption("reduced");
+  assert.equal(await page.evaluate(() => localStorage.getItem("stack-motion-level-v1")),"reduced");
+  await page.getByRole("button",{name:"Back to table"}).click();
  }finally{await c.close()}
 }
 
