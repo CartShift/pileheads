@@ -10,7 +10,6 @@ on:
       - 'tests/**'
       - 'package.json'
       - 'package-lock.json'
-      - 'package-lock.json'
       - 'README.md'
       - 'vercel.json'
   push:
@@ -23,8 +22,12 @@ on:
       - 'scripts/**'
       - 'tests/**'
       - 'package.json'
+      - 'package-lock.json'
       - 'README.md'
       - 'vercel.json'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -41,6 +44,7 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24'
+          cache: npm
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
       - name: Run STACK regression suite
