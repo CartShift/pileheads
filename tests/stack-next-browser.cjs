@@ -586,6 +586,116 @@ async function onlineScenarios(browser, server) {
     console.log("PASS Next online: dual mobile seats, CORS, private hands, SNAP race, reconnect");
   } finally { await Promise.all([hostCtx.close(), guestCtx.close()]); }
 }
+/**
+ * Actual same-origin multiplayer in 3- and 5-seat rooms. Two independent
+ * mobile browser profiles are human players, remaining seats are server bots.
+ * This covers the seat layout, private-hand contract, independent deck themes
+ * and WebSocket/lobby start without fabricating client-side game state.
+ */
+async function onlineMixedSeatScenarios(browser) {
+  for (const seats of [3,5]) {
+    const hostCtx = await browser.newContext({
+      viewport:{width:390,height:844},isMobile:true,hasTouch:true,
+      reducedMotion:"reduce"
+    });
+    const guestCtx = await browser.newContext({
+      viewport:{width:360,height:740},isMobile:true,hasTouch:true,
+      reducedMotion:"reduce"
+    });
+    const host=await hostCtx.newPage(),guest=await guestCtx.newPage();
+    const errors=[];
+    for(const page of [host,guest])page.on("pageerror",e=>errors.push(e.message));
+    try {
+      await host.goto(WEB+"/play");
+      await host.getByRole("textbox",{name:"Your name"}).fill("Host "+seats);
+      await host.getByRole("combobox",{name:"Humans"}).selectOption("2");
+      await host.getByRole("combobox",{name:"Bots"}).selectOption(String(seats-2));
+      await host.getByRole("button",{name:/Create a room/}).click();
+      await host.waitForURL(/room=[A-HJ-NP-Z2-9]{8}/,{timeout:14000});
+      const code=new URL(host.url()).searchParams.get("room");
+      await guest.goto(WEB+"/play?room="+code);
+      await guest.getByRole("textbox",{name:"Your name"}).fill("Guest "+seats);
+      await guest.getByRole("button",{name:"Join"}).click();
+      await guest.getByRole("button",{name:"I'm ready"}).waitFor({timeout:12000});
+      await host.getByRole("button",{name:"I'm ready"}).click();
+      await guest.getByRole("button",{name:"I'm ready"}).click();
+      const start=host.getByRole("button",{name:"Start round"});
+      await start.waitFor({state:"visible",timeout:12000});
+      await host.waitForFunction(() => {
+        const button=[...document.querySelectorAll("button")]
+          .find(b=>b.textContent==="Start round");
+        return !!button && !button.disabled;
+      },null,{timeout:14000});
+      await start.click();
+
+      // Poll the *real* room API until the server commits play phase. UI
+      // rendering follows the same snapshots; bot moves may occur at any time.
+      async function getRoomState(page){
+        return page.evaluate(async code=>{
+          const token=localStorage.getItem("stack-next-room-"+code);
+          const response=await fetch("/api/pilehead",{
+            method:"POST",headers:{"Content-Type":"application/json",
+              Authorization:"Bearer "+token},
+            body:JSON.stringify({action:"state",code})
+          });
+          return response.json();
+        },code);
+      }
+      await Promise.all([host,guest].map(page=>page.waitForFunction(async code=>{
+        const token=localStorage.getItem("stack-next-room-"+code);
+        if(!token)return false;
+        const response=await fetch("/api/pilehead",{
+          method:"POST",headers:{"Content-Type":"application/json",
+            Authorization:"Bearer "+token},
+          body:JSON.stringify({action:"state",code})
+        });
+        const payload=await response.json();
+        return payload.ok===true&&payload.game?.phase==="play";
+      },code,{timeout:16000})));
+      await Promise.all([host,guest].map(page=>page.waitForFunction(expected=>
+        document.querySelectorAll(".opponent-seat").length===expected,
+        seats-1,{timeout:13000})));
+
+      await guest.getByRole("combobox",{name:"Deck style"}).selectOption("original");
+      assert.ok(await guest.locator(".player-hand .playing-card.theme-original").count()>0);
+      assert.ok(await host.locator(".player-hand .playing-card.theme-characters").count()>0,
+        "one player choosing a deck theme cannot rewrite the other's deck");
+
+      for(const [page,label,expectedSeat] of [
+        [host,"host",0],[guest,"guest",1]]) {
+        const state=await getRoomState(page);
+        assert.equal(state.ok,true,label+" remains authenticated");
+        assert.equal(state.me,expectedSeat,"each browser keeps its own human seat");
+        assert.equal(state.game.players.length,seats);
+        assert.equal(state.game.botSeats.length,seats-2);
+        assert.equal(state.game.players[expectedSeat].hand.length>=0,true,
+          "only the own hand is visible");
+        for(const player of state.game.players.filter(p=>p.seat!==expectedSeat)){
+          assert.equal(player.hand,undefined,
+            "opponent and bot hand contents must not leak to "+label);
+          assert.equal(player.blindSlots,undefined,
+            "opponent blind identities must not leak to "+label);
+        }
+        const geometry=await page.evaluate(()=>({
+          viewport:document.documentElement.clientWidth,
+          width:document.documentElement.scrollWidth
+        }));
+        assert.ok(geometry.width<=geometry.viewport+2,
+          seats+"-seat online "+label+" must fit narrow mobile viewport");
+      }
+      await host.screenshot({
+        path:path.resolve(ROOT,"artifacts/next/online-"+seats+"-seat-host.png"),fullPage:true
+      });
+      await guest.screenshot({
+        path:path.resolve(ROOT,"artifacts/next/online-"+seats+"-seat-guest.png"),fullPage:true
+      });
+      assert.deepEqual(errors,[],"3-/5-seat clients must not throw");
+      console.log("PASS Next mixed "+seats+" seats: two mobile humans + "+
+        (seats-2)+" authoritative bots, private hands, independent themes");
+    }finally{await Promise.all([hostCtx.close(),guestCtx.close()])}
+  }
+}
+
 async function guidedPracticeScenario(browser) {
   const context=await browser.newContext({
     viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:"reduce"
@@ -1047,6 +1157,7 @@ async function main() {
     await localStarterAndRematchScenario(browser);
     await localInterruptParityScenarios(browser);
     await onlineScenarios(browser, apiProc);
+    await onlineMixedSeatScenarios(browser);
     await sharedMoveAnimationScenarios(browser);
     await mixedBotScenarios(browser);
     await abandonedRoomScenario(browser);
