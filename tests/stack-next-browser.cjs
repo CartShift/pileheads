@@ -85,7 +85,7 @@ async function endgameSettingsAndBridge(browser) {
     await regular.goto(WEB + "/play");
     await regular.getByRole("button",{name:"Game settings"}).click();
     const settings=regular.getByRole("dialog",{name:"Game settings"});
-    const input=settings.getByRole("checkbox");
+    const input=settings.getByRole("checkbox",{name:/Final Duel/i});
     assert.equal(await input.isChecked(),false,"Final Duel defaults OFF in clean local storage");
     await input.check();
     await settings.getByRole("button",{name:"Done"}).click();
@@ -93,7 +93,7 @@ async function endgameSettingsAndBridge(browser) {
     assert.equal((await readGame(regular)).endgameRule,"final-duel",
       "chosen Final Duel rule must be in actual local engine state");
     await regular.getByRole("button",{name:"Settings"}).click();
-    const inMatch=regular.getByRole("dialog",{name:"Game settings"}).getByRole("checkbox");
+    const inMatch=regular.getByRole("dialog",{name:"Game settings"}).getByRole("checkbox",{name:/Final Duel/i});
     assert.equal(await inMatch.isChecked(),true);
     await inMatch.uncheck();
     assert.equal((await readGame(regular)).endgameRule,"classic",
@@ -102,7 +102,7 @@ async function endgameSettingsAndBridge(browser) {
     await regular.getByRole("button",{name:"Start round"}).click();
     await regular.getByRole("button",{name:"Settings"}).click();
     assert.equal(await regular.getByRole("dialog",{name:"Game settings"})
-      .getByRole("checkbox").isDisabled(),true,"live round rules must be locked");
+      .getByRole("checkbox",{name:/Final Duel/i}).isDisabled(),true,"live round rules must be locked");
     await regular.reload();
     await regular.getByRole("button",{name:"Resume game"}).click();
     assert.equal((await readGame(regular)).endgameRule,"classic",
@@ -378,7 +378,7 @@ async function onlineScenarios(browser, server) {
     await guest.getByRole("button", { name: "I'm ready" }).waitFor();
     // Settings are server-owned, host-only during setup, and off by default.
     await host.getByRole("button", { name: "Settings" }).click();
-    const hostRule = host.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox");
+    const hostRule = host.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox",{name:/Final Duel/i});
     assert.equal(await hostRule.isChecked(), false, "online Final Duel starts OFF");
     await hostRule.check();
     await host.getByRole("dialog", { name: "Game settings" })
@@ -388,7 +388,7 @@ async function onlineScenarios(browser, server) {
       return !!element && !document.querySelector('[role="dialog"]');
     });
     await guest.getByRole("button", { name: "Settings" }).click();
-    const guestRule = guest.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox");
+    const guestRule = guest.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox",{name:/Final Duel/i});
     await guest.waitForFunction(() => {
       const box = document.querySelector('.game-modal [type="checkbox"]');
       return !!box && box.checked && box.disabled;
@@ -396,7 +396,7 @@ async function onlineScenarios(browser, server) {
     await guest.getByRole("dialog", { name: "Game settings" })
       .getByRole("button", { name: "Back to table" }).click();
     await host.getByRole("button", { name: "Settings" }).click();
-    await host.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox").uncheck();
+    await host.getByRole("dialog", { name: "Game settings" }).getByRole("checkbox",{name:/Final Duel/i}).uncheck();
     await host.getByRole("dialog", { name: "Game settings" })
       .getByRole("button", { name: "Back to table" }).click();
     await guest.getByRole("button", { name: "Settings" }).click();
@@ -534,7 +534,7 @@ async function onlineScenarios(browser, server) {
       "rematch must preserve private room identity");
     await host.getByRole("button", { name: "Settings" }).click();
     assert.equal(await host.getByRole("dialog", { name: "Game settings" })
-      .getByRole("checkbox").isChecked(), false,
+      .getByRole("checkbox",{name:/Final Duel/i}).isChecked(), false,
       "room rematch must preserve the authoritative Classic rule");
     await host.getByRole("dialog", { name: "Game settings" })
       .getByRole("button", { name: "Back to table" }).click();
