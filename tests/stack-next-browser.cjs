@@ -647,6 +647,16 @@ async function sharedMoveAnimationScenarios(browser) {
      assert.match(measured.transferAnimation,/stack-stable-transfer/);
    }else assert.equal(measured.hasTransfer,false,
      "rule-only effects never invent a pile transfer");
+   if(action==="under"){
+     // The next bot reacts before the old 2.1-second animation would finish.
+     // Never leave UNDER animating after the next committed move.
+     await page.waitForFunction(()=>
+       JSON.parse(localStorage.getItem("stack-next-local-save-v1")||"null")?.game?.moves>=2,
+       null,{timeout:12000});
+     assert.equal(await page.locator('.move-story-overlay[data-move="1"]').count(),0,
+       "a newer authoritative bot move must immediately retire the old effect");
+     console.log("PASS Next motion concurrency: bot move cancels outdated UNDER animation");
+   }
    console.log("PASS Next motion: "+action.toUpperCase()+" visible card movement and effect");
   }finally{await context.close()}
  }
