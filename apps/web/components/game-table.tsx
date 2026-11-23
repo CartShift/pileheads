@@ -719,18 +719,20 @@ export default function GameTable() {
     setSwapHand(null);
   }
 
-  function startLocalGame(withCoach = practiceMode, previousWinner: number | null = null) {
+  function startLocalGame(withCoach = practiceMode, previousWinner: number | null = null,
+    seatCount: number | null = null) {
     roomEpoch.current++;
     setPracticeMode(withCoach);
     setCoachDismissed(false);
-    const game = createGame(withCoach ? 2 : players, endgameRule, previousWinner, withCoach);
+    const game = createGame(seatCount ?? (withCoach ? 2 : players), endgameRule, previousWinner, withCoach);
     localRef.current = game;
     undoRef.current = null; setUndoAvailable(false);
     setLocal(game); setRoom(null); setMode("local"); setSelection([]); setNotice("");
   }
 
   function newRound() {
-    if (mode === "local") startLocalGame(practiceMode, local?.finishedOrder[0] ?? null);
+    if (mode === "local") startLocalGame(practiceMode, local?.finishedOrder[0] ?? null,
+      local?.people.length ?? null);
     else if (room) void submit({ action: "rematch", code: room.code, revision: room.revision });
   }
 
