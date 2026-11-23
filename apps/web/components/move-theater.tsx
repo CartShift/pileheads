@@ -140,8 +140,9 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
   }, [gameKey, moveNo, phase, events, me, nameForSeat, blindReveal]);
 
   useEffect(() => {
-    // Fixed screen-space transfer vectors must not survive a rotated phone,
-    // page scroll, resize, or tab backgrounding. Always keep game inputs live.
+    // Fixed screen-space vectors must not survive viewport resize or a hidden
+    // tab. Do NOT cancel on scroll: mobile focus/Play actions can scroll the
+    // document during the same commit and instantly erase the visual cue.
     const dismiss = () => {
       cancel();
       setScene(null);
@@ -151,12 +152,10 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
     };
     document.addEventListener("visibilitychange", hidden);
     window.addEventListener("resize", dismiss);
-    window.addEventListener("scroll", dismiss, { passive: true });
     window.visualViewport?.addEventListener("resize", dismiss);
     return () => {
       document.removeEventListener("visibilitychange", hidden);
       window.removeEventListener("resize", dismiss);
-      window.removeEventListener("scroll", dismiss);
       window.visualViewport?.removeEventListener("resize", dismiss);
       cancel();
     };
