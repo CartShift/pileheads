@@ -86,6 +86,23 @@ async function endgameSettingsAndBridge(browser) {
     await regular.getByRole("button",{name:"Game settings"}).click();
     const settings=regular.getByRole("dialog",{name:"Game settings"});
     const input=settings.getByRole("checkbox",{name:/Final Duel/i});
+    // A real keyboard user must reach the rule toggle and select box,
+    // not get trapped in a loop containing only modal buttons.
+    assert.equal(await input.evaluate(el=>document.activeElement===el),true,
+      "modal initially focuses first usable control");
+    await regular.keyboard.press("Tab");
+    const motionSelect=settings.getByRole("combobox",{name:"Motion and effects"});
+    assert.equal(await motionSelect.evaluate(el=>document.activeElement===el),true,
+      "Tab reaches the motion setting after the Final Duel checkbox");
+    const done=settings.getByRole("button",{name:"Done"});
+    await done.focus();
+    await regular.keyboard.press("Tab");
+    assert.equal(await input.evaluate(el=>document.activeElement===el),true,
+      "Tab cycles from the last modal action to its first control");
+    await regular.keyboard.press("Shift+Tab");
+    assert.equal(await done.evaluate(el=>document.activeElement===el),true,
+      "Shift+Tab cycles from first control to last modal action");
+    await input.focus();
     assert.equal(await input.isChecked(),false,"Final Duel defaults OFF in clean local storage");
     await input.check();
     await settings.getByRole("button",{name:"Done"}).click();
