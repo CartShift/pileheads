@@ -39,6 +39,8 @@ export type Player = {
 export type Game = {
   version: string;
   seed: number;
+  starterSeat?: number;
+  starterReason?: "draw" | "winner" | "practice";
   phase: "setup" | "play" | "over";
   endgameRule?: "classic" | "final-duel";
   omitSkip?: boolean;

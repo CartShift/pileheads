@@ -143,7 +143,7 @@ async function localScenarios(browser) {
     page.on("pageerror", error => errors.push(error.message));
     try {
       await page.goto(WEB + "/play", { waitUntil: "domcontentloaded" });
-      await page.getByRole("button", { name: /Start game/ }).click();
+      await page.getByRole("button", { name: "Learn with a bot" }).click();
       await page.getByRole("button", { name: "Start round" }).click();
       await page.getByRole("heading", { name: "Your move." }).waitFor({ timeout: 10000 });
       const hand = page.locator(".player-hand .card-hit");
@@ -793,7 +793,7 @@ async function abandonedRoomScenario(browser) {
     await page.getByRole("button", { name: /Play cards/ }).click();
     await moveHeld;
     await page.getByRole("button", { name: "Leave table" }).click();
-    await page.getByRole("button", { name: /Start game/ }).click();
+    await page.getByRole("button", { name: "Learn with a bot" }).click();
     await page.getByRole("heading", { name: "Choose your opening cards" }).waitFor();
     releaseMove();
     await page.waitForTimeout(650);

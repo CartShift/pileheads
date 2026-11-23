@@ -62,10 +62,12 @@ function classify(event: Event): {kind: Kind; label: string; symbol: string} | n
     return { kind: "dump", label: "DUMP", symbol: "➜" };
   if (event.type === "slam" || event.reason === "slam")
     return { kind: "slam", label: "SLAM", symbol: "✹" };
+  // A SNAP may complete the fourth matching number. Show the burn rather
+  // than a misleading SNAP-only animation when the pile really burned.
+  if (event.burned || event.action === "burn" || event.reason === "four")
+    return { kind: "burn", label: event.type === "followup" ? "SNAP + BURN" : "BURN", symbol: "✹" };
   if (event.type === "followup" || event.reason === "snap")
     return { kind: "snap", label: "SNAP", symbol: "✦" };
-  if (event.burned || event.action === "burn" || event.reason === "four")
-    return { kind: "burn", label: "BURN", symbol: "✹" };
   if (event.action === "reset") return { kind: "reset", label: "RESET", symbol: "↺" };
   if (event.action === "under") return { kind: "under", label: "UNDER", symbol: "1–4" };
   if (event.action === "ghost") return { kind: "ghost", label: "GHOST", symbol: "◌" };
