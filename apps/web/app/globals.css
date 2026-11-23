@@ -910,6 +910,15 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 .opponent-up{height:43px;gap:clamp(2px,.5vw,5px)}
 .mini-pair{width:30px;height:40px}
 .mini-back,.mini-face{width:30px;height:40px;border-radius:5px}
+.opponent-card-stack .hand-back{
+  background-image:url("/pilehead/assets/stack-back.webp");
+  background-size:cover;background-position:center;
+  border-color:#f9e9c8;box-shadow:0 3px 8px #0008,0 1px 1px #edd9a8
+}
+.pile-zone .stack-depth{
+  background-image:url("/pilehead/assets/stack-back.webp");
+  background-size:cover;background-position:center;opacity:.72
+}
 .mini-back{
   background-image:url("/pilehead/assets/stack-back.webp");
   background-position:center;background-size:cover
