@@ -938,6 +938,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
   transform:translate3d(0,-8px,0);filter:brightness(1.09);z-index:16
 }
 .player-hand.is-adaptive .playing-card.is-dragging{opacity:.24}
+/* Keep the moving card visible above a touch finger; the actual drop
+   remains tied to the pointer and the real center pile hit area. */
+.drag-ghost.is-touch{transform:translate(-50%,-112%) rotate(4deg) scale(1.02)}
 .playing-card.is-interactive .card-hit:focus-visible{
   outline:3px solid #ffe4a4;outline-offset:5px
 }
