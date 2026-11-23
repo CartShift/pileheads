@@ -624,6 +624,8 @@ async function sharedMoveAnimationScenarios(browser) {
   });
   await context.addInitScript(game=>{
    localStorage.setItem("stack-next-local-save-v1",JSON.stringify({version:1,game}));
+   window.__stackMotionQA=true;
+   window.__stackMotionTrace=[];
   },g);
   const page=await context.newPage();
   try{
@@ -641,6 +643,7 @@ async function sharedMoveAnimationScenarios(browser) {
        const saved = JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game;
        return {
          visibility: document.visibilityState,
+         motionTrace:window.__stackMotionTrace,
          savedPhase: saved?.phase, savedMove: saved?.moves,
          savedLastEvent: saved?.events?.at(-1),
          visibleMove: document.querySelector(".game-meta h1")?.textContent,
