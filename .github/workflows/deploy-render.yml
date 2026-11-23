@@ -13,8 +13,10 @@ jobs:
   sync-render:
     name: Sync production commit to Render
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 10
     steps:
+      - name: Checkout release manifest and smoke script
+        uses: actions/checkout@v4
       - name: Fast-forward Render deployment branch
         env:
           GH_TOKEN: ${{ github.token }}
@@ -23,3 +25,12 @@ jobs:
           gh api --method PATCH \
             "repos/${GITHUB_REPOSITORY}/git/refs/heads/${RENDER_BRANCH}" \
             -f sha="${GITHUB_SHA}" -F force=false
+
+      # Render deploys asynchronously once its watched branch advances.
+      # A successful branch mirror does NOT prove the live web service is
+      # running the new revision, connected to Neon or serving both tables.
+      - name: Verify live Render SHA, Neon readiness, Classic and React
+        env:
+          STACK_RENDER_URL: https://stack-card-game-t7vx.onrender.com
+          GITHUB_SHA: ${{ github.sha }}
+        run: node scripts/check-render-production.mjs
