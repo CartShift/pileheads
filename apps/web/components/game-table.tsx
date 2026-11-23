@@ -647,7 +647,7 @@ export default function GameTable() {
     if (lastSoundEvent.current !== null && lastSoundEvent.current !== soundEventId && soundEnabled) {
       const cue = lastEvent ? MotionAudio.fromCommittedEvent(lastEvent) : null;
       if (g?.phase === "over") playSound("win");
-      else if (cue?.kind === "slam" || (cue?.kind === "snap" && cue.destination === "ashes"))
+      else if (cue?.kind === "slam" || (lastEvent?.type === "followup" && lastEvent.burned))
         playSound("slam");
       else if (cue?.kind === "burn") playSound("burn");
       else if (cue?.kind === "snap") playSound("snap");
