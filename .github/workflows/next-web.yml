@@ -3,20 +3,9 @@ on:
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
-  # Keep verifying direct main pushes while this private repository has no branch protection.
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/**'
-      - 'api/**'
-      - 'apps/web/**'
-      - 'dist/**'
-      - 'scripts/**'
-      - 'tests/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'render.yaml'
-      - 'vercel.json'
+  # Run heavy browser acceptance for ready PRs, and on explicit dispatch.
+  # Main still receives fast checks and the Render production smoke workflow.
+  # Avoid repeating the whole browser suite after a reviewed PR is merged.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
