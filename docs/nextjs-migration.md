@@ -70,3 +70,11 @@ production-ready solely because CI is green.
 - The existing GitHub Actions workflow runs static, engine, real-browser
   integration and a dual-device socket simulation. Real devices and the actual
   Render/Neon environment remain mandatory release checks.
+
+### Reproducible dependency installs
+
+Root and `apps/web` npm lockfiles are committed from the same Node 24
+GitHub Actions dependency resolution. CI, the Render Blueprint and the
+integrated builder use `npm ci` for locked installations instead of
+re-resolving dependencies. Update both locks in a reviewed PR when changing
+a package manifest.
