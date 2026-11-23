@@ -19,6 +19,16 @@ The new `scripts/render-server.cjs` adapter maps the existing `/api/pilehead` ha
 - The client currently polls for room state roughly every 1.75 seconds while visible. Before moving production traffic, measure server usage and optimize fetching. Do not assume STACK caused the entire CartShift-wide CPU overage without checking Vercel Usage.
 - Avoid changing DNS/production domains until a working two-device online game has been verified.
 
+## Automatic post-deploy verification
+
+The `Deploy STACK to Render` GitHub Actions workflow mirrors `main` into the branch watched by the existing Render service, then executes `scripts/check-render-production.mjs`. The script is read-only, requires no secrets, tolerates startup delays, and fails if any of these is untrue:
+
+- `/livez` is healthy, WebSocket mode is enabled, and the running Render service reports **the same Git SHA** via `RENDER_GIT_COMMIT`.
+- `/readyz` has successfully queried the existing Neon multiplayer database.
+- Classic `/pilehead/index.html` and React `/play` are both served by the same origin.
+
+GitHub Actions must be green **on the release commit** before stating production is live. If the probe fails, inspect its exact endpoint/status and the Render deploy events instead of repeatedly triggering another deploy. The check is not a substitute for a real two-device room or physical-device visual QA.
+
 ## Operational probes and release monitoring
 
 - `GET /livez`: process alive; does not certify multiplayer storage.

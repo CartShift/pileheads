@@ -80,8 +80,12 @@ check('shared animations respect reduced motion and serialize invalid flip befor
  assert.match(css,/stack-blind-red/);
  assert.match(css,/pilehead-special-ring/);
  const reactCss=read('apps/web/app/globals.css');
- assert.match(reactCss,/react-blind-redflash/);
- assert.match(reactCss,/react-special-ring/);
+ assert.match(reactCss,/stack-stable-flip/);
+ assert.match(reactCss,/stack-stable-transfer/);
+ assert.match(reactCss,/stack-motion-erosion/);
+ for(const obsolete of ["react-blind-reveal","react-special-ring",
+   "react-pickup-transfer","move-story-flight","move-story-refill"])
+   assert.ok(!reactCss.includes(obsolete),"legacy React effect must be retired: "+obsolete);
  const fx=read('dist/pilehead/immersive.js');
  assert.match(fx,/ev\.type==='blind-fail'\?1220/);
  assert.match(fx,/function specialEffect\(/);
