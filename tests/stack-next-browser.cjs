@@ -225,10 +225,14 @@ async function adaptiveHandFitScenarios(browser) {
     {width:360,height:740,count:9},
     {width:360,height:740,count:16},
     {width:360,height:740,count:24},
+    {width:360,height:740,count:30},
+    {width:360,height:740,count:36},
     {width:390,height:844,count:6},
     {width:390,height:844,count:16},
     {width:390,height:844,count:24},
-    {width:1280,height:860,count:24}
+    {width:390,height:844,count:36},
+    {width:1280,height:860,count:24},
+    {width:1280,height:860,count:36}
   ];
   for (const {width,height,count} of cases) {
     const game=Engine.create({players:2,seed:920000+count+width,endgameRule:"classic"});
@@ -290,11 +294,23 @@ async function adaptiveHandFitScenarios(browser) {
         "the action panel may not cover an expanded hand");
       if(width<=390 && count>=16)
         assert.ok(dimensions.hand.rows>=2,"large hands must use compact overlapping rows");
+      // Selecting the last card must not move *other* cards. Positions are
+      // relative to the same hand container, so Playwright scroll-to-click
+      // and visual viewport changes cannot generate false regressions.
+      const stableCard=()=>page.evaluate(()=>{
+        const stage=document.querySelector(".hand-stage").getBoundingClientRect();
+        const rect=document.querySelector(".player-hand .playing-card").getBoundingClientRect();
+        return {x:Math.round(rect.left-stage.left),y:Math.round(rect.top-stage.top)};
+      });
+      const beforeSelect=await stableCard();
       const last=cards.last();
       await last.click({position:{x:8,y:10}});
       assert.equal(await last.getAttribute("aria-pressed"),"true",
         "last hand card can be selected on mobile");
-      if(width===360 && (count===6||count===24)) {
+      await page.waitForTimeout(140);
+      assert.deepEqual(await stableCard(),beforeSelect,
+        "selection must not shake unrelated hand cards: "+JSON.stringify({width,count}));
+      if(width===360 && (count===6||count===24||count===36)) {
         await page.screenshot({
           path:path.resolve(ROOT,"artifacts/next/adaptive-hand-"+width+"-"+count+".png"),
           fullPage:true
