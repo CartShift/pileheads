@@ -719,3 +719,123 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 .move-story-overlay[data-kind="pickup"] .move-story-transfer{
  animation-delay:250ms;animation-duration:1150ms
 }
+
+
+/*
+ * Stable authoritative motion, November 2026.
+ *
+ * A card already exists at its committed destination when the new state
+ * renders. Do NOT fly a second copy of an ordinary played card across it.
+ * Physical feedback is reserved for actual changes to pile ownership/rules.
+ */
+.pile-layer:last-child{
+  animation:stack-pile-settle 220ms ease-out both;
+}
+@keyframes stack-pile-settle{
+  from{opacity:.68;filter:brightness(1.2)}
+  to{opacity:1;filter:brightness(1)}
+}
+/* Selection never animates the grid or shuffles neighbouring hand cards. */
+.player-hand .playing-card,.faceup-row .playing-card{
+  transition:box-shadow 100ms ease-out,filter 100ms ease-out;
+}
+.player-hand .playing-card.is-selected{filter:brightness(1.07)}
+.move-story-stable .move-story-caption{
+  animation:stack-stable-caption 870ms ease-out both;
+}
+.move-story-stable .move-story-sigil{
+  animation:stack-stable-sigil 840ms cubic-bezier(.18,.72,.2,1) both;
+}
+.move-story-stable .move-story-impact{
+  width:112px;height:112px;
+  animation:stack-stable-impact 880ms ease-out both;
+}
+.move-story-stable .move-story-transfer{
+  animation:stack-stable-transfer 600ms 180ms cubic-bezier(.27,.7,.22,1) both;
+}
+.move-story-stable[data-kind="pickup"] .move-story-transfer{
+  animation-delay:80ms;
+}
+.move-story-stable[data-kind="reject"] .move-story-transfer{
+  animation-delay:750ms;animation-duration:470ms;
+}
+.move-story-stable[data-kind="reject"] .move-story-impact{
+  animation:stack-stable-rejection 1110ms ease-out both;
+}
+.move-story-stable[data-kind="reject"] .move-story-sigil{
+  animation:stack-stable-invalid 1250ms ease-out both;
+}
+.move-story-stable[data-kind="reject"] .move-story-caption{
+  animation:stack-stable-invalid-caption 1300ms ease-out both;
+}
+.move-story-flip{
+  position:absolute;z-index:87;translate:-50% -50%;width:clamp(64px,9vw,90px);
+  aspect-ratio:252/355;pointer-events:none;
+  animation:stack-stable-flip 970ms ease-in-out both;
+}
+.move-story-flip .playing-card{width:100%!important;aspect-ratio:252/355}
+.move-story-recipient{
+  position:absolute;z-index:65;translate:-50% -50%;
+  width:62px;height:62px;border-radius:50%;pointer-events:none;
+  border:2px solid var(--story-accent);
+  box-shadow:0 0 18px var(--story-glow);
+  animation:stack-stable-recipient 880ms ease-out both;
+}
+@keyframes stack-stable-caption{
+  0%,10%{opacity:0;transform:translateY(4px)}
+  22%,64%{opacity:1;transform:translateY(0)}
+  100%{opacity:0;transform:translateY(-5px)}
+}
+@keyframes stack-stable-sigil{
+  0%,12%{opacity:0;transform:scale(.58)}
+  34%{opacity:.88;transform:scale(1.07)}
+  65%{opacity:.66;transform:scale(1)}
+  100%{opacity:0;transform:scale(1.24)}
+}
+@keyframes stack-stable-impact{
+  0%,13%{opacity:0;transform:scale(.4)}
+  38%{opacity:.78;transform:scale(1)}
+  100%{opacity:0;transform:scale(1.36)}
+}
+@keyframes stack-stable-rejection{
+  0%,26%{opacity:0;transform:scale(.4)}
+  39%{opacity:.85;transform:scale(1)}
+  49%{opacity:0;transform:scale(1)}
+  60%{opacity:1;transform:scale(1.04)}
+  75%,100%{opacity:0;transform:scale(1.28)}
+}
+@keyframes stack-stable-invalid{
+  0%,30%{opacity:0;transform:scale(.6)}
+  49%,71%{opacity:1;transform:scale(1)}
+  100%{opacity:0;transform:scale(1.26)}
+}
+@keyframes stack-stable-invalid-caption{
+  0%,34%{opacity:0}
+  46%,76%{opacity:1}
+  100%{opacity:0}
+}
+@keyframes stack-stable-flip{
+  0%{opacity:0;transform:perspective(550px) rotateY(90deg) scale(.92)}
+  20%{opacity:1}
+  47%,72%{opacity:1;transform:perspective(550px) rotateY(0) scale(1.02)}
+  95%,100%{opacity:0;transform:perspective(550px) rotateY(-8deg) scale(.9)}
+}
+@keyframes stack-stable-transfer{
+  0%{opacity:0;transform:translate3d(0,0,0) scale(.9)}
+  15%{opacity:1;transform:translate3d(0,0,0) scale(1)}
+  78%{opacity:.95;transform:translate3d(var(--move-x),var(--move-y),0) scale(.84)}
+  100%{opacity:0;transform:translate3d(var(--move-x),var(--move-y),0) scale(.68)}
+}
+@keyframes stack-stable-recipient{
+  0%,20%{opacity:0;transform:scale(.7)}
+  54%{opacity:.75;transform:scale(1)}
+  100%{opacity:0;transform:scale(1.25)}
+}
+@media(prefers-reduced-motion:reduce){
+  .pile-layer:last-child{animation:none!important}
+  .move-story-stable .move-story-impact,.move-story-stable .move-story-transfer,
+  .move-story-stable .move-story-flip,.move-story-stable .move-story-recipient{display:none!important}
+  .move-story-stable .move-story-caption,.move-story-stable .move-story-sigil{
+    animation:none!important;opacity:1!important
+  }
+}

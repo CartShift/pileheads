@@ -95,29 +95,30 @@ function stage(reduced=false,mode=null){
  }
  return{sync:window.PileheadTableFX.sync,captureMove:window.PileheadTableFX.captureMove,movements,flush};
 }
-check('first deal travels from the deck to the human hand and opponent seat',()=>{
+check('initial deal is already present and must not be animated twice',()=>{
  const s=stage();
  s.sync({gameKey:'round-A',identity:'round-A:0',moveNo:0,ownSeat:0,events:[]});
- const cards=s.movements.filter(x=>x.kind==='animate');
- assert.ok(cards.length>=6,'Three cards should travel to every player, not just two');
- assert.ok(cards.every(x=>x.clazz.includes('ph-back')));
+ assert.equal(s.movements.filter(x=>x.kind==='animate').length,0,
+  'initial table should not invent extra card flights over already-dealt hands');
 });
-check('batched place, draw, pickup and DUMP animate sequentially',()=>{
+check('batched remote actions show only the latest real pile transfer',()=>{
  const s=stage();
  s.sync({gameKey:'round-A',identity:'round-A:0',moveNo:0,ownSeat:0,events:[]});
  const events=[
   {type:'play',seat:0,source:'hand',count:2,rank:6,drawnCount:1,move:1},
-  {type:'take',seat:1,count:8,move:2},
+  {type:'take',seat:1,count:8,takenCount:8,move:2},
   {type:'play',seat:0,source:'hand',count:1,action:'dump',target:1,takenCount:6,move:3}
  ];
  s.sync({gameKey:'round-A',identity:'round-A:3',moveNo:3,ownSeat:0,events,turn:0});
  s.flush();
  const animations=s.movements.filter(x=>x.kind==='animate');
- assert.ok(animations.length>=19,'Expect the dealt cards, throw, draw, pickups and dump');
- assert.ok(animations.some(x=>x.clazz.includes('ph-number')));
- assert.ok(animations.some(x=>x.clazz.includes('ph-action')));
- assert.ok(s.movements.some(x=>x.clazz.includes('impact-particles')));
- assert.ok(animations.some(x=>x.frames.length===3&&x.frames[1].offset===.57),'DUMP should pass over the pile');
+ assert.ok(animations.length>=1,'DUMP sends the pile to the chosen recipient');
+ assert.ok(animations.every(x=>!x.clazz.includes('ph-number')&&!x.clazz.includes('ph-action')),
+  'no ghosts for prior played cards, prior pickup or synthetic deck draws');
+ assert.ok(animations.some(x=>x.clazz.includes('ph-back')),
+  'only public pile backs are shown during a transfer');
+ assert.equal(s.movements.filter(x=>x.kind==='append'&&x.clazz.includes('pilehead-cue-fixed')).length,1,
+  'the latest DUMP should have one short cue, not a backlog');
 });
 check('ordinary Classic plays stay silent, including reduced-motion mode',()=>{
  for(const reduced of [false,true]){
@@ -129,7 +130,7 @@ check('ordinary Classic plays stay silent, including reduced-motion mode',()=>{
   assert.equal(s.movements.filter(x=>x.kind==='append'&&x.clazz.includes('pilehead-cue-fixed')).length,0,
    'ordinary play should not spawn a message, even with animations disabled');
   if(reduced)assert.equal(s.movements.filter(x=>x.kind==='animate').length,0);
-  else assert.ok(s.movements.some(x=>x.kind==='animate'),'ordinary card must still physically fly');
+  else assert.equal(s.movements.filter(x=>x.kind==='animate').length,0,'ordinary placed card is already visible, so must not be duplicated');
  }
 });
 check('special Classic move stays clearly named in reduced-motion mode',()=>{
@@ -142,21 +143,21 @@ check('special Classic move stays clearly named in reduced-motion mode',()=>{
  assert.equal(s.movements.filter(x=>x.kind==='append'&&x.clazz.includes('pilehead-cue-fixed')).length,1,
   'a special move needs a concise explanation with reduced motion');
 });
-check('explicit Full Motion can override system reduced-motion preference',()=>{
+check('explicit Full Motion can show a real pile pickup despite system preference',()=>{
  const s=stage(true,'full');
  s.sync({gameKey:'opt-in',identity:'opt-in:0',moveNo:0,ownSeat:0,events:[]});
- assert.ok(s.movements.some(x=>x.kind==='animate'),
-  'a player who explicitly chooses Full Motion should see physical card flights');
+ s.sync({gameKey:'opt-in',identity:'opt-in:1',moveNo:1,ownSeat:0,
+  events:[{type:'take',seat:1,count:5,takenCount:5,move:1}]});
+ assert.ok(s.movements.some(x=>x.kind==='animate'&&x.clazz.includes('ph-back')),
+  'the pile physically travels to the recipient');
 });
-check('exact tapped card is the flight origin, not the center of the hand rail',()=>{
+check('captured hand-card coordinates never generate a fake second card',()=>{
  const s=stage();
  s.sync({gameKey:'round-T',identity:'round-T:0',moveNo:0,ownSeat:0,events:[]});
  s.captureMove({gameKey:'round-T',seat:0,moveNo:1,move:{type:'play',source:'hand',ids:[12]}});
  s.sync({gameKey:'round-T',identity:'round-T:1',moveNo:1,ownSeat:0,
   events:[{type:'play',seat:0,source:'hand',count:1,rank:7,move:1}]});
- const thrown=s.movements.find(x=>x.kind==='animate'&&x.clazz.includes('ph-number'));
- assert.ok(thrown,'The selected card should animate from its touched location');
- assert.ok(Number.parseFloat(thrown.origin.left)<50,'The flight must originate beside the touched card');
+ assert.equal(s.movements.filter(x=>x.kind==='animate'&&x.clazz.includes('ph-number')).length,0);
 });
 check('same revision cannot animate the same event twice',()=>{
  const s=stage();
@@ -167,11 +168,15 @@ check('same revision cannot animate the same event twice',()=>{
  s.sync({gameKey:'round-X',identity:'round-X:1',moveNo:1,ownSeat:0,events:[event]});
  assert.equal(s.movements.filter(x=>x.kind==='animate').length,before);
 });
-check('motion presets support quick and off without breaking gameplay',()=>{
+check('motion quick/off presets apply to real pile transfers',()=>{
  const full=stage(),quick=stage(false,'quick'),off=stage(false,'off');
- for(const s of [full,quick,off])s.sync({gameKey:'round-Q',identity:'round-Q:0',moveNo:0,ownSeat:0,events:[]});
- const fullAnim=full.movements.find(x=>x.kind==='animate');
- const quickAnim=quick.movements.find(x=>x.kind==='animate');
+ for(const s of [full,quick,off]){
+  s.sync({gameKey:'round-Q',identity:'round-Q:0',moveNo:0,ownSeat:0,events:[]});
+  s.sync({gameKey:'round-Q',identity:'round-Q:1',moveNo:1,ownSeat:0,
+   events:[{type:'take',seat:1,count:4,takenCount:4,move:1}]});
+ }
+ const fullAnim=full.movements.find(x=>x.kind==='animate'&&x.clazz.includes('ph-back'));
+ const quickAnim=quick.movements.find(x=>x.kind==='animate'&&x.clazz.includes('ph-back'));
  assert.ok(fullAnim&&quickAnim);
  assert.ok(quickAnim.options.duration<fullAnim.options.duration);
  assert.equal(off.movements.filter(x=>x.kind==='animate').length,0);
@@ -204,15 +209,15 @@ check('legacy two-player SKIP remains visible while fresh two-seat games omit it
  assert.equal(g.turn,0);
  engine.invariant(g);
 });
-check('turn focus moves to the next player only after the card flight',()=>{
+check('turn focus highlights the authoritative next player without duplicate flights',()=>{
  const s=stage();
  s.sync({gameKey:'turn-A',identity:'turn-A:0',moveNo:0,ownSeat:0,events:[]});
  s.sync({gameKey:'turn-A',identity:'turn-A:1',moveNo:1,ownSeat:0,turn:1,
   events:[{type:'play',seat:0,source:'hand',rank:8,count:1,move:1}]});
  const before=s.movements.filter(x=>x.kind==='animate'&&x.where==='opponent-hand').length;
- assert.equal(before,0,'Do not announce the next turn while the throw is airborne');
+ assert.equal(before,0,'Do not animate arbitrary next-seat cards before state settles');
  s.flush();
  const after=s.movements.filter(x=>x.kind==='animate'&&x.where==='opponent-hand').length;
- assert.ok(after>before,'The next player should be highlighted after the throw resolves');
+ assert.ok(after>before,'Next player is subtly highlighted after the table has settled');
 });
 console.log('PILEHEAD physical motion: '+checks+' groups passed');
