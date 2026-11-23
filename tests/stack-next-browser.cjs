@@ -628,6 +628,7 @@ async function sharedMoveAnimationScenarios(browser) {
   const page=await context.newPage();
   try{
    await page.goto(WEB+"/play");
+   await page.bringToFront();
    await page.getByRole("button",{name:"Resume game"}).click();
    await page.getByRole("button",{name:new RegExp("^"+action.toUpperCase()+":")}).click();
    // Observe before committing. The semantic cue is intentionally short and
@@ -639,6 +640,7 @@ async function sharedMoveAnimationScenarios(browser) {
      const diagnostic = await page.evaluate(() => {
        const saved = JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game;
        return {
+         visibility: document.visibilityState,
          savedPhase: saved?.phase, savedMove: saved?.moves,
          savedLastEvent: saved?.events?.at(-1),
          visibleMove: document.querySelector(".game-meta h1")?.textContent,
