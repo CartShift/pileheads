@@ -8,7 +8,14 @@ import { createPortal } from "react-dom";
 import { playSound } from "../lib/sound";
 import MoveTheater, { type MotionLevel } from "./move-theater";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
-const MotionAudio = require("../lib/motion-core.cjs") as { fromCommittedEvent: (event: Event) => { kind: string; destination: string | null } | null };
+const MotionAudio = require("../lib/motion-core.cjs") as {
+  fromCommittedEvent: (event: Event) => { kind: string; destination: string | null } | null;
+  advanceSoundCursor: (
+    prior: { key: string; move: number },
+    snapshot: { gameKey: string; moveNo: number; phase: string; event?: Event;
+      enabled: boolean; visible: boolean }
+  ) => { cursor: { key: string; move: number }; shouldPlay: boolean };
+};
 import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame, type Reaction } from "../lib/room";
 
 type Mode = "home" | "local" | "online";
@@ -285,7 +292,7 @@ export default function GameTable() {
   const wsRef = useRef<WebSocket | null>(null);
   const undoRef = useRef<Game | null>(null);
   const roomEpoch = useRef(0);
-  const lastSoundEvent = useRef<string | null>(null);
+  const soundCursor = useRef({key:"",move:0});
   // A successful blind flip animates only on a *new committed move*, never when
   // resuming an old local game or reconnecting to an existing online room.
   const blindMotionCursor = useRef({ key: "", move: 0 });
@@ -647,11 +654,14 @@ export default function GameTable() {
     height: `${cardHeight + Math.max(0, handRows - 1) * handRowStep}px`
   };
   const lastEvent = g?.events.at(-1);
-  const soundEventId = lastEvent ? String(g?.round || 1) + ":" +
-    lastEvent.move + ":" + lastEvent.seat + ":" + lastEvent.type : null;
   useEffect(() => {
-    if (!soundEventId) { lastSoundEvent.current = null; return; }
-    if (lastSoundEvent.current !== null && lastSoundEvent.current !== soundEventId && soundEnabled) {
+    const decision = MotionAudio.advanceSoundCursor(soundCursor.current, {
+      gameKey: visualGameKey, moveNo: g?.moves ?? 0,
+      phase: g?.phase || "home", event: lastEvent,
+      enabled: soundEnabled, visible: document.visibilityState === "visible"
+    });
+    soundCursor.current = decision.cursor;
+    if (decision.shouldPlay && lastEvent) {
       const cue = lastEvent ? MotionAudio.fromCommittedEvent(lastEvent) : null;
       if (g?.phase === "over") playSound("win");
       else if (cue?.kind === "slam" || (lastEvent?.type === "followup" && lastEvent.burned))
@@ -666,8 +676,8 @@ export default function GameTable() {
       else if (cue?.kind === "skip") playSound("skip");
       else playSound("play");
     }
-    lastSoundEvent.current = soundEventId;
-  }, [soundEventId, soundEnabled, g?.phase, lastEvent?.reason, lastEvent?.burned, lastEvent?.type]);
+  }, [visualGameKey, g?.moves, g?.phase, soundEnabled,
+    lastEvent?.move, lastEvent?.seat, lastEvent?.reason, lastEvent?.burned, lastEvent?.type]);
   const stage = current ? current.handCount || g?.stockCount ? "hand" :
     current.up.length ? "up" : current.downCount ? "down" : "out" : "out";
   const active = g?.phase === "play" && g.turn === me && !g.pendingDump;
