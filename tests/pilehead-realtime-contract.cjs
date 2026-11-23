@@ -11,6 +11,7 @@ for(const [path,source] of Object.entries({api,server,hub,live,online}))
 const pkg=JSON.parse(read('package.json'));
 assert.equal(pkg.dependencies.ws,'8.23.0');
 assert.match(server,/attachRealtime\(server,roomHandler\)/);
+assert.match(server,/RENDER_GIT_COMMIT/,'Render revision must be publicly checkable without secrets');
 assert.match(server,/liveHub\.pushRevision/);
 assert.match(server,/liveHub\.pushReaction/);
 assert.match(hub,/maxPayload:1024,perMessageDeflate:false/);
