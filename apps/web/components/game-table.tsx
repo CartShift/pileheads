@@ -146,7 +146,11 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
     if (!start) return;
     gesture.current = null; setFloating(null);
     if (!start.moved) return;
+    // Pointer capture sends the mouseup to this card even when it was
+    // released over the pile. Suppress only the synthetic click generated
+    // by this drag; never swallow the player's next intentional tap.
     blockClick.current = true;
+    window.setTimeout(() => { blockClick.current = false; }, 0);
     if (document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-drop-target="pile"]'))
       onDrop?.();
   }
@@ -167,7 +171,10 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
           onPointerUp={pointerUp}
           onPointerCancel={() => { gesture.current = null; setFloating(null); }}
           onClick={e => {
-            if (blockClick.current) { blockClick.current = false; e.preventDefault(); return; }
+            if (blockClick.current && e.detail !== 0) {
+              blockClick.current = false; e.preventDefault(); return;
+            }
+            blockClick.current = false;
             onClick();
           }} />
       ) : null}
@@ -833,12 +840,24 @@ export default function GameTable() {
     if (!showRules && !showSettings && !confirmRestart && !pileOpen) return;
     const previous = document.activeElement as HTMLElement | null;
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
-    const buttons = [...(dialog?.querySelectorAll<HTMLButtonElement>("button:not(:disabled)") || [])];
-    buttons[0]?.focus();
+    // Include native inputs, selects, links and any enabled custom control.
+    // Trapping only buttons silently excluded Motion, Sound and Final Duel
+    // settings from the expected keyboard traversal order.
+    const focusables = () => [...(dialog?.querySelectorAll<HTMLElement>(
+      'a[href],button:not(:disabled),input:not(:disabled),select:not(:disabled),' +
+      'textarea:not(:disabled),[tabindex]:not([tabindex="-1"])') || [])]
+      .filter(el => el.getClientRects().length > 0 &&
+        el.getAttribute("aria-hidden") !== "true");
+    focusables()[0]?.focus();
     const trap = (event: KeyboardEvent) => {
-      if (event.key !== "Tab" || !buttons.length) return;
-      const first = buttons[0], last = buttons[buttons.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
+      if (event.key !== "Tab") return;
+      const elements = focusables();
+      if (!elements.length) return;
+      const first = elements[0], last = elements[elements.length - 1];
+      if (!dialog?.contains(document.activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
         event.preventDefault(); last.focus();
       } else if (!event.shiftKey && document.activeElement === last) {
         event.preventDefault(); first.focus();
