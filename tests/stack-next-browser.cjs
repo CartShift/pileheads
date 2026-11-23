@@ -667,7 +667,7 @@ async function sharedMoveAnimationScenarios(browser) {
    });
    assert.match(measured.animation,/stack-stable-(sigil|ghost|reset)/,
      "effect markers should be short and bound to the real table");
-   assert.match(measured.caption,new RegExp(action.toUpperCase(),"i"));
+   assert.match(measured.caption,action==="under"?/^1–4$/:new RegExp(action.toUpperCase(),"i"));
    assert.ok(measured.caption.length<=6,"effect cue contains no instructional prose");
    if(["burn","dump"].includes(action)){
      assert.ok(measured.hasTransfer,action+" should move the public pile");
