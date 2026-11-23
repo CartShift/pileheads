@@ -630,9 +630,12 @@ async function sharedMoveAnimationScenarios(browser) {
    await page.goto(WEB+"/play");
    await page.getByRole("button",{name:"Resume game"}).click();
    await page.getByRole("button",{name:new RegExp("^"+action.toUpperCase()+":")}).click();
-   await page.getByRole("button",{name:/Play cards/}).click();
+   // Observe before committing. The semantic cue is intentionally short and
+   // must never be extended just to satisfy a slower headless test runner.
    const theater=page.locator('.move-story-overlay[data-kind="'+action+'"]');
-   await theater.waitFor({timeout:6000});
+   const observed=theater.waitFor({timeout:6000});
+   await page.getByRole("button",{name:/Play cards/}).click();
+   await observed;
    assert.equal(await theater.locator(".move-story-flight").count(),0,
      "the committed action card is already on the table");
    const measured=await theater.evaluate(el=>{
