@@ -668,7 +668,7 @@ async function onlineMixedSeatScenarios(browser) {
         assert.equal(state.me,expectedSeat,"each browser keeps its own human seat");
         assert.equal(state.game.players.length,seats);
         assert.equal(state.game.botSeats.length,seats-2);
-        assert.equal(state.game.players[expectedSeat].hand.length>=0,true,
+        assert.ok(Array.isArray(state.game.players[expectedSeat].hand),
           "only the own hand is visible");
         for(const player of state.game.players.filter(p=>p.seat!==expectedSeat)){
           assert.equal(player.hand,undefined,
