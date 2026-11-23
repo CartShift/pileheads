@@ -37,7 +37,7 @@ permissions:
   contents: read
 jobs:
   test:
-    name: STACK fast: engine, API, types and Classic
+    name: 'STACK fast: engine, API, types and Classic'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
