@@ -206,7 +206,7 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
           <div className="card-art" style={cardFaceStyle(scene.reveal)} />
         </div>
       </div>}
-      {scene.erodedTo && <div className="move-story-erosion"
+      {scene.erodedTo && <div className="move-story-erosion" data-kind="erosion"
         style={flightVector(scene.from, scene.erodedTo)} aria-hidden="true">
         <div className={"playing-card is-back theme-" + theme}><div className="card-art" /></div>
         <b>×{scene.erodedCount}</b>
