@@ -23,7 +23,7 @@ The 54-card deck has 40 number cards (1–10, four of each) and six kinds of act
 - **Classic tabletop:** a mobile-friendly, tactile card table with solo bots, local play and online rooms.
 - **React tabletop:** an alternative Next.js/TypeScript interface with event-driven motion and responsive presentation.
 - **Private multiplayer:** 2–5 seats, with supported human/bot combinations, private hand information, reconnect and same-room rematches.
-- **Physical playtesting:** deck gallery, printable cards and a facilitator-oriented playtest kit.
+- **Official playtest kit:** [printable rules and facilitator materials](dist/pilehead/playtest.html), deck gallery, printable cards and local-only playtest feedback.
 - **Game balance lab:** deterministic simulations for exploring rules and endgame behavior.
 
 ## Why it's an engineering project
