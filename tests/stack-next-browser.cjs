@@ -808,6 +808,75 @@ async function abandonedRoomScenario(browser) {
   }
 }
 
+
+/**
+ * Real React-browser parity: a bot can interrupt on a human turn, and
+ * SNAP that completes a four-card run must communicate the resulting BURN.
+ * Inject full valid engine states via localStorage, not synthetic UI events.
+ */
+async function localInterruptParityScenarios(browser) {
+  const E=require("../dist/pilehead/engine.js");
+  const rankCards=rank=>E.deck().filter(c=>c.kind==="number"&&c.rank===rank);
+  const transfer=(g,id,to)=>{
+    const zones=[g.stock,g.pile,g.ashes,...g.people.flatMap(p=>[p.hand,p.up,p.down])];
+    const from=zones.find(zone=>zone.some(c=>c.id===id));
+    assert.ok(from,"card must exist: "+id);
+    if(from===to)return;
+    to.push(from.splice(from.findIndex(c=>c.id===id),1)[0]);
+  };
+  const open=seed=>{
+    const g=E.create({players:2,seed});
+    E.autoSetup(g,1);E.start(g);g.turn=0;
+    return g;
+  };
+  async function runSaved(game,exercise) {
+    E.invariant(game);
+    const context=await browser.newContext({viewport:{width:390,height:844},
+      isMobile:true,hasTouch:true,reducedMotion:"reduce"});
+    const page=await context.newPage();
+    await page.addInitScript(serialized=>{
+      localStorage.setItem("stack-next-local-save-v1",serialized);
+    },JSON.stringify({version:1,game}));
+    try{
+      await page.goto(WEB+"/play");
+      await page.getByRole("button",{name:"Resume game"}).click();
+      await exercise(page);
+    }finally{await context.close()}
+  }
+  const slam=open(2026112301);
+  for(const card of rankCards(7))transfer(slam,card.id,slam.people[1].hand);
+  const filler=slam.stock.find(c=>c.kind==="number"&&c.rank!==7);
+  assert.ok(filler);
+  transfer(slam,filler.id,slam.pile);
+  slam.slamOpen=false;slam.turn=0;
+  assert.ok(E.slamOptions(slam,1).length,"bot has an off-turn four-of-kind");
+  await runSaved(slam,async page=>{
+    await page.waitForFunction(()=>
+      JSON.parse(localStorage.getItem("stack-next-local-save-v1")||"null")
+        ?.game?.events?.some(e=>e.type==="slam"&&e.seat===1),
+      null,{timeout:5500});
+    const committed=await readGame(page);
+    assert.ok(committed.ashes.length>0,"off-turn bot SLAM burns the pile");
+  });
+  const snap=open(2026112302);
+  const cards=rankCards(6);
+  for(const card of cards.slice(0,3))transfer(snap,card.id,snap.pile);
+  transfer(snap,cards[3].id,snap.people[0].hand);
+  snap.turn=1;snap.slamOpen=true;
+  snap.followUp={seat:0,rank:6,ids:[cards[3].id]};
+  assert.equal(E.followUpOptions(snap,0).length,1);
+  await runSaved(snap,async page=>{
+    await page.getByRole("button",{name:"SNAP"}).click();
+    const theater=page.locator('.move-story-overlay[data-kind="burn"]');
+    await theater.waitFor({timeout:3000});
+    assert.match(await theater.innerText(),/SNAP \+ BURN/);
+    const committed=await readGame(page);
+    assert.equal(committed.events.at(-1).burned,true);
+    assert.equal(committed.pile.length,0,"four-number SNAP must clear pile");
+  });
+  console.log("PASS React parity: off-turn bot SLAM and four-card SNAP burn feedback");
+}
+
 async function main() {
   fs.mkdirSync(path.resolve(ROOT, "artifacts/next"), {recursive:true});
   const apiProc = fork(path.resolve(ROOT, "scripts/render-server.cjs"), [], {
@@ -841,6 +910,7 @@ async function main() {
     await seatLayoutScenarios(browser);
     await adaptiveHandFitScenarios(browser);
     await guidedPracticeScenario(browser);
+    await localInterruptParityScenarios(browser);
     await onlineScenarios(browser, apiProc);
     await sharedMoveAnimationScenarios(browser);
     await mixedBotScenarios(browser);
