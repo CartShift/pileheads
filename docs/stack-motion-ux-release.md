@@ -7,7 +7,7 @@
 - **Production Classic:** `/pilehead/index.html`. Preserve all engine, room, card-face, and responsiveness contracts.
 - **React tabletop:** `/play`. New event-driven animations, motion preferences, explicit rule marker and optional sound.
 - **Backend:** existing single Node/Render deployment, no new game authority, no added service or database mutation.
-- **Experiment:** legacy 3D beta does not participate in this change and is not needed for release.
+- **Legacy 3D beta:** retired independently on main. This release must not restore its files, routes or WebGL dependencies.
 
 ## Hard invariants
 
