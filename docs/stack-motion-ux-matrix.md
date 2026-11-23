@@ -13,7 +13,7 @@
 5. Round, room, game seed, move number, viewport and visibility changes invalidate stale overlays. On cancellation, the real table remains playable and correct.
 6. The app obeys OS reduced motion; the separate user setting may reduce further. Neither changes game outcomes.
 7. All browser accessibility/status text is independent of any animation duration.
-8. Classic is not modified as a side effect of the React presentation refactor. 3D beta stays opt-in.
+8. Classic is not modified as a side effect of this React presentation refactor. The legacy Three.js beta has since been retired independently on main.
 
 ## Physical outcome matrix
 
@@ -55,7 +55,7 @@
 | OS prefers-reduced-motion | System reduction wins even if local Full is selected |
 | Slow network / reconnect | Old event queue never plays, no duplicated sound |
 | Two real devices | Actor and recipient positions are correct from *each* spectator's perspective |
-| 3D beta | Its experimental renderer is not changed or required for 2D production ship |
+| Retired 3D beta | This 2D release must not restore removed Three.js assets or WebGL requirements |
 
 ## Automated tests
 
