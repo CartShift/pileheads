@@ -34,6 +34,8 @@ assert.equal(cue({action:"dump",target:2,takenCount:0}).hasTransfer,false,
 assert.equal(cue({type:"take",count:1,takenCount:0,erodedCount:1}).hasTransfer,false,
   "Final Duel pickup with only one card burns, never transfers");
 assert.equal(cue({type:"take",count:1,takenCount:0,erodedCount:1}).erodedCount,1);
+assert.ok(cue({type:"take",count:3,takenCount:2,erodedCount:1}).duration>=800,
+  "Final Duel one-card erosion and remaining transfer must both finish visibly");
 assert.equal(cue({type:"followup",reason:"snap",burned:true,burnedCount:10}).destination,"ashes",
   "SNAP that completes four actually burns the pile");
 assert.equal(cue({type:"followup",reason:"snap",burned:true,burnedCount:10}).kind,"burn");
