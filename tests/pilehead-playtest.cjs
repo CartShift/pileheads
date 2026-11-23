@@ -35,8 +35,8 @@ assert.doesNotThrow(()=>new vm.Script(scripts[0][1]),'Playtest inline JS must pa
 assert.match(index,/href="playtest\.html">Playtest kit/);
 assert.match(print,/href="playtest\.html">Playtest rules/);
 assert.match(vercel,/'playtest\.html'/,'Vercel build must include playtest.html');
-assert.match(readme,/Physical playtesting:[^\n]*playtest kit/i,
-  "The maintained README must link physical playtesting to the actual facilitator kit");
+assert.match(readme,/facilitator-oriented playtest kit\]\(https:\/\/[^)]+\/pilehead\/playtest\.html\)/i,
+  "The maintained README must link to the actual hosted facilitator kit");
 assert.match(protocol,/Default OFF/,'Experimental rule must not silently affect canonical play');
 assert.match(protocol,/no personal/i,'Playtest scorecard must avoid PII');
 assert.match(design,/v1\.7 Final Duel, revised 2026-11-22/,'Current playtest rules must identify the v1.7 release');
