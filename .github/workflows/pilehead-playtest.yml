@@ -2,19 +2,6 @@ name: STACK fast checks
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
-    paths:
-      - '.github/workflows/**'
-      - 'api/**'
-      - 'apps/web/**'
-      - 'dist/**'
-      - 'docs/**'
-      - 'scripts/**'
-      - 'tests/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'README.md'
-      - 'render.yaml'
-      - 'vercel.json'
   push:
     branches: [main]
     paths:
