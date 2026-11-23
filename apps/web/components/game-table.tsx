@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { playSound } from "../lib/sound";
-import MoveTheater from "./move-theater";
+import MoveTheater, { type MotionLevel } from "./move-theater";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
 import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame, type Reaction } from "../lib/room";
 
@@ -211,6 +211,7 @@ export default function GameTable() {
   const handStageRef = useRef<HTMLDivElement | null>(null);
   const [handArea, setHandArea] = useState({ width: 0, cardWidth: 0 });
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [motionLevel, setMotionLevel] = useState<MotionLevel>("balanced");
   const [endgameRule, setEndgameRule] = useState<EndgameRule>("classic");
   const [pendingRule, setPendingRule] = useState<EndgameRule | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -228,6 +229,29 @@ export default function GameTable() {
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [reactionClock, setReactionClock] = useState(0);
+  // Presentation preference is local-only; never part of multiplayer game state.
+  useEffect(() => {
+    try {
+      const value = localStorage.getItem("stack-motion-level-v1");
+      if (value === "full" || value === "balanced" || value === "reduced")
+        setMotionLevel(value);
+    } catch {}
+  }, []);
+  const changeMotionLevel = (next: MotionLevel) => {
+    setMotionLevel(next);
+    try { localStorage.setItem("stack-motion-level-v1", next); } catch {}
+  };
+  const motionSetting = <label className="motion-setting">
+    <strong>Motion & effects</strong>
+    <select aria-label="Motion and effects" value={motionLevel}
+      onChange={event => changeMotionLevel(event.target.value as MotionLevel)}>
+      <option value="balanced">Balanced (recommended)</option>
+      <option value="full">Full effects</option>
+      <option value="reduced">Reduced motion</option>
+    </select>
+    <small>Only confirmed actions produce effects. System reduced-motion preferences always take priority.</small>
+  </label>;
+
   const inFlight = useRef(false);
   const roomRef = useRef<Room | null>(null);
   const tokenRef = useRef<string | null>(null);
@@ -885,6 +909,7 @@ export default function GameTable() {
             <span><strong>Final Duel</strong><small>Optional: with two players left and no draw cards,
               every pile pickup burns the visible top card. Off by default.</small></span>
           </label>
+          {motionSetting}
           <button className="primary-button" onClick={() => setShowSettings(false)}>Done</button>
         </section>
       </div>}
@@ -952,7 +977,7 @@ export default function GameTable() {
       <MoveTheater gameKey={mode === "local" ? "local:" + local?.seed :
         "online:" + room?.code + ":" + g.round}
         moveNo={g.moves} phase={g.phase} events={g.events} blindReveal={g.blindReveal} me={me}
-        theme={deckTheme} nameForSeat={nameForSeat} />
+        theme={deckTheme} nameForSeat={nameForSeat} motionLevel={motionLevel} />
       <div className="tabletop" role="region" aria-label="STACK card game">
         <div className="table-texture" aria-hidden="true" />
         <div className="opponents-row">
@@ -991,7 +1016,9 @@ export default function GameTable() {
                 </div>)}
               {!g.pile.length && <div className="slot-empty">Pile clear</div>}
             </div>
-            <span className="pile-counter">{g.pile.length} cards · {rule}</span>
+            {g.limit && <span className="pile-rule-marker" data-rule={g.limit.type}
+                aria-label={rule}>{g.limit.type === "under" ? "1–4" : "≥ " + g.limit.value}</span>}
+              <span className="pile-counter">{g.pile.length} cards{g.limit ? "" : " · Any number can follow"}</span>
              <button type="button" className="react-pile-inspect" disabled={!g.pile.length}
                onClick={() => setPileOpen(true)}>Inspect pile</button>
           </div>
@@ -1167,6 +1194,7 @@ export default function GameTable() {
               permanently burns its visible top card. Disabled by default.
             </small></span>
           </label>
+          {motionSetting}
           <p className="settings-hint">{g.phase !== "setup"
             ? "Rules are locked once the round begins. The setting stays the same for rematches."
             : mode === "online" && !room?.host
