@@ -816,6 +816,9 @@ async function sharedMoveAnimationScenarios(browser) {
        caption:caption.textContent,hasTransfer:!!transfer,
        transferAnimation:transfer?getComputedStyle(transfer).animationName:null};
    });
+   await page.screenshot({
+     path:path.resolve(ROOT,"artifacts/next/motion-"+action+"-390.png"),fullPage:true
+   });
    assert.match(measured.animation,/stack-stable-(sigil|ghost|reset)/,
      "effect markers should be short and bound to the real table");
    assert.match(measured.caption,action==="under"?/^1–4$/:new RegExp(action.toUpperCase(),"i"));
@@ -903,6 +906,9 @@ async function sharedMoveAnimationScenarios(browser) {
   const scene=blindPage.locator('.move-story-overlay[data-kind="reject"]');
   await scene.waitFor({timeout:6000});
   assert.equal(await scene.locator(".move-story-flight").count(),0);
+  await blindPage.screenshot({
+    path:path.resolve(ROOT,"artifacts/next/motion-blind-reject-390.png"),fullPage:true
+  });
   assert.equal(await scene.locator(".move-story-flip .playing-card:not(.is-back)").count(),1,
     "the real face is publicly revealed once on the central pile");
     const late=await scene.locator(".move-story-transfer").evaluate(el=>
@@ -1102,6 +1108,9 @@ async function localInterruptParityScenarios(browser) {
     const theater=page.locator('.move-story-overlay[data-kind="burn"]');
     await theater.waitFor({timeout:3000});
     assert.match(await theater.innerText(),/SNAP \+ BURN/);
+    await page.screenshot({
+      path:path.resolve(ROOT,"artifacts/next/motion-snap-burn-390.png"),fullPage:true
+    });
     const committed=await readGame(page);
     assert.equal(committed.events.at(-1).burned,true);
     assert.equal(committed.pile.length,0,"four-number SNAP must clear pile");
@@ -1114,6 +1123,10 @@ async function localInterruptParityScenarios(browser) {
   await runSaved(duel,async page=>{
     await page.getByRole("button",{name:"Take pile"}).click();
     await page.locator('.move-story-erosion[data-kind="erosion"]').waitFor({state:"attached",timeout:3000});
+    await page.screenshot({
+      path:path.resolve(ROOT,"artifacts/next/motion-final-duel-erosion-390.png"),
+      fullPage:true
+    });
     const committed=await readGame(page);
     assert.equal(committed.events.at(-1).erodedCount,1);
     assert.equal(committed.ashes.length,duel.ashes.length+1);
