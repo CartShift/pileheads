@@ -86,6 +86,23 @@ async function endgameSettingsAndBridge(browser) {
     await regular.getByRole("button",{name:"Game settings"}).click();
     const settings=regular.getByRole("dialog",{name:"Game settings"});
     const input=settings.getByRole("checkbox",{name:/Final Duel/i});
+    // A real keyboard user must reach the rule toggle and select box,
+    // not get trapped in a loop containing only modal buttons.
+    assert.equal(await input.evaluate(el=>document.activeElement===el),true,
+      "modal initially focuses first usable control");
+    await regular.keyboard.press("Tab");
+    const motionSelect=settings.getByRole("combobox",{name:"Motion and effects"});
+    assert.equal(await motionSelect.evaluate(el=>document.activeElement===el),true,
+      "Tab reaches the motion setting after the Final Duel checkbox");
+    const done=settings.getByRole("button",{name:"Done"});
+    await done.focus();
+    await regular.keyboard.press("Tab");
+    assert.equal(await input.evaluate(el=>document.activeElement===el),true,
+      "Tab cycles from the last modal action to its first control");
+    await regular.keyboard.press("Shift+Tab");
+    assert.equal(await done.evaluate(el=>document.activeElement===el),true,
+      "Shift+Tab cycles from first control to last modal action");
+    await input.focus();
     assert.equal(await input.isChecked(),false,"Final Duel defaults OFF in clean local storage");
     await input.check();
     await settings.getByRole("button",{name:"Done"}).click();
@@ -173,6 +190,18 @@ async function localScenarios(browser) {
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves === 0
       );
+      // Releasing an actual captured-pointer drag outside the pile must
+      // neither commit a move nor consume the next intentional tap.
+      const cancellable=page.locator('.player-hand .card-hit:not([aria-label^="DUMP"])').first();
+      await cancellable.dragTo(page.locator(".game-header .logo"), {timeout:10000});
+      assert.equal((await readGame(page)).moves,0,
+        "a missed drop cannot commit an out-of-bounds move");
+      await cancellable.click();
+      assert.equal(await cancellable.getAttribute("aria-pressed"),"true",
+        "the next real tap must not be swallowed by the cancelled drag");
+      await cancellable.click();
+      assert.equal(await cancellable.getAttribute("aria-pressed"),"false",
+        "subsequent taps retain normal selection behavior");
       await page.getByRole("button", { name: "Rules" }).click();
       await page.getByRole("dialog", { name: "STACK quick rules" }).waitFor();
       assert.ok(await page.getByText("Final Duel:", { exact: false }).count(), "rules explain duel");
