@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { playSound } from "../lib/sound";
 import MoveTheater, { type MotionLevel } from "./move-theater";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
+const MotionAudio = require("../lib/motion-core.cjs") as { fromCommittedEvent: (event: Event) => { kind: string; destination: string | null } | null };
 import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame, type Reaction } from "../lib/room";
 
 type Mode = "home" | "local" | "online";
@@ -604,12 +605,18 @@ export default function GameTable() {
   useEffect(() => {
     if (!soundEventId) { lastSoundEvent.current = null; return; }
     if (lastSoundEvent.current !== null && lastSoundEvent.current !== soundEventId && soundEnabled) {
+      const cue = lastEvent ? MotionAudio.fromCommittedEvent(lastEvent) : null;
       if (g?.phase === "over") playSound("win");
-      else if (lastEvent?.reason === "burn" || lastEvent?.burned) playSound("burn");
-      else if (lastEvent?.reason === "snap" || lastEvent?.type === "followup" ||
-        lastEvent?.type === "slam") playSound("snap");
-      else if (lastEvent?.type === "take" || lastEvent?.type === "blind-fail" ||
-        lastEvent?.reason === "dump") playSound("take");
+      else if (cue?.kind === "slam" || (cue?.kind === "snap" && cue.destination === "ashes"))
+        playSound("slam");
+      else if (cue?.kind === "burn") playSound("burn");
+      else if (cue?.kind === "snap") playSound("snap");
+      else if (cue?.kind === "pickup" || cue?.kind === "reject") playSound("take");
+      else if (cue?.kind === "dump") playSound("dump");
+      else if (cue?.kind === "reset") playSound("reset");
+      else if (cue?.kind === "ghost") playSound("ghost");
+      else if (cue?.kind === "under") playSound("under");
+      else if (cue?.kind === "skip") playSound("skip");
       else playSound("play");
     }
     lastSoundEvent.current = soundEventId;
@@ -910,6 +917,13 @@ export default function GameTable() {
               every pile pickup burns the visible top card. Off by default.</small></span>
           </label>
           {motionSetting}
+          <label className="rule-toggle">
+            <input type="checkbox" checked={soundEnabled} onChange={event => {
+              setSoundEnabled(event.target.checked);
+              if (event.target.checked) playSound("select");
+            }} />
+            <span><strong>Sound feedback</strong><small>Original short effects, off until you opt in.</small></span>
+          </label>
           <button className="primary-button" onClick={() => setShowSettings(false)}>Done</button>
         </section>
       </div>}
@@ -1195,6 +1209,13 @@ export default function GameTable() {
             </small></span>
           </label>
           {motionSetting}
+          <label className="rule-toggle">
+            <input type="checkbox" checked={soundEnabled} onChange={event => {
+              setSoundEnabled(event.target.checked);
+              if (event.target.checked) playSound("select");
+            }} />
+            <span><strong>Sound feedback</strong><small>Original short effects, off until you opt in.</small></span>
+          </label>
           <p className="settings-hint">{g.phase !== "setup"
             ? "Rules are locked once the round begins. The setting stays the same for rematches."
             : mode === "online" && !room?.host
