@@ -46,8 +46,12 @@ function chooseKind(event) {
 function fromCommittedEvent(event) {
   if (!event || !Number.isSafeInteger(event.move) || event.move < 0 ||
       !Number.isSafeInteger(event.seat) || event.seat < 0) return null;
-  const kind = chooseKind(event);
-  if (!kind) return null;
+  const selected = chooseKind(event);
+  if (!selected) return null;
+  // Completing four with SNAP *is a burn*. Preserve the interrupt's identity
+  // in the cue label, but use the actual ash-transfer choreography.
+  const snapBurn = selected === "snap" && event.burned === true;
+  const kind = snapBurn ? "burn" : selected;
   const spec = EFFECTS[kind];
 
   // An actual burn takes precedence over the name of an interrupt.
@@ -70,7 +74,7 @@ function fromCommittedEvent(event) {
     ? (validCount(event.erodedCount) ?? 0) : 0;
 
   return Object.freeze({
-    kind, label: spec.label, symbol: spec.symbol, duration: spec.duration,
+    kind, label: snapBurn ? "SNAP + BURN" : spec.label, symbol: spec.symbol, duration: spec.duration,
     accent: spec.accent, actor: event.seat,
     recipient: Number.isSafeInteger(recipient) ? recipient : null,
     // event.target for SKIP is the seat *being skipped*, not the new turn.
