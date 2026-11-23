@@ -352,6 +352,12 @@ function choose(g,seat,style='greedy'){
      return withBotTarget(g,seat,picks[Math.floor(random(g)*sample)]);
    }
  }
+ // A bot must not read the faces of physical down cards when selecting a slot.
+ // Use seeded randomness over positions, independently of hidden rank/action.
+ if(stage(g,seat)==='down'){
+  const blind=opts.filter(o=>o.type==='play'&&o.source==='down');
+  if(blind.length)return blind[Math.floor(random(g)*blind.length)];
+ }
  const p=g.people[seat],score=o=>{
   if(o.type==='take')return -1000;
   const c=p[o.source].find(x=>x.id===o.ids[0]);

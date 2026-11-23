@@ -345,6 +345,22 @@ test('automatic SLAM catches four of a kind even when the top run is closed',()=
  assert.equal(E.autoSlam(empty),null,'no SLAM on an empty pile');
 });
 
+test('bots select face-down positions without inspecting hidden card values',()=>{
+ for(let seed=1;seed<=32;seed++){
+  const g=E.create({seed,players:2});
+  E.start(g);
+  g.ashes.push(...g.stock.splice(0),...g.people[0].hand.splice(0),...g.people[0].up.splice(0));
+  E.invariant(g);
+  const reversed=structuredClone(g);
+  reversed.people[0].down.reverse();
+  const a=E.choose(g,0,'greedy'),b=E.choose(reversed,0,'greedy');
+  assert.equal(a.type,'play');assert.equal(a.source,'down');
+  assert.equal(g.people[0].down.findIndex(c=>c.id===a.ids[0]),
+   reversed.people[0].down.findIndex(c=>c.id===b.ids[0]),
+   'down-card selection must be independent of its hidden face');
+  E.invariant(g);E.invariant(reversed);
+ }
+});
 test('seeded bots conserve every card across whole games for 2–5 players',()=>{
  for(let players=2;players<=5;players++)for(let seed=1;seed<=16;seed++){
   const g=E.create({players,seed});g.people.forEach(p=>E.autoSetup(g,p.seat));E.start(g);
