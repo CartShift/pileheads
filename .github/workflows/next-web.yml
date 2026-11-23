@@ -1,60 +1,115 @@
-name: STACK integrated Render acceptance
+name: STACK full acceptance
 on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+  # Keep verifying direct main pushes while this private repository has no branch protection.
   push:
     branches: [main]
     paths:
-      - "apps/web/**"
-      - "scripts/render-server.cjs"
-      - "scripts/realtime-hub.cjs"
-      - "api/**"
-      - "scripts/realtime-hub.cjs"
-      - "api/**"
-      - "scripts/build-integrated.mjs"
-      - "scripts/publish-next.mjs"
-      - "package.json"
-      - "package-lock.json"
-      - "package-lock.json"
-      - "render.yaml"
-      - "tests/stack-single-service.cjs"
-      - "tests/stack-next-browser.cjs"
-      - "dist/pilehead/engine.js"
-      - ".github/workflows/next-web.yml"
-  pull_request:
-    paths:
-      - "apps/web/**"
-      - "scripts/render-server.cjs"
-      - "scripts/publish-next.mjs"
-      - "package.json"
-      - "render.yaml"
-      - "tests/stack-single-service.cjs"
-      - "tests/stack-next-browser.cjs"
-      - "dist/pilehead/engine.js"
-      - ".github/workflows/next-web.yml"
+      - '.github/workflows/**'
+      - 'api/**'
+      - 'apps/web/**'
+      - 'dist/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'render.yaml'
+      - 'vercel.json'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
 jobs:
-  build:
+  full:
+    name: 'STACK full: Classic, React, multiplayer'
+    # A draft PR gets fast feedback; ready_for_review automatically runs this
+    # entire suite. A new commit to a ready PR reruns it against that commit.
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-24.04
     timeout-minutes: 18
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          node-version: 24
-      - run: npm ci --prefix apps/web --no-audit --no-fund
-      - run: npm run typecheck --prefix apps/web
-      # The same root build command used by the existing Render service.
-      # One static export and one Node runtime. Browser API and websocket
-      # connections are same-origin: no extra frontend service or CORS.
-      - run: npm ci --no-audit --no-fund
-      - run: npm run build
-      - run: node tests/stack-single-service.cjs
-      - run: node tests/stack-next-cors.cjs
-      - run: npm test
-      - run: npm install --no-save --no-audit --no-fund playwright@1.56.1
-      - run: npx playwright install --with-deps chromium
-      - run: node tests/stack-next-browser.cjs
-      - name: Save React tabletop visual QA
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Detect whether full acceptance is relevant
+        id: scope
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          if [[ "$EVENT_NAME" != "pull_request" ]]; then
+            echo 'run_full=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # Actions checks out refs/pull/<id>/merge: first parent is base main.
+          changed=$(git diff --name-only HEAD^1 HEAD) || exit 1
+          if printf '%s\n' "$changed" | grep -Eq '^(\.github/workflows/|api/|apps/web/|dist/|scripts/|tests/|package(-lock)?\.json$|render\.yaml$|vercel\.json$)'; then
+            echo 'run_full=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'run_full=false' >> "$GITHUB_OUTPUT"
+            echo 'Docs-only PR: full browsers are unnecessary; fast checks still run.'
+          fi
+      - name: Use Node 24 and cache both npm lockfiles
+        if: steps.scope.outputs.run_full == 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/web/package-lock.json
+      - name: Install locked dependencies once
+        if: steps.scope.outputs.run_full == 'true'
+        run: |
+          npm ci --no-audit --no-fund
+          npm ci --prefix apps/web --no-audit --no-fund
+      - name: Typecheck React
+        if: steps.scope.outputs.run_full == 'true'
+        run: npm run typecheck --prefix apps/web
+      - name: Build production Classic and React bundle
+        if: steps.scope.outputs.run_full == 'true'
+        run: npm run build
+      - name: Run all engine, game rules, API and UI regressions
+        if: steps.scope.outputs.run_full == 'true'
+        run: npm test
+      - name: Verify single-origin server and deployment
+        if: steps.scope.outputs.run_full == 'true'
+        run: node tests/stack-single-service.cjs
+      - name: Cache pinned Chromium headless shell
+        if: steps.scope.outputs.run_full == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: stack-playwright-1.56.1-headless-${{ runner.os }}
+      - name: Install browser runner and headless Chromium once
+        if: steps.scope.outputs.run_full == 'true'
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.56.1
+          npx playwright install --with-deps --only-shell chromium
+      - name: Exercise Classic desktop/mobile browser and live multiplayer
+        if: steps.scope.outputs.run_full == 'true'
+        run: |
+          node tests/pilehead-browser.cjs
+          node tests/pilehead-live-browser.cjs
+      - name: Exercise React desktop/mobile browser and live multiplayer
+        if: steps.scope.outputs.run_full == 'true'
+        run: node tests/stack-next-browser.cjs
+      - name: Save Classic browser failure screenshots
+        if: failure() && steps.scope.outputs.run_full == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: stack-classic-browser-failure
+          path: artifacts/browser/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Save React tabletop screenshots
+        if: always() && steps.scope.outputs.run_full == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: stack-next-tabletop-visuals
           path: artifacts/next/
