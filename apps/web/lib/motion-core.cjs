@@ -74,7 +74,11 @@ function fromCommittedEvent(event) {
     ? (validCount(event.erodedCount) ?? 0) : 0;
 
   return Object.freeze({
-    kind, label: snapBurn ? "SNAP + BURN" : spec.label, symbol: spec.symbol, duration: spec.duration,
+    kind, label: snapBurn ? "SNAP + BURN" : spec.label, symbol: spec.symbol,
+    // The top-card erosion must visibly finish BEFORE the remaining pile
+    // moves. Longer presentation never postpones turns, and a newer move
+    // can safely dismiss the older effect.
+    duration: erodedCount > 0 ? Math.max(900, spec.duration) : spec.duration,
     accent: spec.accent, actor: event.seat,
     recipient: Number.isSafeInteger(recipient) ? recipient : null,
     // event.target for SKIP is the seat *being skipped*, not the new turn.
