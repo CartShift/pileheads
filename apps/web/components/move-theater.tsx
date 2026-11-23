@@ -109,7 +109,10 @@ function flightVector(from: Point, to: Point): CSSProperties {
 export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
   nameForSeat, blindReveal, motionLevel = "balanced" }: Props) {
   const [scene, setScene] = useState<Scene | null>(null);
-  const cursor = useRef<Cursor>({ key: "", move: 0 });
+  // Initialize from the very first rendered authoritative snapshot.
+  // A resumed game may receive its first click before passive effects run;
+  // an empty-key cursor would otherwise silently swallow that first move.
+  const cursor = useRef<Cursor>({ key: gameKey, move: moveNo });
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cancel = () => {
     if (timer.current !== null) clearTimeout(timer.current);
