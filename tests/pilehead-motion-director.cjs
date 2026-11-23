@@ -36,7 +36,8 @@ assert.equal(cue({type:"take",count:1,takenCount:0,erodedCount:1}).hasTransfer,f
 assert.equal(cue({type:"take",count:1,takenCount:0,erodedCount:1}).erodedCount,1);
 assert.equal(cue({type:"followup",reason:"snap",burned:true,burnedCount:10}).destination,"ashes",
   "SNAP that completes four actually burns the pile");
-assert.equal(cue({type:"followup",reason:"snap",burned:true,burnedCount:10}).kind,"snap");
+assert.equal(cue({type:"followup",reason:"snap",burned:true,burnedCount:10}).kind,"burn");
+assert.equal(cue({type:"followup",reason:"snap",burned:true,burnedCount:10}).label,"SNAP + BURN");
 assert.equal(cue({action:"skip",target:1}).skippedSeat,1,
   "SKIP target is skipped, never assumed to play next");
 assert.equal(cue({action:"under"}).hasTransfer,false);
