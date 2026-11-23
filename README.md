@@ -1,77 +1,102 @@
-# STACK Card Game
+# STACK
 
-STACK (internally still named **PILEHEAD**) is a physical-first, 54-card game with a browser tabletop, bot opponents, private multiplayer rooms, a deck gallery and printable playtest materials.
+**A physical-first card game, brought to life in the browser.**
 
-**Play:** `/pilehead/index.html` (site root redirects here).
-**Deck gallery:** `/pilehead/gallery.html` · **Print:** `/pilehead/print.html` · **Official playtest kit:** `/pilehead/playtest.html`.
+STACK is an original, 54-card shedding game for 2–5 players. It combines a printable deck, fast tactical interruptions, bot opponents and private online multiplayer. The browser experience is built to feel like playing with real cards, while the rules engine remains the source of truth.
 
-## Deck themes
+[**Try the Classic tabletop**](https://stack-card-game-t7vx.onrender.com/pilehead/index.html) · [**Explore the React tabletop**](https://stack-card-game-t7vx.onrender.com/play) · [**See the deck gallery**](https://stack-card-game-t7vx.onrender.com/pilehead/gallery.html) · [**Read the engineering case study**](docs/CASE-STUDY.md)
 
-Use the **Deck style** selector in the tabletop header, the deck gallery, or the print preview. Choose **STACK Original** (existing geometric sprite artwork), **STACK Characters** (the approved illustrated character deck), or **STACK Studio** (the original minimal vector illustrations). The selection persists per browser using `stack-deck-theme-v1` and also works in private online rooms without changing any shared game state or rules. Players may choose independently.
+> **Project status:** Active product/playtest project, not a commercial release. Hosted demo availability and real-device multiplayer acceptance must be verified separately from automated tests. The Render free tier may sleep between visits.
 
-All 16 unique card faces use one 4 × 4 sprite index, with each illustrated character cell exactly 252 × 355 pixels. The default card back is shared between styles. Both raster sheets are kept as source assets under `dist/pilehead/assets`; `deck-theme.js` contains only preference/UI logic, while `deck-raster.css` selects the appropriate sprite. `npm run build` includes all themes.
+![STACK illustrated card faces, arranged as a 4 × 4 deck sprite sheet](dist/pilehead/assets/stack-characters.webp)
 
+*One of STACK's selectable deck designs. These are actual project card assets, not a screenshot of the game UI.*
 
-## Development
+## The game
 
-Requires Node.js 24.
+Every player starts with three hidden cards, three face-up cards and three in hand. Play cards onto the central pile, draw from the stock, work through your remaining layers and avoid being the last player left.
 
-```sh
-npm test                 # Every current STACK regression (rules, online, UX, graphics)
-npm run build            # Produce the static assets served by Render
-npm run build:vercel     # Legacy alias for the same build
-npm run simulate         # Diagnostic seeded bot simulation, JSON to stdout
-npm run simulate -- 120 4 20261113
+The 54-card deck has 40 number cards (1–10, four of each) and six kinds of action cards: RESET, GHOST, UNDER, SKIP, BURN and DUMP. **SNAP** lets players immediately play a matching card just drawn from the stock; **SLAM** rewards completing four of a kind, including out-of-turn interruptions. DUMP lets you send the existing pile to a chosen opponent. A configurable **Final Duel** rule can accelerate two-player endgames and is off by default.
+
+### Ways to play
+
+- **Classic tabletop:** a mobile-friendly, tactile card table with solo bots, local play and online rooms.
+- **React tabletop:** an alternative Next.js/TypeScript interface with event-driven motion and responsive presentation.
+- **Private multiplayer:** 2–5 seats, with supported human/bot combinations, private hand information, reconnect and same-room rematches.
+- **Physical playtesting:** deck gallery, printable cards and a facilitator-oriented playtest kit.
+- **Game balance lab:** deterministic simulations for exploring rules and endgame behavior.
+
+## Why it's an engineering project
+
+| Area | Implementation |
+| --- | --- |
+| **Game engine** | Shared deterministic JavaScript engine, validated moves, bots and reproducible simulations |
+| **Client** | Classic vanilla JS/CSS tabletop plus a Next.js 16, React 19 and TypeScript tabletop |
+| **Multiplayer** | Server-authoritative room API, revision-based concurrency control and private player views |
+| **Real-time** | Authenticated WebSocket room updates and reactions, with HTTP polling fallback |
+| **Persistence** | Neon PostgreSQL for rooms, seats and session state |
+| **Deployment** | One Node.js 24 service on Render, serving both frontends and the same-origin API |
+| **Quality** | Automated engine, rules, multiplayer, privacy, responsive/browser and deployment regression checks |
+
+**A key design constraint:** animations cannot change game outcomes. Card moves are committed by the engine or server first; visual effects render the resulting events. This matters particularly for time-sensitive SNAP and SLAM interactions.
+
+Read the [architecture overview](docs/ARCHITECTURE.md), [engineering case study](docs/CASE-STUDY.md) and [playtest rules](docs/pilehead-design.md).
+
+## Run locally
+
+**Requirements:** Node.js 24 and npm.
+
+```bash
+git clone https://github.com/yotamon/spark-card-game.git
+cd spark-card-game
+npm ci
+npm test
+npm run build
+node scripts/render-server.cjs
 ```
 
-The build outputs `vercel-static/` (historical folder name, gitignored). **Render is the production deployment target**: its Node server (`scripts/render-server.cjs`) serves these assets and the authoritative `/api/pilehead` endpoint. Commits to `main` auto-deploy via `render.yaml`. To enable online rooms, securely set `PILEHEAD_DATABASE_URL` in the Render service. The existing Neon database is retained, with no data migration. Never commit credentials. See `docs/render-hosting.md` and `docs/pilehead-online.md`.
+Open `http://localhost:10000/pilehead/index.html` for Classic or `http://localhost:10000/play` for the React tabletop. Local bot play does **not** require database credentials. Hosted/private rooms do.
 
-**Game on Render:** https://stack-card-game-t7vx.onrender.com/pilehead/index.html
+For independent React UI development:
 
+```bash
+npm ci --prefix apps/web
+npm run dev --prefix apps/web
+```
 
-## Tabletop interaction contract
+See [`apps/web/README.md`](apps/web/README.md) for the local API origin setup, and [`docs/render-hosting.md`](docs/render-hosting.md) for server configuration. **Never commit `PILEHEAD_DATABASE_URL` or other credentials.**
 
-The simulator treats the cards as individual physical objects. **One tap selects one card**; further taps add matching copies, tapping a selected card deselects it, and tapping a different rank starts a new selection. During a valid final-hand/face-up combination, face-up selection automatically includes the required matching hand cards. The Play button, pile tap, keyboard pile activation, mouse drop and phone drag all normalize to the same engine-validated move. Escape clears a selection or cancels an uncommitted DUMP choice.
+## Repository guide
 
-**SNAP never reserves or delays the next player's turn.** The SNAP button is the only opportunity prompt; the move remains possible until the next player commits an action. Local bots schedule once per turn rather than resetting their delay on incidental renders. Online rooms discard outdated poll responses, patch presence-only changes without remounting the card table, and show a pending state during authoritative submissions.
+```text
+apps/web/                  Next.js + TypeScript tabletop
+dist/pilehead/             Classic tabletop, original cards and shared game engine
+api/pilehead.js            Authoritative online room commands and state
+scripts/render-server.cjs  Single-origin Node server
+scripts/realtime-hub.cjs   WebSocket room updates
+scripts/                   Build, production probes and simulations
+tests/                     Engine, privacy, UX and integration regressions
+docs/                      Rules, architecture, experiments and release notes
+render.yaml                Render service blueprint
+```
 
-These guarantees are covered in `tests/pilehead-simulator-quality.cjs` alongside the existing engine, room API, mobile/table UX, art and build regression suites.
+The `dist/pilehead/` directory contains **maintained source code**, despite its historical name. Build output goes into the ignored `vercel-static/` folder. Existing `/pilehead/` URLs and internal `PILEHEAD` identifiers are retained for compatibility.
 
-## Repository map
+## Development and verification
 
-| Path | Purpose |
-| --- | --- |
-| `dist/pilehead/engine.js` | Rules, deterministic engine, conservation and bots |
-| `dist/pilehead/app.js` | Local / hotseat tabletop |
-| `dist/pilehead/online.js` | Private multiplayer UI |
-| `dist/pilehead/immersive.{js,css}` | Shared physical presentation and motion |
-| `dist/pilehead/deck-art.{js,css}` | Card semantics and SVG compatibility layer |
-| `dist/pilehead/deck-raster.{js,css}` + `assets/` | Original and Characters 4 × 4 raster sprites and shared back |
-| `dist/pilehead/deck-theme.{js,css}` | Persistent per-browser theme selector shared by game, gallery and print |
-| `dist/pilehead/{gallery,print,playtest}.html` | Gallery, printing and controlled playtests |
-| `api/pilehead.js` | Authoritative multiplayer room API |
-| `dist/pilehead-sim-core.js` | Retained bot diagnostics, not a deployed browser dependency |
-| `scripts/` | Static builder, Render Node server, tests and simulations |
-| `render.yaml` | Render auto-deployment from `main` (existing Neon database) |
-| `tests/pilehead-*.cjs` | STACK test suite |
-| `docs/pilehead-*.md` | Game rules, deployment and design |
+```bash
+npm test                            # Project regression suite
+npm run build                       # Classic + Next static export
+npm run typecheck --prefix apps/web # React TypeScript check
+npm run simulate -- 120 4 20261113  # Reproducible bot simulation
+```
 
-## Scope and safety
+GitHub Actions additionally exercises browser interactions and integrated HTTP/WebSocket scenarios. **Passing automated checks does not mean a live deployment, accessibility audit or two-device physical playtest has passed.** See the [release runbook](docs/stack-motion-ux-release.md).
 
-This repo now builds only STACK. Experimental SPARK and TILT apps, the separate Sites/Cloudflare Worker, and their tests were retired from current source. Historical sources remain recoverable via Git history. Existing ChatGPT Sites deployments are **not changed** by this cleanup.
+## About the project
 
-The game retains its `/pilehead/` URLs, browser save keys, `/api/pilehead`, database schema and backward-compatible room handling. v1.6 added two BURN copies, moving the deck from 52 to 54 cards. **v1.7 now introduces Final Duel**: after stock exhaustion, when only two players remain, each pile pickup burns its visible top card first and transfers the rest. This applies to voluntary takes, invalid blind flips and DUMP; previous rounds retain their original pickup rule. All 54 card identities and special-action counts remain unchanged. Existing v1.2–v1.6 rooms continue with their original rules until rematch. Passing source tests alone does not certify production multiplayer; test real devices, reconnect and rematch. See `docs/repository.md`.
+STACK is an independent game-design and full-stack product-development project by [Yotam](https://github.com/yotamon), exploring how physical game mechanics translate into intuitive, fair and expressive digital multiplayer experiences.
 
-## Mobile UX clarity pass (21 November 2026)
+For the product story, technical decisions and trade-offs, start with the [case study](docs/CASE-STUDY.md). Before making the repository public, review the [publication checklist](docs/PUBLIC-RELEASE-CHECKLIST.md).
 
-The STACK table includes a compact mobile layout, safe-area-aware action controls, on-table quick rules, and a real **Learn with a bot** practice round. Active online rooms poll slightly faster while preserving authoritative validation. See `docs/ux-clarity-20261121.md` for acceptance tests and remaining push-transport/reactions work.
-
-## Live rooms and social reactions
-
-On Render, STACK now pushes room changes through a same-origin authenticated WebSocket while keeping game moves server-authoritative. Players can send five synchronized, rate-limited reactions. On reconnect or when WebSockets are unavailable, HTTP polling still restores the correct state; multiple Render instances reconcile using only shared room revisions and recent public reactions. The system does not require a new database or migration. See [the online protocol and operational limits](docs/pilehead-online.md).
-
-The browser acceptance workflow runs **two independent mobile browser contexts** against the actual HTTP/WebSocket server and game engine with an isolated Neon test fixture. It checks seat privacy, socket auth, SNAP race, reaction delivery, a five-cycle WebSocket ping/pong survival test, reconnect and rematch. Live Render/Neon and physical-device QA remain separate from that automated test.
-
-### Final Duel balance diagnostics
-
-The reproducible comparison in `docs/stack-balance-benchmark-20261122.json` simulates 12,000 matches, contrasting **the same 54-card deck** with classic v1.6 versus Final Duel v1.7 pickup rules, plus a separate historical 52-card cohort. This models bot behavior, not actual player enjoyment, and is not a substitute for external human playtests or on-device production QA.
+**Code and artwork licensing:** No open-source license is currently granted. Unless stated otherwise, all rights are reserved.
