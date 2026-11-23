@@ -35,7 +35,7 @@ permissions:
   contents: read
 jobs:
   full:
-    name: STACK full: Classic, React, multiplayer
+    name: 'STACK full: Classic, React, multiplayer'
     # A draft PR gets fast feedback; ready_for_review automatically runs this
     # entire suite. A new commit to a ready PR reruns it against that commit.
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
