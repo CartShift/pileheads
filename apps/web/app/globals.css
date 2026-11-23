@@ -884,3 +884,57 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 @media(prefers-reduced-motion:reduce){
   .pile-layer.is-blind-reveal .playing-card{animation:none!important}
 }
+
+/* STACK Experience 3.0: tangible cards, actual public deck art, quiet hierarchy.
+   State animations are owned by useCommittedCardTravel and never block turns. */
+.opponent-seat{transition:border-color 160ms ease-out,background-color 160ms ease-out}
+.opponent-seat.seat-active{background:linear-gradient(160deg,#275343c7,#092d27dd)}
+.opponent-seat.seat-active::after{
+  content:"";position:absolute;left:16px;right:16px;bottom:0;height:3px;
+  border-radius:8px 8px 0 0;background:#f7d99a;box-shadow:0 0 14px #efc77b72
+}
+/* Public face-up cards should never be represented by anonymous letters.
+   The 4x4 sprite sheet is exactly the same as the user's chosen deck. */
+.opponent-up{height:43px;gap:clamp(2px,.5vw,5px)}
+.mini-pair{width:30px;height:40px}
+.mini-back,.mini-face{width:30px;height:40px;border-radius:5px}
+.mini-back{
+  background-image:url("/pilehead/assets/stack-back.webp");
+  background-position:center;background-size:cover
+}
+.mini-face{
+  background-image:url("/pilehead/assets/stack-characters.webp");
+  background-color:#f5e1b5;background-size:400% 400%;background-repeat:no-repeat
+}
+.mini-face.theme-original{background-image:url("/pilehead/assets/stack-sheet.webp")}
+/* Selection lifts only the selected object, not the grid or its neighbours.
+   Avoid hover-translate: that can cause oscillation with overlapping hands. */
+.player-hand.is-adaptive .playing-card{
+  transition:transform 115ms cubic-bezier(.22,.78,.28,1),
+    box-shadow 100ms ease-out,filter 100ms ease-out
+}
+.player-hand.is-adaptive .playing-card.is-selected{
+  transform:translate3d(0,-8px,0);filter:brightness(1.09);z-index:16
+}
+.player-hand.is-adaptive .playing-card.is-dragging{opacity:.24}
+.playing-card.is-interactive .card-hit:focus-visible{
+  outline:3px solid #ffe4a4;outline-offset:5px
+}
+.pile-slot.played.is-drop-ready{
+  transition:background-color 100ms ease-out,box-shadow 100ms ease-out
+}
+@media(max-width:720px){
+  .opponent-up{height:34px;gap:2px}
+  .mini-pair{width:22px;height:32px}
+  .mini-back,.mini-face{width:22px;height:32px;border-radius:4px}
+  .player-hand.is-adaptive .playing-card.is-selected{transform:translate3d(0,-6px,0)}
+}
+@media(max-width:390px){
+  .opponent-up{height:30px}
+  .mini-pair{width:19px;height:28px}
+  .mini-back,.mini-face{width:19px;height:28px}
+}
+@media(prefers-reduced-motion:reduce){
+  .opponent-seat,.player-hand.is-adaptive .playing-card,
+  .pile-slot.played.is-drop-ready{transition:none!important}
+}
