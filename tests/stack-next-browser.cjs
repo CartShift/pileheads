@@ -190,6 +190,18 @@ async function localScenarios(browser) {
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves === 0
       );
+      // Releasing an actual captured-pointer drag outside the pile must
+      // neither commit a move nor consume the next intentional tap.
+      const cancellable=page.locator('.player-hand .card-hit:not([aria-label^="DUMP"])').first();
+      await cancellable.dragTo(page.locator(".game-header .logo"), {timeout:10000});
+      assert.equal((await readGame(page)).moves,0,
+        "a missed drop cannot commit an out-of-bounds move");
+      await cancellable.click();
+      assert.equal(await cancellable.getAttribute("aria-pressed"),"true",
+        "the next real tap must not be swallowed by the cancelled drag");
+      await cancellable.click();
+      assert.equal(await cancellable.getAttribute("aria-pressed"),"false",
+        "subsequent taps retain normal selection behavior");
       await page.getByRole("button", { name: "Rules" }).click();
       await page.getByRole("dialog", { name: "STACK quick rules" }).waitFor();
       assert.ok(await page.getByText("Final Duel:", { exact: false }).count(), "rules explain duel");
