@@ -189,12 +189,18 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
   );
 }
 
-function PlayerPosition({ name, seat, active, self, out, handCount, up, downCount, presence, reaction, theme }: {
+function PlayerPosition({ name, seat, active, self, out, handCount, up, downCount, presence, reaction, theme, targetable = false, onTarget }: {
   name: string; seat: number; active: boolean; self: boolean; out: boolean;
   handCount: number; up: Card[]; downCount: number; presence?: string; reaction?: string; theme: DeckTheme;
+  targetable?: boolean; onTarget?: () => void;
 }) {
-  return <div className={`opponent-seat ${active ? "seat-active" : ""} ${out ? "seat-out" : ""}`}
-    data-seat={seat} aria-label={`${name}: ${handCount} in hand, ${up.length} face-up, ${downCount} face-down`}>
+  return <div className={`opponent-seat ${active ? "seat-active" : ""} ${out ? "seat-out" : ""} ${targetable ? "is-dump-target" : ""}`}
+    data-seat={seat} role={targetable ? "button" : undefined} tabIndex={targetable ? 0 : undefined}
+    onClick={targetable ? onTarget : undefined}
+    onKeyDown={targetable ? event => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onTarget?.(); }
+    } : undefined}
+    aria-label={targetable ? `Send the pile to ${name}` : `${name}: ${handCount} in hand, ${up.length} face-up, ${downCount} face-down`}>
     <div className="seat-heading">
       <span className="avatar" aria-hidden="true">{self ? "Y" : String(seat + 1)}</span>
       <div><strong>{name}</strong><small>{out ? "Finished" : presence === "offline" ? "Offline" :
@@ -1001,6 +1007,13 @@ export default function GameTable() {
 
   const liveSeats = g.players.filter(p => !p.out && p.seat !== me).map(p => p.seat);
   const canPlay = !!legal.find(m => m.type === "play" && m.source !== "down" && identicalIds(m.ids || [], selection));
+  const choosingDumpTarget = (needsTarget || g.pendingDump?.seat === me) && !busy;
+  const chooseDumpSeat = (seat: number) => {
+    if (g.pendingDump?.seat === me) {
+      if (mode === "local") commitLocal(game => Engine.resolveDump(game, me, seat));
+      else if (room) void submit({ action: "dump-target", code: room.code, revision: room.revision, target: seat });
+    } else if (needsTarget) playSelected(seat);
+  };
   const canTake = legal.some(m => m.type === "take");
   const rule = g.limit?.type === "under" ? "Next number: 1–4" : g.limit?.type === "min"
     ? `Next number: ${g.limit.value} or higher` : "Any number can follow";
@@ -1065,6 +1078,7 @@ export default function GameTable() {
         <div className="opponents-row">
           {g.players.filter(p => p.seat !== me).map(p =>
             <PlayerPosition key={p.seat} seat={p.seat} theme={deckTheme} name={nameForSeat(p.seat)} self={false} out={p.out}
+              targetable={choosingDumpTarget && !p.out} onTarget={() => chooseDumpSeat(p.seat)}
               active={g.phase === "play" && g.turn === p.seat}
               handCount={p.handCount} up={p.up} downCount={p.downCount}
               presence={room?.members.find(m => m.seat === p.seat)?.presence}
