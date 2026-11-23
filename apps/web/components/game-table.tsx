@@ -261,6 +261,10 @@ export default function GameTable() {
   const undoRef = useRef<Game | null>(null);
   const roomEpoch = useRef(0);
   const lastSoundEvent = useRef<string | null>(null);
+  // A successful blind flip animates only on a *new committed move*, never when
+  // resuming an old local game or reconnecting to an existing online room.
+  const blindMotionCursor = useRef({ key: "", move: 0 });
+  const [freshBlindMove, setFreshBlindMove] = useState<number | null>(null);
 
   const applyRoom = useCallback((next: Room) => {
     if (roomRef.current?.code === next.code && next.revision < roomRef.current.revision) return;
@@ -536,6 +540,16 @@ export default function GameTable() {
 
   const g = useMemo(() => mode === "local" && local ? asLocalRoom(local) : mode === "online" ? room?.game : null,
     [mode, local, room]);
+  const visualGameKey = mode === "local" ? "local:" + local?.seed :
+    mode === "online" ? "online:" + room?.code + ":" + room?.game.round : "home";
+  useEffect(() => {
+    const move = g?.moves ?? 0;
+    const previous = blindMotionCursor.current;
+    const fresh = previous.key === visualGameKey && move > previous.move &&
+      g?.events.at(-1)?.source === "down" && g?.events.at(-1)?.type !== "blind-fail";
+    blindMotionCursor.current = { key: visualGameKey, move };
+    setFreshBlindMove(fresh ? move : null);
+  }, [visualGameKey, g?.moves]);
   // Keep every card in view as the hand grows. Measure the real rendered
   // width (not a guessed viewport) so Safari, browser zoom and desktop all
   // use the same layout. A new row is preferred over unreadably thin slivers.
@@ -1025,7 +1039,7 @@ export default function GameTable() {
                 }
               }}>
               {g.pile.slice(-5).map((card, i) => <div key={card.id}
-                  className={"pile-layer" + (lastEvent?.source === "down" && g.pile.at(-1)?.id === card.id ? " is-blind-reveal" : "")} style={{ transform: `translate(${(i - 2) * 10}px, ${(i - 2) * -3}px) rotate(${(i - 2) * 3}deg)` }}>
+                  className={"pile-layer" + (freshBlindMove === g.moves && g.pile.at(-1)?.id === card.id ? " is-blind-reveal" : "")} style={{ transform: `translate(${(i - 2) * 10}px, ${(i - 2) * -3}px) rotate(${(i - 2) * 3}deg)` }}>
                   <PlayingCard card={card} theme={deckTheme} />
                 </div>)}
               {!g.pile.length && <div className="slot-empty">Pile clear</div>}
