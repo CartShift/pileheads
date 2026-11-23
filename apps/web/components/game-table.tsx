@@ -1025,7 +1025,7 @@ export default function GameTable() {
                 }
               }}>
               {g.pile.slice(-5).map((card, i) => <div key={card.id}
-                  className="pile-layer" style={{ transform: `translate(${(i - 2) * 10}px, ${(i - 2) * -3}px) rotate(${(i - 2) * 3}deg)` }}>
+                  className={"pile-layer" + (lastEvent?.source === "down" && g.pile.at(-1)?.id === card.id ? " is-blind-reveal" : "")} style={{ transform: `translate(${(i - 2) * 10}px, ${(i - 2) * -3}px) rotate(${(i - 2) * 3}deg)` }}>
                   <PlayingCard card={card} theme={deckTheme} />
                 </div>)}
               {!g.pile.length && <div className="slot-empty">Pile clear</div>}
