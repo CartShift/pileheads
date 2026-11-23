@@ -635,7 +635,21 @@ async function sharedMoveAnimationScenarios(browser) {
    const theater=page.locator('.move-story-overlay[data-kind="'+action+'"]');
    const observed=theater.waitFor({timeout:6000});
    await page.getByRole("button",{name:/Play cards/}).click();
-   await observed;
+   await observed.catch(async error => {
+     const diagnostic = await page.evaluate(() => {
+       const saved = JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game;
+       return {
+         savedPhase: saved?.phase, savedMove: saved?.moves,
+         savedLastEvent: saved?.events?.at(-1),
+         visibleMove: document.querySelector(".game-meta h1")?.textContent,
+         scenes: [...document.querySelectorAll(".move-story-overlay")]
+           .map(el => ({kind:el.getAttribute("data-kind"),move:el.getAttribute("data-move")})),
+         pile: document.querySelectorAll(".pile-slot.played .pile-layer").length
+       };
+     });
+     console.error("Motion test diagnostic", action, JSON.stringify(diagnostic));
+     throw error;
+   });
    assert.equal(await theater.locator(".move-story-flight").count(),0,
      "the committed action card is already on the table");
    const measured=await theater.evaluate(el=>{
