@@ -781,6 +781,15 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
   box-shadow:0 0 18px var(--story-glow);
   animation:stack-stable-recipient 880ms ease-out both;
 }
+/* Final Duel: the visible top card erodes before the remaining pile transfers. */
+.move-story-stable .move-story-transfer.move-story-erosion{
+  animation-delay:65ms;animation-duration:430ms;
+}
+.move-story-stable[data-kind="pickup"] .move-story-transfer:not(.move-story-erosion),
+.move-story-stable[data-kind="dump"] .move-story-transfer:not(.move-story-erosion),
+.move-story-stable[data-kind="reject"] .move-story-transfer:not(.move-story-erosion){
+  animation-delay:450ms;animation-duration:410ms;
+}
 @keyframes stack-stable-caption{
   0%,10%{opacity:0;transform:translateY(4px)}
   22%,64%{opacity:1;transform:translateY(0)}

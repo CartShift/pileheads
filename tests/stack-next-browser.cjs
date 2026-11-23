@@ -878,7 +878,19 @@ async function localInterruptParityScenarios(browser) {
     assert.equal(committed.events.at(-1).burned,true);
     assert.equal(committed.pile.length,0,"four-number SNAP must clear pile");
   });
-  console.log("PASS React parity: off-turn bot SLAM and four-card SNAP burn feedback");
+  const duel=E.create({seed:2026112303,players:2,endgameRule:"final-duel"});
+  E.autoSetup(duel,1);E.start(duel);
+  duel.ashes.push(...duel.stock.splice(0));
+  duel.pile.push(...duel.people[1].hand.splice(0,2));
+  duel.turn=0;
+  await runSaved(duel,async page=>{
+    await page.getByRole("button",{name:"Take pile"}).click();
+    await page.locator('.move-story-erosion[data-kind="erosion"]').waitFor({timeout:3000});
+    const committed=await readGame(page);
+    assert.equal(committed.events.at(-1).erodedCount,1);
+    assert.equal(committed.ashes.length,duel.ashes.length+1);
+  });
+  console.log("PASS React parity: off-turn bot SLAM, SNAP burn, Final Duel top-card erosion");
 }
 
 async function main() {

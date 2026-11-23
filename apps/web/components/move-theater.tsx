@@ -31,6 +31,8 @@ type Scene = {
   to: Point | null;
   target: Point | null;
   count: number;
+  erodedCount: number;
+  erosionTo: Point | null;
   reveal: BlindReveal["card"] | null;
 };
 type Props = {
@@ -96,6 +98,7 @@ function buildScene(event: Event, gameKey: string, me: number,
   // as a short pile pulse, not an invented number of flying cards.
   const count = classified.kind === "burn" || classified.kind === "slam" ?
     (event.burnedCount ?? 0) : (event.takenCount ?? event.count ?? 0);
+  const erodedCount = Math.max(0, event.erodedCount ?? 0);
   const target = classified.kind === "skip" && typeof event.target === "number" ?
     seatPoint(event.target) : classified.kind === "dump" ? end : null;
   const reveal = classified.kind === "reject" && blindReveal?.move === event.move &&
@@ -118,6 +121,7 @@ function buildScene(event: Event, gameKey: string, me: number,
     to: needsTransfer && count > 0 ? end : null,
     target,
     count: Math.max(0, count),
+    erodedCount, erosionTo: erodedCount > 0 ? ashes : null,
     reveal
   };
 }
@@ -215,6 +219,14 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
           <div className="card-art" style={cardFaceStyle(scene.reveal)} />
         </div>
       </div>}
+      {scene.erosionTo && scene.erodedCount > 0 &&
+        <div className="move-story-transfer move-story-erosion" data-kind="erosion"
+          style={flightVector(scene.from, scene.erosionTo)} aria-hidden="true">
+          <div className="move-story-stack">
+            <div className={"playing-card is-back theme-" + theme}><div className="card-art" /></div>
+            <b>×{scene.erodedCount}</b>
+          </div>
+        </div>}
       {showTransfer && scene.to && <div className="move-story-transfer"
         data-kind={scene.kind} style={flightVector(scene.from, scene.to)}
         aria-hidden="true">
