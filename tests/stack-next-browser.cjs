@@ -477,6 +477,11 @@ async function onlineScenarios(browser, server) {
     // The authoritative pile is visible immediately on both displays.
     // A duplicate flying card would imply the actor played twice.
     await guest.getByRole("button", { name: "Take pile" }).waitFor({ timeout: 12000 });
+    // The room server and two browsers commit asynchronously; wait for both
+    // actual public piles rather than sampling at a transient network boundary.
+    await Promise.all([host,guest].map(page=>page.waitForFunction(()=>
+      document.querySelectorAll(".pile-slot.played .pile-layer").length>0,
+      null,{timeout:12000})));
     const views=await Promise.all([host,guest].map(page=>page.evaluate(()=>({
       pile:document.querySelectorAll(".pile-slot.played .pile-layer").length,
       ghosts:document.querySelectorAll(".move-story-flight").length,
