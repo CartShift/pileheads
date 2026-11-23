@@ -286,6 +286,7 @@ function later(fn,delay){
 }
 function clearMotion(){
  motionGeneration++;motionQueue.length=0;motionPlaying=false;pendingTurn=null;
+ $('#app .table')?.classList.remove('scene-entering');
  for(const timer of motionTimers)clearTimeout(timer);
  motionTimers.clear();
  for(const ghost of motionGhosts)ghost.remove();
@@ -374,12 +375,13 @@ function moveCard(table,start,end,ev,opts={}){
 }
 function pulse(el,type='hit'){
  if(!el||!canMove())return;
- try{el.animate(type==='turn'?[
-  {filter:'brightness(1)',offset:0},{filter:'brightness(1.55)',offset:.4},{filter:'brightness(1)',offset:1}
- ]:[
-  {filter:'brightness(1)',transform:'scale(1)'},{filter:'brightness(1.25)',transform:'scale(1.045)',offset:.42},
-  {filter:'brightness(1)',transform:'scale(1)'}
- ],{duration:Math.round((type==='turn'?470:340)*motionScale()),easing:'ease-out'})}catch{}
+ // Scaling card/seat layout anchors creates shaking during live rerenders.
+ // Light-only feedback is sufficient and never changes hit targets.
+ try{el.animate([
+  {filter:'brightness(1)',offset:0},
+  {filter:type==='turn'?'brightness(1.28)':'brightness(1.16)',offset:.42},
+  {filter:'brightness(1)',offset:1}
+ ],{duration:Math.round((type==='turn'?300:250)*motionScale()),easing:'ease-out'})}catch{}
 }
 function particles(where,type='burn'){
  if(!canMove()||!where)return;
@@ -490,11 +492,9 @@ function celebrate(table,ev,ownSeat){
  if(!table||!ev||!canMove())return 0;
  const pickup=ev.type==='take'||ev.type==='blind-fail';
  if(pickup){
-  if(ev.type==='blind-fail'){
-   // The revealed face and red rejection flash now live directly on the shared pile.
-   moveCard(table,placeFor(table,ev.seat,'down',ownSeat),landmark(table,'pile'),ev,
-    {hidden:true,duration:260,fade:true});
-  }else cue(table,'PICKUP');
+  // The shared pile already displays the actual public blind reveal
+  // (including its red rejection); avoid adding a second face-down ghost.
+  if(ev.type!=='blind-fail')cue(table,'PICKUP');
   if(ev.erodedCount){
    cue(table,'TOP CARD BURNS');
    moveCard(table,landmark(table,'pile'),landmark(table,'ashes'),ev,
@@ -509,7 +509,7 @@ function celebrate(table,ev,ownSeat){
   // DUMP is already in ashes. Only the actual pile travels to its target.
   later(()=>particles(landmark(table,'ashes'),'burn'),330);
   if(ev.erodedCount){
-   cue(table,'FINAL DUEL · TOP CARD BURNS');
+   cue(table,'TOP CARD BURNS');
    moveCard(table,landmark(table,'pile'),landmark(table,'ashes'),ev,
     {hidden:true,delay:370,duration:320,fade:true});
   }
