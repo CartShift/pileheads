@@ -103,27 +103,34 @@ function attachRealtime(server,api){
   });
   ws.on('error',()=>{});
  });
- // Cross-instance convergence: one light shared-DB query per room, not per
- // player. In-process broadcasts are immediate; another Render instance
- // catches up on the next reconciliation tick. No new tables or schema.
+ // Cross-instance convergence using public room revisions, not private state.
  let checking=false;
  const reconcile=setInterval(async()=>{
   if(checking||!rooms.size)return;
   checking=true;
   try{
-   await Promise.all([...rooms.keys()].map(async code=>{
+   const codes=[...rooms.keys()],batches=[];
+   for(let i=0;i<codes.length;i+=100)batches.push(codes.slice(i,i+100));
+   await Promise.all(batches.map(async batch=>{
     try{
-     const snapshot=await api.realtimeSnapshot(code);
-     pushRevision(code,snapshot.revision);
-     for(const reaction of snapshot.reactions||[])pushReaction(code,reaction);
-    }catch(e){
-     if(e.code==='room_expired'||e.code==='room_not_found'){
-      for(const peer of rooms.get(code)||[])peer.ws.close(1008,'Room unavailable');
+     const snapshots=await api.realtimeSnapshots(batch);
+     const byCode=new Map(snapshots.map(s=>[s.code,s]));
+     for(const code of batch){
+      const snapshot=byCode.get(code);
+      if(!snapshot||snapshot.expired){
+       for(const peer of rooms.get(code)||[])peer.ws.close(1008,'Room unavailable');
+       continue;
+      }
+      pushRevision(code,snapshot.revision);
+      for(const reaction of snapshot.reactions)pushReaction(code,reaction);
      }
+    }catch{
+     // Keep sockets connected through transient Neon interruptions.
+     console.warn(JSON.stringify({event:'stack_ws_reconcile_failed',rooms:batch.length}));
     }
    }));
   }finally{checking=false}
- },1200);
+ },2500);
  reconcile.unref?.();
  // Production pings every 25 seconds. Test-only override makes a real
  // browser exercise three pong cycles in a short deterministic CI run.

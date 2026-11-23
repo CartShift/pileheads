@@ -54,7 +54,13 @@ async function query(sql,args=[]){
  if(sql.startsWith('INSERT INTO pilehead_members')){const [code,name,token]=args,seat=0;const current=members.get(code)||[];
   if(current.some(x=>x.seat===seat))conflict();current.push({seat,display_name:name,token_hash:token,last_seen_at:new Date(),is_away:false});members.set(code,current);return []}
  if(sql.startsWith('SELECT code,capacity'))return rooms.has(args[0])?[structuredClone(rooms.get(args[0]))]:[];
- if(sql.startsWith("SELECT revision,state->'reactionEvents'")){
+ if(sql.startsWith("SELECT code,revision,state->'reactionEvents'")){
+   return (args[0]||[]).filter(code=>rooms.has(code)).map(code=>{
+    const r=rooms.get(code);
+    return {code,revision:r.revision,reaction_events:r.state.reactionEvents||[],expires_at:r.expires_at};
+   });
+  }
+  if(sql.startsWith("SELECT revision,state->'reactionEvents'")){
   const r=rooms.get(args[0]);return r?[{revision:r.revision,reaction_events:r.state.reactionEvents||[],expires_at:r.expires_at}]:[];
  }
  if(sql.startsWith('SELECT seat,display_name'))return (members.get(args[0])||[]).map(m=>({
@@ -149,7 +155,11 @@ async function run(){
  const synced=await handler.realtimeSnapshot(code);
  assert.equal(synced.revision,reactionRevision);
  assert.equal(synced.reactions.length,1);
- const wsSeat=await handler.realtimeAuth(code,hostToken);
+ const batch=await handler.realtimeSnapshots([code,'ABCDEFGH']);
+  assert.equal(batch.length,1);assert.equal(batch[0].code,code);
+  assert.equal(batch[0].revision,reactionRevision);
+  assert.equal(batch[0].reactions[0].id,reaction.data.reaction.id);checks++;
+  const wsSeat=await handler.realtimeAuth(code,hostToken);
  assert.equal(wsSeat.seat,0);
  assert.deepEqual(wsSeat.reactions.map(r=>r.id),[reaction.data.reaction.id]);
  const invalidReaction=await request({action:'react',code,kind:'script'},guestToken);
