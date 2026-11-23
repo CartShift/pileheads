@@ -818,6 +818,49 @@ async function abandonedRoomScenario(browser) {
  * SNAP that completes a four-card run must communicate the resulting BURN.
  * Inject full valid engine states via localStorage, not synthetic UI events.
  */
+
+async function localStarterAndRematchScenario(browser) {
+  const E=require("../dist/pilehead/engine.js");
+  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  const page=await context.newPage();
+  try {
+    await page.addInitScript(()=>{Math.random=()=>0.65});
+    await page.goto(WEB+"/play");
+    await page.getByRole("button",{name:/Start game/}).click();
+    const first=await readGame(page);
+    assert.equal(first.starterSeat,2,"regular 4-player games draw a nonzero starter");
+    assert.equal(first.starterReason,"draw");
+  }finally{await context.close()}
+  const finished=E.create({players:3,seed:2026112377});
+  E.start(finished);
+  for(const seat of [2,0]){
+    const player=finished.people[seat];
+    finished.ashes.push(...player.hand.splice(0),...player.up.splice(0),...player.down.splice(0));
+    player.out=true;
+  }
+  finished.finishedOrder=[2,0];finished.phase="over";finished.loser=1;finished.turn=1;
+  E.invariant(finished);
+  const replayCtx=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  const replay=await replayCtx.newPage();
+  await replay.addInitScript(serialized=>{
+    localStorage.setItem("stack-next-local-save-v1",serialized);
+  },JSON.stringify({version:1,game:finished}));
+  try {
+    await replay.goto(WEB+"/play");
+    await replay.getByRole("button",{name:"Resume game"}).click();
+    await replay.getByRole("button",{name:"Play another round"}).click();
+    await replay.getByRole("button",{name:"Deal again"}).click();
+    await replay.waitForFunction(()=>{
+      const saved=JSON.parse(localStorage.getItem("stack-next-local-save-v1")||"null");
+      return saved?.game?.phase==="setup"&&saved.game.starterReason==="winner";
+    },null,{timeout:5000});
+    const next=await readGame(replay);
+    assert.equal(next.starterSeat,2,"first player out wins the next round's opener");
+    assert.equal(next.starterReason,"winner");
+    console.log("PASS React parity: randomized opener and winner-first local rematch");
+  }finally{await replayCtx.close()}
+}
+
 async function localInterruptParityScenarios(browser) {
   const E=require("../dist/pilehead/engine.js");
   const rankCards=rank=>E.deck().filter(c=>c.kind==="number"&&c.rank===rank);
@@ -926,6 +969,7 @@ async function main() {
     await seatLayoutScenarios(browser);
     await adaptiveHandFitScenarios(browser);
     await guidedPracticeScenario(browser);
+    await localStarterAndRematchScenario(browser);
     await localInterruptParityScenarios(browser);
     await onlineScenarios(browser, apiProc);
     await sharedMoveAnimationScenarios(browser);
