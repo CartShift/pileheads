@@ -59,8 +59,9 @@ Release can be labeled *automated acceptance passed* without claiming physical-d
 2. Merge a reviewed PR into `main` via squash only after verifying no subsequent mainline changes affect it.
 3. The repo's deployment workflow mirrors main to `feat/render-hosting-outage-fallback-20261120` while Render's service still watches that branch; `render.yaml` declares `main`. Verify actual Render service configuration before manually triggering anything.
 4. Verify `/livez`, `/pilehead/index.html`, `/play`, loading a local game, WebSocket room join, and one remote move after successful deploy. Health checks alone do not prove user-visible gameplay.
-5. If any visual or fairness P0 appears, revert only the UI PR/disable the faulty presentation cue; do **not** rewrite game rules, room revisions, DB schema or users' saved games.
-6. Confirm the last known healthy Render deploy is serving before closing issue #71.
+5. The `Deploy STACK to Render` GitHub job now performs a public, read-only, post-sync probe via `node scripts/check-render-production.mjs`. It retries Render cold-start/build delay and requires the exact `RENDER_GIT_COMMIT` to match the release SHA, `/livez` WebSocket liveness, `/readyz` Neon query, Classic HTML and React asset references. A green sync step on its own is not enough. Do not publish a release or claim live deployment if the probe fails.
+6. If any visual or fairness P0 appears, revert only the UI PR/disable the faulty presentation cue; do **not** rewrite game rules, room revisions, DB schema or users' saved games.
+7. Confirm the last known healthy Render deploy is serving before closing issue #71.
 
 ## QA record
 
