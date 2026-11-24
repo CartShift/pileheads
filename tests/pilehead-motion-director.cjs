@@ -70,6 +70,9 @@ assert.equal(advanceCursor(state,{...input,moveNo:2}).clear,true,
 assert.equal(advanceCursor(state,{...input,gameKey:"online:new"}).cue,null,
   "room switch never replays previous room");
 assert.equal(advanceCursor(state,{...input,phase:"over"}).cue,null);
+assert.equal(advanceCursor(state,{...input,phase:"over",moveNo:4,
+  events:[...input.events,e({move:4,action:"burn",burnedCount:3})]}).cue?.kind,"burn",
+  "the last committed special action still plays at the end of a round");
 assert.equal(advanceCursor(state,{...input,moveNo:4,visible:false,
   events:[...input.events,e({move:4,action:"burn"})]}).cue,null,
   "hidden tab may not accumulate old scenes");
