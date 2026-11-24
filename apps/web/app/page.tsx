@@ -15,6 +15,7 @@ export default function HomePage() {
           <Link className="subtle-link" href="/decks">Explore decks →</Link>
           <Link className="subtle-link" href="/account">Your account →</Link>
           <Link className="subtle-link" href="/shop">Physical game →</Link>
+          <Link className="subtle-link" href="/partners">For business →</Link>
           <a className="subtle-link" href="/pilehead/index.html">Original Classic ↗</a></div>
         <div className="hero-cards" aria-hidden="true">
           <div className="hero-card hero-card-a" /><div className="hero-card hero-card-b" /><div className="hero-card hero-card-c" />

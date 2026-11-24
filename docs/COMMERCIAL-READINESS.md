@@ -28,6 +28,10 @@
 
 - External physical storefront entry point, isolated Stripe test checkout, signed webhook, refund suppression, install manifest and stronger redemption transaction. See [storefront and checkout](STOREFRONT-CHECKOUT.md).
 
+## Increment 6: partner presentation beta
+
+- Configurable published partner landing pages, inquiry channel and internal aggregate reporting; no customer-specific code forks. See [partner editions](PARTNER-EDITIONS.md) and [release gates](COMMERCIAL-RELEASE-GATES.md).
+
 ## Next increments
 
 1. Full payment/refund lifecycle and production entitlement administration.

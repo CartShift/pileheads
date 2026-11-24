@@ -6,7 +6,7 @@ import path from 'node:path';
 const root = path.resolve('vercel-static');
 const source = path.resolve('apps/web/out');
 const classicHome = fs.readFileSync(path.join(root, 'index.html'));
-for (const route of ['play', 'stack', 'decks', 'profile', 'account', 'shop']) {
+for (const route of ['play', 'stack', 'decks', 'profile', 'account', 'shop', 'partners']) {
   if (!fs.statSync(path.join(source, route + '.html')).isFile()) {
     throw new Error('Next export missing required route: ' + route);
   }

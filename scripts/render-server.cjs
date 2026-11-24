@@ -12,6 +12,7 @@ const { handler: playerProfile } = require('../api/player.cjs');
 const { handler: account } = require('../api/account.cjs');
 const { handler: checkout } = require('../api/test-checkout.cjs');
 const { handler: storefront } = require('../api/storefront.cjs');
+const { handler: editions } = require('../api/editions.cjs');
 const { attachRealtime } = require('./realtime-hub.cjs');
 let liveHub = null;
 
@@ -85,6 +86,7 @@ async function serveFile(req, res, url) {
   else if (pathname === '/profile' || pathname === '/profile/') pathname = '/profile.html';
   else if (pathname === '/account' || pathname === '/account/') pathname = '/account.html';
   else if (pathname === '/shop' || pathname === '/shop/') pathname = '/shop.html';
+  else if (pathname === '/partners' || pathname === '/partners/') pathname = '/partners.html';
   if (pathname.includes('\0') || pathname.includes('\\')) return respond(res, 400, 'Bad Request');
 
   const filename = path.resolve(root, '.' + pathname);
@@ -137,6 +139,7 @@ const server = http.createServer(async (req, res) => {
     else if (url.pathname === '/api/account' || url.pathname === '/api/account/callback') await account(req, res, url);
     else if (url.pathname === '/api/checkout' || url.pathname === '/api/checkout/webhook') await checkout(req, res, url);
     else if (url.pathname === '/api/storefront') await storefront(req, res);
+    else if (url.pathname === '/api/editions') await editions(req, res, url);
     else await serveFile(req, res, url);
   } catch (error) {
     console.error('STACK request error:', error.message);
