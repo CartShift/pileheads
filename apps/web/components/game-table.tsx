@@ -17,7 +17,7 @@ const classicHref = "/pilehead/index.html";
 const ACTION_DESCRIPTIONS: Record<string, string> = {
   reset: "Any number can follow", ghost: "Keep the current restriction",
   under: "Next number must be 1–4", skip: "Skip the next player's turn",
-  burn: "Burn the pile and play again", dump: "Give the pile to any opponent"
+  burn: "Burn the pile and play again", dump: "Give the pile to any opponent; they can counter with their own DUMP"
 };
 const SAVE_KEY = "stack-next-local-save-v1";
 const THEME_KEY = "stack-next-deck-theme-v1";

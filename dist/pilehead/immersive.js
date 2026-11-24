@@ -442,7 +442,7 @@ function playCards(table,ev,ownSeat,options={}){
  pulse(pile,'hit');
 }
 function pickupCards(table,ev,ownSeat,recipient,delay=0,countOverride=null){
- const pile=landmark(table,'pile'),hand=placeFor(table,recipient,'hand',ownSeat);
+ const pile=ev.type==='counter-dump'?placeFor(table,ev.seat,'hand',ownSeat):landmark(table,'pile'),hand=placeFor(table,recipient,'hand',ownSeat);
  const count=Math.max(0,Number(countOverride??ev.takenCount??ev.count)||0);
  if(!count)return;
  const shown=Math.min(4,count);
@@ -479,6 +479,7 @@ function publicMoveCaption(ev){
  // Standard card placement is self-explanatory and must never produce a toast.
  if(ev?.type==='blind-fail')return 'INVALID';
  if(ev?.type==='take')return 'PICKUP';
+ if(ev?.type==='counter-dump')return 'COUNTER DUMP';
  if(ev?.action==='dump')return 'DUMP';
  if(ev?.type==='slam')return 'SLAM';
  if(ev?.burned)return 'BURN';
@@ -489,7 +490,7 @@ function publicMoveCaption(ev){
  return null;
 }
 function celebrate(table,ev,ownSeat){
- if(!table||!ev||!canMove())return 0;
+ if(!table||!ev||!canMove()||ev.type==='counter-pass')return 0;
  const pickup=ev.type==='take'||ev.type==='blind-fail';
  if(pickup){
   // The shared pile already displays the actual public blind reveal
@@ -505,7 +506,7 @@ function celebrate(table,ev,ownSeat){
  }
  if(ev.action==='dump'){
    specialEffect(table,'dump',280);
-  cue(table,'DUMP');
+  cue(table,ev.type==='counter-dump'?'COUNTER DUMP':'DUMP');
   // DUMP is already in ashes. Only the actual pile travels to its target.
   later(()=>particles(landmark(table,'ashes'),'burn'),330);
   if(ev.erodedCount){

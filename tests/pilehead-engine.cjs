@@ -408,4 +408,21 @@ test('Counter Dump prevents premature round end when attacker plays their last c
  assert.equal(g.phase,'play');assert.equal(g.people[0].out,false);
  E.move(g,1,E.options(g,1)[0]);assert.equal(g.phase,'play');assert.equal(g.turn,1);assert.equal(g.people[0].hand[0].id,card.id);E.invariant(g);
 });
+test('Blind DUMP supports Counter Dump and gives the defender the turn',()=>{
+ const g=opened(3,444),a=inject(g,0,'down',c=>c.id===50),b=inject(g,2,'hand',c=>c.id===51);
+ g.ashes.push(...g.stock.splice(0),...g.people[0].hand.splice(0),...g.people[0].up.splice(0));
+ const card=extract(g,c=>c.kind==='number');g.pile.push(card);
+ assert.equal(E.move(g,0,{type:'play',source:'down',ids:[a.id]}).type,'dump-pending');
+ E.resolveDump(g,0,2);assert.equal(g.turn,2);
+ E.move(g,2,E.options(g,2)[0]);assert.equal(g.turn,2);assert.ok(g.people[0].hand.some(c=>c.id===card.id));E.invariant(g);
+});
+test('Counter Dump does not burn the Final Duel top card twice',()=>{
+ const g=opened(2,445,'final-duel'),a=inject(g,0,'hand',c=>c.id===50),b=inject(g,1,'hand',c=>c.id===51);
+ g.ashes.push(...g.stock.splice(0));
+ const bottom=extract(g,c=>c.kind==='number'),top=extract(g,c=>c.kind==='number');g.pile.push(bottom,top);
+ E.move(g,0,{type:'play',source:'hand',ids:[a.id]});
+ assert.equal(g.pendingCounter.ids.length,1);const burned=g.ashes.length;
+ E.move(g,1,E.options(g,1)[0]);assert.equal(g.ashes.length,burned+1);
+ assert.ok(g.ashes.some(c=>c.id===top.id));assert.ok(g.people[0].hand.some(c=>c.id===bottom.id));assert.equal(g.turn,1);E.invariant(g);
+});
 console.log('PILEHEAD engine: '+checks+' test groups passed');

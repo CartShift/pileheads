@@ -107,7 +107,7 @@ const effectInfo={
  under:'UNDER means the next number must be 1 through 4.',
  skip:'SKIP makes the next player miss a turn.',
  burn:'BURN removes the pile and gives another turn.',
- dump:'DUMP burns itself; choose any active rival to take the existing pile. You play again.'
+ dump:'DUMP gives the pile to any active rival. They may spend their own DUMP to return it and play next; otherwise you play again.'
 };
 function selectedEffect(){
  const p=getPlayer(),cards=[...p.hand,...p.up],selected=cards.find(c=>selection.includes(c.id)&&c.kind==='action');
@@ -121,7 +121,7 @@ function eventName(e){const who=playerName(e.seat),erosion=e.erodedCount?' · to
  if(e.type==='dump-pending')return who+' revealed DUMP! Choose who must take the pile.';
  if(e.type==='counter-dump')return who+' returned '+e.takenCount+' cards to '+playerName(e.target)+' and takes the next turn';
  if(e.type==='counter-pass')return who+' accepted the pile';
- if(e.action==='dump')return who+' burned DUMP: '+playerName(e.target)+' took '+e.takenCount+' pile cards'+erosion+'; '+who+' plays again';
+ if(e.action==='dump')return who+' burned DUMP: '+playerName(e.target)+' took '+e.takenCount+' pile cards'+erosion;
  if(e.reason==='slam')return who+' SLAM! Burned the pile';
  if(e.burned)return who+' burned the pile';
  if(e.action)return who+' played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase();
@@ -228,7 +228,7 @@ function overlay(){
   const targets=E.dumpTargets(g,viewSeat());
   return '<div class="overlay"><div class="panel" role="dialog" aria-modal="true" aria-label="Choose DUMP target">'+
    '<div class="eyebrow">DUMP · CHOOSE YOUR TARGET</div><h2>Who takes the pile?</h2>'+
-   '<p>Choose any opponent still in the game. They take the current pile; you play again.</p>'+
+   '<p>Choose any opponent still in the game. They take the current pile. If they have DUMP, they can return it and play next.</p>'+
    '<div class="toolbar">'+targets.map(seat=>'<button class="action primary" data-do="dump-target" data-seat="'+seat+'">'+playerName(seat)+'</button>').join('')+'</div>'+
    (dumpDraft?'<button class="action secondary" data-do="cancel-dump">Cancel</button>':'')+'</div></div>';
  }

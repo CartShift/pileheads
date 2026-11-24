@@ -299,7 +299,7 @@ const effectInfo={
  under:'UNDER forces the next number to be 1 through 4.',
  skip:'SKIP makes the next player miss a turn.',
  burn:'BURN destroys the entire pile and gives the same player another turn.',
- dump:'DUMP burns itself; choose any active rival to take the pile. You play again.'
+ dump:'DUMP gives the pile to any active rival. They may spend their own DUMP to return it and play next; otherwise you play again.'
 };
 function selectedEffect(){
  const cards=[...(current()?.hand||[]),...(current()?.up||[])],picked=cards.find(c=>selection.includes(c.id)&&c.kind==='action');
@@ -309,7 +309,7 @@ function selectedEffect(){
 function events(){return data.game.events.slice(-7).reverse().map(e=>{
  const n=safe(displayName(e.seat));let s=e.type==='take'?'picked up '+(e.takenCount??e.count)+' cards':e.type==='blind-fail'?'picked up after a blind flip':
  e.type==='followup'?'SNAP! threw the freshly drawn matching '+e.rank:
- e.action==='dump'?'burned DUMP; '+displayName(e.target)+' took '+e.takenCount+' pile cards':e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
+ e.type==='counter-dump'?'returned '+e.takenCount+' cards to '+displayName(e.target)+' and plays next':e.type==='counter-pass'?'accepted the pile':e.action==='dump'?'burned DUMP; '+displayName(e.target)+' took '+e.takenCount+' pile cards':e.reason==='slam'?'SLAM! Burned the pile':e.burned?'burned the pile':e.action?'played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase():'played '+e.count+' × '+e.rank;
  return '<span class="event" role="listitem">'+n+' '+safe(s+(e.erodedCount?' · top card burned (Final Duel)':''))+'</span>';
  }).join('')}
 function lobby(){
@@ -442,7 +442,7 @@ function dumpTargetOverlay(){
  const opponents=data.game.players.filter(p=>!p.out&&p.seat!==data.me);
  return '<div class="overlay"><div class="panel" role="dialog" aria-modal="true" aria-label="Choose DUMP target">'+
   '<div class="eyebrow">DUMP · CHOOSE YOUR TARGET</div><h2>Who takes the pile?</h2>'+
-  '<p>Pick any opponent still in the game. They take the existing pile; you play again.</p>'+
+  '<p>Pick any opponent still in the game. They take the existing pile. If they have DUMP, they can return it and play next.</p>'+
   '<div class="toolbar">'+opponents.map(p=>'<button class="action primary" data-do="dump-target" data-seat="'+p.seat+'">'+safe(displayName(p.seat))+'</button>').join('')+'</div>'+
   (dumpDraft?'<button class="action secondary" data-do="cancel-dump">Cancel</button>':'')+'</div></div>';
 }
