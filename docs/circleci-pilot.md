@@ -1,6 +1,6 @@
 # CircleCI pilot and cutover
 
-This is an additive pilot. Existing GitHub Actions checks and Render deployment are unchanged until the CircleCI runs have been verified.
+This is an additive pilot. Existing GitHub Actions triggers, check names and coverage, and Render deployment are unchanged until the CircleCI runs have been verified.
 
 ## Set up and validate
 
@@ -22,3 +22,16 @@ Both modes use Node 24, locked dependencies and npm caching. Full acceptance rep
 ## Rollback
 
 Keep the GitHub workflows intact during the pilot. Disable CircleCI triggers if the pilot is unsuccessful. After a later cutover, restore GitHub workflows and required status checks together before removing CircleCI as a merge gate.
+
+## Shared CI contract
+
+All providers execute the same commands from the repository root with Node 24:
+
+- `npm run ci:install`: install both locked dependency trees.
+- `npm run ci:fast`: React types, regressions, Classic build and publish boundaries.
+- `npm run ci:full`: React types, integrated build, regressions, server integration, pinned browser installation and Classic/React browser acceptance.
+- `npm run ci:build`: integrated production build only.
+
+Use `npm run ci:install` first. Hosted providers split full acceptance into `ci:full-core`, `ci:browser-setup` and `ci:browser-test` so that caching and artifacts remain provider-specific. OpenDev can call the same npm scripts. Append `-- --plan` to list the commands without executing them.
+
+`scripts/ci.mjs` owns the commands and Playwright version. Do not duplicate test commands in provider YAML. Provider-specific triggers, resource limits, cache storage and artifact handling stay in their respective adapters. Render release automation remains separate. During the pilot, both providers may execute the same checks; do not disable existing merge gates until the CircleCI run and branch protection have been verified.
