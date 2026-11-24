@@ -215,7 +215,7 @@ function blindOverlay(){
   card({...reveal.card,id:-1})+'</div>';
 }
 function current(){return data?.game?.players?.[data.me]}
-function active(){return data?.game?.turn===data.me&&data?.game?.phase==='play'&&!data?.game?.pendingDump}
+function active(){return data?.game?.turn===data.me&&data?.game?.phase==='play'&&!data?.game?.pendingDump&&!data?.game?.pendingCounter}
 function canTouchHand(){return active()||Boolean(data?.game?.phase==='play'&&data.game.followup?.length)}
 function statusTitle(){
  const g=data.game;if(g.phase==='setup')return data.members.length+' of '+data.capacity+' players joined';
@@ -362,6 +362,10 @@ function tableActions(){
  const g=data.game,can=active(),legal=legalMove(),take=can&&g.legal?.some(m=>m.type==='take');
  const slam=g.slam?.length>0;
  let buttons='';
+ if(g.pendingCounter){
+  if(g.pendingCounter.seat!==data.me)return '<div class="toolbar table-actions" role="status">Resolving DUMP…</div>';
+  return '<div class="toolbar table-actions" role="group" aria-label="Counter Dump"><button class="action primary" data-do="counter-dump" '+(busy?'disabled':'')+'>Counter DUMP · return '+g.pendingCounter.count+' cards &amp; play</button><button class="action secondary" data-do="counter-pass" '+(busy?'disabled':'')+'>Keep cards</button></div>';
+ }
  if(g.phase==='over')buttons='<button class="action primary" data-do="rematch">Play again · same room</button>';
  else {
   if(g.followup?.length)buttons+='<button class="action snap" data-do="snap" '+(busy?'disabled':'')+'>SNAP · matching draw</button>';
@@ -589,7 +593,8 @@ root.addEventListener('click',async e=>{
  }
  if(action==='inspect-pile'){pileOpen=true;render();root.querySelector('[data-do="close-pile"]')?.focus();return}
   if(action==='close-pile'){pileOpen=false;render();root.querySelector('[data-do="inspect-pile"]')?.focus();return}
-  if(action==='play')await play();
+  if(action==='counter-dump'||action==='counter-pass'){const m=data?.game.legal?.find(m=>m.type===action);if(m)await command('move',{move:m});return}
+ if(action==='play')await play();
  if(action==='take')await command('move',{move:{type:'take'}});
  if(action==='slam'){const m=data?.game.slam?.[0];if(m)await command('move',{move:m})}
  if(action==='snap'){const m=data?.game.followup?.[0];if(m)await command('move',{move:m})}

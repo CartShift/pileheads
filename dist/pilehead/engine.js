@@ -21,7 +21,7 @@ function create({seed=20261113,players=4,endgameRule='classic',omitSkip=players=
  assert(Number.isInteger(seed)&&seed>=0&&seed<=0xffffffff,'Invalid seed');
  assert(Number.isInteger(players)&&players>=2&&players<=5,'2–5 players required');
  const g={version:VERSION,endgameRule,omitSkip:omitSkip===true,seed,rng:(seed^0x53a2d18b)>>>0,phase:'setup',turn:0,
-   moves:0,stock:[],pile:[],ashes:[],limit:null,slamOpen:false,finishedOrder:[],
+   moves:0,stock:[],pile:[],ashes:[],limit:null,slamOpen:false,pendingCounter:null,finishedOrder:[],
    loser:null,people:Array.from({length:players},(_,seat)=>({seat,hand:[],up:[],down:[],pickups:0,out:false})),
    events:[]};
  g.stock=shuffle(effectiveDeck(g),g);
@@ -97,6 +97,7 @@ function finalHandBridge(g,seat){
  return matching.length?{hand:p.hand,up:matching,kind:first.kind,rank:first.rank,action:first.action}:null;
 }
 function options(g,seat){if(g.phase!=='play'||g.pendingDump||g.turn!==seat)return[];
+ if(g.pendingCounter)return counterOptions(g,seat);
  const p=g.people[seat],s=stage(g,seat);if(s==='down')return [
   ...p.down.map(c=>({type:'play',ids:[c.id],source:'down'})),
   ...(g.pile.length?[{type:'take'}]:[])
@@ -136,7 +137,7 @@ function topRun(g){let n=0,rank=null;for(let i=g.pile.length-1;i>=0;i--){
  rank=c.rank;n++;
  }return{rank,count:n};
 }
-function slamOptions(g,seat){if(g.phase!=='play'||g.pendingDump||g.people[seat]?.out||!g.pile.length)return[];
+function slamOptions(g,seat){if(g.phase!=='play'||g.pendingDump||g.pendingCounter||g.people[seat]?.out||!g.pile.length)return[];
  const s=stage(g,seat);if(s==='down'||s==='out')return[];
  const held=g.people[seat][s];
  // A complete four-of-a-kind can interrupt the table even without a top-rank match.
@@ -161,7 +162,7 @@ function slamOptions(g,seat){if(g.phase!=='play'||g.pendingDump||g.people[seat]?
  return [];
 }
 function followUpOptions(g,seat){
- if(g.phase!=='play'||g.pendingDump||!g.followUp||g.followUp.seat!==seat||g.people[seat]?.out)return[];
+ if(g.phase!=='play'||g.pendingDump||g.pendingCounter||!g.followUp||g.followUp.seat!==seat||g.people[seat]?.out)return[];
  // SNAP is a natural race: the opportunity remains until the next move commits.
  const {rank,ids}=g.followUp,held=g.people[seat].hand.filter(c=>ids.includes(c.id)&&c.kind==='number'&&c.rank===rank);
  if(!held.length||topRun(g).rank!==rank)return[];
@@ -185,6 +186,45 @@ function collectPile(g,target){
  g.people[target].pickups++;
  return {offeredCount,takenCount,erodedCount};
 }
+// The recipient may spend their original hand DUMP and return only transferred cards.
+function counterOptions(g,seat){
+ const c=g.pendingCounter;
+ if(g.phase!=='play'||!c||c.seat!==seat||g.turn!==seat)return [];
+ return [{type:'counter-dump',source:'hand',ids:[c.cardId]},{type:'counter-pass'}];
+}
+function offerCounter(g,attacker,target,pileIds,cardId){
+ if(g.version!==VERSION||cardId===undefined||!pileIds.length)return false;
+ const received=new Set(g.people[target].hand.map(c=>c.id));
+ const ids=pileIds.filter(id=>received.has(id));
+ if(!ids.length)return false;
+ g.pendingCounter={seat:target,attacker,ids,cardId};
+ g.turn=target;return true;
+}
+function resolveCounter(g,seat,choice){
+ const c=g.pendingCounter;
+ assert(c&&c.seat===seat&&g.turn===seat,'Only the DUMP recipient may respond');
+ const counter=choice.type==='counter-dump';
+ assert(counter||choice.type==='counter-pass','Resolve Counter Dump first');
+ const p=g.people[seat],attacker=g.people[c.attacker];
+ let drawnCount=0;
+ if(counter){
+  assert(choice.source==='hand'&&sameIds(choice.ids,[c.cardId]),'Invalid counter card');
+  const card=p.hand.find(x=>x.id===c.cardId&&x.action==='dump');
+  const transferred=c.ids.map(id=>p.hand.find(x=>x.id===id));
+  assert(card&&transferred.every(Boolean)&&!c.ids.includes(card.id),'Counter cards unavailable');
+  const removed=new Set([...c.ids,card.id]);
+  p.hand=p.hand.filter(x=>!removed.has(x.id));g.ashes.push(card);
+  attacker.hand.push(...transferred);attacker.pickups++;
+  while(p.hand.length<3&&g.stock.length){p.hand.push(g.stock.pop());drawnCount++}
+ }
+ g.pendingCounter=null;g.moves++;
+ const event=counter?{type:'counter-dump',seat,source:'hand',action:'dump',reason:'counter-dump',count:1,target:c.attacker,takenCount:c.ids.length,drawnCount,erodedCount:0,move:g.moves}:
+  {type:'counter-pass',seat,reason:'counter-pass',count:0,move:g.moves};
+ g.events.push(event);
+ const nextActor=counter?seat:c.attacker;
+ if(!finish(g))g.turn=g.people[nextActor].out?next(g,nextActor):nextActor;
+ invariant(g);return event;
+}
 function take(g,seat){
  assert(g.pile.length>0,'Cannot take an empty pile');
  const pickup=collectPile(g,seat);
@@ -201,6 +241,7 @@ function move(g,seat,choice){
  assert(g.phase==='play','Game is not in progress');
  assert(!g.pendingDump,'Choose the DUMP recipient before another move');
  assert(g.people[seat]&&!g.people[seat].out,'Invalid player');
+ if(g.pendingCounter)return resolveCounter(g,seat,choice||{});
  assert(choice&&['play','take','slam','followup'].includes(choice.type),'Invalid action');
  const isFollowup=choice.type==='followup',previousTurn=g.turn;
  if(isFollowup){
@@ -276,9 +317,11 @@ function move(g,seat,choice){
  // Both DUMP copies burn if played together; each performs only one forced pickup.
  if(dump)g.ashes.push(...cards);
  else g.pile.push(...cards);
- let forcedTarget=null,forcedCount=0,erodedCount=0;
+ let forcedTarget=null,forcedCount=0,erodedCount=0,counterIds=[],counterCardId;
  if(dump){
   forcedTarget=selectedTarget;
+  counterIds=g.pile.map(c=>c.id);
+  counterCardId=g.people[forcedTarget].hand.find(c=>c.action==='dump')?.id;
   const pickup=collectPile(g,forcedTarget);
   forcedCount=pickup.takenCount;erodedCount=pickup.erodedCount;
   g.limit=null;g.slamOpen=false;
@@ -313,6 +356,7 @@ function move(g,seat,choice){
   rank:card.rank??null,action:card.action??null,target:forcedTarget,takenCount:forcedCount,erodedCount,drawnCount:freshlyDrawn.length,bridgeCount:bridgedCount,
   move:g.moves};
  g.events.push(event);
+ if(dump&&offerCounter(g,seat,forcedTarget,counterIds,counterCardId)){invariant(g);return event}
  const over=finish(g);
  if(!over)g.turn=burned||dump?(!p.out?seat:next(g,seat)):
   isFollowup?previousTurn:card.action==='skip'?next(g,next(g,seat)):next(g,seat);
@@ -323,6 +367,7 @@ function resolveDump(g,seat,target){
  assert(g.phase==='play'&&g.pendingDump?.seat===seat,'No DUMP awaiting your decision');
  assert(dumpTargets(g,seat).includes(target),'Invalid DUMP target');
  const pending=g.pendingDump;g.pendingDump=null;
+ const counterIds=g.pile.map(c=>c.id),counterCardId=g.people[target].hand.find(c=>c.action==='dump')?.id;
  const pickup=collectPile(g,target);
  const takenCount=pickup.takenCount,erodedCount=pickup.erodedCount;
  g.limit=null;g.slamOpen=false;g.followUp=null;
@@ -330,6 +375,7 @@ function resolveDump(g,seat,target){
  const event={type:'play',seat,source:pending.source,reason:'dump',count:pending.count,
   burned:false,burnedCount:0,rank:null,action:'dump',target,takenCount,erodedCount,drawnCount:0,bridgeCount:0,move:g.moves};
  g.events.push(event);
+ if(offerCounter(g,seat,target,counterIds,counterCardId)){invariant(g);return event}
  const over=finish(g);
  if(!over)g.turn=g.people[seat].out?next(g,seat):seat;
  invariant(g);return event;
@@ -337,6 +383,7 @@ function resolveDump(g,seat,target){
 function sameIds(a,b){return Array.isArray(a)&&a.length===b.length&&a.every((x,i)=>x===b[i])}
 function choose(g,seat,style='greedy'){
  const opts=options(g,seat);assert(opts.length,'No moves');
+ if(g.pendingCounter)return opts[0]; // Counter sheds cards and wins the next turn.
  if(opts.length===1)return withBotTarget(g,seat,opts[0]);
  // Classic permits long two-player cycles without Final Duel. After
  // unusually many legal turns, stop choosing the same highest-scoring rank

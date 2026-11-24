@@ -100,6 +100,7 @@ function asLocalRoom(game: Game): RoomGame {
     endgameRule: game.endgameRule === "final-duel" ? "final-duel" : "classic",
     stockCount: game.stock.length, pile: game.pile, ashesCount: game.ashes.length,
     limit: game.limit, pendingDump: game.pendingDump || null,
+    pendingCounter: game.pendingCounter ? { seat: game.pendingCounter.seat, attacker: game.pendingCounter.attacker, count: game.pendingCounter.ids.length } : null,
     finishedOrder: game.finishedOrder, loser: game.loser,
     players: game.people.map(p => ({
       seat: p.seat, out: p.out, up: p.up, handCount: p.hand.length, hand: p.hand,
@@ -670,7 +671,7 @@ export default function GameTable() {
   }, [soundEventId, soundEnabled, g?.phase, lastEvent?.reason, lastEvent?.burned, lastEvent?.type]);
   const stage = current ? current.handCount || g?.stockCount ? "hand" :
     current.up.length ? "up" : current.downCount ? "down" : "out" : "out";
-  const active = g?.phase === "play" && g.turn === me && !g.pendingDump;
+  const active = g?.phase === "play" && g.turn === me && !g.pendingDump && !g.pendingCounter;
   // Match Classic: bridge only when the full final hand is homogeneous and
   // matching face-up cards exist. No other face-up selection is legal.
   const bridgeCard = active && g?.stockCount === 0 && stage === "hand" && current?.hand?.length &&
@@ -1211,6 +1212,14 @@ export default function GameTable() {
             <button className="primary-button" disabled={busy}
               onClick={() => setConfirmRestart(true)}>Play another round</button>
           </div>
+        </div> : g.pendingCounter ? <div className="setup-controls">
+          {g.pendingCounter.seat === me ? <>
+            <div><strong>COUNTER DUMP</strong><p>Return {g.pendingCounter.count} cards to {nameForSeat(g.pendingCounter.attacker)} and take the next turn.</p></div>
+            <div className="button-group">
+              <button className="primary-button" disabled={busy || !g.legal.some(m => m.type === "counter-dump")} onClick={() => { const m = g.legal.find(m => m.type === "counter-dump"); if (m) playMove(m); }}>Counter DUMP</button>
+              <button className="secondary-button" disabled={busy} onClick={() => playMove({type:"counter-pass"})}>Keep cards</button>
+            </div>
+          </> : <div><strong>Waiting for {nameForSeat(g.pendingCounter.seat)}</strong><p>Resolving the DUMP.</p></div>}
         </div> : g.pendingDump?.seat === me ? <div className="setup-controls">
           <div><strong>Choose who takes the pile</strong><p>DUMP can target any active opponent.</p></div>
           <div className="button-group">{liveSeats.map(seat =>

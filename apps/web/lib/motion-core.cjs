@@ -74,7 +74,7 @@ function fromCommittedEvent(event) {
     ? (validCount(event.erodedCount) ?? 0) : 0;
 
   return Object.freeze({
-    kind, label: snapBurn ? "SNAP + BURN" : spec.label, symbol: spec.symbol,
+    kind, label: event.type === "counter-dump" ? "COUNTER DUMP" : snapBurn ? "SNAP + BURN" : spec.label, symbol: spec.symbol,
     // The top-card erosion must visibly finish BEFORE the remaining pile
     // moves. Longer presentation never postpones turns, and a newer move
     // can safely dismiss the older effect.
