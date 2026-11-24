@@ -1,0 +1,103 @@
+version: 2.1
+
+parameters:
+  full_acceptance:
+    type: boolean
+    default: false
+
+jobs:
+  stack-checks:
+    parameters:
+      full:
+        type: boolean
+        default: false
+    docker:
+      - image: cimg/node:24.21.0
+    resource_class: medium
+    environment:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - stack-npm-v1-{{ arch }}-{{ checksum "package-lock.json" }}-{{ checksum "apps/web/package-lock.json" }}
+            - stack-npm-v1-{{ arch }}-
+      - run:
+          name: Install locked dependencies
+          command: |
+            npm ci --no-audit --no-fund
+            npm ci --prefix apps/web --no-audit --no-fund
+      - save_cache:
+          key: stack-npm-v1-{{ arch }}-{{ checksum "package-lock.json" }}-{{ checksum "apps/web/package-lock.json" }}
+          paths:
+            - ~/.npm
+      - run:
+          name: Verify React types
+          command: npm run typecheck --prefix apps/web
+      - unless:
+          condition: << parameters.full >>
+          steps:
+            - run:
+                name: Engine, API, UI and rules regressions
+                command: npm test
+            - run:
+                name: Build and verify Classic publish boundaries
+                command: |
+                  npm run build:classic
+                  test -f vercel-static/index.html
+                  test -f vercel-static/pilehead/index.html
+                  test -f vercel-static/pilehead/assets/stack-sheet.webp
+                  test ! -e vercel-static/tilt
+                  test ! -e vercel-static/engine-v5.js
+      - when:
+          condition: << parameters.full >>
+          steps:
+            - run:
+                name: Build production Classic and React bundle
+                command: npm run build
+            - run:
+                name: Engine, rules, API and UI regressions
+                command: npm test
+            - run:
+                name: Verify single-origin server
+                command: npm run test:integrated
+            - restore_cache:
+                keys:
+                  - stack-playwright-1.56.1-shell-v1-{{ arch }}
+            - run:
+                name: Install pinned Playwright and headless Chromium
+                command: |
+                  npm install --no-save --no-audit --no-fund playwright@1.56.1
+                  npx playwright install --with-deps --only-shell chromium
+            - save_cache:
+                key: stack-playwright-1.56.1-shell-v1-{{ arch }}
+                paths:
+                  - ~/.cache/ms-playwright
+            - run:
+                name: Classic desktop, mobile and live multiplayer
+                command: |
+                  node tests/pilehead-browser.cjs
+                  node tests/pilehead-live-browser.cjs
+            - run:
+                name: React desktop, mobile and live multiplayer
+                command: node tests/stack-next-browser.cjs
+            - store_artifacts:
+                path: artifacts/browser
+                destination: classic-browser
+            - store_artifacts:
+                path: artifacts/next
+                destination: react-browser
+
+workflows:
+  stack-fast:
+    unless: << pipeline.parameters.full_acceptance >>
+    jobs:
+      - stack-checks:
+          name: stack-fast-checks
+  stack-full:
+    when: << pipeline.parameters.full_acceptance >>
+    jobs:
+      - stack-checks:
+          name: stack-full-acceptance
+          full: true
