@@ -566,12 +566,17 @@ async function onlineScenarios(browser, server) {
     console.log("PASS Next multiplayer: synchronized real played pile without ghosts");
     await host.getByRole("button", { name: "SNAP" }).waitFor({ timeout: 10000 });
     await guest.getByRole("button", { name: "Take pile" }).waitFor({ timeout: 12000 });
+    // Capture transient pickup effects on both clients before committing.
+    // The remote cue can disappear while Playwright awaits the other client.
+    await Promise.all([armMotionCapture(host),armMotionCapture(guest)]);
     await guest.getByRole("button", { name: "Take pile" }).click();
-    const guestPickup=guest.locator('.move-story-overlay[data-kind="pickup"]');
-    const hostPickup=host.locator('.move-story-overlay[data-kind="pickup"]');
-    await Promise.all([guestPickup.waitFor({timeout:8500}),hostPickup.waitFor({timeout:8500})]);
-    assert.ok(await hostPickup.locator(".move-story-transfer").count(),
-      "remote player sees pile flying to the recipient's hand");
+    await Promise.all([host,guest].map(page=>page.waitForFunction(()=>
+      window.__stackMotionSamples?.some(scene=>scene.kind==="pickup"),
+      null,{timeout:8500})));
+    const remotePickup=await host.evaluate(()=>
+      window.__stackMotionSamples.find(scene=>scene.kind==="pickup"));
+    assert.ok(remotePickup.hasTransfer && remotePickup.transferBackCount===1,
+      "remote player sees an opaque pile transfer to the recipient's hand");
     console.log("PASS Next multiplayer motion: pickup is visible on both screens");
     await host.getByRole("button", { name: "SNAP" }).waitFor({ state: "hidden", timeout: 13000 });
     await guest.reload({ waitUntil: "domcontentloaded" });
