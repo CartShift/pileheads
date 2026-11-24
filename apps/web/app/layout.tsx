@@ -4,6 +4,8 @@ import MotionProvider from "../components/motion-provider";
 
 export const metadata: Metadata = {
   title: "STACK | The Card Game",
+  manifest: "/stack.webmanifest",
+  icons: {icon: "/stack-icon.svg"},
   description: "One pile. One loser. Play STACK with friends online or challenge the bots."
 };
 

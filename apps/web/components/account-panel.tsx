@@ -8,6 +8,11 @@ type Action={action:"login"|"logout"|"import_guest"|"delete"}|{action:"preferenc
 export default function AccountPanel(){
  const [data,setData]=useState<State|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[code,setCode]=useState(""),[confirm,setConfirm]=useState(false);
  const lock=useRef(false);
+ const [testCheckout,setTestCheckout]=useState(false);
+ async function startCheckout(){
+  if(lock.current)return;lock.current=true;setBusy(true);setMessage("");
+  try{const r=await fetch("/api/checkout",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({product:"sandbox-supporter"})});if(!r.ok)throw Error();const d=await r.json();const u=new URL(d.url);if(u.origin!=="https://checkout.stripe.com")throw Error();window.location.assign(u.href);}catch{setMessage("Test checkout unavailable.");}finally{lock.current=false;setBusy(false);}
+ }
  async function update(action?:Action){
   if(lock.current)return;lock.current=true;setBusy(true);setMessage("");
   try{
@@ -25,7 +30,7 @@ export default function AccountPanel(){
   }catch{setMessage("Account service unavailable. You can still play.");}
   finally{lock.current=false;setBusy(false);}
  }
- useEffect(()=>{void update();},[]);
+ useEffect(()=>{void update();void fetch("/api/checkout",{cache:"no-store"}).then(r=>r.json()).then(d=>setTestCheckout(d.enabled===true)).catch(()=>{});},[]);
  const profile=data?.profile;
  return <section className="guest-profile-panel" aria-label="STACK account">
   {busy&&<p role="status">Connecting…</p>}{message&&<p role="status">{message}</p>}
@@ -35,6 +40,7 @@ export default function AccountPanel(){
    <label>Favorite deck <select value={profile.deck} disabled={busy} onChange={e=>{if(isDeckTheme(e.target.value))void update({action:"preferences",deck:e.target.value});}}>{DECKS.map(d=><option key={d.id} value={d.id}>{d.name}</option>)}</select></label>
    <p><Link className="cta" href={deckPlayHref(profile.deck)}>Play with my deck</Link></p>
    <button className="secondary-button" disabled={busy} onClick={()=>void update({action:"import_guest"})}>Import favorite deck from guest profile</button>
+   {testCheckout&&<div><h3>Test checkout (sandbox only)</h3><p>No real money is charged. {profile.owned.includes("sandbox-supporter")?"Test purchase confirmed.":"Use Stripe test payment details."}</p><button className="secondary-button" disabled={busy} onClick={()=>void startCheckout()}>Test purchase</button></div>}
    <h3>Unlocked extras</h3><p>{profile.owned.includes("founder-supporter")?"Founder supporter badge unlocked.":"No extras unlocked yet."}</p>
    <form onSubmit={e=>{e.preventDefault();void update({action:"redeem",code:code.trim()});}}><label>Redemption code <input autoComplete="off" spellCheck={false} maxLength={32} value={code} onChange={e=>setCode(e.target.value)}/></label><button className="secondary-button" disabled={busy||!/^[A-Za-z0-9_-]{32}$/.test(code.trim())}>Redeem</button></form>
    <p><button className="secondary-button" disabled={busy} onClick={()=>void update({action:"logout"})}>Sign out</button></p>

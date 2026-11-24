@@ -1,0 +1,9 @@
+# Storefront and checkout beta
+
+Physical: /shop exposes an external merchant link only when STACK_PHYSICAL_SHOP_ENABLED=true and STACK_PHYSICAL_SHOP_URL contains an approved HTTPS storefront URL. Configure Shopify or another merchant yourself; inventory, taxes, shipping and consumer notices are handled there. No live merchant or products created by this change.
+
+Digital: test-mode Stripe Checkout only, no real charges. Apply migrations 001–004 on staging, then set STACK_TEST_CHECKOUT_ENABLED=true, STACK_STRIPE_TEST_KEY (sk_test_ only), STACK_STRIPE_TEST_WEBHOOK_SECRET, STACK_STRIPE_TEST_PRICE, STACK_STRIPE_TEST_AMOUNT (minor units), STACK_STRIPE_TEST_CURRENCY, account config. Configure signed webhook /api/checkout/webhook for checkout.session.completed, checkout.session.async_payment_succeeded, charge.refunded and charge.dispute.created. Verify provider API version and events in test mode. Server owns the price and links orders to the authenticated account. Redirect never grants ownership. Signed webhook updates idempotent order rows; refund/dispute records suppress sandbox ownership even if received before completion. Any partial refund revokes sandbox ownership. No real product or customer purchase wallet. Order retries, reconciliation of unknown events, provider tax, legal notices, refund workflows, support and accounting require further work before a live integration. Stripe docs: https://docs.stripe.com/payments/checkout and https://docs.stripe.com/webhooks.
+
+The manifest adds install metadata for compatible browsers; no service worker or offline support. Validate on Android/iOS/desktop and add raster icons and offline/update strategy before calling this a production PWA. No native apps added.
+
+Migration 004 replaces the preliminary redemption query with a row-locked transactional function to avoid consuming a second code for an already owned product. Verify concurrency on actual PostgreSQL before issuing codes.

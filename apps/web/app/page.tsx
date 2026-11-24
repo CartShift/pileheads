@@ -13,7 +13,8 @@ export default function HomePage() {
         <p>Make bold moves, burn the pile, and be the first to escape. Play STACK with bots or invite your friends to the table.</p>
         <div className="hero-buttons"><Link className="cta" href="/play">Enter the table <span aria-hidden="true">→</span></Link>
           <Link className="subtle-link" href="/decks">Explore decks →</Link>
-          <Link className="subtle-link" href="/profile">Your profile →</Link>
+          <Link className="subtle-link" href="/account">Your account →</Link>
+          <Link className="subtle-link" href="/shop">Physical game →</Link>
           <a className="subtle-link" href="/pilehead/index.html">Original Classic ↗</a></div>
         <div className="hero-cards" aria-hidden="true">
           <div className="hero-card hero-card-a" /><div className="hero-card hero-card-b" /><div className="hero-card hero-card-c" />

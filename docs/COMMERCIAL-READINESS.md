@@ -24,6 +24,10 @@
 - Google OIDC, durable account and sessions, explicit guest preference import, demo product entitlement, atomic single-use code redemption and batch generation. Disabled until staging verification. See [accounts and redemption](ACCOUNTS-REDEMPTION.md).
 - Actual paid content, refunds, admin revocation and commercial launch are not enabled.
 
+## Increment 5: storefront and test checkout
+
+- External physical storefront entry point, isolated Stripe test checkout, signed webhook, refund suppression, install manifest and stronger redemption transaction. See [storefront and checkout](STOREFRONT-CHECKOUT.md).
+
 ## Next increments
 
 1. Full payment/refund lifecycle and production entitlement administration.

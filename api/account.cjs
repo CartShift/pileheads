@@ -66,8 +66,8 @@ function createStore(query){
   logout:async digest=>query("DELETE FROM stack_account_sessions WHERE token_hash=$1",[digest]),
   preference:async(id,deck)=>query("UPDATE stack_accounts SET preferred_deck=$2 WHERE id=$1",[id,deck]),
   importGuest:async(id,digest)=>query("UPDATE stack_accounts a SET preferred_deck=g.preferred_deck FROM stack_guest_players g WHERE a.id=$1 AND g.token_hash=$2 AND g.expires_at>now() RETURNING a.id",[id,digest]),
-  owned:async id=>(await query("SELECT product_id FROM stack_entitlements WHERE account_id=$1 AND revoked_at IS NULL ORDER BY product_id",[id])).map(r=>r.product_id),
-  redeem:async(id,digest)=>(await query("WITH claimed AS (UPDATE stack_redemption_codes SET redeemed_at=now(),redeemed_by=$1 WHERE code_hash=$2 AND redeemed_at IS NULL AND (expires_at IS NULL OR expires_at>now()) RETURNING product_id), granted AS (INSERT INTO stack_entitlements(account_id,product_id,source) SELECT $1,product_id,'redemption' FROM claimed ON CONFLICT(account_id,product_id) DO NOTHING RETURNING product_id) SELECT product_id FROM claimed",[id,digest]))[0]||null,
+  owned:async id=>(await query("SELECT product_id FROM stack_entitlements WHERE account_id=$1 AND revoked_at IS NULL UNION SELECT 'sandbox-supporter' WHERE EXISTS(SELECT 1 FROM stack_test_orders o WHERE o.account_id=$1 AND o.paid_at IS NOT NULL AND NOT EXISTS(SELECT 1 FROM stack_test_refunds r WHERE r.payment_intent=o.payment_intent)) ORDER BY product_id",[id])).map(r=>r.product_id),
+  redeem:async(id,digest)=>(await query("SELECT product_id FROM stack_redeem_code($1,$2)",[id,digest]))[0]||null,
   remove:async id=>query("DELETE FROM stack_accounts WHERE id=$1",[id])
  };
 }

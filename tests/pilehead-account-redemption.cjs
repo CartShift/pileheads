@@ -38,6 +38,6 @@ async function call({path='/api/account',method='GET',body={},cookie,origin=conf
  assert.equal((await call({method:'POST',cookie:accountCookie,body:{action:'delete'}})).body.profile,null);
  assert.equal((await call({cookie:accountCookie})).body.profile,null);
  const queries=[];await createStore(async(s,a)=>{queries.push({s,a});return [];}).redeem('account','hash');
- assert.match(queries[0].s,/redeemed_at IS NULL/);assert.match(queries[0].s,/INSERT INTO stack_entitlements/);assert.deepEqual(queries[0].a,['account','hash']);
+ assert.match(queries[0].s,/stack_redeem_code/);assert.deepEqual(queries[0].a,['account','hash']);
  console.log('Account and redemption contract checks passed');
 })().catch(e=>{console.error(e);process.exitCode=1;});

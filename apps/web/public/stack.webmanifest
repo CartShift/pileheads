@@ -1,0 +1,1 @@
+{"id":"/stack","name":"STACK Card Game","short_name":"STACK","description":"One pile. One loser. Play STACK with friends or bots.","start_url":"/play","scope":"/","display":"standalone","background_color":"#122c27","theme_color":"#122c27","icons":[{"src":"/stack-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
