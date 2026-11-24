@@ -1180,7 +1180,7 @@ export default function GameTable() {
         {g.phase === "over" && <motion.section className="results-overlay"
           initial={{opacity:0, y:20, scale:.96}}
           animate={{opacity:1,y:0,scale:1}}
-          transition={{type:"spring",stiffness:220,damping:25}}
+          transition={{type:"spring",stiffness:220,damping:25,delay:.32}}
           role="region" aria-label="Round results">
           <div className="eyebrow">ROUND COMPLETE</div>
           <h2>{g.loser === me ? "You're the PILEHEAD!" : "You escaped the pile!"}</h2>
