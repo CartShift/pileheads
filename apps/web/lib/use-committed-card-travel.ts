@@ -16,6 +16,8 @@ type Snapshot = {
   gameKey: string;
   move: number;
   pileIds: Set<number>;
+  handIds: Set<number>;
+  stock: Point | null;
   sources: Map<number, Point>;
   opponents: Map<number, Point>;
 };
@@ -29,6 +31,7 @@ function midpoint(element: Element | null): Point | null {
 
 function capture(table: HTMLElement, gameKey: string, move: number, pile: Card[]): Snapshot {
   const sources = new Map<number, Point>();
+  const handIds = new Set<number>();
   const opponents = new Map<number, Point>();
   for (const node of table.querySelectorAll<HTMLElement>(
     ".player-hand .playing-card[data-card-id], " +
@@ -37,14 +40,19 @@ function capture(table: HTMLElement, gameKey: string, move: number, pile: Card[]
   )) {
     const id = Number(node.dataset.cardId);
     const point = midpoint(node);
-    if (Number.isSafeInteger(id) && point) sources.set(id, point);
+    if (Number.isSafeInteger(id) && point) {
+      sources.set(id, point);
+      if (node.closest(".player-hand")) handIds.add(id);
+    }
   }
   for (const seat of table.querySelectorAll<HTMLElement>(".opponent-seat[data-seat]")) {
     const id = Number(seat.dataset.seat);
     const point = midpoint(seat.querySelector(".opponent-card-stack")) || midpoint(seat);
     if (Number.isSafeInteger(id) && point) opponents.set(id, point);
   }
-  return { gameKey, move, pileIds: new Set(pile.map(card => card.id)), sources, opponents };
+  const stock = midpoint(table.querySelector(".pile-zone:not(.is-main) .pile-slot .playing-card.is-back"));
+  return { gameKey, move, pileIds: new Set(pile.map(card => card.id)),
+    handIds, stock, sources, opponents };
 }
 
 export function useCommittedCardTravel({
@@ -81,19 +89,19 @@ export function useCommittedCardTravel({
     if (before.gameKey !== gameKey) return;
 
     if (before.move + 1 !== moveNo || phase !== "play" ||
-        !event || event.move !== moveNo ||
-        !["play", "followup", "slam"].includes(event.type) ||
-        event.source === "down" || event.burned || event.action === "dump") return;
+        !event || event.move !== moveNo) return;
     if (motionLevel === "reduced" ||
         window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
         document.visibilityState === "hidden") return;
 
-    const arrived = Array.from(table.querySelectorAll<HTMLElement>(
+    const actuallyPlaced = ["play", "followup", "slam"].includes(event.type) &&
+      event.source !== "down" && !event.burned && event.action !== "dump";
+    const arrived = actuallyPlaced ? Array.from(table.querySelectorAll<HTMLElement>(
       ".pile-slot.played .pile-layer .playing-card[data-card-id]"
     )).filter(node => {
       const id = Number(node.dataset.cardId);
       return Number.isSafeInteger(id) && !before.pileIds.has(id);
-    });
+    }) : [];
     // Only cards actually present in the committed pile may fly. They are
     // already rendered in their final state; no second face is ever created.
     const limit = Math.min(Math.max(event.count ?? 1, 0), arrived.length, 4);
@@ -123,6 +131,43 @@ export function useCommittedCardTravel({
       });
       animation.onfinish = () => animation.cancel();
       running.current.push(animation);
+    }
+
+    // Draw-to-three is a genuine physical card transfer too. Animate the
+    // *recipient's own* newly drawn hand cards from the previous draw stock,
+    // never reveal a remote player's hidden cards and never duplicate a face.
+    if (event.seat === me && (event.drawnCount ?? 0) > 0 && before.stock) {
+      const drawn = Array.from(table.querySelectorAll<HTMLElement>(
+        ".player-hand .playing-card[data-card-id]"
+      )).filter(node => {
+        const id = Number(node.dataset.cardId);
+        return Number.isSafeInteger(id) && !before.handIds.has(id);
+      });
+      const count = Math.min(event.drawnCount ?? 0, drawn.length, 3);
+      for (let i = 0; i < count; i++) {
+        const node = drawn[i];
+        const to = midpoint(node);
+        if (!to) continue;
+        const dx = before.stock.x - to.x;
+        const dy = before.stock.y - to.y;
+        if (Math.hypot(dx, dy) < 12) continue;
+        node.dataset.drawMotion = String(moveNo);
+        const animation = node.animate([
+          { transform: `translate3d(${dx}px,${dy}px,0) rotateY(-72deg) scale(.86)`,
+            opacity: .35, offset: 0 },
+          { transform: "translate3d(0,0,0) rotateY(0deg) scale(1.025)",
+            opacity: 1, offset: .82 },
+          { transform: "translate3d(0,0,0) rotateY(0deg) scale(1)",
+            opacity: 1, offset: 1 }
+        ], {
+          duration: motionLevel === "full" ? 420 : 330,
+          delay: i * 42,
+          easing: "cubic-bezier(.2,.76,.22,1)",
+          fill: "both"
+        });
+        animation.onfinish = () => animation.cancel();
+        running.current.push(animation);
+      }
     }
   });
 
