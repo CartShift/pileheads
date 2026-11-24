@@ -804,10 +804,14 @@ async function sharedMoveAnimationScenarios(browser) {
   assert.equal(await quietPage.locator(".pile-slot.played .pile-layer:last-child .playing-card")
     .getAttribute("data-arrival-motion"), "1",
     "the actual committed card animates from its old position, not a duplicate overlay");
-  const moving=await quietPage.locator(".player-hand .playing-card").first().evaluate(el=>
-    el.getAnimations().filter(anim=>anim.effect?.getKeyframes().some(frame=>
-      frame.transform!==undefined)).length);
-  assert.equal(moving,0,"hand cards never spring/shake after a committed move");
+  // Refill must move only the newly drawn *real* hand card. Existing hand
+  // positions must remain stable while the refill is in flight.
+  await quietPage.locator('.player-hand [data-draw-motion="1"]').first().waitFor({timeout:2500});
+  const movingExisting=await quietPage.locator(".player-hand .playing-card").evaluateAll(nodes =>
+    nodes.filter(node=>!node.hasAttribute("data-draw-motion")).some(node=>
+      node.getAnimations().some(animation=>animation.effect?.getKeyframes().some(frame=>
+        frame.transform!==undefined))));
+  assert.equal(movingExisting,false,"existing hand cards never spring/shake during refill");
   console.log("PASS Next stable normal play: one card, zero ghost flights");
  }finally{await quiet.close()}
  // Force an illegal blind card without leaking its identity before the flip.
