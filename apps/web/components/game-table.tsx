@@ -190,10 +190,10 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
   );
 }
 
-function PlayerPosition({ name, seat, active, self, out, handCount, up, downCount, presence, reaction, theme, targetable = false, onTarget }: {
+function PlayerPosition({ name, seat, active, self, out, handCount, up, downCount, presence, reaction, theme, targetable = false, onTarget, onInspect }: {
   name: string; seat: number; active: boolean; self: boolean; out: boolean;
   handCount: number; up: Card[]; downCount: number; presence?: string; reaction?: string; theme: DeckTheme;
-  targetable?: boolean; onTarget?: () => void;
+  targetable?: boolean; onTarget?: () => void; onInspect?: () => void;
 }) {
   return <div className={`opponent-seat ${active ? "seat-active" : ""} ${out ? "seat-out" : ""} ${targetable ? "is-dump-target" : ""}`}
     data-seat={seat} role={targetable ? "button" : undefined} tabIndex={targetable ? 0 : undefined}
@@ -226,6 +226,10 @@ function PlayerPosition({ name, seat, active, self, out, handCount, up, downCoun
             style={{ backgroundPosition: `${(artIndex % 4) * 100 / 3}% ${Math.floor(artIndex / 4) * 100 / 3}%` }} />}
         </div>;
       })}
+      {!targetable && up.length > 0 && onInspect &&
+        <button className="opponent-inspect-hit" type="button"
+          aria-label={`${name} face-up cards`} title="Inspect visible cards"
+          onClick={onInspect} />}
     </div>
   </div>;
 }
@@ -258,6 +262,7 @@ export default function GameTable() {
   const [coachDismissed, setCoachDismissed] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [pileOpen, setPileOpen] = useState(false);
+  const [inspectSeat, setInspectSeat] = useState<number | null>(null);
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -1007,6 +1012,7 @@ export default function GameTable() {
   );
 
   const liveSeats = g.players.filter(p => !p.out && p.seat !== me).map(p => p.seat);
+  const inspectedOpponent = inspectSeat === null ? null : g.players.find(p => p.seat === inspectSeat);
   const canPlay = !!legal.find(m => m.type === "play" && m.source !== "down" && identicalIds(m.ids || [], selection));
   const choosingDumpTarget = (needsTarget || g.pendingDump?.seat === me) && !busy;
   const chooseDumpSeat = (seat: number) => {
@@ -1080,6 +1086,7 @@ export default function GameTable() {
           {g.players.filter(p => p.seat !== me).map(p =>
             <PlayerPosition key={p.seat} seat={p.seat} theme={deckTheme} name={nameForSeat(p.seat)} self={false} out={p.out}
               targetable={choosingDumpTarget && !p.out} onTarget={() => chooseDumpSeat(p.seat)}
+              onInspect={() => setInspectSeat(p.seat)}
               active={g.phase === "play" && g.turn === p.seat}
               handCount={p.handCount} up={p.up} downCount={p.downCount}
               presence={room?.members.find(m => m.seat === p.seat)?.presence}
@@ -1197,6 +1204,27 @@ export default function GameTable() {
         </motion.section>}
       </div>
 
+      {inspectedOpponent && <div className="react-pile-backdrop"
+        onClick={() => setInspectSeat(null)}>
+        <section className="react-pile-panel" role="dialog" aria-modal="true"
+          aria-label={`${nameForSeat(inspectedOpponent.seat)} face-up cards`}
+          onClick={event => event.stopPropagation()}>
+          <header>
+            <div><strong>{nameForSeat(inspectedOpponent.seat)} · VISIBLE CARDS</strong>
+              <small>{inspectedOpponent.up.length} face-up · {inspectedOpponent.downCount} face-down · {inspectedOpponent.handCount} in hand</small></div>
+            <button className="secondary-button" type="button"
+              onClick={() => setInspectSeat(null)}>Close</button>
+          </header>
+          <div className="react-pile-grid opponent-inspect-grid">
+            {inspectedOpponent.up.length ? inspectedOpponent.up.map(card =>
+              <div className="react-pile-item" key={card.id}>
+                <PlayingCard card={card} theme={deckTheme} />
+                <small>{card.kind === "number" ? String(card.rank) : card.action?.toUpperCase()}</small>
+              </div>) : <p>No face-up cards remain.</p>}
+          </div>
+          <p>Only publicly visible cards are shown. Hands and face-down cards stay private.</p>
+        </section>
+      </div>}
       {pileOpen && <div className="react-pile-backdrop" onClick={() => setPileOpen(false)}>
          <section className="react-pile-panel" role="dialog" aria-modal="true" aria-label="All played pile cards"
            onClick={e => e.stopPropagation()}>
