@@ -171,8 +171,34 @@ export function useCommittedCardTravel({
     }
   });
 
-  useLayoutEffect(() => () => {
-    running.current.forEach(animation => animation.cancel());
-    running.current = [];
+  useLayoutEffect(() => {
+    // Fixed screen coordinates are not valid after a viewport change.
+    // Do not cancel on document scroll: mobile interactions can scroll the
+    // page while a legitimate committed move is settling.
+    const invalidate = () => {
+      running.current.forEach(animation => animation.cancel());
+      running.current = [];
+      previous.current = null;
+    };
+    const backgrounded = () => {
+      if (document.visibilityState === "hidden") invalidate();
+    };
+    window.addEventListener("resize", invalidate);
+    window.visualViewport?.addEventListener("resize", invalidate);
+    document.addEventListener("visibilitychange", backgrounded);
+    return () => {
+      window.removeEventListener("resize", invalidate);
+      window.visualViewport?.removeEventListener("resize", invalidate);
+      document.removeEventListener("visibilitychange", backgrounded);
+      invalidate();
+    };
   }, []);
+
+  useLayoutEffect(() => {
+    if (motionLevel === "reduced" ||
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      running.current.forEach(animation => animation.cancel());
+      running.current = [];
+    }
+  }, [motionLevel]);
 }
