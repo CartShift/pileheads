@@ -169,6 +169,17 @@ async function localScenarios(browser) {
         .evaluate(node => getComputedStyle(node).backgroundImage);
       assert.match(opponentArt, /stack-characters\.webp/,
         "opponent face-up cards use the real public deck art");
+      // Mobile can inspect real public face-ups without touching private hand
+      // identities or the authoritative room state.
+      const inspect=page.getByRole("button",{name:/Bot 1 face-up cards/});
+      await inspect.click();
+      const publicCards=page.getByRole("dialog",{name:"Bot 1 face-up cards"});
+      await publicCards.waitFor();
+      assert.equal(await publicCards.locator(".playing-card:not(.is-back)").count(),3,
+        "inspector shows exactly the publicly visible cards");
+      assert.match(await publicCards.textContent(),/Hands and face-down cards stay private/);
+      await page.keyboard.press("Escape");
+      assert.equal(await publicCards.count(),0,"Escape closes public-card inspection");
       // DUMP intentionally asks for a target in 3+ player matches. Avoid
       // assuming that the first randomly dealt card is a simple immediate play.
       const safeFirst = page.locator('.player-hand .card-hit:not([aria-label^="DUMP"])').first();
