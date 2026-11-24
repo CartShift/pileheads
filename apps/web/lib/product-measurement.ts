@@ -26,7 +26,7 @@ export function measure(event: Measurement): void {
     // A fresh identifier for this event only. No player, device or room ID.
     const id = crypto.randomUUID();
     void fetch("/api/product-events", {
-      method: "POST", credentials: "omit", keepalive: true, referrerPolicy: "no-referrer",
+      method: "POST", credentials: "omit", keepalive: true, referrerPolicy: "origin",
       headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...event }),
     }).catch(() => {});
   } catch { /* Measurement must never interrupt a game. */ }
