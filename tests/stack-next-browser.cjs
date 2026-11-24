@@ -26,6 +26,17 @@ function readGame(page) {
   return page.evaluate(() => JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game);
 }
 
+async function tapUndo(page, mobile) {
+  // A successful Undo removes its own button during a click. Send the
+  // physical pointer event, then assert the committed game state instead.
+  const button=page.getByRole("button",{name:"Undo",exact:true});
+  await button.scrollIntoViewIfNeeded();
+  const rect=await button.boundingBox();
+  assert.ok(rect&&rect.width>0&&rect.height>0,"Undo is visible and tappable");
+  const x=rect.x+rect.width/2,y=rect.y+rect.height/2;
+  if(mobile) await page.touchscreen.tap(x,y);
+  else await page.mouse.click(x,y);
+}
 async function endgameSettingsAndBridge(browser) {
   const Engine = require("../dist/pilehead/engine.js");
   // Never rely on a random deal to expose a rare final-hand + face-up bridge.
@@ -192,7 +203,7 @@ async function localScenarios(browser) {
       );
       assert.equal(await page.locator(".pile-slot.played [data-arrival-motion]").count(), 0,
         "OS reduced motion prevents native card flights");
-      await page.getByRole("button", { name: "Undo" }).click();
+      await tapUndo(page, device.mobile);
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves === 0
       );
@@ -203,7 +214,7 @@ async function localScenarios(browser) {
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves >= 1
       );
-      await page.getByRole("button", { name: "Undo" }).click();
+      await tapUndo(page, device.mobile);
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves === 0
       );
@@ -1097,6 +1108,27 @@ async function main() {
     assert.match(html, /_next\/static\//, "Next scripts must be included");
     browser = await chromium.launch({ headless: true });
     console.log("PASS one Render server: Classic, /stack, /play, Next assets and API use one origin");
+    // Select a focused browser scenario on a slower, self-hosted sandbox.
+    // With no selection, keep the complete production acceptance unchanged.
+    const selected=process.env.STACK_ACCEPTANCE_SCENARIO;
+    if(selected){
+      const scenarios={
+        local:()=>localScenarios(browser),
+        motion:()=>sharedMoveAnimationScenarios(browser),
+        dump:()=>dumpSeatTargetScenario(browser),
+        online:()=>onlineScenarios(browser,apiProc),
+        seats:()=>seatLayoutScenarios(browser),
+        hand:()=>adaptiveHandFitScenarios(browser),
+        rematch:()=>localStarterAndRematchScenario(browser),
+        interrupts:()=>localInterruptParityScenarios(browser),
+        mixed:()=>mixedBotScenarios(browser),
+        recovery:()=>abandonedRoomScenario(browser)
+      };
+      if(!Object.hasOwn(scenarios,selected)) throw Error("Unknown STACK browser scenario: "+selected);
+      await scenarios[selected]();
+      return;
+    }
+
     await sameOriginNavigation(browser);
     await endgameSettingsAndBridge(browser);
     await localScenarios(browser);
