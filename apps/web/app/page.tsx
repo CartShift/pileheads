@@ -1,5 +1,6 @@
 import Link from "next/link";
 import MeasurementPreference from "../components/measurement-preference";
+import OfflineControl from "../components/offline-control";
 
 export default function HomePage() {
   return (
@@ -21,7 +22,7 @@ export default function HomePage() {
           <div className="hero-card hero-card-a" /><div className="hero-card hero-card-b" /><div className="hero-card hero-card-c" />
         </div>
       </section>
-      <footer>STACK · The tabletop is yours <MeasurementPreference surface="landing_view" /></footer>
+      <footer>STACK · The tabletop is yours <MeasurementPreference surface="landing_view" /><OfflineControl /></footer>
     </main>
   );
 }

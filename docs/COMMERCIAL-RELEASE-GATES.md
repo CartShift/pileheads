@@ -7,13 +7,16 @@
 - Server-authoritative beta entitlements, single-use redemption, code batch generation.
 - Physical storefront link; Stripe sandbox checkout and signed test webhook/refund suppression.
 - Public partner landing page, configurable published editions and internal aggregate SQL reports.
-- Web app manifest and SVG icon (not offline PWA or native apps).
+- Web app manifest, SVG icon, opt-in offline Classic cache; native apps not included.
+- Audited operator CLI and entitlement-protected founder scorecard.
 
 ## Staging verification (required before merge/enable)
 - [ ] Fetch exact branch using authorized GitHub credentials and run npm ci, npm test, npm run build, frontend typecheck and existing integrated/browser tests. Avoid extra CI workflow runs.
+- [ ] Verify operator DB permissions, audit atomicity and protected downloads after revocation.
+- [ ] Verify offline install/update/remove, local bot gameplay in airplane mode and no caching of private routes.
 - [ ] Verify every friendly route, navigation, mobile landscape/portrait, reduced motion and old Classic route.
 - [ ] Verify same-room multiplayer with two real devices, reconnect and rematches.
-- [ ] Apply all four migrations on an isolated database, verify rollback/backup and run concurrent code redemption tests.
+- [ ] Apply all five migrations on an isolated database, verify rollback/backup and run concurrent code redemption tests.
 - [ ] Verify consent and opt-out, no analytics IDs or room/card data in measurement.
 - [ ] Verify HTTPS cookies, real Google OIDC, canceled login, session expiry, preference import and deletion.
 - [ ] Verify Stripe test checkout, mismatched amount, forged/replayed events, refund-before-payment, partial refunds and canceled checkout.
@@ -22,4 +25,4 @@
 - [ ] No real money until paid product terms, taxes, real refund support, account recovery and payment reconciliation are ready.
 
 ## Remaining product work
-Real paid product content and access enforcement, production payment integration, storefront merchant setup, partner-specific artwork/configurable themes, isolated partner portal and attribution, admin UI with RBAC and audit logs, public matchmaking, full offline-capable PWA and mobile-store distribution are separate milestones, not complete. No costs incurred by this branch beyond existing infrastructure. No new scheduled jobs or production configuration changes.
+Commercial product content beyond the demo scorecard, production payment integration, storefront merchant setup, partner-specific artwork/configurable themes, isolated partner portal and attribution, admin UI with RBAC (operator CLI and audit log exist), public matchmaking, real-device offline/PWA validation and mobile-store distribution are separate milestones, not complete. No costs incurred by this branch beyond existing infrastructure. No new scheduled jobs or production configuration changes.

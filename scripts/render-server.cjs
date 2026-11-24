@@ -104,10 +104,11 @@ async function serveFile(req, res, url) {
   res.setHeader('Content-Type', contentTypes[path.extname(filename).toLowerCase()] || 'application/octet-stream');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  if(pathname === '/stack-sw.js') res.setHeader('Service-Worker-Allowed','/');
   const nextFingerprint = pathname.startsWith('/_next/static/');
   const routePayload = path.extname(filename) === '.txt';
   res.setHeader('Cache-Control', nextFingerprint ? 'public, max-age=31536000, immutable'
-    : path.extname(filename) === '.html' || routePayload ? 'no-cache'
+    : path.extname(filename) === '.html' || routePayload || pathname === '/stack-sw.js' ? 'no-cache'
     : 'public, max-age=3600');
   if (req.method === 'HEAD') return res.end();
   fs.createReadStream(filename)

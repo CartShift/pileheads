@@ -21,4 +21,5 @@ run('Build original Classic static site', process.execPath, ['scripts/build-verc
 run('Export Next.js React tabletop', npm, ['run', 'build', '--prefix', 'apps/web'],
   {...process.env, NEXT_PUBLIC_STACK_API_ORIGIN: ''});
 run('Publish Next static export with Classic', process.execPath, ['scripts/publish-next.mjs']);
+run('Generate opt-in offline table cache', process.execPath, ['scripts/build-offline.mjs']);
 console.log('[STACK build] Integrated single-Render build completed');

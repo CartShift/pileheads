@@ -8,7 +8,7 @@ const root = path.resolve('dist');
 const output = path.resolve('vercel-static');
 const game = path.join(root, 'pilehead');
 const assets = [
-  'index.html', 'endgame-lab.html', 'endgame-lab.css', 'endgame-lab-engine.js', 'endgame-lab-app.js', 'app.js', 'online.js', 'online-polish.css', 'classic-premium.css', 'classic-clean.css', 'ux-clarity.css', 'ux-clarity.js', 'live.css', 'live.js', 'engine.js',
+  'index.html', 'endgame-lab.html', 'endgame-lab.css', 'endgame-lab-engine.js', 'endgame-lab-app.js', 'app.js', 'online.js', 'online-polish.css', 'classic-premium.css', 'classic-clean.css', 'table-feedback.css', 'ux-clarity.css', 'ux-clarity.js', 'live.css', 'live.js', 'engine.js',
   'immersive.css', 'immersive.js', 'deck-art.css', 'deck-art.js',
   'deck-raster.css', 'deck-raster.js', 'stack-brand.css',
   'deck-theme.js', 'deck-theme.css',

@@ -32,6 +32,10 @@
 
 - Configurable published partner landing pages, inquiry channel and internal aggregate reporting; no customer-specific code forks. See [partner editions](PARTNER-EDITIONS.md) and [release gates](COMMERCIAL-RELEASE-GATES.md).
 
+## Increment 7: operations and offline beta
+
+- Internal audited entitlement CLI, server-protected founder scorecard, opt-in offline Classic cache. See [admin](COMMERCIAL-ADMIN.md) and [offline table](OFFLINE-TABLE.md).
+
 ## Next increments
 
 1. Full payment/refund lifecycle and production entitlement administration.
