@@ -7,6 +7,7 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { playSound } from "../lib/sound";
 import MoveTheater, { type MotionLevel } from "./move-theater";
+import { useCommittedCardTravel } from "../lib/use-committed-card-travel";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
 const MotionAudio = require("../lib/motion-core.cjs") as { fromCommittedEvent: (event: Event) => { kind: string; destination: string | null } | null };
 import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame, type Reaction } from "../lib/room";
@@ -127,7 +128,7 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
     : -1;
   const gesture = useRef<{x: number; y: number; moved: boolean} | null>(null);
   const blockClick = useRef(false);
-  const [floating, setFloating] = useState<{x: number; y: number} | null>(null);
+  const [floating, setFloating] = useState<{x: number; y: number; touch: boolean} | null>(null);
   function pointerDown(e: ReactPointerEvent<HTMLButtonElement>) {
     if (!onDrop || e.button !== 0) return;
     blockClick.current = false;
@@ -137,9 +138,10 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
   function pointerMove(e: ReactPointerEvent<HTMLButtonElement>) {
     const start = gesture.current;
     if (!start) return;
-    if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 8) return;
+    if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) <
+        (e.pointerType === "touch" ? 12 : 8)) return;
     start.moved = true;
-    setFloating({ x: e.clientX, y: e.clientY });
+    setFloating({ x: e.clientX, y: e.clientY, touch: e.pointerType === "touch" });
   }
   function pointerUp(e: ReactPointerEvent<HTMLButtonElement>) {
     const start = gesture.current;
@@ -159,7 +161,8 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
   } : {};
   return (
     <div
-      className={`playing-card theme-${theme} ${hidden ? "is-back" : ""} ${selected ? "is-selected" : ""} ${small ? "is-small" : ""} ${onClick && !disabled ? "is-interactive" : ""}`}
+      className={`playing-card theme-${theme} ${hidden ? "is-back" : ""} ${selected ? "is-selected" : ""} ${floating ? "is-dragging" : ""} ${small ? "is-small" : ""} ${onClick && !disabled ? "is-interactive" : ""}`}
+      data-card-id={card?.id}
       style={offsetX ? {left: offsetX} : undefined}>
       <div aria-hidden="true" className="card-art" style={faceStyle} />
       {onClick && !disabled ? (
@@ -179,7 +182,7 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
           }} />
       ) : null}
       {floating && createPortal(
-        <div className={"drag-ghost theme-" + theme}
+        <div className={"drag-ghost theme-" + theme + (floating.touch ? " is-touch" : "")}
           style={{left:floating.x,top:floating.y}} aria-hidden="true">
           <div className="card-art" style={faceStyle} />
         </div>, document.body)}
@@ -187,12 +190,18 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
   );
 }
 
-function PlayerPosition({ name, seat, active, self, out, handCount, up, downCount, presence, reaction }: {
+function PlayerPosition({ name, seat, active, self, out, handCount, up, downCount, presence, reaction, theme, targetable = false, onTarget, onInspect }: {
   name: string; seat: number; active: boolean; self: boolean; out: boolean;
-  handCount: number; up: Card[]; downCount: number; presence?: string; reaction?: string;
+  handCount: number; up: Card[]; downCount: number; presence?: string; reaction?: string; theme: DeckTheme;
+  targetable?: boolean; onTarget?: () => void; onInspect?: () => void;
 }) {
-  return <div className={`opponent-seat ${active ? "seat-active" : ""} ${out ? "seat-out" : ""}`}
-    data-seat={seat} aria-label={`${name}: ${handCount} in hand, ${up.length} face-up, ${downCount} face-down`}>
+  return <div className={`opponent-seat ${active ? "seat-active" : ""} ${out ? "seat-out" : ""} ${targetable ? "is-dump-target" : ""}`}
+    data-seat={seat} role={targetable ? "button" : undefined} tabIndex={targetable ? 0 : undefined}
+    onClick={targetable ? onTarget : undefined}
+    onKeyDown={targetable ? event => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onTarget?.(); }
+    } : undefined}
+    aria-label={targetable ? `Send the pile to ${name}` : `${name}: ${handCount} in hand, ${up.length} face-up, ${downCount} face-down`}>
     <div className="seat-heading">
       <span className="avatar" aria-hidden="true">{self ? "Y" : String(seat + 1)}</span>
       <div><strong>{name}</strong><small>{out ? "Finished" : presence === "offline" ? "Offline" :
@@ -206,13 +215,21 @@ function PlayerPosition({ name, seat, active, self, out, handCount, up, downCoun
       {!handCount && <span className="empty-seat">No hand cards</span>}
     </div>
     <div className="opponent-up">
-      {Array.from({ length: Math.max(up.length, downCount) }, (_, i) =>
-        <div className="mini-pair" key={i}>
+      {Array.from({ length: Math.max(up.length, downCount) }, (_, i) => {
+        const card = up[i];
+        const artIndex = card?.kind === "number" ? (card.rank ?? 1) - 1 :
+          card ? 10 + ACTIONS.indexOf(card.action || "") : -1;
+        return <div className="mini-pair" key={i}>
           {i < downCount && <span className="mini-back" />}
-          {up[i] && <span className="mini-face" title={cardLabel(up[i])}>
-            {up[i].kind === "number" ? up[i].rank : up[i].action?.slice(0, 1).toUpperCase()}
-          </span>}
-        </div>)}
+          {card && <span className={`mini-face theme-${theme}`} data-card-id={card.id}
+            title={cardLabel(card)} aria-label={cardLabel(card)}
+            style={{ backgroundPosition: `${(artIndex % 4) * 100 / 3}% ${Math.floor(artIndex / 4) * 100 / 3}%` }} />}
+        </div>;
+      })}
+      {!targetable && up.length > 0 && onInspect &&
+        <button className="opponent-inspect-hit" type="button"
+          aria-label={`${name} face-up cards`} title="Inspect visible cards"
+          onClick={onInspect} />}
     </div>
   </div>;
 }
@@ -245,6 +262,21 @@ export default function GameTable() {
   const [coachDismissed, setCoachDismissed] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [pileOpen, setPileOpen] = useState(false);
+  const [inspectSeat, setInspectSeat] = useState<number | null>(null);
+  const inspectCloseRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (inspectSeat === null) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    inspectCloseRef.current?.focus();
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setInspectSeat(null);
+    };
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("keydown", escape);
+      previousFocus?.focus();
+    };
+  }, [inspectSeat]);
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -647,6 +679,8 @@ export default function GameTable() {
     height: `${cardHeight + Math.max(0, handRows - 1) * handRowStep}px`
   };
   const lastEvent = g?.events.at(-1);
+  useCommittedCardTravel({ gameKey: visualGameKey, moveNo: g?.moves ?? 0,
+    phase: g?.phase ?? "setup", pile: g?.pile ?? [], event: lastEvent, me, motionLevel });
   const soundEventId = lastEvent ? String(g?.round || 1) + ":" +
     lastEvent.move + ":" + lastEvent.seat + ":" + lastEvent.type : null;
   useEffect(() => {
@@ -992,7 +1026,15 @@ export default function GameTable() {
   );
 
   const liveSeats = g.players.filter(p => !p.out && p.seat !== me).map(p => p.seat);
+  const inspectedOpponent = inspectSeat === null ? null : g.players.find(p => p.seat === inspectSeat);
   const canPlay = !!legal.find(m => m.type === "play" && m.source !== "down" && identicalIds(m.ids || [], selection));
+  const choosingDumpTarget = (needsTarget || g.pendingDump?.seat === me) && !busy;
+  const chooseDumpSeat = (seat: number) => {
+    if (g.pendingDump?.seat === me) {
+      if (mode === "local") commitLocal(game => Engine.resolveDump(game, me, seat));
+      else if (room) void submit({ action: "dump-target", code: room.code, revision: room.revision, target: seat });
+    } else if (needsTarget) playSelected(seat);
+  };
   const canTake = legal.some(m => m.type === "take");
   const rule = g.limit?.type === "under" ? "Next number: 1–4" : g.limit?.type === "min"
     ? `Next number: ${g.limit.value} or higher` : "Any number can follow";
@@ -1024,7 +1066,6 @@ export default function GameTable() {
           {mode === "online" && <span className={`connection-chip ${connected ? "is-online" : "is-offline"}`}
             title={`Last sync: ${lastSyncAt.current ? new Date(lastSyncAt.current).toLocaleTimeString() : "pending"}`}
             role="status">{connected ? "Live" : "Reconnecting"}</span>}
-          <span className="beta-tag">REACT TABLE · PREVIEW</span>
           <button className="exit-button" onClick={() => setShowRules(true)}>Rules</button>
           <button className="exit-button" onClick={() => setShowSettings(true)}>Settings</button>
           <label className="theme-control">Deck
@@ -1057,7 +1098,9 @@ export default function GameTable() {
         <div className="table-texture" aria-hidden="true" />
         <div className="opponents-row">
           {g.players.filter(p => p.seat !== me).map(p =>
-            <PlayerPosition key={p.seat} seat={p.seat} name={nameForSeat(p.seat)} self={false} out={p.out}
+            <PlayerPosition key={p.seat} seat={p.seat} theme={deckTheme} name={nameForSeat(p.seat)} self={false} out={p.out}
+              targetable={choosingDumpTarget && !p.out} onTarget={() => chooseDumpSeat(p.seat)}
+              onInspect={() => setInspectSeat(p.seat)}
               active={g.phase === "play" && g.turn === p.seat}
               handCount={p.handCount} up={p.up} downCount={p.downCount}
               presence={room?.members.find(m => m.seat === p.seat)?.presence}
@@ -1158,7 +1201,7 @@ export default function GameTable() {
         {g.phase === "over" && <motion.section className="results-overlay"
           initial={{opacity:0, y:20, scale:.96}}
           animate={{opacity:1,y:0,scale:1}}
-          transition={{type:"spring",stiffness:220,damping:25}}
+          transition={{type:"spring",stiffness:220,damping:25,delay:.32}}
           role="region" aria-label="Round results">
           <div className="eyebrow">ROUND COMPLETE</div>
           <h2>{g.loser === me ? "You're the PILEHEAD!" : "You escaped the pile!"}</h2>
@@ -1175,6 +1218,30 @@ export default function GameTable() {
         </motion.section>}
       </div>
 
+      {inspectedOpponent && <div className="react-pile-backdrop"
+        onClick={() => setInspectSeat(null)}>
+        <section className="react-pile-panel" role="dialog" aria-modal="true"
+          aria-label={`${nameForSeat(inspectedOpponent.seat)} face-up cards`}
+          onClick={event => event.stopPropagation()}
+          onKeyDown={event => {
+            if (event.key === "Tab") { event.preventDefault(); inspectCloseRef.current?.focus(); }
+          }}>
+          <header>
+            <div><strong>{nameForSeat(inspectedOpponent.seat)} · VISIBLE CARDS</strong>
+              <small>{inspectedOpponent.up.length} face-up · {inspectedOpponent.downCount} face-down · {inspectedOpponent.handCount} in hand</small></div>
+            <button className="secondary-button" type="button" ref={inspectCloseRef}
+              onClick={() => setInspectSeat(null)}>Close</button>
+          </header>
+          <div className="react-pile-grid opponent-inspect-grid">
+            {inspectedOpponent.up.length ? inspectedOpponent.up.map(card =>
+              <div className="react-pile-item" key={card.id}>
+                <PlayingCard card={card} theme={deckTheme} />
+                <small>{card.kind === "number" ? String(card.rank) : card.action?.toUpperCase()}</small>
+              </div>) : <p>No face-up cards remain.</p>}
+          </div>
+          <p>Only publicly visible cards are shown. Hands and face-down cards stay private.</p>
+        </section>
+      </div>}
       {pileOpen && <div className="react-pile-backdrop" onClick={() => setPileOpen(false)}>
          <section className="react-pile-panel" role="dialog" aria-modal="true" aria-label="All played pile cards"
            onClick={e => e.stopPropagation()}>
@@ -1321,7 +1388,7 @@ export default function GameTable() {
           </div>
         </section>
       </div>}
-      <div className="table-footer"><span>STACK · React tabletop migration preview</span>
+      <div className="table-footer"><span>STACK · The digital tabletop</span>
         <a href={classicHref}>Original Classic ↗</a></div>
     </main>
   );
