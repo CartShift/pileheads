@@ -136,7 +136,7 @@ const server = http.createServer(async (req, res) => {
     else if (url.pathname === '/api/pilehead') await serveApi(req, res, url);
     else if (url.pathname === '/api/product-events') await productEvents(req, res);
     else if (url.pathname === '/api/player') await playerProfile(req, res);
-    else if (url.pathname === '/api/account' || url.pathname === '/api/account/callback') await account(req, res, url);
+    else if (url.pathname === '/api/account' || url.pathname === '/api/account/callback' || url.pathname === '/api/account/bonus') await account(req, res, url);
     else if (url.pathname === '/api/checkout' || url.pathname === '/api/checkout/webhook') await checkout(req, res, url);
     else if (url.pathname === '/api/storefront') await storefront(req, res);
     else if (url.pathname === '/api/editions') await editions(req, res, url);

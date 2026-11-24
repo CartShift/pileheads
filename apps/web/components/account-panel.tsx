@@ -2,7 +2,7 @@
 import Link from "next/link";
 import {useEffect,useRef,useState} from "react";
 import {DECKS,deckPlayHref,isDeckTheme,type DeckTheme} from "../lib/deck-registry";
-type Profile={kind:"account";deck:DeckTheme;owned:string[]};
+type Profile={kind:"account";deck:DeckTheme;owned:string[];supportId:string};
 type State={enabled:boolean;profile:Profile|null};
 type Action={action:"login"|"logout"|"import_guest"|"delete"}|{action:"preferences";deck:DeckTheme}|{action:"redeem";code:string};
 export default function AccountPanel(){
@@ -42,6 +42,8 @@ export default function AccountPanel(){
    <button className="secondary-button" disabled={busy} onClick={()=>void update({action:"import_guest"})}>Import favorite deck from guest profile</button>
    {testCheckout&&<div><h3>Test checkout (sandbox only)</h3><p>No real money is charged. {profile.owned.includes("sandbox-supporter")?"Test purchase confirmed.":"Use Stripe test payment details."}</p><button className="secondary-button" disabled={busy} onClick={()=>void startCheckout()}>Test purchase</button></div>}
    <h3>Unlocked extras</h3><p>{profile.owned.includes("founder-supporter")?"Founder supporter badge unlocked.":"No extras unlocked yet."}</p>
+   {profile.owned.includes("founder-supporter")&&<p><a className="secondary-button" href="/api/account/bonus" download>Download founder scorecard</a></p>}
+   <p><small>Support reference: <code>{profile.supportId}</code> (share only with STACK support).</small></p>
    <form onSubmit={e=>{e.preventDefault();void update({action:"redeem",code:code.trim()});}}><label>Redemption code <input autoComplete="off" spellCheck={false} maxLength={32} value={code} onChange={e=>setCode(e.target.value)}/></label><button className="secondary-button" disabled={busy||!/^[A-Za-z0-9_-]{32}$/.test(code.trim())}>Redeem</button></form>
    <p><button className="secondary-button" disabled={busy} onClick={()=>void update({action:"logout"})}>Sign out</button></p>
    {confirm?<><p>Delete this account and its unlocked extras? Redeemed codes cannot be reused.</p><button className="secondary-button" disabled={busy} onClick={()=>void update({action:"delete"})}>Permanently delete account</button> <button className="secondary-button" onClick={()=>setConfirm(false)}>Cancel</button></>:<button className="subtle-link guest-delete" disabled={busy} onClick={()=>setConfirm(true)}>Delete account</button>}

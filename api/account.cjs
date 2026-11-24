@@ -1,5 +1,6 @@
 'use strict';
 const crypto=require('node:crypto');
+const {serveBonus}=require('./founder-bonus.cjs');
 const {hash,limiter,cookieToken:guestToken}=require('./player.cjs');
 const SESSION='__Host-stack_account',FLOW='__Host-stack_oauth';
 const TOKEN=/^[A-Za-z0-9_-]{43}$/;
@@ -81,7 +82,7 @@ function validAction(input){
 }
 function createHandler({config,store,exchange=exchangeGoogle,allow=limiter(240),allowLogin=limiter(30),allowRedeem=limiter(30)}){
  const enabled=Boolean(config.enabled&&config.origin&&config.clientId&&config.clientSecret);
- const profile=async row=>row?{kind:'account',deck:row.preferred_deck,owned:await store.owned(row.id)}:null;
+ const profile=async row=>row?{kind:'account',deck:row.preferred_deck,owned:await store.owned(row.id),supportId:row.id}:null;
  return async(req,res,url)=>{
   if(!enabled)return reply(res,req.method==='GET'?200:503,{enabled:false,profile:null});
   if(!allow())return reply(res,429,{ok:false});
@@ -100,6 +101,7 @@ function createHandler({config,store,exchange=exchangeGoogle,allow=limiter(240),
    }
    if(req.method!=='GET'&&req.method!=='POST'){res.setHeader('Allow','GET, POST');return reply(res,405,{ok:false});}
    if(req.headers['sec-fetch-site']&&!['same-origin','none'].includes(req.headers['sec-fetch-site']))return reply(res,403,{ok:false});
+   if(url.pathname==='/api/account/bonus')return await serveBonus(req,res,{row:digest?await store.find(digest):null,owned:store.owned,reply,secure});
    if(req.method==='GET'){
     const row=digest?await store.find(digest):null;
     if(raw&&!row)setCookie(res,SESSION,'',0);
