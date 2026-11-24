@@ -263,6 +263,20 @@ export default function GameTable() {
   const [showRules, setShowRules] = useState(false);
   const [pileOpen, setPileOpen] = useState(false);
   const [inspectSeat, setInspectSeat] = useState<number | null>(null);
+  const inspectCloseRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (inspectSeat === null) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    inspectCloseRef.current?.focus();
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setInspectSeat(null);
+    };
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("keydown", escape);
+      previousFocus?.focus();
+    };
+  }, [inspectSeat]);
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -1208,11 +1222,14 @@ export default function GameTable() {
         onClick={() => setInspectSeat(null)}>
         <section className="react-pile-panel" role="dialog" aria-modal="true"
           aria-label={`${nameForSeat(inspectedOpponent.seat)} face-up cards`}
-          onClick={event => event.stopPropagation()}>
+          onClick={event => event.stopPropagation()}
+          onKeyDown={event => {
+            if (event.key === "Tab") { event.preventDefault(); inspectCloseRef.current?.focus(); }
+          }}>
           <header>
             <div><strong>{nameForSeat(inspectedOpponent.seat)} · VISIBLE CARDS</strong>
               <small>{inspectedOpponent.up.length} face-up · {inspectedOpponent.downCount} face-down · {inspectedOpponent.handCount} in hand</small></div>
-            <button className="secondary-button" type="button"
+            <button className="secondary-button" type="button" ref={inspectCloseRef}
               onClick={() => setInspectSeat(null)}>Close</button>
           </header>
           <div className="react-pile-grid opponent-inspect-grid">
