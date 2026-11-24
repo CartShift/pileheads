@@ -1,4 +1,5 @@
 import Link from "next/link";
+import MeasurementPreference from "../components/measurement-preference";
 
 export default function HomePage() {
   return (
@@ -17,7 +18,7 @@ export default function HomePage() {
           <div className="hero-card hero-card-a" /><div className="hero-card hero-card-b" /><div className="hero-card hero-card-c" />
         </div>
       </section>
-      <footer>STACK · The tabletop is yours</footer>
+      <footer>STACK · The tabletop is yours <MeasurementPreference surface="landing_view" /></footer>
     </main>
   );
 }

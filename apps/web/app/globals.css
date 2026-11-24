@@ -904,3 +904,5 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 .deck-edition-body .cta{display:inline-flex;margin-top:12px}
 .deck-catalog-footer{margin-top:32px;padding-bottom:20px}
 @media(max-width:640px){.deck-catalog-grid{grid-template-columns:1fr}.deck-edition-art{min-height:180px}}
+
+.measurement-preference{margin:14px 0;text-align:left;font-size:13px;max-width:420px;line-height:1.45}.measurement-preference label{display:flex;align-items:center;gap:8px;cursor:pointer}.measurement-preference input{flex:none;accent-color:#86ba92}.measurement-preference small{display:block;opacity:.82;margin:6px 0 0 24px;font-size:11px}

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import MeasurementPreference from "../../components/measurement-preference";
 import type { Metadata } from "next";
 import { DECKS, deckPlayHref } from "../../lib/deck-registry";
 
@@ -26,6 +27,6 @@ export default function DeckCatalogPage() {
         </div>
       </article>)}
     </section>
-    <footer className="deck-catalog-footer"><Link href="/stack">Back to STACK</Link></footer>
+    <footer className="deck-catalog-footer"><Link href="/stack">Back to STACK</Link><MeasurementPreference surface="catalog_view" /></footer>
   </main>;
 }

@@ -1,0 +1,43 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {Readable}=require('node:stream');
+const {validateEvent,createLimiter,createHandler,createStore}=require('../api/product-events.cjs');
+const id='12345678-1234-4234-8234-123456789abc';
+const valid={id,event:'round_completed',mode:'online',deck:'original'};
+assert.deepEqual(validateEvent(valid),valid);
+assert.equal(validateEvent({...valid,roomCode:'secret'}),null);
+assert.equal(validateEvent({...valid,deck:'unknown'}),null);
+assert.equal(validateEvent({...valid,id:'not-a-uuid'}),null);
+assert.equal(validateEvent({id,event:'invite_copied',mode:'local',deck:'original'}),null);
+assert.equal(validateEvent({id,event:'lobby_view',mode:'local'}),null);
+assert.equal(validateEvent({id,event:'deck_selected',deck:'characters'}).mode,null);
+assert.equal(validateEvent({id,event:'landing_view'}).deck,null);
+assert.equal(validateEvent({id,event:'__proto__'}),null);
+let now=0;const limit=createLimiter(2,()=>now);
+assert.equal(limit(),true);assert.equal(limit(),true);assert.equal(limit(),false);now=60000;assert.equal(limit(),true);
+async function call(handler,{method='POST',origin='https://stack.test',body=JSON.stringify(valid),headers={}}={}){
+  const req=Readable.from([Buffer.from(body)]);req.method=method;req.headers={origin,'content-type':'application/json',...headers};
+  const res={setHeader(){},end(value){this.body=JSON.parse(value);}};
+  await handler(req,res);return res;
+}
+(async()=>{
+  const writes=[];
+  const handler=createHandler({enabled:true,origin:'https://stack.test',write:async e=>writes.push(e),allow:()=>true});
+  assert.equal((await call(handler,{method:'GET'})).body.enabled,true);
+  assert.equal((await call(handler,{origin:'https://elsewhere.test'})).statusCode,403);
+  assert.equal((await call(handler,{headers:{'sec-fetch-site':'cross-site'}})).statusCode,403);
+  assert.equal((await call(handler,{body:'{'})).statusCode,400);
+  assert.equal((await call(handler,{body:'x'.repeat(1025)})).statusCode,413);
+  assert.equal((await call(handler,{method:'PUT'})).statusCode,405);
+  assert.equal((await call(handler,{headers:{'content-type':'text/plain'}})).statusCode,415);
+  assert.equal((await call(handler)).statusCode,202);assert.deepEqual(writes,[valid]);
+  assert.equal((await call(createHandler({enabled:false,origin:'https://stack.test',write:async()=>{throw Error('must not write');}}))).statusCode,503);
+  assert.equal((await call(createHandler({enabled:true,origin:'https://stack.test',write:async()=>{throw Error('db offline');}}))).statusCode,503);
+  assert.equal((await call(createHandler({enabled:true,origin:'https://stack.test',write:async()=>{},allow:()=>false}))).statusCode,429);
+  const queries=[];const store=createStore(async(sql,args)=>queries.push({sql,args}));
+  await store(valid);await store(valid);
+  assert.equal(queries.length,3);assert.match(queries[0].sql,/ON CONFLICT\(id\) DO NOTHING/);
+  assert.deepEqual(queries[0].args,[id,'round_completed','online','original']);
+  assert.match(queries[1].sql,/30 days/);
+  console.log('Product measurement contract checks passed');
+})().catch(err=>{console.error(err);process.exitCode=1;});

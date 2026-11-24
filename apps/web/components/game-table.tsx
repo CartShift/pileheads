@@ -6,6 +6,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { playSound } from "../lib/sound";
+import { measure } from "../lib/product-measurement";
+import MeasurementPreference from "./measurement-preference";
 import { DECKS, DEFAULT_DECK, isDeckTheme, resolveDeckTheme, type DeckTheme } from "../lib/deck-registry";
 import MoveTheater, { type MotionLevel } from "./move-theater";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
@@ -576,6 +578,16 @@ export default function GameTable() {
     [mode, local, room]);
   const visualGameKey = mode === "local" ? "local:" + local?.seed :
     mode === "online" ? "online:" + room?.code + ":" + room?.game.round : "home";
+  const measuredRound = useRef<{ key: string; phase: string }>({ key: "", phase: "" });
+  useEffect(() => {
+    const previous = measuredRound.current;
+    const phase = g?.phase ?? "";
+    measuredRound.current = { key: visualGameKey, phase };
+    // Count only transitions observed by this client; reconnect/resume snapshots are not new rounds.
+    if ((mode !== "local" && mode !== "online") || previous.key !== visualGameKey) return;
+    if (previous.phase === "setup" && phase === "play") measure({ event: "round_started", mode, deck: deckTheme });
+    if (previous.phase === "play" && phase === "over") measure({ event: "round_completed", mode, deck: deckTheme });
+  }, [visualGameKey, g?.phase, mode, deckTheme]);
   useEffect(() => {
     const move = g?.moves ?? 0;
     const previous = blindMotionCursor.current;
@@ -784,6 +796,7 @@ export default function GameTable() {
   }
 
   function newRound() {
+    if (mode === "local" || mode === "online") measure({ event: "rematch_requested", mode, deck: deckTheme });
     if (mode === "local") startLocalGame(practiceMode, local?.finishedOrder[0] ?? null,
       local?.people.length ?? null);
     else if (room) void submit({ action: "rematch", code: room.code, revision: room.revision });
@@ -876,6 +889,7 @@ export default function GameTable() {
       if (!navigator.clipboard?.writeText) throw new Error("clipboard_unsupported");
       await navigator.clipboard.writeText(invite);
       setCopiedInvite(true);
+      measure({ event: "invite_copied", mode: "online", deck: deckTheme });
     } catch {
       // Explicit user interaction only. Even a browser without clipboard
       // permissions must still let the player share the invite.
@@ -931,6 +945,7 @@ export default function GameTable() {
           <p>Play the real STACK rules with a refreshed, tactile React tabletop. Your original Classic game stays untouched.</p>
           <a href={classicHref} className="subtle-link">Open original Classic ↗</a>
           <Link href="/decks" className="subtle-link">Explore deck editions →</Link>
+          <MeasurementPreference surface="lobby_view" />
           <button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>
             Game settings
           </button>
@@ -980,6 +995,7 @@ export default function GameTable() {
               every pile pickup burns the visible top card. Off by default.</small></span>
           </label>
           {motionSetting}
+          <MeasurementPreference />
           <label className="rule-toggle">
             <input type="checkbox" checked={soundEnabled} onChange={event => {
               setSoundEnabled(event.target.checked);
@@ -1031,7 +1047,7 @@ export default function GameTable() {
           <button className="exit-button" onClick={() => setShowSettings(true)}>Settings</button>
           <label className="theme-control">Deck
             <select aria-label="Deck style" value={deckTheme}
-              onChange={e => { if (isDeckTheme(e.target.value)) setDeckTheme(e.target.value); }}>
+              onChange={e => { if (isDeckTheme(e.target.value)) { setDeckTheme(e.target.value); measure({event:"deck_selected", deck:e.target.value}); } }}>
               {DECKS.map(deck => <option key={deck.id} value={deck.id}>{deck.name}</option>)}
             </select>
           </label>
@@ -1272,6 +1288,7 @@ export default function GameTable() {
             </small></span>
           </label>
           {motionSetting}
+          <MeasurementPreference />
           <label className="rule-toggle">
             <input type="checkbox" checked={soundEnabled} onChange={event => {
               setSoundEnabled(event.target.checked);

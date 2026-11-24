@@ -8,12 +8,17 @@
 - Static export and same-origin Render routing support the new page.
 - No payment, account, tracking, new hosting service or background job is introduced.
 
+## Increment 2: opt-in product measurement
+
+- First-party, server-validated aggregate event observations and explicit consent controls; off by default.
+- Migration and reporting SQL, no new services or scheduled jobs.
+- See [product measurement](PRODUCT-MEASUREMENT.md) for enablement gates and metric limitations.
+
 ## Next increments
 
-1. Anonymous opt-in product measurement: documented event taxonomy, retention and deletion policy, server-validated ingestion, deduplication and metrics; measure completed games, rematches and invitations without recording room tokens or cards.
-2. Durable player identity: guest-to-account linking with secure sessions and database migrations; keep anonymous play available.
-3. Server-authoritative entitlements and redemption: transactional grant/revoke, audit, rate limits and single-use physical codes.
-4. Physical commerce via a validated checkout integration; digital commerce only after catalog and entitlement security are verified.
-5. Branded partner editions and aggregated reporting; no tenant-specific code forks.
+1. Durable player identity: guest-to-account linking with secure sessions and database migrations; keep anonymous play available.
+2. Server-authoritative entitlements and redemption: transactional grant/revoke, audit, rate limits and single-use physical codes.
+3. Physical commerce via a validated checkout integration; digital commerce only after catalog and entitlement security are verified.
+4. Branded partner editions and aggregated reporting; no tenant-specific code forks.
 
 Do not expose premium content or accept money until entitlement verification, payment replay/refund tests, privacy review and deployment smoke tests pass. The deck registry is public presentation metadata, not an access-control boundary.

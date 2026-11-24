@@ -7,6 +7,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { stat } = require('node:fs/promises');
 const roomHandler = require('../api/pilehead.js');
+const { handler: productEvents } = require('../api/product-events.cjs');
 const { attachRealtime } = require('./realtime-hub.cjs');
 let liveHub = null;
 
@@ -124,6 +125,7 @@ const server = http.createServer(async (req, res) => {
       await serveApi(req, res, url);
     }
     else if (url.pathname === '/api/pilehead') await serveApi(req, res, url);
+    else if (url.pathname === '/api/product-events') await productEvents(req, res);
     else await serveFile(req, res, url);
   } catch (error) {
     console.error('STACK request error:', error.message);
