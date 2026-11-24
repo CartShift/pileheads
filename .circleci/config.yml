@@ -95,9 +95,15 @@ workflows:
     jobs:
       - stack-checks:
           name: stack-fast-checks
+          filters:
+            branches:
+              only: ci/circleci-pilot
   stack-full:
     when: << pipeline.parameters.full_acceptance >>
     jobs:
       - stack-checks:
           name: stack-full-acceptance
           full: true
+          filters:
+            branches:
+              only: ci/circleci-pilot
