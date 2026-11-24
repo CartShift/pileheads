@@ -76,6 +76,7 @@ async function serveFile(req, res, url) {
   // Classic URLs remain untouched, with no catch-all SPA fallback.
   if (pathname === '/play' || pathname === '/play/') pathname = '/play.html';
   else if (pathname === '/stack' || pathname === '/stack/') pathname = '/stack.html';
+  else if (pathname === '/decks' || pathname === '/decks/') pathname = '/decks.html';
   if (pathname.includes('\0') || pathname.includes('\\')) return respond(res, 400, 'Bad Request');
 
   const filename = path.resolve(root, '.' + pathname);

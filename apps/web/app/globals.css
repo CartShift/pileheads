@@ -884,3 +884,23 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 @media(prefers-reduced-motion:reduce){
   .pile-layer.is-blind-reveal .playing-card{animation:none!important}
 }
+
+/* Commercial catalog: independent of the tabletop layout. */
+.deck-catalog{min-height:100dvh;background:#122c27;color:#f9e7c2;padding:clamp(18px,4vw,56px);overflow:hidden}
+.deck-catalog .site-nav{position:static;display:flex;justify-content:space-between;align-items:center;max-width:1040px;margin:0 auto}
+.deck-catalog-intro,.deck-catalog-grid,.deck-catalog-footer{max-width:1040px;margin-inline:auto}
+.deck-catalog-intro{padding:clamp(34px,6vw,72px) 0 30px}
+.deck-catalog-intro h1{font:900 clamp(42px,8vw,84px)/1 Georgia,serif;margin:12px 0}
+.deck-catalog-intro p,.deck-edition-body p{color:#e2d8c0;line-height:1.6}
+.deck-catalog-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.deck-edition{background:#1e3d33;border:1px solid #efd5a64d;border-radius:24px;overflow:hidden}
+.deck-edition-art{display:flex;align-items:center;justify-content:center;min-height:230px;padding:24px;background:radial-gradient(ellipse at center,#4e7257,#1e3d33)}
+.deck-edition-card{width:27%;max-width:116px;aspect-ratio:252/355;border:3px solid #f9e7c2;border-radius:10px;background-size:400% 400%;box-shadow:0 12px 25px #0005}
+.deck-edition-card:first-child{transform:rotate(-12deg) translateX(9px)}
+.deck-edition-card:nth-child(2){transform:translateY(-8px);z-index:1}
+.deck-edition-card:last-child{transform:rotate(12deg) translateX(-9px)}
+.deck-edition-body{padding:24px}
+.deck-edition-body h2{font:800 30px/1.15 Georgia,serif;margin:10px 0}
+.deck-edition-body .cta{display:inline-flex;margin-top:12px}
+.deck-catalog-footer{margin-top:32px;padding-bottom:20px}
+@media(max-width:640px){.deck-catalog-grid{grid-template-columns:1fr}.deck-edition-art{min-height:180px}}

@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { playSound } from "../lib/sound";
+import { DECKS, DEFAULT_DECK, isDeckTheme, resolveDeckTheme, type DeckTheme } from "../lib/deck-registry";
 import MoveTheater, { type MotionLevel } from "./move-theater";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
 const MotionAudio = require("../lib/motion-core.cjs") as { fromCommittedEvent: (event: Event) => { kind: string; destination: string | null } | null };
@@ -25,7 +26,7 @@ const SOUND_KEY = "stack-next-sound-enabled-v1";
 const PRACTICE_KEY = "stack-next-practice-mode-v1";
 const FINAL_DUEL_KEY = "stack-final-duel-default-v1";
 type EndgameRule = "classic" | "final-duel";
-type DeckTheme = "characters" | "original";
+
 type HandSort = "dealt" | "asc" | "desc";
 function orderedHand(cards: Card[], mode: HandSort) {
   if (mode === "dealt") return cards;
@@ -232,7 +233,7 @@ export default function GameTable() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [resumeGame, setResumeGame] = useState<Game | null>(null);
-  const [deckTheme, setDeckTheme] = useState<DeckTheme>("characters");
+  const [deckTheme, setDeckTheme] = useState<DeckTheme>(DEFAULT_DECK);
   const [handSort, setHandSort] = useState<HandSort>("dealt");
   const handStageRef = useRef<HTMLDivElement | null>(null);
   const [handArea, setHandArea] = useState({ width: 0, cardWidth: 0 });
@@ -335,7 +336,7 @@ export default function GameTable() {
     const savedName = localStorage.getItem("stack-next-display-name");
     if (savedName) setName(savedName);
     const savedTheme = localStorage.getItem(THEME_KEY);
-    if (savedTheme === "characters" || savedTheme === "original") setDeckTheme(savedTheme);
+    setDeckTheme(resolveDeckTheme(params.get("deck"), savedTheme));
     setResumeGame(loadSavedGame());
     setSoundEnabled(localStorage.getItem(SOUND_KEY) === "true");
     setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
@@ -929,6 +930,7 @@ export default function GameTable() {
           <h1>One pile.<br /><em>One loser.</em></h1>
           <p>Play the real STACK rules with a refreshed, tactile React tabletop. Your original Classic game stays untouched.</p>
           <a href={classicHref} className="subtle-link">Open original Classic ↗</a>
+          <Link href="/decks" className="subtle-link">Explore deck editions →</Link>
           <button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>
             Game settings
           </button>
@@ -1029,8 +1031,8 @@ export default function GameTable() {
           <button className="exit-button" onClick={() => setShowSettings(true)}>Settings</button>
           <label className="theme-control">Deck
             <select aria-label="Deck style" value={deckTheme}
-              onChange={e => setDeckTheme(e.target.value as DeckTheme)}>
-              <option value="characters">Characters</option><option value="original">Original</option>
+              onChange={e => { if (isDeckTheme(e.target.value)) setDeckTheme(e.target.value); }}>
+              {DECKS.map(deck => <option key={deck.id} value={deck.id}>{deck.name}</option>)}
             </select>
           </label>
           <button className="exit-button" onClick={leaveTable}>Leave table</button>
