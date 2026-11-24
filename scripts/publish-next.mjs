@@ -6,7 +6,7 @@ import path from 'node:path';
 const root = path.resolve('vercel-static');
 const source = path.resolve('apps/web/out');
 const classicHome = fs.readFileSync(path.join(root, 'index.html'));
-for (const route of ['play', 'stack', 'decks']) {
+for (const route of ['play', 'stack', 'decks', 'profile']) {
   if (!fs.statSync(path.join(source, route + '.html')).isFile()) {
     throw new Error('Next export missing required route: ' + route);
   }
@@ -29,4 +29,4 @@ for (const name of fs.readdirSync(source)) {
 }
 const publishedHome = fs.readFileSync(path.join(root, 'index.html'));
 if (!classicHome.equals(publishedHome)) throw new Error('Classic homepage was changed');
-console.log('Published Next.js /play, /stack and /decks alongside the unchanged Classic game');
+console.log('Published Next.js /play, /stack, /decks and /profile alongside the unchanged Classic game');

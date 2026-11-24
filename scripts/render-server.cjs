@@ -8,6 +8,7 @@ const fs = require('node:fs');
 const { stat } = require('node:fs/promises');
 const roomHandler = require('../api/pilehead.js');
 const { handler: productEvents } = require('../api/product-events.cjs');
+const { handler: playerProfile } = require('../api/player.cjs');
 const { attachRealtime } = require('./realtime-hub.cjs');
 let liveHub = null;
 
@@ -78,6 +79,7 @@ async function serveFile(req, res, url) {
   if (pathname === '/play' || pathname === '/play/') pathname = '/play.html';
   else if (pathname === '/stack' || pathname === '/stack/') pathname = '/stack.html';
   else if (pathname === '/decks' || pathname === '/decks/') pathname = '/decks.html';
+  else if (pathname === '/profile' || pathname === '/profile/') pathname = '/profile.html';
   if (pathname.includes('\0') || pathname.includes('\\')) return respond(res, 400, 'Bad Request');
 
   const filename = path.resolve(root, '.' + pathname);
@@ -126,6 +128,7 @@ const server = http.createServer(async (req, res) => {
     }
     else if (url.pathname === '/api/pilehead') await serveApi(req, res, url);
     else if (url.pathname === '/api/product-events') await productEvents(req, res);
+    else if (url.pathname === '/api/player') await playerProfile(req, res);
     else await serveFile(req, res, url);
   } catch (error) {
     console.error('STACK request error:', error.message);

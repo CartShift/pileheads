@@ -945,6 +945,7 @@ export default function GameTable() {
           <p>Play the real STACK rules with a refreshed, tactile React tabletop. Your original Classic game stays untouched.</p>
           <a href={classicHref} className="subtle-link">Open original Classic ↗</a>
           <Link href="/decks" className="subtle-link">Explore deck editions →</Link>
+          <Link href="/profile" className="subtle-link">Your guest profile →</Link>
           <MeasurementPreference surface="lobby_view" />
           <button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>
             Game settings

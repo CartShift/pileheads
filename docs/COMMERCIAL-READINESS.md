@@ -14,9 +14,14 @@
 - Migration and reporting SQL, no new services or scheduled jobs.
 - See [product measurement](PRODUCT-MEASUREMENT.md) for enablement gates and metric limitations.
 
+## Increment 3a: optional guest identity
+
+- Browser-bound guest profiles, secure cookies, saved deck preference and deletion; disabled by default.
+- No connection to analytics or game room authority. See [guest identity](GUEST-IDENTITY.md).
+
 ## Next increments
 
-1. Durable player identity: guest-to-account linking with secure sessions and database migrations; keep anonymous play available.
+1. Durable registered accounts: verified authentication, guest-to-account linking and cross-device recovery; keep anonymous play available.
 2. Server-authoritative entitlements and redemption: transactional grant/revoke, audit, rate limits and single-use physical codes.
 3. Physical commerce via a validated checkout integration; digital commerce only after catalog and entitlement security are verified.
 4. Branded partner editions and aggregated reporting; no tenant-specific code forks.
