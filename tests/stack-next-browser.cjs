@@ -711,10 +711,35 @@ async function dumpSeatTargetScenario(browser) {
  }finally{await context.close()}
 }
 
+async function armMotionCapture(page) {
+ await page.evaluate(() => {
+  window.__stackMotionSamples=[];
+  const capture=() => {
+   for(const el of document.querySelectorAll(".move-story-overlay")){
+    const key=el.dataset.kind+":"+el.dataset.move;
+    if(window.__stackMotionSamples.some(x=>x.key===key)) continue;
+    const sigil=el.querySelector(".move-story-sigil");
+    const caption=el.querySelector(".move-story-caption");
+    const transfer=el.querySelector(".move-story-transfer");
+    window.__stackMotionSamples.push({
+     key,kind:el.dataset.kind,
+     animation:sigil?getComputedStyle(sigil).animationName:"",
+     caption:caption?.textContent||"",hasTransfer:!!transfer,
+     transferAnimation:transfer?getComputedStyle(transfer).animationName:null,
+     transferBackCount:transfer?.querySelectorAll(".playing-card.is-back").length||0,
+     flightCount:el.querySelectorAll(".move-story-flight").length
+    });
+   }
+  };
+  new MutationObserver(capture).observe(document.body,{childList:true,subtree:true});
+  capture();
+ });
+}
 async function sharedMoveAnimationScenarios(browser) {
  const E=require("../dist/pilehead/engine.js");
  const actions=["burn","dump","under","reset","ghost"];
  for(const [i,action] of actions.entries()){
+  if(process.env.STACK_MOTION_ACTION && process.env.STACK_MOTION_ACTION!==action) continue;
   const g=E.create({players:2,seed:20261123+i});
   E.start(g);
   const destination=g.people[0].hand, zones=[g.stock,g.pile,g.ashes,
@@ -741,7 +766,10 @@ async function sharedMoveAnimationScenarios(browser) {
    // Observe before committing. The semantic cue is intentionally short and
    // must never be extended just to satisfy a slower headless test runner.
    const theater=page.locator('.move-story-overlay[data-kind="'+action+'"]');
-   const observed=theater.waitFor({timeout:6000});
+   await armMotionCapture(page);
+   const observed=page.waitForFunction(kind =>
+     window.__stackMotionSamples?.some(scene => scene.kind === kind),
+     action,{timeout:6000});
    await page.getByRole("button",{name:/Play cards/}).click();
    await observed.catch(async error => {
      const diagnostic = await page.evaluate(() => {
@@ -751,6 +779,7 @@ async function sharedMoveAnimationScenarios(browser) {
          savedPhase: saved?.phase, savedMove: saved?.moves,
          savedLastEvent: saved?.events?.at(-1),
          visibleMove: document.querySelector(".game-meta h1")?.textContent,
+         captured: window.__stackMotionSamples,
          scenes: [...document.querySelectorAll(".move-story-overlay")]
            .map(el => ({kind:el.getAttribute("data-kind"),move:el.getAttribute("data-move")})),
          pile: document.querySelectorAll(".pile-slot.played .pile-layer").length
@@ -759,23 +788,20 @@ async function sharedMoveAnimationScenarios(browser) {
      console.error("Motion test diagnostic", action, JSON.stringify(diagnostic));
      throw error;
    });
-   assert.equal(await theater.locator(".move-story-flight").count(),0,
+   await page.waitForFunction(kind =>
+     window.__stackMotionSamples?.some(scene => scene.kind === kind),
+     action,{timeout:6000});
+   const measured=await page.evaluate(kind =>
+     window.__stackMotionSamples.find(scene => scene.kind === kind),action);
+   assert.equal(measured.flightCount,0,
      "the committed action card is already on the table");
-   const measured=await theater.evaluate(el=>{
-     const sigil=el.querySelector(".move-story-sigil");
-     const caption=el.querySelector(".move-story-caption");
-     const transfer=el.querySelector(".move-story-transfer");
-     return{animation:getComputedStyle(sigil).animationName,
-       caption:caption.textContent,hasTransfer:!!transfer,
-       transferAnimation:transfer?getComputedStyle(transfer).animationName:null};
-   });
    assert.match(measured.animation,/stack-stable-(sigil|ghost|reset)/,
      "effect markers should be short and bound to the real table");
    assert.match(measured.caption,action==="under"?/^1–4$/:new RegExp(action.toUpperCase(),"i"));
    assert.ok(measured.caption.length<=6,"effect cue contains no instructional prose");
    if(["burn","dump"].includes(action)){
      assert.ok(measured.hasTransfer,action+" should move the public pile");
-     assert.equal(await theater.locator(".move-story-transfer .playing-card.is-back").count(),1,
+     assert.equal(measured.transferBackCount,1,
        "public transfer is an opaque silhouette, not a duplicated played card");
      assert.match(measured.transferAnimation,/stack-stable-transfer/);
    }else assert.equal(measured.hasTransfer,false,
@@ -793,6 +819,7 @@ async function sharedMoveAnimationScenarios(browser) {
    console.log("PASS Next motion: "+action.toUpperCase()+" visible card movement and effect");
   }finally{await context.close()}
  }
+ if(process.env.STACK_MOTION_ACTION && process.env.STACK_MOTION_ACTION!=="normal") return;
  // Ordinary plays should update the actual pile without visual replay.
  const normal=E.create({players:2,seed:20261188});
  E.start(normal);
@@ -813,18 +840,19 @@ async function sharedMoveAnimationScenarios(browser) {
  try{
   await quietPage.goto(WEB+"/play");
   await quietPage.getByRole("button",{name:"Resume game"}).click();
-  const rank=hand.find(card=>card.kind==="number"&&card.rank<10).rank;
+  const playedCard=hand.find(card=>card.kind==="number"&&card.rank<10);
+  const rank=playedCard.rank;
   await quietPage.getByRole("button",{name:"Number "+rank,exact:true}).first().click();
   await quietPage.getByRole("button",{name:/Play cards/}).click();
   await quietPage.waitForFunction(()=>
     JSON.parse(localStorage.getItem("stack-next-local-save-v1"))?.game?.moves>=1);
   assert.equal(await quietPage.locator(".move-story-overlay").count(),0,
     "ordinary play should have no ghost scene");
-  assert.equal(await quietPage.locator(".pile-slot.played .pile-layer").count(),1,
-    "real played card appears exactly once");
+  const committedCard=quietPage.locator('.pile-slot.played .pile-layer [data-card-id="'+playedCard.id+'"]');
+  assert.equal(await committedCard.count(),1,
+    "our committed card appears exactly once, even if the bot played afterward");
   assert.equal(await quietPage.locator(".event-banner").count(),0);
-  assert.equal(await quietPage.locator(".pile-slot.played .pile-layer:last-child .playing-card")
-    .getAttribute("data-arrival-motion"), "1",
+  assert.equal(await committedCard.getAttribute("data-arrival-motion"), "1",
     "the actual committed card animates from its old position, not a duplicate overlay");
   // Refill must move only the newly drawn *real* hand card. Existing hand
   // positions must remain stable while the refill is in flight.
