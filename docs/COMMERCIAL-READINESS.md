@@ -19,11 +19,15 @@
 - Browser-bound guest profiles, secure cookies, saved deck preference and deletion; disabled by default.
 - No connection to analytics or game room authority. See [guest identity](GUEST-IDENTITY.md).
 
+## Increment 3b–4: recoverable accounts and redemption beta
+
+- Google OIDC, durable account and sessions, explicit guest preference import, demo product entitlement, atomic single-use code redemption and batch generation. Disabled until staging verification. See [accounts and redemption](ACCOUNTS-REDEMPTION.md).
+- Actual paid content, refunds, admin revocation and commercial launch are not enabled.
+
 ## Next increments
 
-1. Durable registered accounts: verified authentication, guest-to-account linking and cross-device recovery; keep anonymous play available.
-2. Server-authoritative entitlements and redemption: transactional grant/revoke, audit, rate limits and single-use physical codes.
-3. Physical commerce via a validated checkout integration; digital commerce only after catalog and entitlement security are verified.
-4. Branded partner editions and aggregated reporting; no tenant-specific code forks.
+1. Full payment/refund lifecycle and production entitlement administration.
+2. Physical commerce via a validated checkout integration; digital commerce only after catalog and entitlement security are verified.
+3. Branded partner editions and aggregated reporting; no tenant-specific code forks.
 
 Do not expose premium content or accept money until entitlement verification, payment replay/refund tests, privacy review and deployment smoke tests pass. The deck registry is public presentation metadata, not an access-control boundary.

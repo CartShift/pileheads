@@ -1,0 +1,43 @@
+'use strict';
+const assert=require('node:assert/strict'),crypto=require('node:crypto');
+const {Readable}=require('node:stream');
+const {claimsFromToken,makeFlow,readFlow,authUrl,validAction,createHandler,createStore}=require('../api/account.cjs');
+const flow=makeFlow(),encoded=[flow.state,flow.verifier,flow.nonce,flow.created].join('.');
+assert.deepEqual(readFlow(encoded),flow);assert.equal(readFlow(encoded,flow.created+600001),null);
+const config={enabled:true,origin:'https://stack.test',clientId:'client',clientSecret:'secret'};
+const url=new URL(authUrl(config,flow));assert.equal(url.searchParams.get('scope'),'openid');assert.equal(url.searchParams.get('code_challenge_method'),'S256');assert.equal(url.searchParams.get('nonce'),flow.nonce);assert.equal(url.searchParams.has('client_secret'),false);
+const {publicKey,privateKey}=crypto.generateKeyPairSync('rsa',{modulusLength:2048});
+const key={...publicKey.export({format:'jwk'}),kid:'test',use:'sig'},now=Date.now(),seconds=Math.floor(now/1000);
+const claims={iss:'https://accounts.google.com',aud:'client',nonce:flow.nonce,iat:seconds,exp:seconds+300,sub:'subject'};
+const jwt=c=>{const a=Buffer.from(JSON.stringify({alg:'RS256',kid:'test'})).toString('base64url'),b=Buffer.from(JSON.stringify(c)).toString('base64url');return a+'.'+b+'.'+crypto.sign('RSA-SHA256',Buffer.from(a+'.'+b),privateKey).toString('base64url');};
+const check=c=>claimsFromToken(jwt(c),[key],{clientId:'client',nonce:flow.nonce,now});
+assert.equal(check(claims),'subject');
+for(const c of [{...claims,nonce:'bad'},{...claims,aud:'other'},{...claims,iss:'bad'},{...claims,exp:seconds-1},{...claims,azp:'other'}])assert.throws(()=>check(c));
+assert.throws(()=>claimsFromToken(jwt(claims),[],{clientId:'client',nonce:flow.nonce,now}));
+assert.equal(validAction({action:'redeem',code:'a'.repeat(32),product:'other'}),false);
+assert.equal(validAction({action:'redeem',code:'a'.repeat(32)}),true);
+let saved=null,owned=[],redeemed=false;
+const store={find:async digest=>saved===digest?{id:'account',preferred_deck:'characters'}:null,login:async(subject,digest)=>{assert.equal(subject,'subject');saved=digest;},logout:async()=>{saved=null;},owned:async()=>owned,redeem:async()=>{if(redeemed)return null;redeemed=true;owned=['founder-supporter'];return {product_id:'founder-supporter'};},remove:async()=>{saved=null;owned=[];}};
+const handler=createHandler({config,store,exchange:async()=> 'subject',allow:()=>true,allowLogin:()=>true,allowRedeem:()=>true});
+async function call({path='/api/account',method='GET',body={},cookie,origin=config.origin}={}){
+ const req=Readable.from([Buffer.from(JSON.stringify(body))]);req.method=method;req.headers={cookie,origin,'content-type':'application/json'};
+ const res={headers:{},getHeader(k){return this.headers[k];},setHeader(k,v){this.headers[k]=v;},end(v){this.body=v?JSON.parse(v):null;}};
+ await handler(req,res,new URL(path,config.origin));return res;
+}
+(async()=>{
+ assert.equal((await call()).body.profile,null);
+ assert.equal((await call({method:'POST',body:{action:'login'},origin:'https://bad.test'})).statusCode,403);
+ const login=await call({method:'POST',body:{action:'login'}}),flowCookie=login.headers['Set-Cookie'].split(';')[0],state=new URL(login.body.url).searchParams.get('state');
+ assert.equal((await call({path:'/api/account/callback?state=bad&code=ok',cookie:flowCookie})).headers.Location,'/account?login=failed');
+ const cb=await call({path:'/api/account/callback?state='+state+'&code=ok',cookie:flowCookie});
+ assert.equal(cb.headers.Location,'/account');const accountCookie=cb.headers['Set-Cookie'][1].split(';')[0];
+ assert.equal((await call({cookie:accountCookie})).body.profile.kind,'account');
+ assert.equal((await call({method:'POST',body:{action:'redeem',code:'a'.repeat(32)}})).statusCode,401);
+ assert.deepEqual((await call({method:'POST',cookie:accountCookie,body:{action:'redeem',code:'a'.repeat(32)}})).body.profile.owned,['founder-supporter']);
+ assert.equal((await call({method:'POST',cookie:accountCookie,body:{action:'redeem',code:'a'.repeat(32)}})).statusCode,409);
+ assert.equal((await call({method:'POST',cookie:accountCookie,body:{action:'delete'}})).body.profile,null);
+ assert.equal((await call({cookie:accountCookie})).body.profile,null);
+ const queries=[];await createStore(async(s,a)=>{queries.push({s,a});return [];}).redeem('account','hash');
+ assert.match(queries[0].s,/redeemed_at IS NULL/);assert.match(queries[0].s,/INSERT INTO stack_entitlements/);assert.deepEqual(queries[0].a,['account','hash']);
+ console.log('Account and redemption contract checks passed');
+})().catch(e=>{console.error(e);process.exitCode=1;});

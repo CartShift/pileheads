@@ -57,6 +57,7 @@ export default function GuestProfile() {
         <button className="secondary-button" disabled={busy} onClick={()=>setConfirm(false)}>Cancel</button>
       </div> : <button className="subtle-link guest-delete" disabled={busy} onClick={()=>setConfirm(true)}>Delete guest profile</button>}
     </div>}
+    <p><Link href="/account">Recoverable account &amp; collection →</Link></p>
     <p><Link href="/play" className="subtle-link">Continue without a profile →</Link></p>
   </section>;
 }
