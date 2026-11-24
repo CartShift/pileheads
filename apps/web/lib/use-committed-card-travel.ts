@@ -88,7 +88,7 @@ export function useCommittedCardTravel({
     running.current = [];
     if (before.gameKey !== gameKey) return;
 
-    if (before.move + 1 !== moveNo || phase !== "play" ||
+    if (before.move + 1 !== moveNo || !["play", "over"].includes(phase) ||
         !event || event.move !== moveNo) return;
     if (motionLevel === "reduced" ||
         window.matchMedia("(prefers-reduced-motion: reduce)").matches ||
