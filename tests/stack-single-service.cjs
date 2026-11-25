@@ -23,7 +23,7 @@ for(const asset of ["stack-characters.webp","stack-sheet.webp","stack-back.webp"
 console.log("PASS single Render service: Classic preserved, /play + /stack published, Next assets available");
 
 const officialHome = read("stack.html").toString("utf8");
-for (const label of ["STACK", "THE ODDS", "Why STACK?", "Meet", "Play online", "Small box.", "Physical retail launch to be announced."]) {
+for (const label of ["STACK", "THE ODDS", "Why STACK?", "Meet", "Play online", "The physical", "Physical retail launch to be announced."]) {
   assert.ok(officialHome.includes(label), "Official homepage missing: " + label);
 }
 for (const href of ["/play", "/pilehead/gallery.html", "/pilehead/playtest.html", "/pilehead/index.html"]) {

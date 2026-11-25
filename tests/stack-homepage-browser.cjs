@@ -26,7 +26,10 @@ async function check(browser,width,height){
     for(const selector of ["#main-content","#the-deck","#how-to-play","#physical","footer"]) assert.equal(await page.locator(selector).count(),1,selector);
     for(const asset of assets){const r=await page.request.get(BASE+asset);assert.equal(r.status(),200,asset);assert.equal((await r.body()).subarray(8,12).toString(),"WEBP",asset)}
     await page.evaluate(async()=>{await document.fonts.ready;for(const im of document.images){im.loading="eager";await im.decode()}});
-    assert.ok(await page.evaluate(()=>document.fonts.check("italic 900 48px STACK Display")), "locally hosted display font loads");
+    assert.ok(await page.evaluate(()=>[...document.fonts].some(f=>f.family.replace(/["\']/g,"")==="STACK Display" && f.status==="loaded")), "locally hosted display font really loads");
+    const font=await page.request.get(BASE+"/stack-media/barlow-condensed-black-italic.ttf");assert.equal(font.status(),200);assert.match(font.headers()["content-type"],/font\/ttf/);
+    const titleBox=await page.locator("#home-heading").evaluate(el=>{const r=document.createRange();r.selectNodeContents(el);const b=r.getBoundingClientRect();return {left:b.left,right:b.right,viewport:innerWidth}});
+    assert.ok(titleBox.left>=-1&&titleBox.right<=titleBox.viewport+1,"headline cannot be clipped by page overflow: "+JSON.stringify(titleBox));
     const layout=await page.evaluate(()=>({
       documentWidth:document.documentElement.scrollWidth, viewport:innerWidth,
       broken:[...document.images].filter(x=>!x.complete||x.naturalWidth===0).map(x=>x.src),

@@ -8,6 +8,7 @@ const {chromium}=require("playwright");
 const ROOT=path.resolve(__dirname,"..");
 const PORT=44293,BASE="http://127.0.0.1:"+PORT;
 const output=path.resolve(process.env.STACK_MARKETING_CAPTURE||path.join(ROOT,"artifacts/website/gameplay-v2.png"));
+const wide=process.env.STACK_MARKETING_WIDE==="1";
 async function ready(){for(let i=0;i<100;i++){try{if((await fetch(BASE+"/livez")).ok)return}catch{}await new Promise(r=>setTimeout(r,200))}throw Error("Integrated server did not start")}
 (async()=>{
  const server=spawn(process.execPath,["scripts/render-server.cjs"],{cwd:ROOT,env:{...process.env,PORT:String(PORT)},stdio:"ignore"});
@@ -15,7 +16,7 @@ async function ready(){for(let i=0;i<100;i++){try{if((await fetch(BASE+"/livez")
  try{
   await ready();
   browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.CHROMIUM_EXECUTABLE_PATH}:{})});
-  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:1,reducedMotion:"reduce"});
+  const context=await browser.newContext({viewport:wide?{width:1024,height:768}:{width:390,height:844},isMobile:!wide,hasTouch:!wide,deviceScaleFactor:1,reducedMotion:"reduce"});
   const page=await context.newPage();
   await context.addInitScript(()=>localStorage.setItem("stack-next-deck-theme-v1","refined"));
   await page.goto(BASE+"/play",{waitUntil:"networkidle"});
