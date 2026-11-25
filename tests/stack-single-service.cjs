@@ -30,3 +30,11 @@ for (const href of ["/play", "/pilehead/gallery.html", "/pilehead/playtest.html"
   assert.ok(officialHome.includes('href="' + href + '"'), "Official homepage missing navigation: " + href);
 }
 assert.ok(!officialHome.includes("Our new go-to game night game"), "Concept testimonials must not be published");
+
+for (const asset of ["stack-home-faces-v2.webp","stack-home-box-v2.webp","stack-home-back-v2.webp","stack-home-logo-v2.webp"]) {
+  const bytes = read("stack-media/" + asset);
+  assert.equal(bytes.toString("ascii",0,4),"RIFF","Invalid WebP: " + asset);
+  assert.equal(bytes.toString("ascii",8,12),"WEBP","Invalid WebP: " + asset);
+}
+assert.ok(officialHome.includes("/stack-media/stack-home-box-v2.webp"), "Homepage must use corrected packaging");
+assert.ok(officialHome.includes("/stack-media/stack-home-logo-v2.webp"), "Homepage must use the source-derived logo");
