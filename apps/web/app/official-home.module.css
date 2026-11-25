@@ -13,8 +13,8 @@
 @media(prefers-reduced-motion:reduce){.home .button,.home .card{transition:none}}
 
 /* Approved V2 artwork, web-optimized from Drive masters. Homepage only. */
-.card{aspect-ratio:400/559;background-image:url("/stack-media/stack-home-faces-v2.webp")}
-.backStack,.productBack,.tableBack{background-image:url("/stack-media/stack-home-back-v2.webp")}
+.card{aspect-ratio:400/559;background-image:url("/stack-media/stack-home-faces-web-desktop.webp")}
+.backStack,.productBack,.tableBack{background-image:url("/stack-media/stack-home-back-web.webp")}
 .brand{display:inline-flex;align-items:center;justify-content:center;width:clamp(80px,9vw,133px);padding:0;transform:none;filter:drop-shadow(0 2px 0 #0b1011)}
 .brand img{width:100%;height:auto;max-height:76px;object-fit:contain}
 .brand:after{display:none}
@@ -70,3 +70,5 @@
 .home .button{min-width:0;max-width:100%;white-space:normal}
 .home .split>div,.home .heroCopy{min-width:0}
 @media(max-width:360px){.hero h1{font-size:clamp(42px,14vw,52px)}.nav nav{gap:7px;font-size:12px}.previewLabel{right:0;font-size:10px}.closing h2{font-size:38px}}
+
+@media(max-width:600px) and (max-resolution: 2dppx){.card{background-image:url("/stack-media/stack-home-faces-web-mobile.webp")}}

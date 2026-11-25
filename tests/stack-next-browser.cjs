@@ -144,13 +144,13 @@ async function sameOriginNavigation(browser) {
   const page = await context.newPage();
   try {
     await page.goto(WEB + "/stack", {waitUntil:"domcontentloaded"});
-    await page.getByRole("link",{name:/Enter the table/}).click();
+    await page.getByRole("link",{name:"Play free online",exact:true}).click();
     await page.getByRole("button",{name:/Start game/}).waitFor();
     assert.equal(new URL(page.url()).pathname,"/play","Next landing should lead to the real playable table");
     await page.locator(".game-header .logo").click();
-    await page.getByRole("heading",{name:/Play your cards/}).waitFor();
+    await page.getByRole("heading",{name:/STACK\s*THE ODDS/}).waitFor();
     assert.equal(new URL(page.url()).pathname,"/stack","logo returns to Next landing, not Classic redirect");
-    const classic=page.getByRole("link",{name:/Original Classic/});
+    const classic=page.getByRole("link",{name:"Classic game",exact:true});
     assert.equal(new URL(await classic.getAttribute("href"), WEB).pathname,
       "/pilehead/index.html","Classic remains available on same origin");
     console.log("PASS one-server Next route transitions: /stack → /play → /stack, Classic link preserved");
@@ -178,7 +178,7 @@ async function localScenarios(browser) {
       assert.equal(await hand.count(), 3, "opening hand holds three cards");
       const opponentArt = await page.locator(".opponent-up .mini-face").first()
         .evaluate(node => getComputedStyle(node).backgroundImage);
-      assert.match(opponentArt, /stack-characters\.webp/,
+      assert.match(opponentArt, /stack-(?:characters|refined)[^/]*\.webp/,
         "opponent face-up cards use the real public deck art");
       // Mobile can inspect real public face-ups without touching private hand
       // identities or the authoritative room state.

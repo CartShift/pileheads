@@ -1,0 +1,198 @@
+/* V3 editorial refinement: only the marketing homepage. All source cards are unchanged. */
+@font-face {
+  font-family: "STACK Display";
+  src: url("/stack-media/barlow-condensed-black-italic.ttf") format("truetype");
+  font-style: italic;
+  font-weight: 900;
+  font-display: swap;
+}
+.refined {
+  --paper: #f9ebcb;
+  --ink: #191b19;
+  --yellow: #f6c32c;
+  --red: #ce302d;
+  --teal: #006675;
+  --display: "STACK Display", Impact, "Arial Narrow", sans-serif;
+  --print-grain: url("/stack-media/print-grain.svg");
+  --content: 1240px;
+}
+.refined h1,.refined h2,.refined h3,.refined header nav,.refined a[class*="button"] {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 900;
+  letter-spacing: -.015em;
+}
+.refined header {border-bottom: 3px solid #e3c595; background-color: #111b1e; background-image: var(--print-grain)}
+.refined header>div {max-width: var(--content); min-height:78px; padding-block:5px}
+.refined header nav {font-size:clamp(15px,1.5vw,20px);gap:clamp(13px,3vw,38px)}
+.refined header nav a {min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+.refined header img {max-height:68px}
+.refined a[class*="button"] {font-size:clamp(18px,1.65vw,23px);line-height:1.05;padding:13px 26px;box-shadow:0 4px 0 #172021, inset 0 2px 0 #ffffff35}
+.refined a[class*="button"]:hover {box-shadow:0 7px 0 #172021, inset 0 2px 0 #ffffff35}
+.refined a[class*="button"]:active {box-shadow:0 1px 0 #172021}
+.refined section {background-image:var(--print-grain)}
+.refined section[id="main-content"] {background-color:#086879;background-image:var(--print-grain),radial-gradient(ellipse at 71% 52%,#239e9b 0%,#0b7481 43%,#05515f 94%)}
+.refined section[id="main-content"]>div {max-width:var(--content);grid-template-columns:minmax(0,.83fr) minmax(0,1.17fr);padding:clamp(34px,5.1vw,72px) 4% 55px;min-height:clamp(480px,43vw,630px);gap:16px}
+.refined h1 {font-family:var(--display);font-size:clamp(62px,8.7vw,122px);font-weight:900;font-stretch:normal;line-height:.84;letter-spacing:-.028em;transform:rotate(-7deg);text-shadow:4px 7px #192b2b,8px 12px #132b30;margin:12px 0 28px}
+.refined .headlineLine {color:var(--paper);white-space:nowrap}
+.refined .headlineLine span {color:var(--yellow)}
+.refined h1:after {width:65%;height:13px;margin:14px 0 0 17%;background:var(--yellow);transform:skew(-38deg) rotate(-2deg);clip-path:polygon(0 70%,16% 22%,98% 0,90% 65%,3% 100%)}
+.refined section[id="main-content"] p[class*="lead"] {font-size:clamp(16px,1.6vw,21px);font-weight:680;max-width:340px;line-height:1.36}
+.refined section[id="main-content"] div[class*="buttons"] {gap:11px;margin-top:24px}
+.refined section[id="main-content"] a[class*="button"] {width:min(100%,320px)}
+.refined div[class*="heroArt"] {min-height:clamp(325px,38vw,525px)}
+.refined div[class*="heroArt"] .sunRays {position:absolute;inset:-8% -9%;z-index:-1;background:repeating-conic-gradient(from 18deg,#f6c32c 0deg 2.3deg,transparent 2.3deg 22deg);mask-image:radial-gradient(ellipse,transparent 22%,#000 37%,#000 63%,transparent 75%);opacity:.8;pointer-events:none}
+.refined .cloudLeft,.refined .cloudRight {position:absolute;bottom:-8%;width:40%;height:37%;z-index:0;pointer-events:none;background:url("/stack-media/comic-cloud.svg") center bottom/contain no-repeat}
+.refined .cloudLeft {left:-17%;transform:rotate(-5deg)}
+.refined .cloudRight {right:-18%;transform:scaleX(-1) rotate(-8deg)}
+.refined section[id="main-content"]::after {height:29px;clip-path:polygon(0 35%,6% 49%,13% 27%,21% 45%,29% 35%,38% 52%,48% 24%,56% 36%,65% 18%,74% 42%,84% 29%,93% 47%,100% 29%,100% 100%,0 100%);background-image:var(--print-grain)}
+.refined .paperEdge {padding:15px 4% 24px;position:relative}
+.refined .paperEdge h2 {position:relative;display:table;margin:0 auto 13px;padding:0 31px;font-size:clamp(29px,3.3vw,42px)}
+.refined .paperEdge h2::before,.refined .paperEdge h2::after {content:"";position:absolute;top:25%;width:23px;height:22px;background:var(--red);clip-path:polygon(0 0,100% 45%,0 34%,0 52%,100% 60%,0 100%);left:0}
+.refined .paperEdge h2::after {left:auto;right:0;transform:scaleX(-1)}
+.refined .paperEdge article>span {width:50px;height:50px;box-shadow:2px 2px 0 #191b19}
+.refined .paperEdge svg {width:33px;height:33px}
+.refined .paperEdge h3 {font-size:clamp(19px,2vw,25px)}
+.refined .paperEdge p {font-weight:650}
+.refined section:not([id="main-content"]) h2 {line-height:.95}
+.refined section[id="the-deck"] {background-color:#075b66;background-image:var(--print-grain),radial-gradient(ellipse at 70% 50%,#0c7f82,transparent 68%);border-top:2px solid #07525c;border-bottom:3px solid #073c42}
+.refined section[id="the-deck"]>div,.refined section[id="how-to-play"]>div,.refined section[id="physical"]>div {max-width:var(--content);padding:clamp(35px,4.9vw,68px) 4%;gap:clamp(23px,4vw,56px)}
+.refined section[id="the-deck"] h2,.refined section[id="how-to-play"] h2 {transform:rotate(-3deg);transform-origin:left center;text-shadow:2px 3px #142a2c}
+.refined section[id="how-to-play"] h2 {text-shadow:none}
+.refined .actionFan {position:relative;padding:18px 9px 25px}
+.refined .actionFan::before,.refined .actionFan::after {content:"";position:absolute;top:25%;left:-3%;height:55%;width:9%;background:var(--yellow);clip-path:polygon(0 0,100% 29%,10% 22%,5% 47%,100% 50%,5% 63%,0 100%,100% 71%);z-index:0}
+.refined .actionFan::after {left:auto;right:-4%;transform:scaleX(-1)}
+.refined .actionFan>span {position:relative;box-shadow:0 3px 0 #b39664,0 9px 14px #0a151a65}
+.refined section[id="how-to-play"] {background-color:var(--paper)}
+.refined section[id="how-to-play"] div[class*="gamePreview"] {min-height:0;padding-block:7px}
+.refined section[id="how-to-play"] figure {width:clamp(155px,42%,215px)}
+.refined section[id="physical"] {background-color:#c52c2c;background-image:var(--print-grain),radial-gradient(ellipse at 20% 50%,#e54a31 0%,transparent 70%)}
+.refined section[id="physical"]>div {padding-block:clamp(35px,5vw,74px)}
+.refined .box {overflow:visible;transform:perspective(850px) rotateY(23deg) rotateX(-11deg) rotateZ(-5deg);transform-style:preserve-3d;box-shadow:0 13px 19px #3e151a66;border-radius:1%;top:8%;left:20%;width:37%}
+.refined .box>img:first-child {border:1.5px solid #191b19;border-radius:1%;position:relative;backface-visibility:hidden}
+.refined .box .boxSide {position:absolute;left:-33.333%;top:0;width:33.333%;height:100%;transform-origin:right center;transform:rotateY(-90deg);border:1px solid #191b19;filter:brightness(.81);backface-visibility:hidden}
+.refined .box .boxTop {position:absolute;top:-24.1758%;left:0;width:100%;height:24.1758%;transform-origin:center bottom;transform:rotateX(90deg);border:1px solid #191b19;filter:brightness(.94);backface-visibility:hidden}
+.refined section[id="physical"] div[class*="productArt"] {height:clamp(240px,26vw,355px)}
+.refined section[class*="closing"] {background-image:var(--print-grain);background-color:#c14839}
+.refined section[class*="closing"] h2 {font-size:clamp(37px,5.4vw,78px);transform:rotate(-5deg);text-shadow:3px 5px #4b1c21}
+.refined footer {background-image:var(--print-grain)}
+@media(max-width:850px) {
+ .refined h1 {font-size:clamp(50px,8.9vw,90px)}
+ .refined section[id="main-content"]>div {min-height:420px}
+ .refined header nav {gap:11px}
+}
+@media(max-width:600px) {
+ .refined header>div {min-height:0;gap:2px;padding:6px 4% 8px}
+ .refined header img {max-height:53px}
+ .refined header nav {gap:8px;font-size:14px;flex-wrap:nowrap}
+ .refined header nav a {padding:8px 2px;min-height:44px}
+ .refined header nav a[class*="navPlay"] {padding:8px 12px}
+ .refined section[id="main-content"]>div {grid-template-columns:minmax(0,1fr);min-height:0;gap:8px;padding:27px 5% 40px}
+ .refined h1 {font-size:clamp(63px,16vw,100px);line-height:.86;margin:8px 0 22px;transform:rotate(-5deg);text-shadow:3px 4px #192b2b,6px 8px #132b30}
+ .refined h1:after {width:57%;height:10px;margin:10px auto 0}
+ .refined section[id="main-content"] p[class*="lead"] {font-size:16px;line-height:1.4;max-width:300px}
+ .refined section[id="main-content"] div[class*="buttons"] {margin-top:18px;gap:9px}
+ .refined section[id="main-content"] a[class*="button"] {width:min(100%,280px)}
+ .refined div[class*="heroArt"] {min-height:0;aspect-ratio:1.12}
+ .refined .cloudLeft,.refined .cloudRight {width:45%;bottom:-8%}
+ .refined .paperEdge article>span {width:44px;height:44px}
+ .refined .paperEdge svg {width:29px;height:29px}
+ .refined section[id="the-deck"]>div,.refined section[id="how-to-play"]>div,.refined section[id="physical"]>div {grid-template-columns:minmax(0,1fr);padding:32px 6%;gap:20px}
+ .refined section[id="the-deck"] h2,.refined section[id="how-to-play"] h2 {transform-origin:center}
+ .refined section[id="how-to-play"] figure {width:min(54%,205px)}
+ .refined section[id="physical"] div[class*="productArt"] {height:255px}
+ .refined section[class*="closing"] h2 {font-size:clamp(44px,11vw,68px);transform:rotate(-4deg)}
+}
+@media(max-width:360px) {.refined h1 {font-size:clamp(54px,15.9vw,64px)}.refined header nav {gap:5px;font-size:12px}.refined header nav a[class*="navPlay"] {padding-inline:9px}.refined section[id="physical"] div[class*="productArt"] {height:220px}}
+@media(prefers-reduced-motion:reduce) {.refined a,.refined .actionFan>span {transition:none}}
+
+/* A short, one-time printed-poster reveal; no scroll-triggered hidden content,
+   idle animation, or motion when the OS requests reduced movement. */
+.heroEditorial,.heroComposition {opacity:1}
+@media(prefers-reduced-motion:no-preference) {
+ .heroEditorial {animation:stackEditorialIn .36s ease-out both}
+ .heroComposition {animation:stackArtworkIn .5s cubic-bezier(.2,.7,.2,1) both}
+ .refined .actionFan>span {transition:transform .24s cubic-bezier(.2,.7,.2,1),box-shadow .24s}
+}
+@keyframes stackEditorialIn {from{transform:translateY(7px)}to{transform:translateY(0)}}
+@keyframes stackArtworkIn {from{transform:translateY(9px) rotate(-1deg)}to{transform:translateY(0) rotate(0)}}
+@media(pointer:coarse) {
+ .refined .actionFan>span:hover {transform:rotate(var(--tilt));z-index:auto}
+ .refined a[class*="button"]:hover {transform:none;box-shadow:0 4px 0 #172021}
+ .refined a[class*="button"]:active {transform:translateY(2px);box-shadow:0 2px 0 #172021}
+}
+.refined .heroFacts {letter-spacing:.03em;font-size:11px}
+.refined .heroActions a {justify-content:space-between}
+.refined .heroActions a:first-child {justify-content:center}
+@media(max-width:600px){.refined .heroActions a{justify-content:center}.refined .heroFacts{font-size:10px}}
+
+/* Composition tracks the approved poster: a clear headline, three numbered
+   cards in the hero, and packaging / message / numbered fan in the red band. */
+.refined .heroEditorial {container-type:inline-size}
+.refined .heroEditorial h1 {font-size:clamp(42px,23.5cqw,122px)}
+.refined .heroRankSeven {left:45%;top:38%;z-index:4}
+.refined .heroRankThree {position:absolute;width:27%;left:60%;top:45%;transform:rotate(12deg);z-index:5}
+.refined .heroRankTwo {left:79%;top:48%;--r:21deg}
+.refined section[id="physical"]>.physicalLayout {grid-template-columns:minmax(0,1fr) minmax(0,.95fr) minmax(0,.95fr);gap:clamp(15px,2.6vw,38px)}
+.refined section[id="physical"]>.physicalLayout h2 {font-size:clamp(36px,4.6vw,64px);transform:rotate(-4deg);transform-origin:left center;text-shadow:3px 3px #7d2625}
+.refined section[id="physical"]>.physicalLayout div[class*="productArt"] {height:clamp(190px,22vw,300px)}
+.refined section[id="physical"]>.physicalLayout .box {left:15%;width:54%;top:5%}
+.refined section[id="physical"]>.physicalLayout div[class*="productBack"] {width:45%;left:40%;bottom:5%;transform:rotate(65deg) scaleY(.77)}
+.refined .physicalFan {display:flex;align-items:center;justify-content:center;position:relative;padding:8px 0;min-width:0}
+.refined .physicalFan>span {width:39%;margin-left:-8%;box-shadow:0 3px 0 #a3815b,0 10px 17px #351a2366}
+.refined .physicalCard0 {transform:rotate(-12deg)}
+.refined .physicalCard1 {transform:translateY(-6%) rotate(1deg);z-index:1}
+.refined .physicalCard2 {transform:rotate(14deg);z-index:2}
+.refined .physicalFan::after {content:"";width:18%;height:42%;position:absolute;right:-5%;top:2%;background:var(--yellow);clip-path:polygon(0 22%,100% 0,35% 33%,90% 52%,0 58%,80% 100%,0 71%);z-index:0;pointer-events:none}
+@media(max-width:850px) and (min-width:601px){.refined section[id="physical"]>.physicalLayout {grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.refined .physicalFan{grid-column:1/-1;max-width:320px;justify-self:center;width:100%;margin-top:-7px}.refined section[id="physical"]>.physicalLayout h2{font-size:clamp(38px,6vw,54px)}}
+@media(max-width:600px){
+ .refined .heroEditorial h1{font-size:clamp(45px,23cqw,96px)}
+ .refined .heroRankThree{top:46%;left:59%}
+ .refined section[id="physical"]>.physicalLayout{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:32px 5% 35px;align-items:center}
+ .refined section[id="physical"]>.physicalLayout>div:nth-child(2){grid-column:1/-1;grid-row:1;text-align:center}
+ .refined section[id="physical"]>.physicalLayout h2{font-size:clamp(44px,11vw,68px);transform-origin:center}
+ .refined section[id="physical"]>.physicalLayout div[class*="productArt"]{grid-column:1;grid-row:2;order:0;height:clamp(130px,43vw,235px);width:100%}
+ .refined .physicalFan{grid-column:2;grid-row:2;order:0}
+ .refined section[id="physical"]>.physicalLayout .box{width:59%;left:9%}
+ .refined section[id="physical"]>.physicalLayout div[class*="productBack"]{width:48%;left:42%;bottom:4%}
+}
+
+/* Printed texture needs its own tile size, not the previous 4px dot pattern. */
+.refined section,.refined header,.refined footer {background-size:180px 180px,auto}
+.refined section[id="main-content"]::after {background-size:180px 180px}
+.refined section[id="how-to-play"]>.onlineLayout {position:relative;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);padding-right:clamp(16px,11vw,156px);isolation:isolate}
+.refined .onlineCopy {position:relative;z-index:2;min-width:0}
+.refined .beachMascot {position:absolute;right:0;bottom:0;width:clamp(110px,17vw,245px);height:auto;pointer-events:none;z-index:1;filter:drop-shadow(2px 3px 1px #624e3225)}
+.refined section[id="the-deck"],.refined section[id="physical"]{isolation:isolate}
+.refined section[id="the-deck"]::before,.refined section[id="physical"]::before{
+ content:"";position:absolute;left:0;right:0;height:12px;top:-1px;background:var(--paper);clip-path:polygon(0 0,100% 0,100% 60%,86% 26%,72% 42%,56% 20%,40% 60%,23% 25%,9% 52%,0 28%);z-index:1;pointer-events:none
+}
+@media(max-width:850px) and (min-width:601px){.refined section[id="how-to-play"]>.onlineLayout{padding-right:6%;padding-bottom:100px}.refined .beachMascot{width:126px;right:2%}}
+@media(max-width:600px){.refined section[id="how-to-play"]>.onlineLayout{grid-template-columns:1fr;padding:32px 6% 62px;gap:20px}.refined .beachMascot{width:min(35%,145px);right:1%;bottom:0}.refined .gameShowcase{padding-bottom:35px}.refined .onlineCopy{grid-row:1}}
+
+/* Browser-reviewed composition: free the Explorer silhouette, bring the
+   tabletop device into the horizontal editorial flow, retain real screenshots. */
+.refined .heroComposition .heroDeck {width:29%;left:59%;bottom:0;transform:rotate(66deg) scaleY(.76);z-index:8}
+.refined .heroComposition img[class*="explorer"] {left:3%;width:49%;bottom:5%;z-index:7}
+.refined .heroComposition span[class*="artCaption"] {right:2%;bottom:-1%}
+.refined header a[class*="homeLink"] {align-self:center}
+.refined header img {max-height:75px;width:auto}
+.refined .gameShowcase {min-width:0;min-height:0;align-self:center;padding:10px 8px 13px}
+.refined .gameShowcase .gameDevice {width:min(70%,265px);max-width:100%;transform:rotate(-7deg);margin:0;border-width:7px;box-shadow:0 0 0 2px #ad936b,0 7px 0 #aa9164,0 12px 20px #211e184d}
+.refined .gameDevice picture,.refined .gameDevice img {display:block;width:100%;height:auto}
+.refined .gameShowcase div[class*="previewLabel"] {bottom:5%;right:2%;font-size:12px;max-width:44%;line-height:1.2}
+.refined section[id="how-to-play"]>.onlineLayout {padding-block:clamp(24px,3.4vw,45px);gap:clamp(20px,4vw,52px)}
+.refined .onlineCopy {padding-right:clamp(0px,1.4vw,20px)}
+@media(min-width:851px) {.refined section[id="how-to-play"]>.onlineLayout {grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);padding-right:clamp(90px,15vw,210px)}}
+@media(max-width:600px){
+ .refined header img {max-height:62px}
+ .refined .heroComposition .heroDeck {left:57%;width:31%;bottom:0}
+ .refined .heroComposition img[class*="explorer"] {left:0;width:47%}
+ .refined section[id="how-to-play"]>.onlineLayout {padding:32px 6% 55px}
+ .refined .onlineCopy {padding:0}
+ .refined .gameShowcase .gameDevice {width:min(52%,185px);transform:rotate(-6deg)}
+ .refined .gameShowcase div[class*="previewLabel"] {right:3%;bottom:12%;font-size:11px}
+ .refined .gameShowcase {padding-bottom:18px}
+}
+
+@media(min-width:851px){.refined .gameShowcase .gameDevice{width:min(87%,350px);transform:rotate(-6deg)}.refined .gameShowcase div[class*="previewLabel"]{right:-1%;bottom:0}}
