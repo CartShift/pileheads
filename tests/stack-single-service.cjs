@@ -46,3 +46,5 @@ for (const asset of ["stack-home-gameplay.webp","stack-home-sunset.webp"]) { ass
 
 for(const asset of ["stack-home-box-side-v2.webp","stack-home-box-top-v2.webp"]) { assert.equal(read("stack-media/"+asset).toString("ascii",8,12),"WEBP"); assert.ok(officialHome.includes("/stack-media/"+asset)); }
 for(const asset of ["print-grain.svg","comic-cloud.svg","barlow-condensed-black-italic.ttf","barlow-OFL.txt"]) assert.ok(read("stack-media/"+asset).length>100,asset);
+
+assert.equal(read("stack-media/stack-home-burn-beach.webp").toString("ascii",8,12),"WEBP");assert.ok(officialHome.includes("/stack-media/stack-home-burn-beach.webp"));

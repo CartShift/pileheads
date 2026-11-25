@@ -10,7 +10,7 @@ const ROOT = path.resolve(__dirname, "..");
 const PORT = 44292;
 const BASE = "http://127.0.0.1:" + PORT;
 const ARTIFACTS = path.resolve(process.env.STACK_HOMEPAGE_ARTIFACTS || path.join(ROOT,"artifacts","website"));
-const assets = ["faces-v2","box-v2","back-v2","logo-v2","explorer-v2","gameplay","sunset","box-side-v2","box-top-v2"].map(x=>"/stack-media/stack-home-"+x+".webp");
+const assets = ["faces-v2","box-v2","back-v2","logo-v2","explorer-v2","gameplay","sunset","box-side-v2","box-top-v2","burn-beach"].map(x=>"/stack-media/stack-home-"+x+".webp");
 async function waitReady(){
   for(let i=0;i<100;i++){try{if((await fetch(BASE+"/livez")).ok)return}catch{} await new Promise(r=>setTimeout(r,200))}
   throw Error("Integrated server did not become ready");
