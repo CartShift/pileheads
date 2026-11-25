@@ -10,7 +10,7 @@ const ROOT = path.resolve(__dirname, "..");
 const PORT = 44292;
 const BASE = "http://127.0.0.1:" + PORT;
 const ARTIFACTS = path.resolve(process.env.STACK_HOMEPAGE_ARTIFACTS || path.join(ROOT,"artifacts","website"));
-const assets = ["faces-v2","box-v2","back-v2","logo-v2","explorer-v2","gameplay","sunset"].map(x=>"/stack-media/stack-home-"+x+".webp");
+const assets = ["faces-v2","box-v2","back-v2","logo-v2","explorer-v2","gameplay","sunset","box-side-v2","box-top-v2"].map(x=>"/stack-media/stack-home-"+x+".webp");
 async function waitReady(){
   for(let i=0;i<100;i++){try{if((await fetch(BASE+"/livez")).ok)return}catch{} await new Promise(r=>setTimeout(r,200))}
   throw Error("Integrated server did not become ready");
@@ -25,7 +25,8 @@ async function check(browser,width,height){
     assert.match(await page.locator("h1").innerText(),/STACK\s*THE ODDS\./);
     for(const selector of ["#main-content","#the-deck","#how-to-play","#physical","footer"]) assert.equal(await page.locator(selector).count(),1,selector);
     for(const asset of assets){const r=await page.request.get(BASE+asset);assert.equal(r.status(),200,asset);assert.equal((await r.body()).subarray(8,12).toString(),"WEBP",asset)}
-    await page.evaluate(async()=>{for(const im of document.images){im.loading="eager";await im.decode()}});
+    await page.evaluate(async()=>{await document.fonts.ready;for(const im of document.images){im.loading="eager";await im.decode()}});
+    assert.ok(await page.evaluate(()=>document.fonts.check("italic 900 48px STACK Display")), "locally hosted display font loads");
     const layout=await page.evaluate(()=>({
       documentWidth:document.documentElement.scrollWidth, viewport:innerWidth,
       broken:[...document.images].filter(x=>!x.complete||x.naturalWidth===0).map(x=>x.src),
