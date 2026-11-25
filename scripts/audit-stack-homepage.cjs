@@ -14,7 +14,7 @@ async function audit(browser, mobile){
  page.on("requestfailed",r=>failures.push({url:r.url(),reason:r.failure()?.errorText}));
  await page.addInitScript(()=>{
   window.__stackVitals={lcp:0,cls:0,sessionStart:0,lastShift:0,sessionValue:0};
-  new PerformanceObserver(list=>{for(const e of list.getEntries())window.__stackVitals.lcp=e.startTime}).observe({type:"largest-contentful-paint",buffered:true});
+  new PerformanceObserver(list=>{for(const e of list.getEntries()){window.__stackVitals.lcp=e.startTime;window.__stackVitals.lcpElement={tag:e.element?.tagName||null,url:e.url||null,id:e.element?.id||null}}}).observe({type:"largest-contentful-paint",buffered:true});
   new PerformanceObserver(list=>{const v=window.__stackVitals;for(const e of list.getEntries()){if(e.hadRecentInput)continue;if(e.startTime-v.lastShift>1000||e.startTime-v.sessionStart>5000){v.sessionStart=e.startTime;v.sessionValue=0}v.lastShift=e.startTime;v.sessionValue+=e.value;v.cls=Math.max(v.cls,v.sessionValue)}}).observe({type:"layout-shift",buffered:true});
  });
  if(mobile){const cdp=await context.newCDPSession(page);await cdp.send("Network.enable");await cdp.send("Network.setCacheDisabled",{cacheDisabled:true});await cdp.send("Network.emulateNetworkConditions",{offline:false,latency:100,downloadThroughput:200000,uploadThroughput:93750});await cdp.send("Emulation.setCPUThrottlingRate",{rate:4})}
@@ -22,7 +22,7 @@ async function audit(browser, mobile){
   const r=await page.goto(BASE+"/stack",{waitUntil:"networkidle",timeout:60000});assert.equal(r.status(),200);
   await page.evaluate(()=>document.fonts.ready);
   await page.waitForTimeout(800);
-  const metrics=await page.evaluate(()=>{const nav=performance.getEntriesByType("navigation")[0],rs=performance.getEntriesByType("resource");return {lcpMs:Math.round(window.__stackVitals.lcp),cls:Number(window.__stackVitals.cls.toFixed(4)),ttfbMs:Math.round(nav.responseStart),transferBytes:nav.transferSize+rs.reduce((n,r)=>n+r.transferSize,0),resourceCount:rs.length,title:document.title,description:document.querySelector('meta[name="description"]')?.content,lang:document.documentElement.lang,missingImageAlt:[...document.images].filter(x=>!x.hasAttribute("alt")).length,emptyLinks:[...document.querySelectorAll("a")].filter(a=>!a.textContent.trim()&&!a.getAttribute("aria-label")&&!a.querySelector('img[alt]:not([alt=""])')).length}});
+  const metrics=await page.evaluate(()=>{const nav=performance.getEntriesByType("navigation")[0],rs=performance.getEntriesByType("resource");return {lcpMs:Math.round(window.__stackVitals.lcp),lcpElement:window.__stackVitals.lcpElement,cls:Number(window.__stackVitals.cls.toFixed(4)),ttfbMs:Math.round(nav.responseStart),transferBytes:nav.transferSize+rs.reduce((n,r)=>n+r.transferSize,0),resourceCount:rs.length,largestResources:rs.map(r=>({name:new URL(r.name).pathname,bytes:r.transferSize,durationMs:Math.round(r.duration)})).sort((a,b)=>b.bytes-a.bytes).slice(0,8),title:document.title,description:document.querySelector('meta[name="description"]')?.content,lang:document.documentElement.lang,missingImageAlt:[...document.images].filter(x=>!x.hasAttribute("alt")).length,emptyLinks:[...document.querySelectorAll("a")].filter(a=>!a.textContent.trim()&&!a.getAttribute("aria-label")&&!a.querySelector('img[alt]:not([alt=""])')).length}});
   assert.ok(metrics.title.includes("STACK")&&metrics.description&&metrics.lang==="en");
   assert.equal(metrics.missingImageAlt,0);assert.equal(metrics.emptyLinks,0);
   assert.ok(metrics.lcpMs>0,"LCP observation available");

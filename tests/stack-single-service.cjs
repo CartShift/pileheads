@@ -36,8 +36,8 @@ for (const asset of ["stack-home-faces-v2.webp","stack-home-box-v2.webp","stack-
   assert.equal(bytes.toString("ascii",0,4),"RIFF","Invalid WebP: " + asset);
   assert.equal(bytes.toString("ascii",8,12),"WEBP","Invalid WebP: " + asset);
 }
-assert.ok(officialHome.includes("/stack-media/stack-home-box-v2.webp"), "Homepage must use corrected packaging");
-assert.ok(officialHome.includes("/stack-media/stack-home-logo-v2.webp"), "Homepage must use the source-derived logo");
+assert.ok(officialHome.includes("/stack-media/stack-home-box-web.webp"), "Homepage must use corrected packaging");
+assert.ok(officialHome.includes("/stack-media/stack-home-logo-web.webp"), "Homepage must use the source-derived logo");
 
 assert.ok(officialHome.includes("/stack-media/stack-home-explorer-v2.webp"), "Hero must use the canonical Explorer mascot");
 assert.equal(read("stack-media/stack-home-explorer-v2.webp").toString("ascii",8,12),"WEBP");
@@ -48,3 +48,7 @@ for(const asset of ["stack-home-box-side-v2.webp","stack-home-box-top-v2.webp"])
 for(const asset of ["print-grain.svg","comic-cloud.svg","barlow-condensed-black-italic.ttf","barlow-OFL.txt"]) assert.ok(read("stack-media/"+asset).length>100,asset);
 
 assert.equal(read("stack-media/stack-home-burn-beach.webp").toString("ascii",8,12),"WEBP");assert.ok(officialHome.includes("/stack-media/stack-home-burn-beach.webp"));
+
+for (const n of ["faces-web-desktop","faces-web-mobile","logo-web","box-web","explorer-web-desktop","explorer-web-mobile","back-web"]) assert.equal(read("stack-media/stack-home-"+n+".webp").toString("ascii",8,12),"WEBP");
+assert.ok(read("stack-media/stack-home-faces-web-mobile.webp").length<250000,"mobile sprite budget");
+assert.ok(read("stack-media/stack-home-faces-web-desktop.webp").length<450000,"desktop sprite budget");
