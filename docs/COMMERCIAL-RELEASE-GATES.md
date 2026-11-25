@@ -26,3 +26,7 @@
 
 ## Remaining product work
 Commercial product content beyond the demo scorecard, production payment integration, storefront merchant setup, partner-specific artwork/configurable themes, isolated partner portal and attribution, admin UI with RBAC (operator CLI and audit log exist), public matchmaking, real-device offline/PWA validation and mobile-store distribution are separate milestones, not complete. No costs incurred by this branch beyond existing infrastructure. No new scheduled jobs or production configuration changes.
+
+## Reproducible verification commands
+
+`npm run build && npm run test:integrated` now checks all seven product routes, real local HTTP routing, offline headers and fail-closed feature defaults without passing database or provider credentials to the server. `npm test` includes migration-harness guard checks. For a separately provisioned disposable LOCAL PostgreSQL database named `stack_test_*`, set `STACK_VERIFY_PG_HOST=127.0.0.1`, `STACK_VERIFY_PG_DATABASE`, `STACK_VERIFY_PG_CONFIRM=disposable-local` and local PostgreSQL credentials, then run `npm run test:commercial:db`. The latter executes the five reviewed migrations and database invariants in one isolated schema and rolls back. It does not cover multi-connection concurrency or deployed role privileges; those remain explicit staging gates. Do not point it at production or a tunnel to production.

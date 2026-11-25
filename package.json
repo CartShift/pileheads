@@ -20,7 +20,8 @@
     "test:pilehead-playtest": "node tests/pilehead-playtest.cjs",
     "bench:endgame-lab": "node scripts/bench-endgame-lab.cjs",
     "test:endgame-lab-browser": "node tests/stack-endgame-lab-browser.cjs",
-    "build:classic": "node scripts/build-vercel.mjs"
+    "build:classic": "node scripts/build-vercel.mjs",
+    "test:commercial:db": "node scripts/verify-commercial-db.cjs"
   },
   "engines": {
     "node": "24.x"

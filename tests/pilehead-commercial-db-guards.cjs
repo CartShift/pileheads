@@ -1,0 +1,16 @@
+"use strict";
+const assert=require("node:assert/strict");
+const fs=require("node:fs"),path=require("node:path");
+const {migrationBody,buildSql}=require("../scripts/verify-commercial-db.cjs");
+const dir=path.join(__dirname,"../db/migrations");
+const migrations=fs.readdirSync(dir).filter(f=>/^\d{3}_.+\.sql$/.test(f)).sort().map(f=>fs.readFileSync(path.join(dir,f),"utf8"));
+assert.equal(migrations.length,5);
+assert.equal(migrationBody("-- example\nBEGIN;SELECT 1;COMMIT;").trim(),"SELECT 1;");
+assert.throws(()=>migrationBody("SELECT 1;"));
+const checks=fs.readFileSync(path.join(__dirname,"stack-commercial-postgres.sql"),"utf8");
+const sql=buildSql(migrations,checks,"stack_verify_"+"a".repeat(24));
+assert.equal((sql.match(/^BEGIN;$/gm)||[]).length,1);
+assert.equal((sql.match(/^COMMIT;$/gm)||[]).length,0);
+assert.equal((sql.match(/^ROLLBACK;$/gm)||[]).length,1);
+assert.throws(()=>buildSql(migrations,checks,"public"));
+console.log("PASS commercial database verification harness guards (no DB connection)");

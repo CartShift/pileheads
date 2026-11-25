@@ -149,7 +149,7 @@ const server = http.createServer(async (req, res) => {
   }
 });
 liveHub=attachRealtime(server,roomHandler);
-server.listen(port, '0.0.0.0', () => console.log(`STACK listening on port ${port} with WebSocket rooms`));
+server.listen(port, '0.0.0.0', () => console.log(`STACK listening on port ${server.address().port} with WebSocket rooms`));
 process.once('SIGTERM',()=>{
  liveHub.shutdown();
  server.close(()=>process.exit(0));
