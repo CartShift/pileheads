@@ -47,3 +47,18 @@
 .closing h2{font-size:clamp(40px,6.2vw,86px)}
 @media(max-width:850px){.hero h1{font-size:clamp(44px,7.8vw,76px)}}
 @media(max-width:600px){.heroInner{grid-template-columns:1fr}.hero h1{font-size:clamp(52px,13.5vw,86px)}.heroArt{min-height:0;aspect-ratio:1.07}.explorer{left:3%;width:49%;bottom:5%}.hero h1:after{margin-left:auto;margin-right:auto}.closing{flex-direction:column;text-align:center;padding:40px 5% 54px}.closingArt{width:min(70%,285px);order:2;margin-top:16px}.closingCopy{width:100%}}
+
+/* Real mobile gameplay capture and sunset art from the approved mockup. */
+.gamePreview{position:relative;isolation:isolate;display:flex;align-items:center;justify-content:center;min-height:400px;padding:12px 20px}
+.previewBurst{position:absolute;width:85%;aspect-ratio:1;background:repeating-conic-gradient(from 0deg,#f6c32c 0deg 8deg,transparent 8deg 31deg);mask-image:radial-gradient(ellipse,transparent 29%,#000 36%,transparent 69%);z-index:-1;transform:rotate(-8deg)}
+.phone{margin:0;width:clamp(160px,43%,235px);border:8px solid #172021;border-radius:23px;background:#172021;box-shadow:0 0 0 2px #ad936b,0 15px 24px #211e184d;transform:rotate(-9deg);overflow:hidden}
+.phone img{display:block;width:100%;height:auto}
+.previewLabel{position:absolute;right:0;bottom:11%;font-size:14px;font-weight:900;text-transform:uppercase;background:var(--yellow);border:2px solid var(--ink);border-radius:5px;padding:10px 14px;transform:rotate(6deg);box-shadow:3px 4px 0 var(--ink);text-align:center}
+.previewLabel small{font-size:10px;text-transform:none;letter-spacing:0}
+.closing{padding:0;min-height:clamp(210px,23vw,350px);gap:0;background-color:#c14839;color:var(--paper);justify-content:flex-end}
+.closingArt{position:absolute;inset:0;width:100%;height:100%;transform:none;display:block;z-index:-1;margin:0}
+.closingArt img{width:100%;height:100%;object-fit:cover;object-position:left center;mask-image:linear-gradient(90deg,#000 0%,#000 52%,transparent 85%)}
+.closingCopy{width:45%;padding:32px 5% 32px 0;z-index:2}
+.closing h2{font-size:clamp(32px,4.7vw,70px);text-shadow:3px 3px #4b1c21;color:var(--paper)}
+.closing h2 span{color:var(--yellow)}
+@media(max-width:600px){.gamePreview{order:2;min-height:0;padding:8px 16px 22px}.phone{width:min(55%,210px)}.previewLabel{right:3%;bottom:14%;font-size:12px;padding:7px 10px}.closing{display:flex;flex-direction:column;min-height:0;padding:0;text-align:center;gap:0}.closingArt{position:relative;order:2;width:100%;height:auto;z-index:0}.closingArt img{display:block;mask-image:none;width:100%;height:auto;object-fit:contain}.closingCopy{width:100%;padding:32px 5% 24px}.closing h2{font-size:clamp(42px,10vw,66px)}}

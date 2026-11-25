@@ -41,3 +41,5 @@ assert.ok(officialHome.includes("/stack-media/stack-home-logo-v2.webp"), "Homepa
 
 assert.ok(officialHome.includes("/stack-media/stack-home-explorer-v2.webp"), "Hero must use the canonical Explorer mascot");
 assert.equal(read("stack-media/stack-home-explorer-v2.webp").toString("ascii",8,12),"WEBP");
+
+for (const asset of ["stack-home-gameplay.webp","stack-home-sunset.webp"]) { assert.equal(read("stack-media/"+asset).toString("ascii",8,12),"WEBP"); assert.ok(officialHome.includes("/stack-media/"+asset)); }

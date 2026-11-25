@@ -60,16 +60,14 @@ export default function HomePage() {
       <div className={styles.actionFan}>{actions.map((name,i)=><Card key={name} name={name} className={styles["fan"+i]}/>)}</div>
     </div></section>
     <section className={styles.online} id="how-to-play"><div className={styles.split}>
-      <div className={styles.device} role="img" aria-label="Illustrative STACK tabletop preview with a pile and three cards">
-        <div className={styles.deviceHeader}><strong>STACK</strong><span>YOUR TURN</span></div><div className={styles.table}><span className={styles.seat}>Opponent</span><div className={styles.tablePile}><span className={styles.tableBack}/><Card name="7"/></div><div className={styles.hand}>{["2","3","9"].map(n=><Card key={n} name={n}/>)}</div></div>
-      </div>
+      <div className={styles.gamePreview}><div className={styles.previewBurst} aria-hidden="true"/><figure className={styles.phone}><img src="/stack-media/stack-home-gameplay.webp" alt="Actual STACK browser game showing the cards in hand, draw deck, central pile and turn controls" width={321} height={860} loading="lazy"/></figure><div className={styles.previewLabel}>Actual gameplay<br/><small>Original deck theme</small></div></div>
       <div><p className={styles.kicker}>No download needed</p><h2>Play online.<br/>Anytime, anywhere<span>.</span></h2><p>Try STACK in your browser. Challenge the bots or invite your friends to a private table.</p><div className={styles.buttons}><Button href="/play">Play now →</Button><a className={styles.textLink} href="/pilehead/playtest.html">Learn the rules</a></div></div>
     </div></section>
     <section className={styles.physical} id="physical"><div className={styles.split}>
       <div className={styles.productArt} aria-label="STACK card deck illustration" role="group"><div className={styles.productBox}><img src="/stack-media/stack-home-box-v2.webp" alt="STACK packaging concept, 54 cards for 2–5 players" width={660} height={910} loading="lazy"/></div><div className={styles.productBack}/><Card name="3" className={styles.productFace}/></div>
       <div><p className={styles.kicker}>From screen to table</p><h2>Small box.<br/>Big fun<span>.</span></h2><p>Made for game nights, holidays and spontaneous showdowns. The physical deck is currently in playtesting.</p><Button href="/pilehead/playtest.html" kind="yellow">Explore the playtest edition →</Button><p className={styles.releaseNote}>Physical retail launch to be announced.</p></div>
     </div></section>
-    <section className={styles.closing}><div className={styles.closingArt} aria-hidden="true"><Card name="2"/><Card name="7"/><Card name="9"/></div><div className={styles.closingCopy}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring STACK<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></div></section>
+    <section className={styles.closing}><div className={styles.closingArt} aria-hidden="true"><img src="/stack-media/stack-home-sunset.webp" alt="" width={700} height={165} loading="lazy"/></div><div className={styles.closingCopy}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring STACK<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></div></section>
     <footer className={styles.footer}><Link href="/stack" aria-label="STACK home"><Brand/></Link><nav aria-label="Footer navigation"><Link href="/play">Play online</Link><a href="/pilehead/playtest.html">Rules & playtest</a><a href="/pilehead/gallery.html">The deck</a><a href="/pilehead/index.html">Classic game</a></nav><small>© STACK</small></footer>
   </main>;
 }
