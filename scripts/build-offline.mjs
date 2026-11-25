@@ -6,6 +6,7 @@ import {pathToFileURL} from 'node:url';
 // Only public, immutable game resources. Never add API, account, room or checkout paths.
 export const OFFLINE_ASSETS=[
  '/stack-offline.html','/pilehead/index.html',
+ ...['stack-design-system.css','stack-home-logo-web.webp','barlow-condensed-black-italic.ttf','print-grain.svg'].map(p=>'/stack-media/'+p),
  ...['app.js','online.js','online-polish.css','classic-premium.css','classic-clean.css','table-feedback.css','ux-clarity.css','ux-clarity.js','live.css','live.js','engine.js','immersive.css','immersive.js','deck-art.css','deck-art.js','deck-raster.css','deck-raster.js','stack-brand.css','deck-theme.js','deck-theme.css','assets/stack-sheet.webp','assets/stack-back.webp','assets/stack-characters.webp','assets/stack-characters-v2.webp','assets/stack-back-v2.webp'].map(p=>'/pilehead/'+p)
 ];
 export function workerSource(version){

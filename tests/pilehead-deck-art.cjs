@@ -117,8 +117,8 @@ check('action labels accurately document the game instead of suggesting other ef
 });
 check('STACK is the visible identity while keeping legacy URLs and logic',()=>{
  assert.match(index,/STACK \| The Card Game/);
- assert.match(gallery,/STACK \/ DECK LAB/);
- assert.match(print,/<h1>STACK<\/h1>/);
+ assert.match(gallery,/EVERY CARD<br>HAS A ROLE/);assert.match(gallery,/stack-home-logo-web\.webp/);
+ assert.match(print,/<h1>PRINT THE DECK\.<\/h1>/);assert.match(print,/stack-home-logo-web\.webp/);
  assert.match(css,/#f6f0e3/i);
 });
 check('approved infographic rank palettes, colored corners and 3D geometry',()=>{

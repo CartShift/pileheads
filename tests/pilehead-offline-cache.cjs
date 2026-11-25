@@ -4,7 +4,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('nod
  const {OFFLINE_ASSETS,workerSource,buildOffline}=await import('../scripts/build-offline.mjs');
  assert.equal(new Set(OFFLINE_ASSETS).size,OFFLINE_ASSETS.length);
  assert.ok(OFFLINE_ASSETS.includes('/pilehead/table-feedback.css'));
- assert.ok(OFFLINE_ASSETS.every(p=>p==='/stack-offline.html'||p.startsWith('/pilehead/')));
+ assert.ok(OFFLINE_ASSETS.every(p=>p==='/stack-offline.html'||p.startsWith('/pilehead/')||p.startsWith('/stack-media/')));
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'stack-offline-'));
  try{
   for(const p of OFFLINE_ASSETS){const f=path.join(dir,p.slice(1));fs.mkdirSync(path.dirname(f),{recursive:true});fs.writeFileSync(f,'test:'+p);}

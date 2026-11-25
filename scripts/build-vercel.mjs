@@ -26,4 +26,8 @@ for (const asset of assets) {
   fs.copyFileSync(source, destination);
 }
 fs.copyFileSync(path.join(root, 'index.html'), path.join(output, 'index.html'));
+// Publish the same canonical design system in standalone and integrated builds.
+const brandDir = path.resolve('apps/web/public/stack-media');
+fs.mkdirSync(path.join(output,'stack-media'),{recursive:true});
+for(const name of ['stack-design-system.css','stack-home-logo-web.webp','barlow-condensed-black-italic.ttf','barlow-OFL.txt','print-grain.svg']) fs.copyFileSync(path.join(brandDir,name),path.join(output,'stack-media',name));
 console.log('Built STACK static site: ' + assets.length + ' game assets + root redirect');

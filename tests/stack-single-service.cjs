@@ -28,7 +28,7 @@ assert.equal(manifest.scope,"/");
 console.log("PASS static export: Classic preserved, all seven Next routes and offline assets published");
 
 const officialHome = read("stack.html").toString("utf8");
-for (const label of ["STACK", "THE ODDS", "Why STACK?", "Meet", "Play online", "Small box.", "Physical retail launch to be announced."]) {
+for (const label of ["STACK", "THE ODDS", "Why STACK?", "Meet", "Play online", "The physical", "Physical retail launch to be announced."]) {
   assert.ok(officialHome.includes(label), "Official homepage missing: " + label);
 }
 for (const href of ["/play", "/pilehead/gallery.html", "/pilehead/playtest.html", "/pilehead/index.html"]) {
@@ -41,13 +41,22 @@ for (const asset of ["stack-home-faces-v2.webp","stack-home-box-v2.webp","stack-
   assert.equal(bytes.toString("ascii",0,4),"RIFF","Invalid WebP: " + asset);
   assert.equal(bytes.toString("ascii",8,12),"WEBP","Invalid WebP: " + asset);
 }
-assert.ok(officialHome.includes("/stack-media/stack-home-box-v2.webp"), "Homepage must use corrected packaging");
-assert.ok(officialHome.includes("/stack-media/stack-home-logo-v2.webp"), "Homepage must use the source-derived logo");
+assert.ok(officialHome.includes("/stack-media/stack-home-box-web.webp"), "Homepage must use corrected packaging");
+assert.ok(officialHome.includes("/stack-media/stack-home-logo-web.webp"), "Homepage must use the source-derived logo");
 
 assert.ok(officialHome.includes("/stack-media/stack-home-explorer-v2.webp"), "Hero must use the canonical Explorer mascot");
 assert.equal(read("stack-media/stack-home-explorer-v2.webp").toString("ascii",8,12),"WEBP");
 
-for (const asset of ["stack-home-gameplay.webp","stack-home-sunset.webp"]) { assert.equal(read("stack-media/"+asset).toString("ascii",8,12),"WEBP"); assert.ok(officialHome.includes("/stack-media/"+asset)); }
+for (const asset of ["stack-home-gameplay-v2.webp","stack-home-gameplay-wide-v2.webp","stack-home-gameplay-desktop-v2.webp","stack-home-sunset.webp"]) { assert.equal(read("stack-media/"+asset).toString("ascii",8,12),"WEBP"); assert.ok(officialHome.includes("/stack-media/"+asset)); }
+
+for(const asset of ["stack-home-box-side-v2.webp","stack-home-box-top-v2.webp"]) { assert.equal(read("stack-media/"+asset).toString("ascii",8,12),"WEBP"); assert.ok(officialHome.includes("/stack-media/"+asset)); }
+for(const asset of ["print-grain.svg","comic-cloud.svg","barlow-condensed-black-italic.ttf","barlow-OFL.txt"]) assert.ok(read("stack-media/"+asset).length>100,asset);
+
+assert.equal(read("stack-media/stack-home-burn-beach.webp").toString("ascii",8,12),"WEBP");assert.ok(officialHome.includes("/stack-media/stack-home-burn-beach.webp"));
+
+for (const n of ["faces-web-desktop","faces-web-mobile","logo-web","box-web","explorer-web-desktop","explorer-web-mobile","back-web"]) assert.equal(read("stack-media/stack-home-"+n+".webp").toString("ascii",8,12),"WEBP");
+assert.ok(read("stack-media/stack-home-faces-web-mobile.webp").length<250000,"mobile sprite budget");
+assert.ok(read("stack-media/stack-home-faces-web-desktop.webp").length<450000,"desktop sprite budget");
 
 for(const href of ["/decks","/account","/shop","/partners"])assert.ok(officialHome.includes('href="'+href+'"'),"Missing commercial navigation: "+href);
 require("./stack-commercial-http.cjs").run().catch(error=>{console.error(error);process.exitCode=1;});

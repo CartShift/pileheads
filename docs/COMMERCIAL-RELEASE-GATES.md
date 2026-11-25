@@ -34,3 +34,5 @@ Commercial product content beyond the demo scorecard, production payment integra
 ## Main integration
 
 The official homepage, canonical refined card artwork and committed-card animation/sound work from main are preserved. Commercial navigation and opt-in controls are added to the official footer; React now has one three-theme registry (refined default, classic characters, original), and API/SQL validation accepts those IDs. The five migrations are still unreleased and their deck constraints/defaults were updated before application. The offline cache includes the new refined face/back assets. Validate exact merged commit and visual layout before release.
+
+The subsequent unified design system and optimized homepage assets from main are preserved; the Classic offline allowlist includes its shared stylesheet, local font, logo and grain. Root MotionProvider remains the single provider for all React routes.
