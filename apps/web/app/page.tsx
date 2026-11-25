@@ -33,7 +33,7 @@ export default function HomePage() {
       <Link href="/stack" className={styles.homeLink}><Brand/></Link>
       <nav aria-label="Main navigation">
         <Link href="/play" className={styles.navPlay} prefetch={false}>Play online</Link>
-        <a href="#how-to-play">How to play</a><a href="#the-deck">The deck</a><a href="#physical">The game</a>
+        <a href="/pilehead/playtest.html">How to play</a><a href="/pilehead/gallery.html">The deck</a><a href="#physical">The game</a>
       </nav>
     </div></header>
     <section className={styles.hero} id="main-content" aria-labelledby="home-heading" tabIndex={-1}>

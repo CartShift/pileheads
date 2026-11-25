@@ -43,9 +43,9 @@ function picker(){
 function mount(){
  if(!root.document||document.getElementById('stack-deck-style'))return;
  const gameTop=document.querySelector('.layout > header.top');
- const galleryNav=document.querySelector('header nav');
+ const galleryNav=document.querySelector('#gallery-theme-control')||document.querySelector('header nav');
  const printControls=document.querySelector('header .controls');
- const target=gameTop||galleryNav||printControls;
+ const target=gameTop||printControls||galleryNav;
  if(!target)return;
  const el=picker();
  if(gameTop)target.insertBefore(el,gameTop.querySelector('.links')||null);
