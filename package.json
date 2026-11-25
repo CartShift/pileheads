@@ -29,5 +29,5 @@
     "@neondatabase/serverless": "1.2.0",
     "ws": "8.23.0"
   },
-  "description": "STACK physical-first card game and online multiplayer"
+  "description": "PILEHEADS physical-first card game and online multiplayer"
 }
