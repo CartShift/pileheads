@@ -10,7 +10,7 @@ const ROOT = path.resolve(__dirname, "..");
 const PORT = 44292;
 const BASE = "http://127.0.0.1:" + PORT;
 const ARTIFACTS = path.resolve(process.env.STACK_HOMEPAGE_ARTIFACTS || path.join(ROOT,"artifacts","website"));
-const assets = ["faces-v2","box-v2","back-v2","logo-v2","explorer-v2","gameplay-v2","gameplay-wide-v2","sunset","box-side-v2","box-top-v2","burn-beach"].map(x=>"/stack-media/stack-home-"+x+".webp");
+const assets = ["faces-v2","box-v2","back-v2","logo-v2","explorer-v2","gameplay-v2","gameplay-wide-v2","gameplay-desktop-v2","sunset","box-side-v2","box-top-v2","burn-beach"].map(x=>"/stack-media/stack-home-"+x+".webp");
 async function waitReady(){
   for(let i=0;i<100;i++){try{if((await fetch(BASE+"/livez")).ok)return}catch{} await new Promise(r=>setTimeout(r,200))}
   throw Error("Integrated server did not become ready");
@@ -31,7 +31,7 @@ async function check(browser,width,height){
     const titleBox=await page.locator("#home-heading").evaluate(el=>{const r=document.createRange();r.selectNodeContents(el);const b=r.getBoundingClientRect();return {left:b.left,right:b.right,viewport:innerWidth}});
     assert.ok(titleBox.left>=-1&&titleBox.right<=titleBox.viewport+1,"headline cannot be clipped by page overflow: "+JSON.stringify(titleBox));
     const gamePreview=page.locator('img[alt^="Actual STACK browser game"]');
-    assert.ok((await gamePreview.evaluate(el=>el.currentSrc)).endsWith(width>600?"stack-home-gameplay-wide-v2.webp":"stack-home-gameplay-v2.webp"),"the device uses its genuine responsive V2 capture");
+    assert.ok((await gamePreview.evaluate(el=>el.currentSrc)).endsWith(width>850?"stack-home-gameplay-desktop-v2.webp":width>600?"stack-home-gameplay-wide-v2.webp":"stack-home-gameplay-v2.webp"),"the device uses its genuine responsive V2 capture");
     const layout=await page.evaluate(()=>({
       documentWidth:document.documentElement.scrollWidth, viewport:innerWidth,
       broken:[...document.images].filter(x=>!x.complete||x.naturalWidth===0).map(x=>x.src),

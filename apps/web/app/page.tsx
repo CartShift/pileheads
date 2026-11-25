@@ -18,7 +18,7 @@ function Brand() {
 }
 function Button({href, children, kind = "red"}: {href: string; children: React.ReactNode; kind?: "red"|"cream"|"yellow"}) {
   const cls = styles.button + " " + styles[kind];
-  return href.startsWith("/play") ? <Link className={cls} href={href}>{children}</Link> : <a className={cls} href={href}>{children}</a>;
+  return href.startsWith("/play") ? <Link className={cls} href={href} prefetch={false}>{children}</Link> : <a className={cls} href={href}>{children}</a>;
 }
 function BenefitIcon({kind}: {kind: "bolt"|"friends"|"repeat"}) {
   return <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round">
@@ -32,11 +32,11 @@ export default function HomePage() {
     <header className={styles.header}><div className={styles.nav}>
       <Link href="/stack" className={styles.homeLink}><Brand/></Link>
       <nav aria-label="Main navigation">
-        <Link href="/play" className={styles.navPlay}>Play online</Link>
+        <Link href="/play" className={styles.navPlay} prefetch={false}>Play online</Link>
         <a href="#how-to-play">How to play</a><a href="#the-deck">The deck</a><a href="#physical">The game</a>
       </nav>
     </div></header>
-    <section className={styles.hero} id="main-content" aria-labelledby="home-heading">
+    <section className={styles.hero} id="main-content" aria-labelledby="home-heading" tabIndex={-1}>
       <div className={styles.heroInner}>
         <div className={styles.heroCopy + " " + polish.heroEditorial}>
           <p className={styles.kicker}>The card game with character</p>
@@ -66,7 +66,7 @@ export default function HomePage() {
       <div className={styles.actionFan + " " + polish.actionFan}>{actions.map((name,i)=><Card key={name} name={name} className={styles["fan"+i]}/>)}</div>
     </div></section>
     <section className={styles.online} id="how-to-play"><div className={styles.split + " " + polish.onlineLayout}>
-      <div className={styles.gamePreview + " " + polish.gameShowcase}><div className={styles.previewBurst} aria-hidden="true"/><figure className={styles.phone + " " + polish.gameDevice}><picture><source media="(min-width: 601px)" srcSet="/stack-media/stack-home-gameplay-wide-v2.webp" width={507} height={600}/><img src="/stack-media/stack-home-gameplay-v2.webp" alt="Actual STACK browser game with the Illustrated V2 deck, showing cards in hand, draw deck and turn controls" width={321} height={860} loading="lazy" decoding="async"/></picture></figure><div className={styles.previewLabel}>Actual gameplay<br/><small>Illustrated V2 deck</small></div></div>
+      <div className={styles.gamePreview + " " + polish.gameShowcase}><div className={styles.previewBurst} aria-hidden="true"/><figure className={styles.phone + " " + polish.gameDevice}><picture><source media="(min-width: 851px)" srcSet="/stack-media/stack-home-gameplay-desktop-v2.webp" width={731} height={620}/><source media="(min-width: 601px)" srcSet="/stack-media/stack-home-gameplay-wide-v2.webp" width={507} height={600}/><img src="/stack-media/stack-home-gameplay-v2.webp" alt="Actual STACK browser game with the Illustrated V2 deck, showing cards in hand, draw deck and turn controls" width={321} height={860} loading="lazy" decoding="async"/></picture></figure><div className={styles.previewLabel}>Actual gameplay<br/><small>Illustrated V2 deck</small></div></div>
       <div className={polish.onlineCopy}><p className={styles.kicker}>No download needed</p><h2>Play online.<br/>Anytime, anywhere<span>.</span></h2><p>Try STACK in your browser. Challenge the bots or invite your friends to a private table.</p><div className={styles.buttons}><Button href="/play">Play now →</Button><a className={styles.textLink} href="/pilehead/playtest.html">Learn the rules</a></div></div><img className={polish.beachMascot} src="/stack-media/stack-home-burn-beach.webp" alt="" width={277} height={235} loading="lazy"/>
     </div></section>
     <section className={styles.physical} id="physical"><div className={styles.split + " " + polish.physicalLayout}>
@@ -74,6 +74,6 @@ export default function HomePage() {
       <div><p className={styles.kicker}>From screen to table</p><h2>The physical<br/>game<span>.</span></h2><p>Small box. Big fun. Made for game nights, holidays and spontaneous showdowns. The physical deck is currently in playtesting.</p><Button href="/pilehead/playtest.html" kind="yellow">Explore the playtest edition →</Button><p className={styles.releaseNote}>Physical retail launch to be announced.</p></div><div className={polish.physicalFan} role="group" aria-label="Three illustrated numbered cards">{["2","3","1"].map((name,i)=><Card key={name} name={name} className={polish["physicalCard"+i]}/>)}</div>
     </div></section>
     <section className={styles.closing}><div className={styles.closingArt} aria-hidden="true"><img src="/stack-media/stack-home-sunset.webp" alt="" width={700} height={165} loading="lazy"/></div><div className={styles.closingCopy}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring STACK<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></div></section>
-    <footer className={styles.footer}><Link href="/stack" aria-label="STACK home"><Brand/></Link><nav aria-label="Footer navigation"><Link href="/play">Play online</Link><a href="/pilehead/playtest.html">Rules & playtest</a><a href="/pilehead/gallery.html">The deck</a><a href="/pilehead/index.html">Classic game</a></nav><small>© STACK</small></footer>
+    <footer className={styles.footer}><Link href="/stack" aria-label="STACK home"><Brand/></Link><nav aria-label="Footer navigation"><Link href="/play" prefetch={false}>Play online</Link><a href="/pilehead/playtest.html">Rules & playtest</a><a href="/pilehead/gallery.html">The deck</a><a href="/pilehead/index.html">Classic game</a></nav><small>© STACK</small></footer>
   </main>;
 }

@@ -194,3 +194,5 @@
  .refined .gameShowcase div[class*="previewLabel"] {right:3%;bottom:12%;font-size:11px}
  .refined .gameShowcase {padding-bottom:18px}
 }
+
+@media(min-width:851px){.refined .gameShowcase .gameDevice{width:min(87%,350px);transform:rotate(-6deg)}.refined .gameShowcase div[class*="previewLabel"]{right:-1%;bottom:0}}

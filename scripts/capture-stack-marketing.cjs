@@ -16,7 +16,7 @@ async function ready(){for(let i=0;i<100;i++){try{if((await fetch(BASE+"/livez")
  try{
   await ready();
   browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.CHROMIUM_EXECUTABLE_PATH}:{})});
-  const context=await browser.newContext({viewport:wide?{width:1024,height:768}:{width:390,height:844},isMobile:!wide,hasTouch:!wide,deviceScaleFactor:1,reducedMotion:"reduce"});
+  const context=await browser.newContext({viewport:wide?{width:process.env.STACK_MARKETING_DESKTOP==="1"?1440:1024,height:process.env.STACK_MARKETING_DESKTOP==="1"?900:768}:{width:390,height:844},isMobile:!wide,hasTouch:!wide,deviceScaleFactor:1,reducedMotion:"reduce"});
   const page=await context.newPage();
   await context.addInitScript(()=>localStorage.setItem("stack-next-deck-theme-v1","refined"));
   await page.goto(BASE+"/play",{waitUntil:"networkidle"});
