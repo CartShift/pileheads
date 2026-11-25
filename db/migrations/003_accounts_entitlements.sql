@@ -2,7 +2,7 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS stack_accounts(
  id uuid PRIMARY KEY,
  google_subject text NOT NULL UNIQUE CHECK(length(google_subject) BETWEEN 1 AND 255),
- preferred_deck text NOT NULL DEFAULT 'characters' CHECK(preferred_deck IN ('characters','original')),
+ preferred_deck text NOT NULL DEFAULT 'refined' CHECK(preferred_deck IN ('refined','characters','original')),
  created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS stack_account_sessions(

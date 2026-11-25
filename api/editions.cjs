@@ -1,7 +1,7 @@
 'use strict';
 // Runtime public presentation metadata, never an authorization or tenant boundary.
 const SLUG=/^[a-z0-9][a-z0-9-]{0,47}$/;
-const DECKS=new Set(['characters','original']);
+const DECKS=new Set(['refined','characters','original']);
 function parseEditions(raw){
  if(typeof raw!=='string'||raw.length>32768)return [];
  try{

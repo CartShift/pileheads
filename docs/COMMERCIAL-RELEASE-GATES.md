@@ -30,3 +30,7 @@ Commercial product content beyond the demo scorecard, production payment integra
 ## Reproducible verification commands
 
 `npm run build && npm run test:integrated` now checks all seven product routes, real local HTTP routing, offline headers and fail-closed feature defaults without passing database or provider credentials to the server. `npm test` includes migration-harness guard checks. For a separately provisioned disposable LOCAL PostgreSQL database named `stack_test_*`, set `STACK_VERIFY_PG_HOST=127.0.0.1`, `STACK_VERIFY_PG_DATABASE`, `STACK_VERIFY_PG_CONFIRM=disposable-local` and local PostgreSQL credentials, then run `npm run test:commercial:db`. The latter executes the five reviewed migrations and database invariants in one isolated schema and rolls back. It does not cover multi-connection concurrency or deployed role privileges; those remain explicit staging gates. Do not point it at production or a tunnel to production.
+
+## Main integration
+
+The official homepage, canonical refined card artwork and committed-card animation/sound work from main are preserved. Commercial navigation and opt-in controls are added to the official footer; React now has one three-theme registry (refined default, classic characters, original), and API/SQL validation accepts those IDs. The five migrations are still unreleased and their deck constraints/defaults were updated before application. The offline cache includes the new refined face/back assets. Validate exact merged commit and visual layout before release.

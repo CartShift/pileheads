@@ -47,3 +47,11 @@ html[data-stack-deck-theme="characters"] .mini.ph-raster-mini .ph-raster-cell {
  background-size:400% 400%,400% 400%;
  background-position:var(--stack-x) var(--stack-y),var(--stack-x) var(--stack-y);
 }
+
+/* Refined V2: same slot order, independent of all legacy artwork. */
+html[data-stack-deck-theme="refined"] .ph-card .ph-raster-cell,
+html[data-stack-deck-theme="refined"] .mini.ph-raster-mini .ph-raster-cell {
+ background-image:url("assets/stack-characters-v2.webp"),url("assets/stack-characters.webp");
+ background-size:400% 400%,400% 400%;
+ background-position:var(--stack-x) var(--stack-y),var(--stack-x) var(--stack-y);
+}

@@ -3,7 +3,7 @@ const crypto=require('node:crypto');
 const COOKIE='__Host-stack_guest';
 const TTL=90*24*60*60;
 const TOKEN=/^[A-Za-z0-9_-]{43}$/;
-const DECKS=new Set(['characters','original']);
+const DECKS=new Set(['refined','characters','original']);
 const hash=token=>crypto.createHash('sha256').update(token).digest('hex');
 function cookieToken(header) {
   if(typeof header!=='string'||header.length>8192)return null;

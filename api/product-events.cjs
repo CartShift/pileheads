@@ -2,7 +2,7 @@
 // Opt-in, first-party product measurement. Not a game-authority endpoint.
 const EVENTS = new Set(['landing_view','catalog_view','lobby_view','deck_selected','round_started','round_completed','rematch_requested','invite_copied']);
 const GAME_EVENTS = new Set(['round_started','round_completed','rematch_requested','invite_copied']);
-const DECKS = new Set(['characters','original']);
+const DECKS = new Set(['refined','characters','original']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function validateEvent(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return null;

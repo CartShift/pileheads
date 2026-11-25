@@ -4,7 +4,7 @@ const {serveBonus}=require('./founder-bonus.cjs');
 const {hash,limiter,cookieToken:guestToken}=require('./player.cjs');
 const SESSION='__Host-stack_account',FLOW='__Host-stack_oauth';
 const TOKEN=/^[A-Za-z0-9_-]{43}$/;
-const DECKS=new Set(['characters','original']);
+const DECKS=new Set(['refined','characters','original']);
 const PRODUCT='founder-supporter';
 const random=()=>crypto.randomBytes(32).toString('base64url');
 function cookie(header,name){
