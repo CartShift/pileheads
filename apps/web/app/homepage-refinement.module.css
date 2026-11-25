@@ -1,20 +1,13 @@
 /* V3 editorial refinement: only the marketing homepage. All source cards are unchanged. */
-@font-face {
-  font-family: "STACK Display";
-  src: url("/stack-media/barlow-condensed-black-italic.ttf") format("truetype");
-  font-style: italic;
-  font-weight: 900;
-  font-display: swap;
-}
 .refined {
-  --paper: #f9ebcb;
-  --ink: #191b19;
-  --yellow: #f6c32c;
-  --red: #ce302d;
-  --teal: #006675;
-  --display: "STACK Display", Impact, "Arial Narrow", sans-serif;
-  --print-grain: url("/stack-media/print-grain.svg");
-  --content: 1240px;
+  --paper: var(--brand-paper);
+  --ink: var(--brand-ink);
+  --yellow: var(--brand-yellow);
+  --red: var(--brand-red);
+  --teal: var(--brand-teal);
+  --display: var(--brand-display);
+  --print-grain: var(--brand-grain);
+  --content: var(--brand-content);
 }
 .refined h1,.refined h2,.refined h3,.refined header nav,.refined a[class*="button"] {
   font-family: var(--display);
