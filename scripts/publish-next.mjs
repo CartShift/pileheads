@@ -29,4 +29,4 @@ for (const name of fs.readdirSync(source)) {
 }
 const publishedHome = fs.readFileSync(path.join(root, 'index.html'));
 if (!classicHome.equals(publishedHome)) throw new Error('Classic homepage was changed');
-console.log('Published Next.js /play, /stack, /decks and /profile alongside the unchanged Classic game');
+console.log('Published Next.js /play, /stack, /decks, /profile, /account, /shop and /partners alongside the unchanged Classic game');
