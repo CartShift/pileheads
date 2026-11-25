@@ -21,7 +21,7 @@ function Button({href, children, kind = "red"}: {href: string; children: React.R
 }
 const actions = ["BURN", "DUMP", "GHOST", "RESET"];
 export default function HomePage() {
-  return <main className={styles.home}>
+  return <main className={styles.home} data-testid="official-home">
     <a href="#main-content" className={styles.skip}>Skip to content</a>
     <header className={styles.header}><div className={styles.nav}>
       <Link href="/stack" className={styles.homeLink}><Brand/></Link>
@@ -30,11 +30,11 @@ export default function HomePage() {
         <a href="#how-to-play">How to play</a><a href="#the-deck">The deck</a><a href="#physical">The game</a>
       </nav>
     </div></header>
-    <section className={styles.hero} id="main-content">
+    <section className={styles.hero} id="main-content" aria-labelledby="home-heading">
       <div className={styles.heroInner}>
         <div className={styles.heroCopy}>
           <p className={styles.kicker}>The card game with character</p>
-          <h1>STACK<br/>THE ODDS<span>.</span></h1>
+          <h1 id="home-heading">STACK<br/>THE ODDS<span>.</span></h1>
           <p className={styles.lead}>A fast, chaotic and delightfully tactical card game for friends, family and friendly revenge.</p>
           <div className={styles.buttons}><Button href="/play"><span aria-hidden="true">▶</span> Play free online</Button><Button href="#physical" kind="cream">Get the deck <span aria-hidden="true">↘</span></Button></div>
           <div className={styles.facts}><span>2–5 players</span><span>54 cards</span><span>Play with friends</span></div>
@@ -42,7 +42,7 @@ export default function HomePage() {
         <div className={styles.heroArt} aria-label="Illustrated STACK cards and deck" role="group">
           <span className={styles.burst} aria-hidden="true"/>
           <Card name="BURN" className={styles.heroBurn}/><Card name="DUMP" className={styles.heroDump}/><Card name="GHOST" className={styles.heroGhost}/><Card name="RESET" className={styles.heroReset}/>
-          <img className={styles.explorer} src="/stack-media/stack-home-explorer-v2.webp" alt="" width={801} height={1000} fetchPriority="high"/><Card name="2" className={styles.heroTwo}/><Card name="7" className={styles.heroSeven}/>
+          <img className={styles.explorer} src="/stack-media/stack-home-explorer-v2.webp" alt="" width={797} height={1000} fetchPriority="high"/><Card name="2" className={styles.heroTwo}/><Card name="7" className={styles.heroSeven}/>
           <div className={styles.backStack} aria-hidden="true"/>
           <span className={styles.artCaption}>MAKE YOUR MOVE!</span>
         </div>

@@ -62,3 +62,11 @@
 .closing h2{font-size:clamp(32px,4.7vw,70px);text-shadow:3px 3px #4b1c21;color:var(--paper)}
 .closing h2 span{color:var(--yellow)}
 @media(max-width:600px){.gamePreview{order:2;min-height:0;padding:8px 16px 22px}.phone{width:min(55%,210px)}.previewLabel{right:3%;bottom:14%;font-size:12px;padding:7px 10px}.closing{display:flex;flex-direction:column;min-height:0;padding:0;text-align:center;gap:0}.closingArt{position:relative;order:2;width:100%;height:auto;z-index:0}.closingArt img{display:block;mask-image:none;width:100%;height:auto;object-fit:contain}.closingCopy{width:100%;padding:32px 5% 24px}.closing h2{font-size:clamp(42px,10vw,66px)}}
+
+/* Keep the marketing page readable at narrow viewports and high text zoom. */
+.home [id]{scroll-margin-top:20px}
+.home a:focus-visible{outline:3px solid var(--ink);outline-offset:4px}
+.header a:focus-visible,.hero a:focus-visible,.deck a:focus-visible,.physical a:focus-visible,.closing a:focus-visible,.footer a:focus-visible{outline-color:var(--yellow)}
+.home .button{min-width:0;max-width:100%;white-space:normal}
+.home .split>div,.home .heroCopy{min-width:0}
+@media(max-width:360px){.hero h1{font-size:clamp(42px,14vw,52px)}.nav nav{gap:7px;font-size:12px}.previewLabel{right:0;font-size:10px}.closing h2{font-size:38px}}
