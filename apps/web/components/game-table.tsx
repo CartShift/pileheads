@@ -955,19 +955,15 @@ export default function GameTable() {
   }
 
   if (!g || !current) return (
-    <main className="game-shell">
-      <header className="game-header"><Link href="/stack" className="logo stack-site-brand" aria-label="STACK home"><img src="/stack-media/stack-home-logo-web.webp" alt="STACK" width={220} height={185}/></Link>
-        <span className="beta-tag">NEXT TABLE · PREVIEW</span></header>
+    <main className="game-shell stack-lobby">
+      <header className="lobby-masthead"><nav className="stack-site-nav" aria-label="Main navigation"><Link href="/stack" className="stack-site-brand" aria-label="STACK home" prefetch={false}><img src="/stack-media/stack-home-logo-web.webp" alt="STACK" width={220} height={185}/></Link><div className="stack-site-links"><a href="/stack">Home</a><a className="stack-nav-primary" href="/play" aria-current="page">Play online</a><a href="/pilehead/gallery.html">The deck</a><a href="/pilehead/playtest.html">How to play</a><a href="/pilehead/print.html">Print</a></div></nav></header>
       <section className="entry">
         <div className="entry-intro"><div className="eyebrow">WELCOME TO THE TABLE</div>
           <h1>One pile.<br /><em>One loser.</em></h1>
           <p>Play free with bots or invite friends to a private table. One pile, clever moves and a little friendly revenge.</p>
-          <a href={classicHref} className="subtle-link">Play Classic ↗</a>
-          <button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>
-            Game settings
-          </button>
+          <div className="lobby-facts"><span>2–5 players</span><span>Free to play</span><span>No account</span></div><div className="lobby-art" aria-hidden="true"><span className="lobby-card lobby-burn"/><span className="lobby-card lobby-dump"/><span className="lobby-card lobby-ghost"/><img src="/stack-media/stack-home-explorer-web-mobile.webp" width={360} height={452} alt="" decoding="async"/></div><div className="lobby-links"><a href={classicHref} className="subtle-link">Play Classic ↗</a><button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>Game settings</button></div>
         </div>
-        <div className="entry-options">
+        <div className="entry-options"><h2 className="lobby-choice-heading">Choose your table<span>.</span></h2>
           {resumeGame && <div className="resume-panel">
             <div><div className="eyebrow">SAVED LOCAL MATCH</div>
               <strong>Pick up where you left off</strong>
@@ -976,7 +972,7 @@ export default function GameTable() {
             <button className="secondary-button" onClick={resumeLocal}>Resume game</button>
           </div>}
           <div className="mode-card">
-            <div className="eyebrow">PRACTICE</div><h2>Play with bots</h2>
+            <div className="eyebrow">01 · PRACTICE</div><h2>Play with bots</h2>
             <p>Local, instant, no account required.</p>
             <label>Players <select value={players} onChange={e => setPlayers(Number(e.target.value))}>
               {[2, 3, 4, 5].map(n => <option key={n} value={n}>{n} players</option>)}
@@ -985,7 +981,7 @@ export default function GameTable() {
             <button className="learn-button" onClick={() => startLocalGame(true)}>Learn with a bot</button>
           </div>
           <div className="mode-card">
-            <div className="eyebrow">WITH FRIENDS</div><h2>Private room</h2>
+            <div className="eyebrow">02 · WITH FRIENDS</div><h2>Private room</h2>
             <p>Invite real players, fill empty seats with bots.</p>
             <label>Your name <input maxLength={24} value={name} onChange={e => setName(e.target.value)} /></label>
             <div className="field-pair"><label>Humans <select value={onlineHumans} onChange={e => setOnlineHumans(Number(e.target.value))}>
@@ -995,12 +991,13 @@ export default function GameTable() {
             </select></label></div>
             <button className="cta" disabled={busy || !name.trim()} onClick={() => void createOnlineRoom()}>
               {busy ? "Connecting…" : "Create a room"} <span aria-hidden>→</span></button>
-            <div className="join-row"><input aria-label="Room code" maxLength={8} placeholder="8-letter room code"
+            <div className="lobby-join-label">Already have an invite?</div><div className="join-row"><input aria-label="Room code" maxLength={8} placeholder="8-letter room code"
               value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} />
               <button disabled={busy || joinCode.length !== 8 || !name.trim()} onClick={() => void joinOnlineRoom()}>Join</button></div>
           </div>
         </div>
       </section>
+      <footer className="lobby-footer"><span>STACK · The card game with character.</span><a href="/pilehead/playtest.html">Read the rules ↗</a></footer>
       {notice && <div className="alert" role="status">{notice}</div>}
       {showSettings && <div className="modal-backdrop" onClick={() => setShowSettings(false)}>
         <section className="game-modal" role="dialog" aria-label="Game settings" aria-modal="true"
