@@ -956,13 +956,13 @@ export default function GameTable() {
 
   if (!g || !current) return (
     <main className="game-shell">
-      <header className="game-header"><Link href="/stack" className="logo">STACK<span>.</span></Link>
+      <header className="game-header"><Link href="/stack" className="logo stack-site-brand" aria-label="STACK home"><img src="/stack-media/stack-home-logo-web.webp" alt="STACK" width={220} height={185}/></Link>
         <span className="beta-tag">NEXT TABLE · PREVIEW</span></header>
       <section className="entry">
         <div className="entry-intro"><div className="eyebrow">WELCOME TO THE TABLE</div>
           <h1>One pile.<br /><em>One loser.</em></h1>
-          <p>Play the real STACK rules with a refreshed, tactile React tabletop. Your original Classic game stays untouched.</p>
-          <a href={classicHref} className="subtle-link">Open original Classic ↗</a>
+          <p>Play free with bots or invite friends to a private table. One pile, clever moves and a little friendly revenge.</p>
+          <a href={classicHref} className="subtle-link">Play Classic ↗</a>
           <button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>
             Game settings
           </button>
@@ -1057,7 +1057,7 @@ export default function GameTable() {
   return (
     <main className="game-shell">
       <header className="game-header">
-        <Link href="/stack" className="logo">STACK<span>.</span></Link>
+        <Link href="/stack" className="logo stack-site-brand" aria-label="STACK home"><img src="/stack-media/stack-home-logo-web.webp" alt="STACK" width={220} height={185}/></Link>
         <div className="game-head-actions">
           {room && <button className={"room-code " + (copiedInvite ? "is-copied" : "")}
             onClick={() => void copyInvite()}
