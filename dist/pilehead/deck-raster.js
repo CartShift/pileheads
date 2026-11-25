@@ -23,8 +23,9 @@ function sprite(c){
  return '<span class="ph-raster-cell" data-card-art="'+slot.name+'" style="--stack-x:'+pos[slot.col]+';--stack-y:'+pos[slot.row]+'"></span>';
 }
 function face(c){return root.StackDeckThemes?.get?.()==='studio'?prior.face(c):'<span class="ph-plate ph-raster-plate" aria-hidden="true">'+sprite(c)+'</span>';}
+function backSrc(){return root.StackDeckThemes?.get?.()==='refined'?'assets/stack-back-v2.webp':'assets/stack-back.webp';}
 function back(){
- return '<span class="ph-plate ph-raster-plate ph-back-raster" aria-hidden="true"><img class="ph-raster-back" src="assets/stack-back.webp" alt="" draggable="false" decoding="async"></span>';
+ return '<span class="ph-plate ph-raster-plate ph-back-raster" aria-hidden="true"><img class="ph-raster-back" src="'+backSrc()+'" alt="" draggable="false" decoding="async"></span>';
 }
 function mini(c){
  if(root.StackDeckThemes?.get?.()==='studio')return prior.mini(c);
@@ -32,7 +33,7 @@ function mini(c){
  return '<span class="mini ph-mini ph-raster-mini'+(!c?' back ph-mini-back':'')+'"'+
    (c?.kind==='action'?' data-action="'+c.action+'"':'')+
    ' aria-label="'+label+'" title="'+label+'">'+
-   (!c?'<img class="ph-raster-back" src="assets/stack-back.webp" alt="" draggable="false">':sprite(c))+
+   (!c?'<img class="ph-raster-back" src="'+backSrc()+'" alt="" draggable="false">':sprite(c))+
    '</span>';
 }
 root.PileheadCardArt=Object.freeze({

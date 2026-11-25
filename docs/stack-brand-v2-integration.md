@@ -1,0 +1,3 @@
+# STACK Illustrated V2 integration
+
+New selectable `refined` theme on Classic and Next.js; default for new users, saved choices preserved. Source: owner-selected V2 refined masters in Drive. Sprite 2016 × 2816, in rank/action order 1–10, RESET, GHOST, UNDER, SKIP, BURN, DUMP. Digital back uses the approved packaging direction, not the proposed two-way print back. Nine original MP3 cues for opt-in React sound; existing synthesized cues remain for other events and unsupported playback. Classic audio and game rules unchanged. Browser, mobile, multiplayer and sound acceptance required before deployment.

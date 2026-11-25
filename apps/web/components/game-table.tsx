@@ -26,7 +26,7 @@ const SOUND_KEY = "stack-next-sound-enabled-v1";
 const PRACTICE_KEY = "stack-next-practice-mode-v1";
 const FINAL_DUEL_KEY = "stack-final-duel-default-v1";
 type EndgameRule = "classic" | "final-duel";
-type DeckTheme = "characters" | "original";
+type DeckTheme = "refined" | "characters" | "original";
 type HandSort = "dealt" | "asc" | "desc";
 function orderedHand(cards: Card[], mode: HandSort) {
   if (mode === "dealt") return cards;
@@ -118,7 +118,7 @@ function asLocalRoom(game: Game): RoomGame {
   };
 }
 
-function PlayingCard({ card, hidden = false, selected = false, small = false, onClick, onDrop, disabled = false, theme = "characters",
+function PlayingCard({ card, hidden = false, selected = false, small = false, onClick, onDrop, disabled = false, theme = "refined",
   description, offsetX = 0 }: {
   card?: Card; hidden?: boolean; selected?: boolean; small?: boolean; theme?: DeckTheme;
   onClick?: () => void; onDrop?: () => void; disabled?: boolean; description?: string; offsetX?: number;
@@ -195,7 +195,7 @@ function PlayerPosition({ name, seat, active, self, out, handCount, up, downCoun
   handCount: number; up: Card[]; downCount: number; presence?: string; reaction?: string; theme: DeckTheme;
   targetable?: boolean; onTarget?: () => void; onInspect?: () => void;
 }) {
-  return <div className={`opponent-seat ${active ? "seat-active" : ""} ${out ? "seat-out" : ""} ${targetable ? "is-dump-target" : ""}`}
+  return <div className={`opponent-seat theme-${theme} ${active ? "seat-active" : ""} ${out ? "seat-out" : ""} ${targetable ? "is-dump-target" : ""}`}
     data-seat={seat} role={targetable ? "button" : undefined} tabIndex={targetable ? 0 : undefined}
     onClick={targetable ? onTarget : undefined}
     onKeyDown={targetable ? event => {
@@ -249,7 +249,7 @@ export default function GameTable() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [resumeGame, setResumeGame] = useState<Game | null>(null);
-  const [deckTheme, setDeckTheme] = useState<DeckTheme>("characters");
+  const [deckTheme, setDeckTheme] = useState<DeckTheme>("refined");
   const [handSort, setHandSort] = useState<HandSort>("dealt");
   const handStageRef = useRef<HTMLDivElement | null>(null);
   const [handArea, setHandArea] = useState({ width: 0, cardWidth: 0 });
@@ -367,7 +367,7 @@ export default function GameTable() {
     const savedName = localStorage.getItem("stack-next-display-name");
     if (savedName) setName(savedName);
     const savedTheme = localStorage.getItem(THEME_KEY);
-    if (savedTheme === "characters" || savedTheme === "original") setDeckTheme(savedTheme);
+    if (savedTheme === "refined" || savedTheme === "characters" || savedTheme === "original") setDeckTheme(savedTheme);
     setResumeGame(loadSavedGame());
     setSoundEnabled(localStorage.getItem(SOUND_KEY) === "true");
     setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
@@ -1071,7 +1071,7 @@ export default function GameTable() {
           <label className="theme-control">Deck
             <select aria-label="Deck style" value={deckTheme}
               onChange={e => setDeckTheme(e.target.value as DeckTheme)}>
-              <option value="characters">Characters</option><option value="original">Original</option>
+              <option value="refined">Illustrated V2</option><option value="characters">Characters (classic)</option><option value="original">Original</option>
             </select>
           </label>
           <button className="exit-button" onClick={leaveTable}>Leave table</button>
@@ -1094,7 +1094,7 @@ export default function GameTable() {
         "online:" + room?.code + ":" + g.round}
         moveNo={g.moves} phase={g.phase} events={g.events} blindReveal={g.blindReveal} me={me}
         theme={deckTheme} nameForSeat={nameForSeat} motionLevel={motionLevel} />
-      <div className="tabletop" role="region" aria-label="STACK card game">
+      <div className={`tabletop theme-${deckTheme}`} role="region" aria-label="STACK card game">
         <div className="table-texture" aria-hidden="true" />
         <div className="opponents-row">
           {g.players.filter(p => p.seat !== me).map(p =>
