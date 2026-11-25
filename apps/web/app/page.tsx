@@ -3,8 +3,8 @@ import Link from "next/link";
 import styles from "./official-home.module.css";
 
 export const metadata: Metadata = {
-  title: "STACK | Play with character",
-  description: "A social card game for 2–5 players. Make clever moves, surprise your friends and play STACK free online."
+  title: "PILEHEADS | Play with character",
+  description: "A social card game for 2–5 players. Make clever moves, surprise your friends and play PILEHEADS free online."
 };
 
 const faces = ["1","2","3","4","5","6","7","8","9","10","RESET","GHOST","UNDER","SKIP","BURN","DUMP"];
@@ -34,7 +34,7 @@ export default function HomePage() {
       <div className={styles.heroInner}>
         <div className={styles.heroCopy}>
           <p className={styles.kicker}>The card game with character</p>
-          <h1 id="home-heading">STACK<br/>THE ODDS<span>.</span></h1>
+          <h1 id="home-heading">DON'T BE<br/>THE PILEHEAD<span>.</span></h1>
           <p className={styles.lead}>A fast, chaotic and delightfully tactical card game for friends, family and friendly revenge.</p>
           <div className={styles.buttons}><Button href="/play"><span aria-hidden="true">▶</span> Play free online</Button><Button href="#physical" kind="cream">Get the deck <span aria-hidden="true">↘</span></Button></div>
           <div className={styles.facts}><span>2–5 players</span><span>54 cards</span><span>Play with friends</span></div>
@@ -49,7 +49,7 @@ export default function HomePage() {
       </div>
     </section>
     <section className={styles.benefits} aria-labelledby="why-stack">
-      <h2 id="why-stack">Why STACK?</h2><div className={styles.benefitGrid}>
+      <h2 id="why-stack">Why PILEHEADS?</h2><div className={styles.benefitGrid}>
         <article><span aria-hidden="true">ϟ</span><div><h3>Easy to learn</h3><p>Play a card. Change the game.</p></div></article>
         <article><span aria-hidden="true">✦</span><div><h3>Better together</h3><p>Surprise your friends at every turn.</p></div></article>
         <article><span aria-hidden="true">∞</span><div><h3>One more round</h3><p>Every hand brings new decisions.</p></div></article>
@@ -61,13 +61,13 @@ export default function HomePage() {
     </div></section>
     <section className={styles.online} id="how-to-play"><div className={styles.split}>
       <div className={styles.gamePreview}><div className={styles.previewBurst} aria-hidden="true"/><figure className={styles.phone}><img src="/stack-media/stack-home-gameplay.webp" alt="Actual STACK browser game showing the cards in hand, draw deck, central pile and turn controls" width={321} height={860} loading="lazy"/></figure><div className={styles.previewLabel}>Actual gameplay<br/><small>Original deck theme</small></div></div>
-      <div><p className={styles.kicker}>No download needed</p><h2>Play online.<br/>Anytime, anywhere<span>.</span></h2><p>Try STACK in your browser. Challenge the bots or invite your friends to a private table.</p><div className={styles.buttons}><Button href="/play">Play now →</Button><a className={styles.textLink} href="/pilehead/playtest.html">Learn the rules</a></div></div>
+      <div><p className={styles.kicker}>No download needed</p><h2>Play online.<br/>Anytime, anywhere<span>.</span></h2><p>Try PILEHEADS in your browser. Challenge the bots or invite your friends to a private table.</p><div className={styles.buttons}><Button href="/play">Play now →</Button><a className={styles.textLink} href="/pilehead/playtest.html">Learn the rules</a></div></div>
     </div></section>
     <section className={styles.physical} id="physical"><div className={styles.split}>
       <div className={styles.productArt} aria-label="STACK card deck illustration" role="group"><div className={styles.productBox}><img src="/stack-media/stack-home-box-v2.webp" alt="STACK packaging concept, 54 cards for 2–5 players" width={660} height={910} loading="lazy"/></div><div className={styles.productBack}/><Card name="3" className={styles.productFace}/></div>
       <div><p className={styles.kicker}>From screen to table</p><h2>Small box.<br/>Big fun<span>.</span></h2><p>Made for game nights, holidays and spontaneous showdowns. The physical deck is currently in playtesting.</p><Button href="/pilehead/playtest.html" kind="yellow">Explore the playtest edition →</Button><p className={styles.releaseNote}>Physical retail launch to be announced.</p></div>
     </div></section>
-    <section className={styles.closing}><div className={styles.closingArt} aria-hidden="true"><img src="/stack-media/stack-home-sunset.webp" alt="" width={700} height={165} loading="lazy"/></div><div className={styles.closingCopy}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring STACK<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></div></section>
-    <footer className={styles.footer}><Link href="/stack" aria-label="STACK home"><Brand/></Link><nav aria-label="Footer navigation"><Link href="/play">Play online</Link><a href="/pilehead/playtest.html">Rules & playtest</a><a href="/pilehead/gallery.html">The deck</a><a href="/pilehead/index.html">Classic game</a></nav><small>© STACK</small></footer>
+    <section className={styles.closing}><div className={styles.closingArt} aria-hidden="true"><img src="/stack-media/stack-home-sunset.webp" alt="" width={700} height={165} loading="lazy"/></div><div className={styles.closingCopy}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring PILEHEADS<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></div></section>
+    <footer className={styles.footer}><Link href="/stack" aria-label="PILEHEADS home"><Brand/></Link><nav aria-label="Footer navigation"><Link href="/play">Play online</Link><a href="/pilehead/playtest.html">Rules & playtest</a><a href="/pilehead/gallery.html">The deck</a><a href="/pilehead/index.html">Classic game</a></nav><small>© PILEHEADS</small></footer>
   </main>;
 }
