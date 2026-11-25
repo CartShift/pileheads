@@ -105,3 +105,23 @@
 }
 @media(max-width:360px) {.refined h1 {font-size:clamp(54px,15.9vw,64px)}.refined header nav {gap:5px;font-size:12px}.refined header nav a[class*="navPlay"] {padding-inline:9px}.refined section[id="physical"] div[class*="productArt"] {height:220px}}
 @media(prefers-reduced-motion:reduce) {.refined a,.refined .actionFan>span {transition:none}}
+
+/* A short, one-time printed-poster reveal; no scroll-triggered hidden content,
+   idle animation, or motion when the OS requests reduced movement. */
+.heroEditorial,.heroComposition {opacity:1}
+@media(prefers-reduced-motion:no-preference) {
+ .heroEditorial {animation:stackEditorialIn .36s ease-out both}
+ .heroComposition {animation:stackArtworkIn .5s cubic-bezier(.2,.7,.2,1) both}
+ .refined .actionFan>span {transition:transform .24s cubic-bezier(.2,.7,.2,1),box-shadow .24s}
+}
+@keyframes stackEditorialIn {from{transform:translateY(7px)}to{transform:translateY(0)}}
+@keyframes stackArtworkIn {from{transform:translateY(9px) rotate(-1deg)}to{transform:translateY(0) rotate(0)}}
+@media(pointer:coarse) {
+ .refined .actionFan>span:hover {transform:rotate(var(--tilt));z-index:auto}
+ .refined a[class*="button"]:hover {transform:none;box-shadow:0 4px 0 #172021}
+ .refined a[class*="button"]:active {transform:translateY(2px);box-shadow:0 2px 0 #172021}
+}
+.refined .heroFacts {letter-spacing:.03em;font-size:11px}
+.refined .heroActions a {justify-content:space-between}
+.refined .heroActions a:first-child {justify-content:center}
+@media(max-width:600px){.refined .heroActions a{justify-content:center}.refined .heroFacts{font-size:10px}}

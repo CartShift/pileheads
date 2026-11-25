@@ -38,14 +38,14 @@ export default function HomePage() {
     </div></header>
     <section className={styles.hero} id="main-content" aria-labelledby="home-heading">
       <div className={styles.heroInner}>
-        <div className={styles.heroCopy}>
+        <div className={styles.heroCopy + " " + polish.heroEditorial}>
           <p className={styles.kicker}>The card game with character</p>
           <h1 id="home-heading">STACK<br/><span className={polish.headlineLine}>THE ODDS<span>.</span></span></h1>
           <p className={styles.lead}>A fast, chaotic and delightfully tactical card game for friends, family and friendly revenge.</p>
-          <div className={styles.buttons}><Button href="/play"><span aria-hidden="true">▶</span> Play free online</Button><Button href="#physical" kind="cream">Get the deck <span aria-hidden="true">↘</span></Button></div>
-          <div className={styles.facts}><span>2–5 players</span><span>54 cards</span><span>Play with friends</span></div>
+          <div className={styles.buttons + " " + polish.heroActions}><Button href="/play"><span aria-hidden="true">▶</span> Play free online</Button><Button href="#physical" kind="cream">Discover the deck <span aria-hidden="true">↘</span></Button></div>
+          <div className={styles.facts + " " + polish.heroFacts}><span>2–5 players</span><span>54 cards</span><span>Play with friends</span></div>
         </div>
-        <div className={styles.heroArt} aria-label="Illustrated STACK cards and deck" role="group">
+        <div className={styles.heroArt + " " + polish.heroComposition} aria-label="Illustrated STACK cards and deck" role="group">
           <span className={styles.burst} aria-hidden="true"/><span className={polish.sunRays} aria-hidden="true"/><span className={polish.cloudLeft} aria-hidden="true"/><span className={polish.cloudRight} aria-hidden="true"/>
           <Card name="BURN" className={styles.heroBurn}/><Card name="DUMP" className={styles.heroDump}/><Card name="GHOST" className={styles.heroGhost}/><Card name="RESET" className={styles.heroReset}/>
           <img className={styles.explorer} src="/stack-media/stack-home-explorer-v2.webp" alt="" width={797} height={1000} fetchPriority="high"/><Card name="2" className={styles.heroTwo}/><Card name="7" className={styles.heroSeven}/>
