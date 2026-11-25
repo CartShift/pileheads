@@ -13,7 +13,7 @@ function Card({name, className = ""}: {name: string; className?: string}) {
   return <span role="img" aria-label={name.length > 2 ? name + " action card" : "Number " + name + " card"} className={styles.card + " " + className} style={{backgroundPosition: (index % 4 * 100 / 3) + "% " + (Math.floor(index / 4) * 100 / 3) + "%"}} />;
 }
 function Brand() {
-  return <span className={styles.brand} aria-label="STACK"><span aria-hidden="true" className={styles.brandCards}><i/><i/><i/></span><span className={styles.brandWord}>STACK</span></span>;
+  return <span className={styles.brand}><img src="/stack-media/stack-home-logo-v2.webp" alt="STACK" width={388} height={326}/></span>;
 }
 function Button({href, children, kind = "red"}: {href: string; children: React.ReactNode; kind?: "red"|"cream"|"yellow"}) {
   const cls = styles.button + " " + styles[kind];
@@ -66,7 +66,7 @@ export default function HomePage() {
       <div><p className={styles.kicker}>No download needed</p><h2>Play online.<br/>Anytime, anywhere<span>.</span></h2><p>Try STACK in your browser. Challenge the bots or invite your friends to a private table.</p><div className={styles.buttons}><Button href="/play">Play now →</Button><a className={styles.textLink} href="/pilehead/playtest.html">Learn the rules</a></div></div>
     </div></section>
     <section className={styles.physical} id="physical"><div className={styles.split}>
-      <div className={styles.productArt} aria-label="STACK card deck illustration" role="group"><div className={styles.productBox}><Brand/><span>THE CARD GAME</span><Card name="1"/><span>54 CARDS · 2–5 PLAYERS</span></div><div className={styles.productBack}/><Card name="3" className={styles.productFace}/></div>
+      <div className={styles.productArt} aria-label="STACK card deck illustration" role="group"><div className={styles.productBox}><img src="/stack-media/stack-home-box-v2.webp" alt="STACK packaging concept, 54 cards for 2–5 players" width={660} height={910} loading="lazy"/></div><div className={styles.productBack}/><Card name="3" className={styles.productFace}/></div>
       <div><p className={styles.kicker}>From screen to table</p><h2>Small box.<br/>Big fun<span>.</span></h2><p>Made for game nights, holidays and spontaneous showdowns. The physical deck is currently in playtesting.</p><Button href="/pilehead/playtest.html" kind="yellow">Explore the playtest edition →</Button><p className={styles.releaseNote}>Physical retail launch to be announced.</p></div>
     </div></section>
     <section className={styles.closing}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring STACK<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></section>

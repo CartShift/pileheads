@@ -11,3 +11,15 @@
 @media(max-width:850px){.heroInner{grid-template-columns:1fr 1fr;min-height:460px;padding-bottom:50px;gap:10px}.heroArt{min-height:330px}.hero h1{font-size:clamp(50px,8.8vw,78px)}.nav{gap:12px}.nav nav{gap:15px}.benefitGrid{gap:5px}.benefitGrid article{padding:7px;gap:9px}.benefitGrid article>span{width:38px;height:38px;font-size:25px}}
 @media(max-width:600px){.nav{min-height:68px;flex-wrap:wrap;justify-content:center;gap:6px;padding:7px 4% 11px}.nav .brand{font-size:38px}.nav nav{width:100%;justify-content:center;gap:10px;font-size:13px}.nav nav a{padding:8px 2px}.nav .navPlay{padding:9px 13px}.heroInner{grid-template-columns:1fr;text-align:center;padding:36px 5% 46px;gap:12px}.hero h1{font-size:clamp(64px,15vw,92px);margin:10px 0 20px;transform:rotate(-3deg);text-shadow:4px 5px #14363a}.heroCopy .lead{margin:auto}.hero .buttons{align-items:center;gap:10px}.hero .button{width:min(100%,310px)}.facts{justify-content:center;font-size:10px;gap:6px 8px}.facts span+span:before{margin-right:8px}.heroArt{min-height:0;aspect-ratio:1.18;max-width:440px;width:100%;margin:auto}.heroArt .card{top:7%}.heroArt .heroOne{top:37%}.heroArt .heroTwo{top:48%}.heroArt .heroSeven{top:39%}.benefits{padding:15px 5% 26px}.benefitGrid{grid-template-columns:1fr;gap:7px;max-width:340px}.benefitGrid article+article{border-left:0;border-top:1px solid #191b1930}.benefitGrid article>span{width:42px;height:42px}.benefitGrid h3{font-size:20px}.split,.online .split,.physical .split{grid-template-columns:1fr;gap:26px;text-align:center;padding:38px 6%}.split p:not(.kicker):not(.releaseNote){margin:15px auto 20px}.split .buttons{justify-content:center}.actionFan{padding:0 12px 13px}.device{order:2;margin:5px 5% 12px}.productArt{height:260px;order:2;max-width:400px;width:100%;margin:auto}.footer{justify-content:center;text-align:center}.footer nav{justify-content:center;width:100%}}
 @media(prefers-reduced-motion:reduce){.home .button,.home .card{transition:none}}
+
+/* Approved V2 artwork, web-optimized from Drive masters. Homepage only. */
+.card{aspect-ratio:400/559;background-image:url("/stack-media/stack-home-faces-v2.webp")}
+.backStack,.productBack,.tableBack{background-image:url("/stack-media/stack-home-back-v2.webp")}
+.brand{display:inline-flex;align-items:center;justify-content:center;width:clamp(80px,9vw,133px);padding:0;transform:none;filter:drop-shadow(0 2px 0 #0b1011)}
+.brand img{width:100%;height:auto;max-height:76px;object-fit:contain}
+.brand:after{display:none}
+.nav{min-height:92px}
+.productBox{padding:0;background:none;border:0;box-shadow:-10px 5px 0 #08313a,-13px 7px 0 #172020,0 16px 24px #3e151a88;height:auto;aspect-ratio:660/910;display:block;border-radius:2%;overflow:hidden}
+.productBox img{display:block;width:100%;height:100%;object-fit:cover}
+.footer .brand{width:80px}
+@media(max-width:600px){.nav{min-height:70px}.nav .brand{width:84px}.nav .brand img{max-height:56px}}
