@@ -42,7 +42,7 @@ assert.ok(officialHome.includes("/stack-media/stack-home-logo-v2.webp"), "Homepa
 assert.ok(officialHome.includes("/stack-media/stack-home-explorer-v2.webp"), "Hero must use the canonical Explorer mascot");
 assert.equal(read("stack-media/stack-home-explorer-v2.webp").toString("ascii",8,12),"WEBP");
 
-for (const asset of ["stack-home-gameplay.webp","stack-home-sunset.webp"]) { assert.equal(read("stack-media/"+asset).toString("ascii",8,12),"WEBP"); assert.ok(officialHome.includes("/stack-media/"+asset)); }
+for (const asset of ["stack-home-gameplay-v2.webp","stack-home-gameplay-wide-v2.webp","stack-home-sunset.webp"]) { assert.equal(read("stack-media/"+asset).toString("ascii",8,12),"WEBP"); assert.ok(officialHome.includes("/stack-media/"+asset)); }
 
 for(const asset of ["stack-home-box-side-v2.webp","stack-home-box-top-v2.webp"]) { assert.equal(read("stack-media/"+asset).toString("ascii",8,12),"WEBP"); assert.ok(officialHome.includes("/stack-media/"+asset)); }
 for(const asset of ["print-grain.svg","comic-cloud.svg","barlow-condensed-black-italic.ttf","barlow-OFL.txt"]) assert.ok(read("stack-media/"+asset).length>100,asset);

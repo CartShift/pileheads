@@ -49,7 +49,7 @@ export default function HomePage() {
           <span className={styles.burst} aria-hidden="true"/><span className={polish.sunRays} aria-hidden="true"/><span className={polish.cloudLeft} aria-hidden="true"/><span className={polish.cloudRight} aria-hidden="true"/>
           <Card name="BURN" className={styles.heroBurn}/><Card name="DUMP" className={styles.heroDump}/><Card name="GHOST" className={styles.heroGhost}/><Card name="RESET" className={styles.heroReset}/>
           <img className={styles.explorer} src="/stack-media/stack-home-explorer-v2.webp" alt="" width={797} height={1000} fetchPriority="high"/><Card name="7" className={styles.heroSeven + " " + polish.heroRankSeven}/><Card name="3" className={polish.heroRankThree}/><Card name="2" className={styles.heroTwo + " " + polish.heroRankTwo}/>
-          <div className={styles.backStack} aria-hidden="true"/>
+          <div className={styles.backStack + " " + polish.heroDeck} aria-hidden="true"/>
           <span className={styles.artCaption}>MAKE YOUR MOVE!</span>
         </div>
       </div>
@@ -66,7 +66,7 @@ export default function HomePage() {
       <div className={styles.actionFan + " " + polish.actionFan}>{actions.map((name,i)=><Card key={name} name={name} className={styles["fan"+i]}/>)}</div>
     </div></section>
     <section className={styles.online} id="how-to-play"><div className={styles.split + " " + polish.onlineLayout}>
-      <div className={styles.gamePreview + " " + polish.gameShowcase}><div className={styles.previewBurst} aria-hidden="true"/><figure className={styles.phone}><img src="/stack-media/stack-home-gameplay.webp" alt="Actual STACK browser game showing the cards in hand, draw deck, central pile and turn controls" width={321} height={860} loading="lazy"/></figure><div className={styles.previewLabel}>Actual gameplay<br/><small>Original deck theme</small></div></div>
+      <div className={styles.gamePreview + " " + polish.gameShowcase}><div className={styles.previewBurst} aria-hidden="true"/><figure className={styles.phone + " " + polish.gameDevice}><picture><source media="(min-width: 601px)" srcSet="/stack-media/stack-home-gameplay-wide-v2.webp" width={507} height={600}/><img src="/stack-media/stack-home-gameplay-v2.webp" alt="Actual STACK browser game with the Illustrated V2 deck, showing cards in hand, draw deck and turn controls" width={321} height={860} loading="lazy" decoding="async"/></picture></figure><div className={styles.previewLabel}>Actual gameplay<br/><small>Illustrated V2 deck</small></div></div>
       <div className={polish.onlineCopy}><p className={styles.kicker}>No download needed</p><h2>Play online.<br/>Anytime, anywhere<span>.</span></h2><p>Try STACK in your browser. Challenge the bots or invite your friends to a private table.</p><div className={styles.buttons}><Button href="/play">Play now →</Button><a className={styles.textLink} href="/pilehead/playtest.html">Learn the rules</a></div></div><img className={polish.beachMascot} src="/stack-media/stack-home-burn-beach.webp" alt="" width={277} height={235} loading="lazy"/>
     </div></section>
     <section className={styles.physical} id="physical"><div className={styles.split + " " + polish.physicalLayout}>

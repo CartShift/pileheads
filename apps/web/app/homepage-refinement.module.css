@@ -169,3 +169,28 @@
 }
 @media(max-width:850px) and (min-width:601px){.refined section[id="how-to-play"]>.onlineLayout{padding-right:6%;padding-bottom:100px}.refined .beachMascot{width:126px;right:2%}}
 @media(max-width:600px){.refined section[id="how-to-play"]>.onlineLayout{grid-template-columns:1fr;padding:32px 6% 62px;gap:20px}.refined .beachMascot{width:min(35%,145px);right:1%;bottom:0}.refined .gameShowcase{padding-bottom:35px}.refined .onlineCopy{grid-row:1}}
+
+/* Browser-reviewed composition: free the Explorer silhouette, bring the
+   tabletop device into the horizontal editorial flow, retain real screenshots. */
+.refined .heroComposition .heroDeck {width:29%;left:59%;bottom:0;transform:rotate(66deg) scaleY(.76);z-index:8}
+.refined .heroComposition img[class*="explorer"] {left:3%;width:49%;bottom:5%;z-index:7}
+.refined .heroComposition span[class*="artCaption"] {right:2%;bottom:-1%}
+.refined header a[class*="homeLink"] {align-self:center}
+.refined header img {max-height:75px;width:auto}
+.refined .gameShowcase {min-width:0;min-height:0;align-self:center;padding:10px 8px 13px}
+.refined .gameShowcase .gameDevice {width:min(70%,265px);max-width:100%;transform:rotate(-7deg);margin:0;border-width:7px;box-shadow:0 0 0 2px #ad936b,0 7px 0 #aa9164,0 12px 20px #211e184d}
+.refined .gameDevice picture,.refined .gameDevice img {display:block;width:100%;height:auto}
+.refined .gameShowcase div[class*="previewLabel"] {bottom:5%;right:2%;font-size:12px;max-width:44%;line-height:1.2}
+.refined section[id="how-to-play"]>.onlineLayout {padding-block:clamp(24px,3.4vw,45px);gap:clamp(20px,4vw,52px)}
+.refined .onlineCopy {padding-right:clamp(0px,1.4vw,20px)}
+@media(min-width:851px) {.refined section[id="how-to-play"]>.onlineLayout {grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);padding-right:clamp(90px,15vw,210px)}}
+@media(max-width:600px){
+ .refined header img {max-height:62px}
+ .refined .heroComposition .heroDeck {left:57%;width:31%;bottom:0}
+ .refined .heroComposition img[class*="explorer"] {left:0;width:47%}
+ .refined section[id="how-to-play"]>.onlineLayout {padding:32px 6% 55px}
+ .refined .onlineCopy {padding:0}
+ .refined .gameShowcase .gameDevice {width:min(52%,185px);transform:rotate(-6deg)}
+ .refined .gameShowcase div[class*="previewLabel"] {right:3%;bottom:12%;font-size:11px}
+ .refined .gameShowcase {padding-bottom:18px}
+}
