@@ -38,3 +38,6 @@ for (const asset of ["stack-home-faces-v2.webp","stack-home-box-v2.webp","stack-
 }
 assert.ok(officialHome.includes("/stack-media/stack-home-box-v2.webp"), "Homepage must use corrected packaging");
 assert.ok(officialHome.includes("/stack-media/stack-home-logo-v2.webp"), "Homepage must use the source-derived logo");
+
+assert.ok(officialHome.includes("/stack-media/stack-home-explorer-v2.webp"), "Hero must use the canonical Explorer mascot");
+assert.equal(read("stack-media/stack-home-explorer-v2.webp").toString("ascii",8,12),"WEBP");

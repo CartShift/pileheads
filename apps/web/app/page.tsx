@@ -42,7 +42,7 @@ export default function HomePage() {
         <div className={styles.heroArt} aria-label="Illustrated STACK cards and deck" role="group">
           <span className={styles.burst} aria-hidden="true"/>
           <Card name="BURN" className={styles.heroBurn}/><Card name="DUMP" className={styles.heroDump}/><Card name="GHOST" className={styles.heroGhost}/><Card name="RESET" className={styles.heroReset}/>
-          <Card name="1" className={styles.heroOne}/><Card name="2" className={styles.heroTwo}/><Card name="7" className={styles.heroSeven}/>
+          <img className={styles.explorer} src="/stack-media/stack-home-explorer-v2.webp" alt="" width={801} height={1000} fetchPriority="high"/><Card name="2" className={styles.heroTwo}/><Card name="7" className={styles.heroSeven}/>
           <div className={styles.backStack} aria-hidden="true"/>
           <span className={styles.artCaption}>MAKE YOUR MOVE!</span>
         </div>
@@ -56,7 +56,7 @@ export default function HomePage() {
       </div>
     </section>
     <section className={styles.deck} id="the-deck"><div className={styles.split}>
-      <div><p className={styles.kicker}>16 personalities. One pile.</p><h2>Meet<br/>the cards<span>.</span></h2><p>Numbers keep the game moving. Action cards shake things up.</p><Button href="/pilehead/gallery.html" kind="cream">Explore the full deck →</Button></div>
+      <div><p className={styles.kicker}>10 numbers. 6 action cards.</p><h2>Meet<br/>the cards<span>.</span></h2><p>Numbers keep the game moving. Action cards shake things up.</p><Button href="/pilehead/gallery.html" kind="cream">Explore the full deck →</Button></div>
       <div className={styles.actionFan}>{actions.map((name,i)=><Card key={name} name={name} className={styles["fan"+i]}/>)}</div>
     </div></section>
     <section className={styles.online} id="how-to-play"><div className={styles.split}>
@@ -69,7 +69,7 @@ export default function HomePage() {
       <div className={styles.productArt} aria-label="STACK card deck illustration" role="group"><div className={styles.productBox}><img src="/stack-media/stack-home-box-v2.webp" alt="STACK packaging concept, 54 cards for 2–5 players" width={660} height={910} loading="lazy"/></div><div className={styles.productBack}/><Card name="3" className={styles.productFace}/></div>
       <div><p className={styles.kicker}>From screen to table</p><h2>Small box.<br/>Big fun<span>.</span></h2><p>Made for game nights, holidays and spontaneous showdowns. The physical deck is currently in playtesting.</p><Button href="/pilehead/playtest.html" kind="yellow">Explore the playtest edition →</Button><p className={styles.releaseNote}>Physical retail launch to be announced.</p></div>
     </div></section>
-    <section className={styles.closing}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring STACK<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></section>
+    <section className={styles.closing}><div className={styles.closingArt} aria-hidden="true"><Card name="2"/><Card name="7"/><Card name="9"/></div><div className={styles.closingCopy}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring STACK<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></div></section>
     <footer className={styles.footer}><Link href="/stack" aria-label="STACK home"><Brand/></Link><nav aria-label="Footer navigation"><Link href="/play">Play online</Link><a href="/pilehead/playtest.html">Rules & playtest</a><a href="/pilehead/gallery.html">The deck</a><a href="/pilehead/index.html">Classic game</a></nav><small>© STACK</small></footer>
   </main>;
 }
