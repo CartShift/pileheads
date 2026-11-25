@@ -10,7 +10,7 @@ const themeCss=read('dist/pilehead/deck-theme.css');
 const selector=read('dist/pilehead/deck-theme.js');
 const raster=read('dist/pilehead/deck-raster.js');
 const vector=read('dist/pilehead/deck-art.js');
-const themes=['geometry','characters','studio'];
+const themes=['refined','geometry','characters','studio'];
 let tests=0;
 function check(label,fn){fn();tests++;console.log('PASS '+label)}
 function sandbox(stored='geometry'){
@@ -36,7 +36,7 @@ function sandbox(stored='geometry'){
  vm.runInNewContext(selector,scope);
  return {scope,document,values,handlers,art:scope.PileheadCardArt,theme:scope.StackDeckThemes};
 }
-check('all 3 themes are discoverable and saved independently of game state',()=>{
+check('all 4 themes are discoverable and saved independently of game state',()=>{
  const {theme,values,document}=sandbox();
  assert.equal(theme.get(),'geometry');
  assert.deepEqual(Array.from(theme.options,x=>x.id),themes);
@@ -44,8 +44,8 @@ check('all 3 themes are discoverable and saved independently of game state',()=>
  assert.equal(theme.get(),'characters');
  assert.equal(values.get('stack-deck-theme-v1'),'characters');
  assert.equal(document.documentElement.dataset.stackDeckTheme,'characters');
- assert.equal(theme.set('unsupported'),'geometry');
- assert.equal(theme.get(),'geometry');
+ assert.equal(theme.set('unsupported'),'refined');
+ assert.equal(theme.get(),'refined');
 });
 check('a new page loads the persisted choice and responds to storage changes',()=>{
  const {theme,handlers}=sandbox('characters');
@@ -62,7 +62,7 @@ check('themes do not change the deterministic mapping of any deck face',()=>{
   assert.equal(cell.col,(n-1)%4);
   assert.equal(cell.row,Math.floor((n-1)/4));
   positions.add(cell.col+':'+cell.row);
-  for(const id of ['geometry','characters']){
+  for(const id of ['refined','geometry','characters']){
    theme.set(id);
    assert.match(art.face(card),/ph-raster-cell/);
   }
@@ -74,19 +74,21 @@ check('themes do not change the deterministic mapping of any deck face',()=>{
   const cell=art.cell(card);assert.equal(cell.col,(i+10)%4);
   assert.equal(cell.row,Math.floor((i+10)/4));
   positions.add(cell.col+':'+cell.row);
-  for(const id of ['geometry','characters']){
+  for(const id of ['refined','geometry','characters']){
    theme.set(id);assert.match(art.face(card),/ph-raster-cell/);
   }
   theme.set('studio');assert.match(art.face(card),/ph-composed-face/);
  }
  assert.equal(positions.size,16);
 });
-check('all themes use the same back while characters use their own artwork',()=>{
+check('legacy themes keep their back while refined has its own artwork',()=>{
  const {art,theme}=sandbox('characters');
  const back=art.back();
  assert.match(back,/stack-back\.webp/);
  theme.set('geometry');assert.equal(art.back(),back);
  theme.set('studio');assert.equal(art.back(),back);
+ theme.set('refined');assert.match(art.back(),/stack-back-v2\.webp/);
+ assert.match(css,/data-stack-deck-theme="refined"/);
  assert.match(css,/data-stack-deck-theme="characters"/);
  assert.match(css,/stack-characters\.webp/);
  assert.match(css,/background-size:400% 400%,400% 400%/);

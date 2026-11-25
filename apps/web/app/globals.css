@@ -982,3 +982,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 .opponent-inspect-grid .react-pile-item small{
   font-size:10px;font-weight:800;letter-spacing:.08em;color:#f0dfbd
 }
+
+/* STACK Illustrated V2. Explicitly scope hidden-card art to its own theme. */
+.hero-card {background-image:url("/pilehead/assets/stack-characters-v2.webp")}
+.playing-card.theme-refined .card-art,
+.drag-ghost.theme-refined .card-art,
+.mini-face.theme-refined {background-image:url("/pilehead/assets/stack-characters-v2.webp")}
+.playing-card.theme-refined.is-back .card-art,
+.opponent-seat.theme-refined .hand-back,
+.opponent-seat.theme-refined .mini-back,
+.tabletop.theme-refined .stack-depth,
+.move-story-overlay.theme-refined .move-story-stack-back {
+ background-image:url("/pilehead/assets/stack-back-v2.webp");background-size:cover;background-position:center;
+}

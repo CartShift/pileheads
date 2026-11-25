@@ -39,7 +39,7 @@ type Scene = {
 };
 type Props = {
   gameKey: string; moveNo: number; phase: string; events: Event[];
-  me: number; theme: "characters" | "original"; motionLevel?: MotionLevel;
+  me: number; theme: "refined" | "characters" | "original"; motionLevel?: MotionLevel;
   nameForSeat: (seat: number) => string;
   blindReveal?: BlindReveal | null;
 };
@@ -163,7 +163,7 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
   if (!scene) return null;
   const showTransfer = !!scene.to && scene.count > 0;
   return createPortal(
-    <div className="move-story-overlay move-story-stable" key={scene.key}
+    <div className={`move-story-overlay move-story-stable theme-${theme}`} key={scene.key}
       data-move={scene.move} data-kind={scene.kind} data-motion={motionLevel}
       data-eroded={scene.erodedCount > 0}
       style={{ "--story-ms": scene.duration + "ms" } as CSSProperties}>

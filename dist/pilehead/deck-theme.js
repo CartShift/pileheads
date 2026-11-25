@@ -4,15 +4,16 @@
 (function(root){'use strict';
 const KEY='stack-deck-theme-v1';
 const OPTIONS=Object.freeze([
+  {id:'refined',label:'STACK Illustrated V2',detail:'Refined original character artwork'},
   {id:'geometry',label:'STACK Original',detail:'Geometric artwork'},
   {id:'characters',label:'STACK Characters',detail:'Illustrated numbers and actions'},
   {id:'studio',label:'STACK Studio',detail:'Minimal vector artwork'}
 ]);
 const allowed=new Set(OPTIONS.map(t=>t.id));
-function normalized(value){return allowed.has(value)?value:'geometry';}
+function normalized(value){return allowed.has(value)?value:'refined';}
 function saved(){
  try{return normalized(root.localStorage?.getItem(KEY));}
- catch{return 'geometry';}
+ catch{return 'refined';}
 }
 let active=saved();
 function apply(value,notify=true){

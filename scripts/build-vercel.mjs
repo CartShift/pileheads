@@ -13,7 +13,8 @@ const assets = [
   'deck-raster.css', 'deck-raster.js', 'stack-brand.css',
   'deck-theme.js', 'deck-theme.css',
   'gallery.html', 'print.html', 'playtest.html',
-  'assets/stack-sheet.webp', 'assets/stack-back.webp', 'assets/stack-characters.webp'
+  'assets/stack-sheet.webp', 'assets/stack-back.webp', 'assets/stack-characters.webp', 'assets/stack-characters-v2.webp', 'assets/stack-back-v2.webp',
+  ...['play','burn','snap','dump','reset','ghost','under','skip','victory'].map(name => 'assets/sound-v2/' + name + '.mp3')
 ];
 
 fs.rmSync(output, { recursive: true, force: true });
