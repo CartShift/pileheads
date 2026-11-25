@@ -191,7 +191,7 @@
 @media(min-width:851px){.refined .gameShowcase .gameDevice{width:min(87%,350px);transform:rotate(-6deg)}.refined .gameShowcase div[class*="previewLabel"]{right:-1%;bottom:0}}
 
 
-/* V5 organic comic art direction: the approved Drive poster is the source.
+/* V5 refined illustrated editorial direction: the approved Drive poster is the source.
    Scope to the homepage; preserve canonical artwork, game logic and links. */
 .refined {
   --poster-paper:#f9ebcb;
@@ -203,39 +203,39 @@
 .refined header {border-bottom:1px solid #f4d5a2;z-index:4}
 .refined header>div {position:relative;min-height:72px;padding-block:0}
 .refined header a[class*="homeLink"] {position:relative;z-index:5}
-.refined header a[class*="homeLink"] img {max-height:94px;transform:rotate(-4deg) translateY(9px);filter:drop-shadow(2px 4px 0 #0c1516)}
-.refined header nav a[class*="navPlay"] {border-radius:49% 47% 48% 45% / 42% 47% 43% 48%;box-shadow:2px 3px 0 #070f11}
-.refined a[class*="button"] {position:relative;border:2.5px solid #151b1b;border-radius:8% 12% 11% 9% / 49% 47% 46% 49%;background-image:var(--print-grain);background-size:150px 150px;box-shadow:2px 5px 0 #172021,inset 0 2px 0 #ffffff38}
-.refined a[class*="button"]:hover {box-shadow:3px 8px 0 #172021,inset 0 2px 0 #ffffff38}
+.refined header a[class*="homeLink"] img {max-height:82px;transform:rotate(-1deg) translateY(3px);filter:drop-shadow(2px 4px 0 #0c1516)}
+.refined header nav a[class*="navPlay"] {border-radius:999px;box-shadow:0 2px 0 #070f11}
+.refined a[class*="button"] {position:relative;border:2px solid #151b1b;border-radius:18px 20px 19px 17px;background-image:var(--print-grain);background-size:150px 150px;box-shadow:0 3px 0 #172021,inset 0 1px 0 #ffffff26}
+.refined a[class*="button"]:hover {box-shadow:0 5px 0 #172021,inset 0 1px 0 #ffffff26}
 .refined a[class*="button"]:active {box-shadow:1px 2px 0 #172021}
 .refined section[id="main-content"] {background-color:var(--poster-teal);background-image:var(--print-grain),radial-gradient(ellipse at 70% 38%,#16878b 0%,#086775 45%,#06434e 100%);background-size:150px 150px,auto}
-.refined section[id="main-content"]::before {content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background-image:var(--poster-dots);background-size:6px 6px;mask-image:radial-gradient(ellipse at 65% 55%,transparent 20%,#000 100%);opacity:.5}
-.refined section[id="main-content"]::after {height:44px;clip-path:none;background:var(--poster-wave) center bottom/100% 100% no-repeat;z-index:1}
+.refined section[id="main-content"]::before {content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background-image:var(--poster-dots);background-size:6px 6px;mask-image:radial-gradient(ellipse at 65% 55%,transparent 20%,#000 100%);opacity:.18}
+.refined section[id="main-content"]::after {height:23px;clip-path:none;background:var(--poster-wave) center bottom/100% 100% no-repeat;z-index:1}
 .refined .heroEditorial {z-index:3}
-.refined .heroEditorial h1 {font-size:clamp(44px,24cqw,133px);line-height:.79;letter-spacing:-.045em;transform:rotate(-8deg) skewX(-3deg);transform-origin:30% 65%;color:#fff0d0;text-shadow:3px 4px #142426,6px 8px #142426,9px 12px #142426,12px 16px #142426;margin:8px 0 31px}
+.refined .heroEditorial h1 {font-size:clamp(44px,23cqw,122px);line-height:.86;letter-spacing:-.028em;transform:rotate(-4deg);transform-origin:30% 65%;color:#fff0d0;text-shadow:2px 3px #142426,4px 6px #142426;margin:8px 0 31px}
 .refined .headlineLine {color:inherit}
 .refined .headlineLine span {color:inherit}
-.refined .heroEditorial h1::after {width:69%;height:15px;margin:20px 0 0 21%;background:#ffc92e;clip-path:polygon(0 69%,8% 47%,28% 26%,53% 13%,79% 5%,100% 8%,96% 34%,99% 55%,70% 66%,42% 80%,16% 95%,2% 100%);transform:rotate(-2deg) skewX(-19deg)}
-.refined section[id="main-content"] p[class*="lead"] {font-style:italic;line-height:1.32;max-width:350px}
-.refined .heroComposition .sunRays {inset:-13% -14% -8% -17%;background:repeating-conic-gradient(from -21deg at 46% 59%,#f9bc24 0deg 1.7deg,transparent 1.8deg 16deg,#ffe07d 16deg 16.6deg,transparent 17deg 30deg);mask-image:radial-gradient(ellipse,transparent 19%,#000 44%,#000 57%,transparent 76%);opacity:.96}
-.refined .heroComposition .cloudLeft,.refined .heroComposition .cloudRight {width:54%;height:51%;bottom:-12%;filter:drop-shadow(1px 2px 0 #d7b78480);z-index:0}
-.refined .heroComposition .cloudLeft {left:-25%;transform:rotate(-10deg)}
+.refined .heroEditorial h1::after {width:57%;height:8px;margin:13px 0 0 23%;background:#ffc92e;clip-path:polygon(0 69%,8% 47%,28% 26%,53% 13%,79% 5%,100% 8%,96% 34%,99% 55%,70% 66%,42% 80%,16% 95%,2% 100%);transform:rotate(-2deg) skewX(-19deg)}
+.refined section[id="main-content"] p[class*="lead"] {font-style:normal;line-height:1.45;max-width:350px}
+.refined .heroComposition .sunRays {inset:-13% -14% -8% -17%;background:repeating-conic-gradient(from -21deg at 46% 59%,#f9bc24 0deg 1.7deg,transparent 1.8deg 16deg,#ffe07d 16deg 16.6deg,transparent 17deg 30deg);mask-image:radial-gradient(ellipse,transparent 19%,#000 44%,#000 57%,transparent 76%);opacity:.48}
+.refined .heroComposition .cloudLeft,.refined .heroComposition .cloudRight {width:45%;height:39%;bottom:-8%;filter:drop-shadow(1px 2px 0 #d7b78480);z-index:0}
+.refined .heroComposition .cloudLeft {left:-18%;transform:rotate(-4deg)}
 .refined .heroComposition .cloudRight {right:-19%;transform:scaleX(-1) rotate(-4deg)}
 .refined .heroComposition span[class*="artCaption"] {display:none}
-.refined .heroComposition img[class*="explorer"] {left:-3%;width:56%;bottom:1%;filter:drop-shadow(3px 4px 0 #142426) drop-shadow(0 10px 9px #0c252b7a)}
+.refined .heroComposition img[class*="explorer"] {left:0;width:52%;bottom:3%;filter:drop-shadow(3px 4px 0 #142426) drop-shadow(0 10px 9px #0c252b7a)}
 .refined .heroComposition .heroDeck {left:57%;bottom:0;width:33%;transform:rotate(62deg) scaleY(.81);box-shadow:0 2px 0 #a38455,0 4px 0 #f0d8a9,0 7px 0 #a38455,0 10px 0 #f0d8a9,0 13px 0 #a38455,0 18px 12px #112a2f8a}
-.refined .heroComposition span[class*="card"],.refined .actionFan>span,.refined .physicalFan>span {box-shadow:1px 2px 0 #312e22,3px 5px 0 #142426,0 9px 13px #0a1e286b}
+.refined .heroComposition span[class*="card"],.refined .actionFan>span,.refined .physicalFan>span {box-shadow:0 2px 0 #ad9063,0 7px 12px #0a1e2859}
 .refined .heroComposition .heroRankThree {left:61%;top:44%}
 .refined .paperEdge {background-color:var(--poster-paper);background-image:var(--print-grain),radial-gradient(ellipse at 5% 45%,#dca76a35,transparent 55%),radial-gradient(ellipse at 95% 55%,#dca76a30,transparent 55%);background-size:140px 140px,auto,auto;padding-block:9px 22px}
-.refined .paperEdge article+article {border-left:2px solid #28302a78;transform:skewX(-3deg)}
-.refined .paperEdge article+article>div,.refined .paperEdge article+article>span {transform:skewX(3deg)}
-.refined .paperEdge article>span {border-radius:49% 45% 50% 47%;box-shadow:2px 3px 0 #1b1e1a}
+.refined .paperEdge article+article {border-left:1px solid #28302a45;transform:none}
+.refined .paperEdge article+article>div,.refined .paperEdge article+article>span {transform:none}
+.refined .paperEdge article>span {border-radius:50%;box-shadow:0 2px 0 #1b1e1a}
 .refined section[id="the-deck"],.refined section[id="physical"] {border:0}
-.refined section[id="the-deck"]::before,.refined section[id="physical"]::before {height:25px;top:-1px;clip-path:none;background:var(--poster-wave) center/100% 100% no-repeat;transform:rotate(180deg)}
-.refined section[id="the-deck"]::after,.refined section[id="physical"]::after {content:"";position:absolute;bottom:-1px;left:0;right:0;height:30px;background:var(--poster-wave) center/100% 100% no-repeat;pointer-events:none;z-index:0}
+.refined section[id="the-deck"]::before,.refined section[id="physical"]::before {height:13px;top:-1px;clip-path:none;background:var(--poster-wave) center/100% 100% no-repeat;transform:rotate(180deg)}
+.refined section[id="the-deck"]::after,.refined section[id="physical"]::after {content:"";position:absolute;bottom:-1px;left:0;right:0;height:16px;background:var(--poster-wave) center/100% 100% no-repeat;pointer-events:none;z-index:0}
 .refined section[id="the-deck"] {background-color:#075966;background-image:var(--print-grain),radial-gradient(ellipse at 76% 42%,#127c82,transparent 70%);background-size:150px 150px,auto}
-.refined section[id="the-deck"] h2,.refined section[id="how-to-play"] h2,.refined section[id="physical"]>.physicalLayout h2 {position:relative;transform:rotate(-5deg) skewX(-2deg);line-height:.88;letter-spacing:-.035em}
-.refined section[id="the-deck"] h2::after,.refined section[id="how-to-play"] h2::after,.refined section[id="physical"] h2::after {content:"";display:block;width:56%;max-width:220px;height:10px;background:var(--yellow);margin:12px 0 0 20%;clip-path:polygon(0 69%,15% 39%,48% 12%,86% 0,100% 8%,96% 72%,51% 77%,0 100%);transform:rotate(-2deg)}
+.refined section[id="the-deck"] h2,.refined section[id="how-to-play"] h2,.refined section[id="physical"]>.physicalLayout h2 {position:relative;transform:rotate(-2deg);line-height:.94;letter-spacing:-.02em}
+.refined section[id="the-deck"] h2::after,.refined section[id="how-to-play"] h2::after,.refined section[id="physical"] h2::after {content:"";display:block;width:42%;max-width:160px;height:6px;background:var(--yellow);margin:12px 0 0 20%;clip-path:polygon(0 69%,15% 39%,48% 12%,86% 0,100% 8%,96% 72%,51% 77%,0 100%);transform:rotate(-2deg)}
 .refined .actionFan {padding:16px 0 24px}
 .refined .actionFan>span {width:29%;margin-left:-4%;transform:rotate(var(--tilt)) translateY(var(--card-lift,0%))}
 .refined .actionFan>span:nth-child(1) {--tilt:-12deg;--card-lift:4%}
@@ -244,15 +244,15 @@
 .refined .actionFan>span:nth-child(4) {--tilt:16deg;--card-lift:5%}
 .refined section[id="how-to-play"] {background-color:var(--poster-paper);background-image:var(--print-grain),radial-gradient(ellipse at 7% 82%,#dfaa613b,transparent 48%);background-size:140px 140px,auto}
 .refined .gameShowcase .gameDevice {border-radius:19px 22px 17px 24px;box-shadow:0 0 0 2px #b69969,3px 6px 0 #182020,4px 11px 0 #b69867,0 16px 17px #41351f50}
-.refined .gameShowcase div[class*="previewLabel"] {border-radius:2px 8px 3px 6px;transform:rotate(8deg)}
+.refined .gameShowcase div[class*="previewLabel"] {border-radius:2px 8px 3px 6px;transform:rotate(3deg)}
 .refined .beachMascot {filter:drop-shadow(2px 4px 0 #ab875540)}
 .refined section[id="physical"] {background-color:var(--poster-red);background-image:var(--print-grain),radial-gradient(ellipse at 22% 38%,#d14330,transparent 75%);background-size:140px 140px,auto}
 .refined section[id="physical"]::after {height:18px;background:none; border-bottom:2px solid #dcac77;transform:rotate(-.5deg)}
 .refined section[id="physical"]>.physicalLayout {position:relative;z-index:2}
-.refined section[id="physical"]>.physicalLayout h2 {color:#fff0d0;text-shadow:2px 3px #752426,4px 6px #752426}
+.refined section[id="physical"]>.physicalLayout h2 {color:#fff0d0;text-shadow:2px 3px #752426}
 .refined section[class*="closing"] {background-color:#a53c35}
-.refined section[class*="closing"] h2 {line-height:.83;text-shadow:3px 4px #56272c,6px 8px #56272c;color:#fff0d0}
-.refined section[class*="closing"] h2::after {content:"";display:block;background:var(--yellow);width:52%;height:10px;clip-path:polygon(0 70%,20% 34%,96% 0,100% 50%,88% 77%,0 100%);margin:14px 0 0 20%}
+.refined section[class*="closing"] h2 {line-height:.94;text-shadow:2px 3px #56272c;color:#fff0d0}
+.refined section[class*="closing"] h2::after {content:"";display:block;background:var(--yellow);width:42%;height:6px;clip-path:polygon(0 70%,20% 34%,96% 0,100% 50%,88% 77%,0 100%);margin:14px 0 0 20%}
 @media(min-width:851px) {
  .refined section[id="main-content"]>div {grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);min-height:clamp(500px,44vw,650px);padding:clamp(36px,4.4vw,60px) 3.6% 49px;gap:0}
  .refined .heroComposition {margin-left:-3%;margin-right:-1%;width:104%}
@@ -264,24 +264,24 @@
  .refined section[id="physical"]>div {padding-block:clamp(28px,3.7vw,50px)}
 }
 @media(max-width:850px) {
- .refined header a[class*="homeLink"] img {max-height:75px;transform:rotate(-4deg) translateY(4px)}
- .refined .heroEditorial h1 {text-shadow:3px 4px #142426,6px 8px #142426,9px 12px #142426}
+ .refined header a[class*="homeLink"] img {max-height:75px;transform:rotate(-1deg) translateY(2px)}
+ .refined .heroEditorial h1 {text-shadow:2px 3px #142426,4px 6px #142426}
  .refined .heroComposition img[class*="explorer"] {left:0;width:52%}
 }
 @media(max-width:600px) {
- .refined header a[class*="homeLink"] img {max-height:63px;transform:rotate(-3deg)}
- .refined .heroEditorial h1 {font-size:clamp(45px,22.6cqw,96px);transform:rotate(-5deg) skewX(-2deg);line-height:.85;margin-bottom:20px;text-shadow:2px 3px #142426,4px 6px #142426,6px 9px #142426}
- .refined .heroEditorial h1::after {width:57%;height:11px;margin:13px auto 0}
+ .refined header a[class*="homeLink"] img {max-height:63px;transform:none}
+ .refined .heroEditorial h1 {font-size:clamp(45px,22.6cqw,96px);transform:rotate(-3deg);line-height:.89;margin-bottom:20px;text-shadow:2px 3px #142426,3px 5px #142426}
+ .refined .heroEditorial h1::after {width:51%;height:7px;margin:13px auto 0}
  .refined section[id="main-content"]>div {padding:32px 6% 36px;gap:12px}
- .refined section[id="main-content"]::after {height:24px}
+ .refined section[id="main-content"]::after {height:15px}
  .refined .heroComposition img[class*="explorer"] {left:0;width:51%;bottom:3%}
  .refined .heroComposition .heroDeck {left:57%;width:32%;bottom:1%}
  .refined .heroComposition .cloudLeft,.refined .heroComposition .cloudRight {height:42%;width:49%;bottom:-7%}
  .refined .paperEdge {padding:11px 5% 26px}
  .refined .paperEdge article+article {border-left:0;transform:none}
  .refined .paperEdge article+article>div,.refined .paperEdge article+article>span {transform:none}
- .refined section[id="the-deck"]::before,.refined section[id="physical"]::before {height:17px}
- .refined section[id="the-deck"]::after {height:20px}
+ .refined section[id="the-deck"]::before,.refined section[id="physical"]::before {height:10px}
+ .refined section[id="the-deck"]::after {height:12px}
  .refined section[id="the-deck"] h2::after,.refined section[id="how-to-play"] h2::after,.refined section[id="physical"] h2::after,.refined section[class*="closing"] h2::after {margin:10px auto 0}
  .refined section[id="the-deck"]>div {padding-block:34px 37px}
  .refined .actionFan {padding:9px 5px 18px}
@@ -289,3 +289,10 @@
  .refined .gameShowcase .gameDevice {width:min(57%,200px)}
 }
 @media(pointer:coarse) {.refined .actionFan>span:hover {transform:rotate(var(--tilt)) translateY(var(--card-lift,0%))}}
+
+/* Keep decorative details behind the real artwork; let the product speak. */
+.refined .heroComposition span[class*="burst"] {opacity:.36}
+.refined .actionFan::before,.refined .actionFan::after,.refined .physicalFan::after {opacity:.45}
+.refined .paperEdge h2::before,.refined .paperEdge h2::after {opacity:.5}
+.refined .gameShowcase div[class*="previewBurst"] {opacity:.5}
+.refined .heroComposition .heroDeck {box-shadow:0 2px 0 #a38455,0 4px 0 #f0d8a9,0 6px 0 #a38455,0 9px 0 #f0d8a9,0 14px 13px #112a2f66}
