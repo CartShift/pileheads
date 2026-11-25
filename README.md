@@ -1,10 +1,12 @@
-# STACK
+# PILEHEADS
 
 **A physical-first card game, brought to life in the browser.**
 
-STACK is an original, 54-card shedding game for 2–5 players. It combines a printable deck, fast tactical interruptions, bot opponents and private online multiplayer. The browser experience is built to feel like playing with real cards, while the rules engine remains the source of truth.
+PILEHEADS (formerly STACK) is an original, 54-card shedding game for 2–5 players. It combines a printable deck, fast tactical interruptions, bot opponents and private online multiplayer. The browser experience is built to feel like playing with real cards, while the rules engine remains the source of truth.
 
 [**Try the Classic tabletop**](https://stack-card-game-t7vx.onrender.com/pilehead/index.html) · [**Explore the React tabletop**](https://stack-card-game-t7vx.onrender.com/play) · [**See the deck gallery**](https://stack-card-game-t7vx.onrender.com/pilehead/gallery.html) · [**Read the engineering case study**](docs/CASE-STUDY.md)
+
+> **Brand migration:** PILEHEADS is the selected working name; clearance and domain purchase pending. Existing STACK artwork and links are retained until approved replacements are available. See [rebrand plan](docs/PILEHEADS-REBRAND.md).
 
 > **Project status:** Active product/playtest project, not a commercial release. Hosted demo availability and real-device multiplayer acceptance must be verified separately from automated tests. The Render free tier may sleep between visits.
 
@@ -95,7 +97,7 @@ GitHub Actions additionally exercises browser interactions and integrated HTTP/W
 
 ## About the project
 
-STACK is an independent game-design and full-stack product-development project by [Yotam](https://github.com/yotamon), exploring how physical game mechanics translate into intuitive, fair and expressive digital multiplayer experiences.
+PILEHEADS is an independent game-design and full-stack product-development project by [Yotam](https://github.com/yotamon), exploring how physical game mechanics translate into intuitive, fair and expressive digital multiplayer experiences.
 
 For the product story, technical decisions and trade-offs, start with the [case study](docs/CASE-STUDY.md). Before making the repository public, review the [publication checklist](docs/PUBLIC-RELEASE-CHECKLIST.md).
 
