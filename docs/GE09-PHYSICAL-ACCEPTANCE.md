@@ -2,6 +2,31 @@
 
 Status: OPEN. Automated Chromium tests are necessary, not a substitute for physical devices or unfamiliar players. Record the exact deployed SHA and date at the start of each session.
 
+## Verified engineering baseline (2026-11-26)
+
+**Disposition: engineering candidate accepted by automated CI; commercial release awaiting manual QA.** This does not certify performance on physical devices or human comprehension.
+
+| Evidence | Verified result |
+|---|---|
+| Runtime main | `a3e12283ddf37a45ce07948b7e70f6f6d72df7d0` (#131) |
+| Full-tested candidate | `40c60f946e1496f999e050915c986ad18743906f` |
+| Exact common Git tree | `36387bdf01be615df1d400484cd37920680ded3e` |
+| Fast CI | [passed](https://github.com/CartShift/pileheads/actions/runs/45901785570) |
+| Full core + browser acceptance | [passed](https://github.com/CartShift/pileheads/actions/runs/45901785515) |
+| Main fast CI | [passed](https://github.com/CartShift/pileheads/actions/runs/45901978446) |
+| V7.1/V8 visual evidence | CI artifact 15155953422 (32 PNGs; reviewed 5-seat mobile and settled result screen) |
+| Last independently confirmed live baseline before #131 | `709febf85a40c5f00b71334f4073ebbfe4c9aea4`, [exact production smoke](https://github.com/CartShift/pileheads/actions/runs/45897328682) |
+| #131 live deployment | [production smoke run](https://github.com/CartShift/pileheads/actions/runs/45901978569); pending at time of record preparation; check final result |
+
+Verified by the integrated Chromium harness: responsive 2–5 player tables, 320×640 and 740×360 scroll-safe paths, ordinary viewport fit at 360×740, 390×844, 430×932, 1280×800 and 1280×860; hands up to 36 cards, spread selection preservation; captured pointer cancellation and next tap; private-seat privacy, real server transport against mocked Neon, mixed bots, SNAP/SLAM/Counter DUMP, stale requests, reconnect/rematch; reduced-motion lifecycle, feedback preferences, practice drills and visible results. These are scripted tests, not human or real-hardware acceptance.
+
+### Remaining release decisions
+
+- Physical QA: perform the scenarios below on two independent devices, including actual sound/haptics, screen-reader/zoom and frame pacing. Record observed data and defects; do not mark GE-09 complete without evidence.
+- Product/design: the richer presentation is shipped incrementally; owner visual approval, unfamiliar-player study and remaining polish are not implied by green tests.
+- Scope: preserve the separate RC3 artwork import/sign-off (#130). Tournament/account/commerce and React Native work are separate tracks, not part of this engineering sign-off. Music and advanced native haptics are deferred; no new paid service.
+- Rollback: preceding healthy runtime `709febf85` is the immediate known-good reference, not a tested rollback exercise. Use the existing Render runbook; never roll back the database for a presentation-only regression.
+
 ## Session record
 
 | Field | Record |
