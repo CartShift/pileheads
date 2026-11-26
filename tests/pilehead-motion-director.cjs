@@ -1,6 +1,6 @@
 "use strict";
 const assert = require("node:assert/strict");
-const { EFFECTS, chooseKind, fromCommittedEvent, advanceCursor } =
+const { EFFECTS, chooseKind, fromCommittedEvent, advanceCursor, advanceSoundCursor } =
   require("../apps/web/lib/motion-core.cjs");
 
 const e = (extra = {}) => ({ type: "play", seat: 0, move: 1, ...extra });
@@ -77,4 +77,45 @@ assert.equal(advanceCursor(state,{...input,moveNo:4,visible:false,
   events:[...input.events,e({move:4,action:"burn"})]}).cue,null,
   "hidden tab may not accumulate old scenes");
 
+
+// Sound must track the authoritative game scope as well as the move number.
+// Polling, reopening a room and toggling sound must never replay history.
+let audible={key:"",move:0};
+const audio=(updates={})=>advanceSoundCursor(audible,{
+  gameKey:"online:ROOMA:1",moveNo:3,phase:"play",
+  event:e({move:3,seat:1}),enabled:true,visible:true,...updates
+});
+let decision=audio();
+assert.equal(decision.shouldPlay,false,"mounting an existing room must be silent");
+audible=decision.cursor;
+decision=audio({moveNo:4,event:e({move:4,seat:1})});
+assert.equal(decision.shouldPlay,true,"fresh committed move plays one sound");
+audible=decision.cursor;
+assert.equal(audio({moveNo:4,event:e({move:4,seat:1})}).shouldPlay,false,
+  "duplicate polling and rerender cannot replay sound");
+assert.equal(audio({gameKey:"online:ROOMB:1",moveNo:5,
+  event:e({move:5,seat:1})}).shouldPlay,false,
+  "switching rooms cannot replay a historical event");
+audible=audio({gameKey:"online:ROOMB:1",moveNo:5,
+  event:e({move:5,seat:1})}).cursor;
+assert.equal(audio({gameKey:"online:ROOMB:1",moveNo:6,
+  event:e({move:6,seat:1}),enabled:false}).shouldPlay,false,
+  "disabled sound must remain silent");
+audible=audio({gameKey:"online:ROOMB:1",moveNo:6,
+  event:e({move:6,seat:1}),enabled:false}).cursor;
+assert.equal(audio({gameKey:"online:ROOMB:1",moveNo:6,
+  event:e({move:6,seat:1}),enabled:true}).shouldPlay,false,
+  "enabling sound cannot replay the last move");
+assert.equal(audio({gameKey:"online:ROOMB:1",moveNo:7,
+  event:e({move:7,seat:1}),visible:false}).shouldPlay,false,
+  "hidden tabs cannot emit game sound");
+assert.equal(audio({gameKey:"online:ROOMB:1",moveNo:7,
+  event:e({move:6,seat:1})}).shouldPlay,false,
+  "missing current-event authority must stay silent");
+assert.equal(audio({gameKey:"online:ROOMB:1",moveNo:7,
+  phase:"over",event:e({move:7,seat:1})}).shouldPlay,true,
+  "newly committed final move can trigger the win sound");
+assert.equal(audio({gameKey:"online:ROOMB:2",moveNo:0,
+  phase:"setup",event:null}).shouldPlay,false,
+  "rematch setup cannot emit stale sound");
 console.log("PASS STACK Motion Director: physical event contract, counts, Final Duel, SNAP, no stale replay");

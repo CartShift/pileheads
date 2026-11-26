@@ -117,4 +117,28 @@ function advanceCursor(previous, input) {
   return { cursor: { key, move }, cue, clear: true };
 }
 
-module.exports = { EFFECTS, chooseKind, fromCommittedEvent, advanceCursor };
+/**
+ * Sound uses the exact same committed-move identity as presentation, but
+ * still plays the subtle "play" sound for ordinary (non-cinematic) moves.
+ * A room switch, resume, rewind, hidden tab or merely enabling sound cannot
+ * replay old events. No queue, no speculative sound and no token leakage.
+ */
+function advanceSoundCursor(previous, snapshot) {
+  const key = String(snapshot?.gameKey || "");
+  const move = Number.isSafeInteger(snapshot?.moveNo) && snapshot.moveNo >= 0
+    ? snapshot.moveNo : 0;
+  const cursor = { key, move };
+  const fresh = previous?.key === key && move > previous.move;
+  const committed = snapshot?.event?.move === move &&
+    Number.isSafeInteger(snapshot?.event?.seat);
+  return {
+    cursor,
+    shouldPlay: !!(fresh && committed && snapshot?.enabled === true &&
+      snapshot?.visible !== false &&
+      (snapshot?.phase === "play" || snapshot?.phase === "over"))
+  };
+}
+
+module.exports = {
+  EFFECTS, chooseKind, fromCommittedEvent, advanceCursor, advanceSoundCursor
+};
