@@ -996,6 +996,49 @@ async function feedbackSettingsScenario(browser) {
     console.log("PASS feedback settings: opt-in, volume, haptics persistence and mute");
   }finally{await context.close();}
 }
+async function playtestInsightsScenario(browser) {
+  const context = await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,acceptDownloads:true});
+  const page = await context.newPage();
+  try {
+    await page.goto(WEB + "/play");
+    await page.getByRole("button",{name:"Playtest report",exact:true}).click();
+    let dialog = page.getByRole("dialog",{name:"Game settings"});
+    let optIn = dialog.getByRole("checkbox",{name:/Help improve PILEHEADS/});
+    assert.equal(await optIn.isChecked(),false,"playtest observation defaults off");
+    assert.equal(await dialog.getByRole("button",{name:"Download playtest report"}).count(),0);
+    await optIn.check();
+    await dialog.getByRole("button",{name:"Done"}).click();
+    await page.getByRole("button",{name:"Learn with a bot"}).click();
+    await page.getByRole("button",{name:"Start round"}).click();
+    await page.locator('.game-table-shell[data-phase="play"]').waitFor();
+    await page.getByRole("button",{name:"Settings"}).click();
+    dialog = page.getByRole("dialog",{name:"Game settings"});
+    await dialog.getByText("Local: 0 of 1 started rounds completed. Online: 0 of 0 started rounds completed.").waitFor();
+    await dialog.getByLabel("How fun was the game?").selectOption("5");
+    await dialog.getByLabel("How clear were the rules?").selectOption("4");
+    await dialog.getByLabel("Would you play again?").selectOption("yes");
+    const downloading = page.waitForEvent("download");
+    await dialog.getByRole("button",{name:"Download playtest report"}).click();
+    const download = await downloading;
+    assert.equal(download.suggestedFilename(),"pileheads-playtest.json");
+    const report = JSON.parse(fs.readFileSync(await download.path(),"utf8"));
+    assert.deepEqual(report,{
+      schema:"pileheads-voluntary-playtest-v1",scope:"one-browser-page-opt-in-observation",
+      local:{started:1,completed:0},online:{started:0,completed:0},truncated:false,
+      feedback:{fun:5,clarity:4,wouldReplay:"yes"}
+    });
+    optIn = dialog.getByRole("checkbox",{name:/Help improve PILEHEADS/});
+    await optIn.uncheck();
+    await optIn.check();
+    await dialog.getByText("Local: 0 of 0 started rounds completed. Online: 0 of 0 started rounds completed.").waitFor();
+    assert.equal(await dialog.getByLabel("How fun was the game?").inputValue(),"");
+    await page.reload();
+    await page.getByRole("button",{name:"Playtest report",exact:true}).click();
+    assert.equal(await page.getByRole("checkbox",{name:/Help improve PILEHEADS/}).isChecked(),false);
+    console.log("PASS voluntary playtest report: opt-in, observed start, ratings, download, clear and reload");
+  } finally { await context.close(); }
+}
+
 async function roundChoreographyScenario(browser) {
   const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:"no-preference"});
   const page=await context.newPage();
@@ -1604,6 +1647,7 @@ async function main() {
         rematch:()=>localStarterAndRematchScenario(browser),
         round:()=>roundChoreographyScenario(browser),
         feedback:()=>feedbackSettingsScenario(browser),
+        playtestInsights:()=>playtestInsightsScenario(browser),
         drills:()=>specialMoveDrillsScenario(browser),
         interrupts:()=>localInterruptParityScenarios(browser),
         mixed:()=>mixedBotScenarios(browser),
@@ -1624,6 +1668,7 @@ async function main() {
     await guidedPracticeScenario(browser);
     await roundChoreographyScenario(browser);
     await feedbackSettingsScenario(browser);
+    await playtestInsightsScenario(browser);
     await specialMoveDrillsScenario(browser);
     await localStarterAndRematchScenario(browser);
     await localInterruptParityScenarios(browser);
