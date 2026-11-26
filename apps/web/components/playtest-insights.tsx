@@ -3,7 +3,7 @@
 import type { usePlaytestInsights } from "../lib/use-playtest-insights";
 
 export default function PlaytestInsights({ insights }: { insights: ReturnType<typeof usePlaytestInsights> }) {
-  const { enabled, summary, ratings, setRatings, changeEnabled, download, canSubmit, sendState, submitReport } = insights;
+  const { enabled, summary, ratings, setRatings, changeEnabled, download, canSubmit, privacyUrl, sendState, submitReport } = insights;
   return (
     <section aria-label="Voluntary playtest report">
       <label className="rule-toggle">
@@ -30,7 +30,7 @@ export default function PlaytestInsights({ insights }: { insights: ReturnType<ty
         </label>
         <button type="button" className="secondary-button" onClick={download}>Download playtest report</button>
         <p className="settings-hint">Share the downloaded file with the organizer only if you choose. Do not include personal information.</p>
-        {canSubmit && <><p className="settings-hint">You can explicitly send one snapshot of these counts, ratings and recognized campaign categories to the operator. No names or room codes are included. Clearing the local report does not remove a submitted snapshot.</p><button type="button" className="secondary-button" disabled={sendState==="sending"||sendState==="sent"} onClick={()=>void submitReport()}>{sendState==="sending"?"Sending…":sendState==="sent"?"Report sent":sendState==="error"?"Retry same report":"Send report voluntarily"}</button><p role="status">{sendState==="sent"?"Thank you for sharing your feedback.":sendState==="error"?"Could not confirm submission. Retry sends the same snapshot.":""}</p></>}
+        {canSubmit && <><p className="settings-hint">You can explicitly send one snapshot of these counts, ratings and recognized campaign categories to the operator. No names or room codes are included. Clearing the local report does not remove a submitted snapshot. <a href={privacyUrl} target="_blank" rel="noreferrer">Read the privacy notice.</a></p><button type="button" className="secondary-button" disabled={sendState==="sending"||sendState==="sent"} onClick={()=>void submitReport()}>{sendState==="sending"?"Sending…":sendState==="sent"?"Report sent":sendState==="error"?"Retry same report":"Send report voluntarily"}</button><p role="status">{sendState==="sent"?"Thank you for sharing your feedback.":sendState==="error"?"Could not confirm submission. Retry sends the same snapshot.":""}</p></>}
       </>}
     </section>
   );
