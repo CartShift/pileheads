@@ -11,6 +11,8 @@ import PlayerHandArea, { type HandSort } from "./player-hand-area";
 import ActionDock from "./action-dock";
 import { useGameFeedback } from "../lib/use-game-feedback";
 import FeedbackSettings from "./feedback-settings";
+import PlaytestInsights from "./playtest-insights";
+import { usePlaytestInsights } from "../lib/use-playtest-insights";
 import MoveTheater, { type MotionLevel } from "./move-theater";
 import { useCommittedCardTravel } from "../lib/use-committed-card-travel";
 import { useRoundChoreography } from "../lib/use-round-choreography";
@@ -500,6 +502,7 @@ export default function GameTable() {
     [mode, local, room]);
   const visualGameKey = mode === "local" ? "local:" + local?.seed :
     mode === "online" ? "online:" + room?.code + ":" + room?.game.round : "home";
+  const insights = usePlaytestInsights({ key: visualGameKey, mode, phase: g?.phase ?? "home", drill: !!drill });
   useEffect(() => {
     const move = g?.moves ?? 0;
     const previous = blindMotionCursor.current;
@@ -905,7 +908,7 @@ export default function GameTable() {
           </div>
         </div>
       </section>
-      <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/pilehead/playtest.html">Read the rules ↗</a></footer>
+      <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/pilehead/playtest.html">Read the rules ↗</a><button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button></footer>
       {notice && <div className="alert" role="status">{notice}</div>}
       {showSettings && <div className="modal-backdrop" onClick={() => setShowSettings(false)}>
         <section className="game-modal" role="dialog" aria-label="Game settings" aria-modal="true"
@@ -918,6 +921,7 @@ export default function GameTable() {
           </label>
           {motionSetting}
           <FeedbackSettings feedback={feedback} />
+           <PlaytestInsights insights={insights} />
           <button className="primary-button" onClick={() => setShowSettings(false)}>Done</button>
         </section>
       </div>}
@@ -1084,6 +1088,7 @@ export default function GameTable() {
           </label>
           {motionSetting}
           <FeedbackSettings feedback={feedback} />
+           <PlaytestInsights insights={insights} />
           {mode === "local" && practiceMode && <label className="rule-toggle">
             <input type="checkbox" checked={!coachDismissed} onChange={event=>setCoachDismissed(!event.target.checked)} />
             <span><strong>Practice tips</strong><small>Show contextual learning guidance.</small></span>
