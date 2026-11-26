@@ -9,5 +9,5 @@ assert.ok(read("apps/web/app/homepage-refinement.module.css").includes("var(--br
 assert.ok(read("apps/web/components/game-table.tsx").includes("logo stack-site-brand"));
 assert.ok(read("scripts/build-vercel.mjs").includes("stack-design-system.css"));
 assert.match(read("dist/pilehead/print.html"),/grid-template-columns:repeat\(3,57mm\);grid-template-rows:repeat\(3,82mm\)/);
-assert.match(read("dist/pilehead/playtest.html"),/<title>STACK · Official Playtest Kit<\/title>/);
-console.log("PASS unified STACK design tokens, all public routes, logo, print geometry and publishing");
+assert.match(read("dist/pilehead/playtest.html"),/<title>PILEHEADS · Official Playtest Kit<\/title>/);
+console.log("PASS unified PILEHEADS design tokens, all public routes, logo, print geometry and publishing");

@@ -1,5 +1,5 @@
 {
-  "name": "spark-card-game",
+  "name": "pileheads-card-game",
   "version": "0.8.0",
   "private": true,
   "type": "commonjs",
@@ -38,7 +38,7 @@
     "@neondatabase/serverless": "1.2.0",
     "ws": "8.23.0"
   },
-  "description": "STACK physical-first card game and online multiplayer",
+  "description": "PILEHEADS physical-first card game and online multiplayer",
   "workspaces": [
     "packages/*"
   ]

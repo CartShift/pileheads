@@ -4,8 +4,11 @@ import "./tabletop-layout.css";
 import "./tabletop-skin.css";
 
 export const metadata: Metadata = {
-  title: "STACK | The Card Game",
-  description: "One pile. One loser. Play STACK with friends online or challenge the bots."
+  title: "PILEHEADS | The Card Game",
+  description: "One pile. One loser. Play PILEHEADS with friends online or challenge the bots.",
+  applicationName: "Pileheads",
+  icons: { icon: "/pileheads-icon.png", apple: "/pileheads-icon.png" },
+  openGraph: { siteName: "Pileheads", title: "PILEHEADS | The Card Game", description: "One pile. One loser. Play PILEHEADS with friends online or challenge the bots." }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -22,17 +22,17 @@ async function check(browser,width,height){
     const response=await page.goto(BASE+"/stack",{waitUntil:"networkidle"});assert.equal(response.status(),200);
     await page.getByTestId("official-home").waitFor();
     assert.equal(await page.locator("h1").count(),1);
-    assert.match(await page.locator("h1").innerText(),/STACK\s*THE ODDS\./);
+    assert.match(await page.locator("h1").innerText(),/PLAY\s*THE ODDS\./);
     for(const selector of ["#main-content","#the-deck","#how-to-play","#physical","footer"]) assert.equal(await page.locator(selector).count(),1,selector);
     for(const asset of assets){const r=await page.request.get(BASE+asset);assert.equal(r.status(),200,asset);assert.equal((await r.body()).subarray(8,12).toString(),"WEBP",asset)}
     await page.evaluate(async()=>{await document.fonts.ready;for(const im of document.images){im.loading="eager";await im.decode()}});
-    assert.ok(await page.evaluate(()=>[...document.fonts].some(f=>f.family.replace(/["\']/g,"")==="STACK Display" && f.status==="loaded")), "locally hosted display font really loads");
+    assert.ok(await page.evaluate(()=>[...document.fonts].some(f=>f.family.replace(/["\']/g,"")==="PILEHEADS Display" && f.status==="loaded")), "locally hosted display font really loads");
     const font=await page.request.get(BASE+"/stack-media/barlow-condensed-black-italic.ttf");assert.equal(font.status(),200);assert.match(font.headers()["content-type"],/font\/ttf/);
     const titleBox=await page.locator("#home-heading").evaluate(el=>{const r=document.createRange();r.selectNodeContents(el);const b=r.getBoundingClientRect();return {left:b.left,right:b.right,viewport:innerWidth}});
     assert.ok(titleBox.left>=-1&&titleBox.right<=titleBox.viewport+1,"headline cannot be clipped by page overflow: "+JSON.stringify(titleBox));
     const sprite=await page.locator("#main-content [role=img]").first().evaluate(el=>getComputedStyle(el).backgroundImage);
     assert.ok(sprite.includes(width<=600?"faces-web-mobile.webp":"faces-web-desktop.webp"),"responsive card sprite");
-    const gamePreview=page.locator('img[alt^="Actual STACK browser game"]');
+    const gamePreview=page.locator('img[alt^="Actual PILEHEADS browser game"]');
     assert.ok((await gamePreview.evaluate(el=>el.currentSrc)).endsWith(width>850?"stack-home-gameplay-desktop-v2.webp":width>600?"stack-home-gameplay-wide-v2.webp":"stack-home-gameplay-v2.webp"),"the device uses its genuine responsive V2 capture");
     const layout=await page.evaluate(()=>({
       documentWidth:document.documentElement.scrollWidth, viewport:innerWidth,
