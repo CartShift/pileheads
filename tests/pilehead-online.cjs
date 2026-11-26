@@ -227,6 +227,10 @@ async function run(){
  const source=zones.find(z=>z.some(c=>c.action==='dump'));assert.ok(source);
  const ix=source.findIndex(c=>c.action==='dump'),dump=source[ix],prior=seeded.people[actor].hand[0];
  assert.ok(prior);source[ix]=prior;seeded.people[actor].hand[0]=dump;Engine.invariant(seeded);
+ // Keep this original test on the no-counter branch regardless of the random deal.
+ const spare=seeded.people[receiver].hand.find(c=>c.action==='dump');
+ if(spare){seeded.people[receiver].hand=seeded.people[receiver].hand.filter(c=>c.id!==spare.id);seeded.stock.push(spare)}
+ Engine.invariant(seeded);
  const receiverBefore=seeded.people[receiver].hand.length,pileBefore=seeded.pile.length;
  const actorToken=actor===0?hostToken:guestToken;
  const dumped=await request({action:'move',code,revision:rooms.get(code).revision,
@@ -241,6 +245,49 @@ async function run(){
  assert.ok(!rooms.get(code).state.people[receiver].hand.some(c=>c.id===dump.id));
  assert.equal(dumped.data.game.players[receiver].hand,undefined);
  Engine.invariant(rooms.get(code).state);checks++;
+
+ // Regression: two real human sessions, both explicit recipient choices, server-owned decision.
+ for(const counter of [true,false]){
+  const created=await request({action:'create',humans:2,bots:0,name:'Dump attacker'});
+  assert.equal(created.status,201);
+  const c=created.data.code,a=created.data.session;
+  const joined=await request({action:'join',code:c,name:'Dump defender'});
+  assert.equal(joined.status,201);const b=joined.data.session;
+  assert.equal((await request({action:'ready',code:c,revision:0,ready:true},a)).status,200);
+  assert.equal((await request({action:'ready',code:c,revision:1,ready:true},b)).status,200);
+  assert.equal((await request({action:'start',code:c,revision:2},a)).status,200);
+  const g=rooms.get(c).state,zones=[g.stock,g.pile,g.ashes,...g.people.flatMap(p=>[p.hand,p.up,p.down])];
+  const place=(dest,id)=>{const z=zones.find(x=>x.some(card=>card.id===id)),i=z.findIndex(card=>card.id===id);
+   [dest[0],z[i]]=[z[i],dest[0]]};
+  place(g.people[0].hand,50);place(g.people[1].hand,51);
+  const pi=g.stock.findIndex(card=>card.kind==='number');
+  const transferred=g.stock.splice(pi,1)[0];g.pile.push(transferred);Engine.invariant(g);
+  const attack=await request({action:'move',code:c,revision:3,move:{type:'play',source:'hand',ids:[50]}},a);
+  assert.equal(attack.status,200,JSON.stringify(attack));
+  assert.deepEqual(attack.data.game.pendingCounter,{seat:1,attacker:0,count:1});
+  assert.deepEqual(attack.data.game.legal,[]);assert.equal(attack.data.game.players[1].hand,undefined);
+  const view=await request({action:'state',code:c},b);
+  assert.equal(view.status,200);assert.equal(view.data.game.turn,1);
+  assert.deepEqual(view.data.game.legal,[{type:'counter-dump',source:'hand',ids:[51]},{type:'counter-pass'}]);
+  assert.ok(view.data.game.players[1].hand.some(card=>card.id===transferred.id));
+  const wrong=await request({action:'move',code:c,revision:4,move:{type:'counter-pass'}},a);
+  assert.equal(wrong.status,400);
+  const blocked=await request({action:'move',code:c,revision:4,move:{type:'take'}},b);
+  assert.equal(blocked.status,400);
+  const forged=await request({action:'move',code:c,revision:4,move:{type:'counter-dump',source:'hand',ids:[50]}},b);
+  assert.equal(forged.status,400);
+  const decision=view.data.game.legal[counter?0:1];
+  const response=await request({action:'move',code:c,revision:4,move:decision},b);
+  assert.equal(response.status,200,JSON.stringify(response));assert.equal(response.data.game.pendingCounter,null);
+  assert.equal(response.data.game.turn,counter?1:0);
+  const final=rooms.get(c).state;
+  assert.ok(final.people[counter?0:1].hand.some(card=>card.id===transferred.id));
+  assert.ok(final.ashes.some(card=>card.id===50));
+  assert.equal(final.ashes.some(card=>card.id===51),counter);
+  assert.equal(final.people[1].hand.some(card=>card.id===51),!counter);
+  const replay=await request({action:'move',code:c,revision:4,move:decision},b);
+  assert.equal(replay.status,409);Engine.invariant(final);checks++;
+ }
 
  // In three-player online games, the actor chooses any active opponent, not the next seat.
  const choiceRoom=await request({action:'create',humans:1,bots:2,name:'Chooser'});
@@ -264,6 +311,9 @@ async function run(){
  const ownTarget=await request({action:'move',code:choiceCode,revision:2,
   move:{type:'play',source:'hand',ids:[dc.id],target:0}},choiceToken);
  assert.equal(ownTarget.status,400,'cannot dump onto yourself');
+ const otherDump=cg.people[2].hand.find(c=>c.action==='dump');
+ if(otherDump){cg.people[2].hand=cg.people[2].hand.filter(c=>c.id!==otherDump.id);cg.stock.push(otherDump)}
+ Engine.invariant(cg);
  const chosenBefore=cg.people[2].hand.length,unselectedBefore=cg.people[1].hand.length;
  const chosen=await request({action:'move',code:choiceCode,revision:2,
   move:{type:'play',source:'hand',ids:[dc.id],target:2}},choiceToken);
