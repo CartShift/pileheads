@@ -1,0 +1,5 @@
+# Pileheads rebrand
+
+The approved primary PILEHEADS raster logo, brand kit, updated card face copies and directional card back originate from the [review library](https://drive.google.com/drive/folders/1UFx-WZxWTABDM7_MBJhSOZM4UDtek96K). The game rules and source card-face masters are unchanged. Public navigation uses `/`; `/stack`, `/pilehead/`, API routes, local-storage keys, CSS class names and asset paths remain backward-compatible. Package display names use `@pileheads/*`. The historical Characters preference now uses a compact-resolution copy of current no-logo faces; Original geometric and Studio alternatives retain their distinct art. The legacy Render hostname remains until a new hostname/domain is configured. Historical docs, identifiers and release references may contain STACK. Public copy uses PLAY THE ODDS (provisional replacement slogan).
+
+Do not treat review packaging as a manufacturer-ready print file. Refresh homepage gameplay captures from the real browser after rebranding. Verify the deployed SHA, public pages, accessible logo labels, image assets and online readiness before claiming the release is live.

@@ -17,8 +17,8 @@ async function ready(){for(let i=0;i<100;i++){try{if((await fetch(base+"/livez")
     const errors=[];const onerror=e=>errors.push(e.message);page.on("pageerror",onerror);
     const result=await page.goto(base+route,{waitUntil:"domcontentloaded"});assert.equal(result.status(),200,route);
     await page.evaluate(()=>document.fonts.ready);
-    await page.waitForFunction(()=>[...document.fonts].some(f=>f.family.replace(/["']/g,"")==="STACK Display"&&f.status==="loaded"));
-    const state=await page.evaluate(()=>({paper:getComputedStyle(document.documentElement).getPropertyValue("--brand-paper").trim(),logo:[...document.images].find(i=>i.alt==="STACK")?.src,scroll:document.documentElement.scrollWidth,width:innerWidth,css:!!document.querySelector('link[href="/stack-media/stack-design-system.css"]')}));
+    await page.waitForFunction(()=>[...document.fonts].some(f=>f.family.replace(/["']/g,"")==="PILEHEADS Display"&&f.status==="loaded"));
+    const state=await page.evaluate(()=>({paper:getComputedStyle(document.documentElement).getPropertyValue("--brand-paper").trim(),logo:[...document.images].find(i=>i.alt==="PILEHEADS")?.src,scroll:document.documentElement.scrollWidth,width:innerWidth,css:!!document.querySelector('link[href="/stack-media/stack-design-system.css"]')}));
     assert.equal(state.paper,"#f9ebcb",name);assert.ok(state.css,name+" shared stylesheet");assert.ok(state.logo?.includes("stack-home-logo-web.webp"),name+" brand logo");
     assert.ok(state.scroll<=state.width+1,name+" horizontal overflow "+JSON.stringify(state));
     if(name==="play"){assert.ok(await page.locator(".stack-lobby .lobby-art").isVisible());await page.getByRole("button",{name:"Game settings",exact:true}).click();await page.getByRole("dialog",{name:"Game settings"}).waitFor();await page.getByRole("button",{name:"Done",exact:true}).click();}if(name==="gallery"){assert.equal(await page.locator("#gallery-theme-control select").count(),1);assert.equal(await page.locator("#numbers .ph-card").count(),10);assert.equal(await page.locator("#actions .ph-card").count(),6)}

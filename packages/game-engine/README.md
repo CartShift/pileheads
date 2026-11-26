@@ -1,4 +1,4 @@
-# @stack/game-engine
+# @pileheads/game-engine
 Private, dependency-free CommonJS package for Node, Metro/Hermes and browser bundlers. Edit src/rules.js (rules, seeded state and events), src/bots.js (injected bot policy) or src/snapshot.js (versioned local save codec). index.d.ts is the shared public type contract.
 - Existing engine API is preserved, including in-place mutations. createEngine({now}) provides an isolated clock; default uses Date.now. RNG is stored in game state; no platform APIs or global assignment in the package.
 - serialize/restore is for trusted local full-state saves, not network payloads; validates envelope, shape, supported versions and card invariants, not authentication or arbitrary adversarial state. Server redaction stays at the API boundary.

@@ -13,7 +13,7 @@ await writeFile(path.join(vendor, "pilehead-engine.cjs"), renderBrowserBundle())
 for (const name of ["stack-characters.webp", "stack-sheet.webp", "stack-back.webp", "stack-characters-v2.webp", "stack-back-v2.webp"]) {
   await copyFile(path.join(repo, "dist/pilehead/assets", name), path.join(target, name));
 }
-console.log("STACK engine and card artwork synchronized from canonical sources");
+console.log("PILEHEADS engine and card artwork synchronized from canonical sources");
 
 const sounds = ["play", "burn", "snap", "dump", "reset", "ghost", "under", "skip", "victory"];
 await mkdir(path.join(target, "sound-v2"), { recursive: true });

@@ -5,7 +5,7 @@ import {spawnSync} from 'node:child_process';
 const root = path.resolve(import.meta.dirname, '..');
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 function run(label, command, args, env = process.env) {
-  console.log('[STACK build] ' + label);
+  console.log('[PILEHEADS build] ' + label);
   const result = spawnSync(command, args, {cwd: root, stdio: 'inherit', env});
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status || 1);
@@ -21,4 +21,4 @@ run('Publish shared deck, rules and lab assets', process.execPath, ['scripts/bui
 run('Export Next.js React tabletop', npm, ['run', 'build', '--prefix', 'apps/web'],
   {...process.env, NEXT_PUBLIC_STACK_API_ORIGIN: ''});
 run('Publish the sole Next static export', process.execPath, ['scripts/publish-next.mjs']);
-console.log('[STACK build] Integrated single-Render build completed');
+console.log('[PILEHEADS build] Integrated single-Render build completed');

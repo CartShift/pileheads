@@ -56,7 +56,7 @@ if (!Object.hasOwn(stages, mode) || args.some(arg => arg !== '--plan')) {
   process.exit(2);
 }
 for (const step of stages[mode]) {
-  console.log('[STACK CI] ' + (typeof step === 'string' ? step : step.join(' ')));
+  console.log('[PILEHEADS CI] ' + (typeof step === 'string' ? step : step.join(' ')));
   if (args.includes('--plan')) continue;
   if (step === 'shared-boundaries') {
     checkSharedBoundaries();

@@ -23,7 +23,7 @@ async function audit(browser, mobile){
   await page.evaluate(()=>document.fonts.ready);
   await page.waitForTimeout(800);
   const metrics=await page.evaluate(()=>{const nav=performance.getEntriesByType("navigation")[0],rs=performance.getEntriesByType("resource");return {lcpMs:Math.round(window.__stackVitals.lcp),lcpElement:window.__stackVitals.lcpElement,cls:Number(window.__stackVitals.cls.toFixed(4)),ttfbMs:Math.round(nav.responseStart),transferBytes:nav.transferSize+rs.reduce((n,r)=>n+r.transferSize,0),resourceCount:rs.length,largestResources:rs.map(r=>({name:new URL(r.name).pathname,bytes:r.transferSize,durationMs:Math.round(r.duration)})).sort((a,b)=>b.bytes-a.bytes).slice(0,8),title:document.title,description:document.querySelector('meta[name="description"]')?.content,lang:document.documentElement.lang,missingImageAlt:[...document.images].filter(x=>!x.hasAttribute("alt")).length,emptyLinks:[...document.querySelectorAll("a")].filter(a=>!a.textContent.trim()&&!a.getAttribute("aria-label")&&!a.querySelector('img[alt]:not([alt=""])')).length}});
-  assert.ok(metrics.title.includes("STACK")&&metrics.description&&metrics.lang==="en");
+  assert.ok(metrics.title.includes("PILEHEADS")&&metrics.description&&metrics.lang==="en");
   assert.equal(metrics.missingImageAlt,0);assert.equal(metrics.emptyLinks,0);
   assert.ok(metrics.lcpMs>0,"LCP observation available");
   assert.ok(metrics.cls<=.1,"CLS exceeds budget: "+metrics.cls);

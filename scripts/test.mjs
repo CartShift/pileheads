@@ -5,11 +5,11 @@ const tests = fs.readdirSync('tests').filter(name =>
   /^pilehead-.*\.cjs$/.test(name) ||
   ['stack-next-cors.cjs','stack-next-simulator-stress.cjs','stack-unified-design-system.cjs','stack-render-production-smoke.cjs'].includes(name)
 ).sort();
-if (!tests.length) throw new Error('No STACK tests discovered');
+if (!tests.length) throw new Error('No PILEHEADS tests discovered');
 for (const name of tests) {
   console.log('\n> ' + name);
   const result = spawnSync(process.execPath, ['tests/' + name], { stdio: 'inherit' });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status || 1);
 }
-console.log('\nAll ' + tests.length + ' STACK test files passed.');
+console.log('\nAll ' + tests.length + ' PILEHEADS test files passed.');
