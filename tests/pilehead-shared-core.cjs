@@ -34,3 +34,47 @@ assert.throws(()=>E.createEngine({now:123}));
 assert.equal(E.deck('pilehead-1.5.0').length,52);assert.equal(E.deck().length,54);
 const legacy=require('../dist/pilehead/engine.js');assert.equal(legacy.VERSION,E.VERSION);
 console.log('PASS shared core package, Classic bundle, fake clock, save/resume, 2–5 seat seeded parity and invalid snapshots');
+
+// Exercise saves while a human decision is pending, not only between moves.
+const clock=E.createEngine({now:()=>12345});
+const zones=g=>[g.stock,g.pile,g.ashes,...g.people.flatMap(p=>[p.hand,p.up,p.down])];
+function extract(g,predicate){
+ for(const zone of zones(g)){const i=zone.findIndex(predicate);if(i>=0)return zone.splice(i,1)[0];}
+ throw Error('Fixture card not found');
+}
+const dump=clock.create({players:3,seed:42});
+clock.start(dump);
+dump.ashes.push(...dump.stock.splice(0),...dump.people[0].hand.splice(0),...dump.people[0].up.splice(0));
+const dumpCard=extract(dump,c=>c.action==='dump');
+dump.people[0].down.push(dumpCard);
+clock.invariant(dump);
+assert.equal(clock.move(dump,0,{type:'play',source:'down',ids:[dumpCard.id]}).type,'dump-pending');
+assert.equal(dump.blindReveal.expiresAt,14545);
+assert.equal(dump.blindReveal.card.id,undefined);
+const restoredDump=clock.restore(clock.serialize(dump));
+assert.deepEqual(restoredDump,dump);
+assert.deepEqual(clock.resolveDump(restoredDump,0,1),clock.resolveDump(dump,0,1));
+assert.deepEqual(restoredDump,dump);
+const snap=clock.create({players:3,seed:42});
+clock.start(snap);
+const first=extract(snap,c=>c.kind==='number'&&c.rank===5);
+const next=extract(snap,c=>c.kind==='number'&&c.rank===5);
+while(snap.people[0].hand.length>2)snap.stock.unshift(snap.people[0].hand.pop());
+while(snap.people[0].hand.length<2)snap.people[0].hand.push(snap.stock.shift());
+snap.people[0].hand.push(first);
+snap.stock.push(next);
+clock.invariant(snap);
+clock.move(snap,0,{type:'play',source:'hand',ids:[first.id]});
+const pendingSnap=clock.followUpOptions(snap,0)[0];
+assert.ok(pendingSnap);
+const restoredSnap=clock.restore(clock.serialize(snap));
+assert.deepEqual(restoredSnap,snap);
+assert.deepEqual(clock.move(restoredSnap,0,pendingSnap),clock.move(snap,0,pendingSnap));
+assert.deepEqual(restoredSnap,snap);
+const old=clock.create({players:3,seed:8});
+for(const z of zones(old))for(let i=z.length-1;i>=0;i--)if(z[i].id>=52)z.splice(i,1);
+old.version='pilehead-1.5.0';
+assert.equal(clock.count(old),52);
+clock.invariant(old);
+assert.deepEqual(clock.restore(clock.serialize(old)),old);
+console.log('PASS pending DUMP/SNAP, injected blind reveal clock, and legacy 52-card local snapshots');
