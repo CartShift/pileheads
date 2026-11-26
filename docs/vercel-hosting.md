@@ -39,3 +39,29 @@ First preview of the routing-only commit 0a469c2 returned HTTP 200 for /,
 online_not_configured. Native WebSocket deployment and authenticated
 multiplayer remain to be verified; do not treat a successful build as
 production acceptance.
+
+## Live deployment smoke test
+
+Run from the repository root with Node 24 and locked dependencies installed:
+
+```sh
+npm ci
+node scripts/smoke-live.cjs https://YOUR-STAGED-DEPLOYMENT.vercel.app
+```
+
+For protected staged deployments, configure an automation bypass secret in the
+local/CI environment as `VERCEL_AUTOMATION_BYPASS_SECRET`. Only run against
+the trusted project URL. Do not commit the secret, pass it on the command line,
+or disable project authentication. The test creates one disposable room that
+expires normally. It checks database health, two-player join, authenticated
+socket readiness, private hands, start and move invalidations, reactions,
+and reconnect. Special actions, rematches, and real-device acceptance still
+require separate tests. A passing run on a staged deployment is required before
+promoting it.
+
+On 2026-11-26 the staged production build of 88c66bf returned 200 for /,
+/play, /stack and database health, and 426 for a non-upgrade request to
+/api/pilehead/live. Both CI suites passed on that commit. The apex still
+served the earlier build and /play returned 404. No production alias
+promotion or Render shutdown was performed; live authenticated socket
+acceptance remains pending.
