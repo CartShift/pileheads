@@ -20,5 +20,6 @@ workflows:
             - content: |-
                 #!/usr/bin/env bash
                 set -euo pipefail
-                node scripts/ci.mjs fast
+                npm run ci:install
+                npm run ci:fast
       - save-npm-cache@1: {}

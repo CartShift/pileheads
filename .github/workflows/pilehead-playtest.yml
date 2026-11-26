@@ -6,7 +6,10 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/**'
+      - '.circleci/**'
+      - 'bitrise.yml'
       - 'api/**'
+      - 'packages/**'
       - 'apps/web/**'
       - 'dist/**'
       - 'docs/**'
@@ -24,8 +27,8 @@ permissions:
   contents: read
 jobs:
   test:
-    name: 'STACK fast: engine, API, types and Classic'
-    runs-on: ubuntu-24.04
+    name: 'STACK fast: engine, API, types and shared assets'
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 8
     steps:
       - name: Check out repository
@@ -40,5 +43,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             apps/web/package-lock.json
+      - name: Install locked dependencies
+        run: npm run ci:install
       - name: Run shared fast checks
-        run: node scripts/ci.mjs fast
+        run: npm run ci:fast

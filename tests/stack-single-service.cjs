@@ -5,11 +5,8 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "../vercel-static");
 const source = path.resolve(__dirname, "../dist");
 const read = p => fs.readFileSync(path.join(root,p));
-assert.deepEqual(read("index.html"), fs.readFileSync(path.join(source,"index.html")),
-  "the original homepage must not change");
-assert.deepEqual(read("pilehead/index.html"),
-  fs.readFileSync(path.join(source,"pilehead/index.html")),
-  "the original Classic simulator must not change");
+assert.deepEqual(read("index.html"), fs.readFileSync(path.resolve(__dirname,"../apps/web/out/index.html")));
+for (const name of ["index.html","app.js","online.js","classic-clean.css","classic-premium.css"]) assert.ok(!fs.existsSync(path.join(root,"pilehead",name)),name+" must not be published");
 for (const route of ["play","stack"]) {
   const html = read(route + ".html").toString("utf8");
   assert.match(html, /_next\/static\//, "exported " + route + " must load client JS");
@@ -20,13 +17,13 @@ assert.ok(fs.readdirSync(path.join(root,"_next","static")).length,
 for(const asset of ["stack-characters.webp","stack-sheet.webp","stack-back.webp"])
   assert.ok(fs.statSync(path.join(root,"pilehead/assets",asset)).size > 100,
     "the original deck art must remain present");
-console.log("PASS single Render service: Classic preserved, /play + /stack published, Next assets available");
+console.log("PASS single Render service: Classic retired, /play + /stack published, Next assets available");
 
 const officialHome = read("stack.html").toString("utf8");
 for (const label of ["STACK", "THE ODDS", "Why STACK?", "Meet", "Play online", "The physical", "Physical retail launch to be announced."]) {
   assert.ok(officialHome.includes(label), "Official homepage missing: " + label);
 }
-for (const href of ["/play", "/pilehead/gallery.html", "/pilehead/playtest.html", "/pilehead/index.html"]) {
+for (const href of ["/play", "/pilehead/gallery.html", "/pilehead/playtest.html"]) {
   assert.ok(officialHome.includes('href="' + href + '"'), "Official homepage missing navigation: " + href);
 }
 assert.ok(!officialHome.includes("Our new go-to game night game"), "Concept testimonials must not be published");

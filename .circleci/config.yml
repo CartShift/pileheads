@@ -1,28 +1,70 @@
 version: 2.1
-# Enable explicitly when GitHub Actions is unavailable.
+
 parameters:
   run_fallback:
     type: boolean
     default: false
+  full_acceptance:
+    type: boolean
+    default: false
+
 jobs:
-  fast:
+  stack-checks:
+    parameters:
+      full:
+        type: boolean
+        default: false
     docker:
-      - image: node:24-bookworm
+      - image: cimg/node:24.21.0
+    resource_class: medium
+    environment:
+      CI: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - checkout
       - restore_cache:
           keys:
-            - npm-v1-{{ arch }}-{{ checksum "package-lock.json" }}-{{ checksum "apps/web/package-lock.json" }}
-            - npm-v1-{{ arch }}-
+            - stack-npm-v1-{{ arch }}-{{ checksum "package-lock.json" }}-{{ checksum "apps/web/package-lock.json" }}
+            - stack-npm-v1-{{ arch }}-
       - run:
-          name: Shared fast CI checks
-          command: node scripts/ci.mjs fast
+          name: Install locked dependencies
+          command: npm run ci:install
       - save_cache:
-          key: npm-v1-{{ arch }}-{{ checksum "package-lock.json" }}-{{ checksum "apps/web/package-lock.json" }}
+          key: stack-npm-v1-{{ arch }}-{{ checksum "package-lock.json" }}-{{ checksum "apps/web/package-lock.json" }}
           paths:
             - ~/.npm
+      - unless:
+          condition: << parameters.full >>
+          steps:
+            - run:
+                name: Run shared fast CI checks
+                command: npm run ci:fast
+      - when:
+          condition: << parameters.full >>
+          steps:
+            - run:
+                name: Run shared full CI core
+                command: npm run ci:full-core
+            - restore_cache:
+                keys:
+                  - stack-playwright-shell-{{ arch }}-{{ checksum "scripts/ci.mjs" }}
+            - run:
+                name: Set up pinned browser runner
+                command: npm run ci:browser-setup
+            - save_cache:
+                key: stack-playwright-shell-{{ arch }}-{{ checksum "scripts/ci.mjs" }}
+                paths:
+                  - ~/.cache/ms-playwright
+            - run:
+                name: Run shared browser acceptance
+                command: npm run ci:browser-test
+            - store_artifacts:
+                path: artifacts/next
+                destination: react-browser
+
 workflows:
-  manual_fallback:
+  stack-fallback:
     when: << pipeline.parameters.run_fallback >>
     jobs:
-      - fast
+      - stack-checks:
+          full: << pipeline.parameters.full_acceptance >>

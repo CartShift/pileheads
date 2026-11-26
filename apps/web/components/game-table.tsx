@@ -14,7 +14,6 @@ import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomG
 
 type Mode = "home" | "local" | "online";
 const ACTIONS = ["reset", "ghost", "under", "skip", "burn", "dump"];
-const classicHref = "/pilehead/index.html";
 const ACTION_DESCRIPTIONS: Record<string, string> = {
   reset: "Any number can follow", ghost: "Keep the current restriction",
   under: "Next number must be 1–4", skip: "Skip the next player's turn",
@@ -962,7 +961,7 @@ export default function GameTable() {
         <div className="entry-intro"><div className="eyebrow">WELCOME TO THE TABLE</div>
           <h1>One pile.<br /><em>One loser.</em></h1>
           <p>Play free with bots or invite friends to a private table. One pile, clever moves and a little friendly revenge.</p>
-          <div className="lobby-facts"><span>2–5 players</span><span>Free to play</span><span>No account</span></div><div className="lobby-art" aria-hidden="true"><span className="lobby-card lobby-burn"/><span className="lobby-card lobby-dump"/><span className="lobby-card lobby-ghost"/><img src="/stack-media/stack-home-explorer-web-mobile.webp" width={360} height={452} alt="" decoding="async"/></div><div className="lobby-links"><a href={classicHref} className="subtle-link">Play Classic ↗</a><button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>Game settings</button></div>
+          <div className="lobby-facts"><span>2–5 players</span><span>Free to play</span><span>No account</span></div><div className="lobby-art" aria-hidden="true"><span className="lobby-card lobby-burn"/><span className="lobby-card lobby-dump"/><span className="lobby-card lobby-ghost"/><img src="/stack-media/stack-home-explorer-web-mobile.webp" width={360} height={452} alt="" decoding="async"/></div><div className="lobby-links"><button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>Game settings</button></div>
         </div>
         <div className="entry-options"><h2 className="lobby-choice-heading">Choose your table<span>.</span></h2>
           {resumeGame && <div className="resume-panel">
@@ -1395,7 +1394,7 @@ export default function GameTable() {
         </section>
       </div>}
       <div className="table-footer"><span>STACK · The digital tabletop</span>
-        <a href={classicHref}>Original Classic ↗</a></div>
+        </div>
     </main>
   );
 }

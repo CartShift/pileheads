@@ -147,13 +147,11 @@ async function sameOriginNavigation(browser) {
     await page.getByRole("link",{name:"Play free online",exact:true}).click();
     await page.getByRole("button",{name:/Start game/}).waitFor();
     assert.equal(new URL(page.url()).pathname,"/play","Next landing should lead to the real playable table");
-    await page.locator(".game-header .logo").click();
+    await page.getByRole("link", {name:"STACK home", exact:true}).click();
     await page.getByRole("heading",{name:/STACK\s*THE ODDS/}).waitFor();
     assert.equal(new URL(page.url()).pathname,"/stack","logo returns to Next landing, not Classic redirect");
-    const classic=page.getByRole("link",{name:"Classic game",exact:true});
-    assert.equal(new URL(await classic.getAttribute("href"), WEB).pathname,
-      "/pilehead/index.html","Classic remains available on same origin");
-    console.log("PASS one-server Next route transitions: /stack → /play → /stack, Classic link preserved");
+    assert.equal(await page.locator('a[href="/pilehead/index.html"]').count(),0);
+    console.log("PASS one-server Next route transitions: /stack → /play → /stack");
   } finally { await context.close(); }
 }
 async function localScenarios(browser) {
@@ -1133,14 +1131,15 @@ async function main() {
       const response = await fetch(WEB + route);
       assert.equal(response.status, 200, "single-server route must work: " + route);
     }
-    const classic = await (await fetch(WEB + "/pilehead/index.html")).text();
-    assert.match(classic, /Pilehead|STACK/i, "Classic must still be available");
+    const legacy = await fetch(WEB + "/pilehead/index.html?room=ABCDEFGH", {redirect:"manual"});
+    assert.equal(legacy.status,308);
+    assert.equal(legacy.headers.get("location"),"/play?room=ABCDEFGH");
     const main = await (await fetch(WEB + "/")).text();
-    assert.ok(!main.includes('id="__next"'), "root must remain the original Classic landing");
+    assert.match(main, /_next\/static\//, "root must be the Next homepage");
     const html = await (await fetch(WEB + "/play")).text();
     assert.match(html, /_next\/static\//, "Next scripts must be included");
     browser = await chromium.launch({ headless: true });
-    console.log("PASS one Render server: Classic, /stack, /play, Next assets and API use one origin");
+    console.log("PASS one Render server: /stack, /play, Next assets and API use one origin");
     // Select a focused browser scenario on a slower, self-hosted sandbox.
     // With no selection, keep the complete production acceptance unchanged.
     const selected=process.env.STACK_ACCEPTANCE_SCENARIO;

@@ -1,4 +1,4 @@
-import { copyFile, mkdir } from "node:fs/promises";
+import { copyFile, mkdir, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -8,7 +8,8 @@ const target = path.resolve(base, "../public/pilehead/assets");
 await mkdir(target, { recursive: true });
 const vendor = path.resolve(base, "../vendor");
 await mkdir(vendor, { recursive: true });
-await copyFile(path.join(repo, "dist/pilehead/engine.js"), path.join(vendor, "pilehead-engine.cjs"));
+const {renderBrowserBundle} = (await import("../../../scripts/sync-game-engine.cjs")).default;
+await writeFile(path.join(vendor, "pilehead-engine.cjs"), renderBrowserBundle());
 for (const name of ["stack-characters.webp", "stack-sheet.webp", "stack-back.webp", "stack-characters-v2.webp", "stack-back-v2.webp"]) {
   await copyFile(path.join(repo, "dist/pilehead/assets", name), path.join(target, name));
 }

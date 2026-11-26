@@ -2,7 +2,7 @@
 const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path");
 const {spawn}=require("node:child_process"),{chromium}=require("playwright");
 const root=path.resolve(__dirname,".."),port=44295,base="http://127.0.0.1:"+port;
-const routes={home:"/stack",play:"/play",classic:"/pilehead/index.html",gallery:"/pilehead/gallery.html",rules:"/pilehead/playtest.html",print:"/pilehead/print.html",lab:"/pilehead/endgame-lab.html"};
+const routes={home:"/stack",play:"/play",gallery:"/pilehead/gallery.html",rules:"/pilehead/playtest.html",print:"/pilehead/print.html",lab:"/pilehead/endgame-lab.html"};
 const artifacts=path.join(root,"artifacts","design-system");
 async function ready(){for(let i=0;i<100;i++){try{if((await fetch(base+"/livez")).ok)return}catch{}await new Promise(r=>setTimeout(r,200))}throw Error("Server not ready")}
 (async()=>{
