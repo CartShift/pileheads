@@ -74,13 +74,13 @@ test('Vercel includes raster scripts, styles and original binary assets',()=>{
  for(const name of ['deck-raster.js','deck-raster.css','stack-sheet.webp','stack-back.webp'])
   assert.ok(text.includes(name),script+' must include '+name);
 });
-test('approved V7 sprites are identical across gameplay and marketing exports',()=>{
+test('approved V7 sprites with V8 embedded card backs match gameplay and marketing exports',()=>{
  const assets=[
-  ['dist/pilehead/assets/stack-characters.webp','90868f620278dcd4fe7da227dd9573dc4a87ebe6f61c82ffe045a3202fd1f8d8'],
-  ['dist/pilehead/assets/stack-characters-v2.webp','b0fdd383c80a964e44f49933a9a556175acde0698b3ffe5d4bb648410e333255'],
-  ['apps/web/public/stack-media/stack-home-faces-v2.webp','b0fdd383c80a964e44f49933a9a556175acde0698b3ffe5d4bb648410e333255'],
-  ['apps/web/public/stack-media/stack-home-faces-web-desktop.webp','702dba8f85d1b272a19af1d5ac3c0a424b26977f58728d35802545c7abbd0d79'],
-  ['apps/web/public/stack-media/stack-home-faces-web-mobile.webp','1ac12c28ad0947cf686bd15aafcd2e3d8fd7cea30d80afa5b63f7b29f47b18a1']
+  ['dist/pilehead/assets/stack-characters.webp','bf0000d9381a1866d25ae8c69f646775b3f30ae161cac516131139a333533bc5'],
+  ['dist/pilehead/assets/stack-characters-v2.webp','9e293aacbc604024315c47e1b9cbf85f640eb423daa4d2983b749c119324d9eb'],
+  ['apps/web/public/stack-media/stack-home-faces-v2.webp','9e293aacbc604024315c47e1b9cbf85f640eb423daa4d2983b749c119324d9eb'],
+  ['apps/web/public/stack-media/stack-home-faces-web-desktop.webp','a9f863ab4d71f96ae40d616798174f08e747c703bfc7cfb8d98f6611d23797e2'],
+  ['apps/web/public/stack-media/stack-home-faces-web-mobile.webp','efabce23803f98db3322909deb4f11ba1b6529d4fb76844803babd428f1a0660']
  ];
  for(const [name,sha] of assets){
   const bytes=fs.readFileSync(path.join(base,name));
@@ -88,6 +88,6 @@ test('approved V7 sprites are identical across gameplay and marketing exports',(
   assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),sha,name);
  }
  for(const p of ['apps/web/app/globals.css','apps/web/app/official-home.module.css','apps/web/public/stack-media/stack-design-system.css','dist/pilehead/deck-raster.css'])
-  assert.match(read(p),/white-border-v7/,p+' cache version');
+  assert.match(read(p),/white-border-v7-back-v8/,p+' cache version');
 });
 console.log('STACK raster assets: '+count+' checks passed');

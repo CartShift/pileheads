@@ -43,7 +43,7 @@
    If a characters asset is temporarily unavailable, the original image remains readable. */
 html[data-stack-deck-theme="characters"] .ph-card .ph-raster-cell,
 html[data-stack-deck-theme="characters"] .mini.ph-raster-mini .ph-raster-cell {
- background-image:url("assets/stack-characters.webp?v=white-border-v7"),url("assets/stack-sheet.webp?v=corner-index-20261118");
+ background-image:url("assets/stack-characters.webp?v=white-border-v7-back-v8"),url("assets/stack-sheet.webp?v=corner-index-20261118");
  background-size:400% 400%,400% 400%;
  background-position:var(--stack-x) var(--stack-y),var(--stack-x) var(--stack-y);
 }
@@ -51,7 +51,7 @@ html[data-stack-deck-theme="characters"] .mini.ph-raster-mini .ph-raster-cell {
 /* White Border V7: same slot order, independent of all legacy artwork. */
 html[data-stack-deck-theme="refined"] .ph-card .ph-raster-cell,
 html[data-stack-deck-theme="refined"] .mini.ph-raster-mini .ph-raster-cell {
- background-image:url("assets/stack-characters-v2.webp?v=white-border-v7"),url("assets/stack-characters.webp?v=white-border-v7");
+ background-image:url("assets/stack-characters-v2.webp?v=white-border-v7-back-v8"),url("assets/stack-characters.webp?v=white-border-v7-back-v8");
  background-size:400% 400%,400% 400%;
  background-position:var(--stack-x) var(--stack-y),var(--stack-x) var(--stack-y);
 }
