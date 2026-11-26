@@ -808,6 +808,30 @@ async function onlineMixedSeatScenarios(browser) {
   }
 }
 
+async function roundChoreographyScenario(browser) {
+  const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:"no-preference"});
+  const page=await context.newPage();
+  try {
+    await page.goto(WEB+"/play");
+    await page.getByRole("button",{name:"Learn with a bot"}).click();
+    const table=page.locator(".tabletop");
+    await table.locator("xpath=self::*[@data-round-cue='deal']").waitFor({timeout:3000});
+    // Setup can commit while the cosmetic deal is still active.
+    await page.getByRole("button",{name:"Start round"}).click();
+    await page.getByRole("heading",{name:"Your move."}).waitFor();
+    assert.equal((await readGame(page)).phase,"play");
+    await page.reload();
+    await page.getByRole("button",{name:"Resume game"}).click();
+    assert.equal(await table.getAttribute("data-round-cue"),null,"resume is silent");
+    await page.emulateMedia({reducedMotion:"reduce"});
+    await page.getByRole("button",{name:"Leave table"}).click();
+    await page.getByRole("button",{name:"Learn with a bot"}).click();
+    assert.equal(await table.getAttribute("data-round-cue"),null,"OS reduced motion suppresses deal");
+    await page.getByRole("button",{name:"Start round"}).click();
+    assert.equal(await table.getAttribute("data-round-cue"),null,"OS reduced motion suppresses start");
+    console.log("PASS round choreography: fresh deal, immediate start, silent resume, OS reduced motion");
+  } finally {await context.close()}
+}
 async function guidedPracticeScenario(browser) {
   const context=await browser.newContext({
     viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:"reduce"
@@ -1373,6 +1397,7 @@ async function main() {
         seats:()=>seatLayoutScenarios(browser),
         hand:()=>adaptiveHandFitScenarios(browser),
         rematch:()=>localStarterAndRematchScenario(browser),
+        round:()=>roundChoreographyScenario(browser),
         interrupts:()=>localInterruptParityScenarios(browser),
         mixed:()=>mixedBotScenarios(browser),
         recovery:()=>abandonedRoomScenario(browser)
@@ -1388,6 +1413,7 @@ async function main() {
     await seatLayoutScenarios(browser);
     await adaptiveHandFitScenarios(browser);
     await guidedPracticeScenario(browser);
+    await roundChoreographyScenario(browser);
     await localStarterAndRematchScenario(browser);
     await localInterruptParityScenarios(browser);
     await onlineScenarios(browser, apiProc);
