@@ -15,9 +15,9 @@ export const cardLabel = (card: Card) => card.kind === "number" ? `Number ${card
   `${card.action?.toUpperCase()}: ${ACTION_DESCRIPTIONS[card.action || ""]}`;
 
 export function PlayingCard({ card, hidden = false, selected = false, small = false, onClick, onDrop, disabled = false, theme = "refined",
-  description, offsetX = 0, availability = "neutral" }: {
+  description, offsetX = 0, availability = "neutral", extendsSelection = false }: {
   card?: Card; hidden?: boolean; selected?: boolean; small?: boolean; theme?: DeckTheme;
-  onClick?: () => void; onDrop?: () => void; disabled?: boolean; description?: string; offsetX?: number; availability?: CardAvailability;
+  onClick?: () => void; onDrop?: () => void; disabled?: boolean; description?: string; offsetX?: number; availability?: CardAvailability; extendsSelection?: boolean;
 }) {
   const index = !hidden && card
     ? card.kind === "number" ? (card.rank || 1) - 1 : 10 + ACTIONS.indexOf(card.action || "")
@@ -60,17 +60,18 @@ export function PlayingCard({ card, hidden = false, selected = false, small = fa
       className={`playing-card theme-${theme} ${hidden ? "is-back" : ""} ${selected ? "is-selected" : ""} ${floating ? "is-dragging" : ""} ${small ? "is-small" : ""} ${onClick && !disabled ? "is-interactive" : ""}`}
       data-card-id={card?.id}
       data-availability={hidden ? "neutral" : availability}
+      data-extends-selection={!hidden && extendsSelection ? "true" : undefined}
       style={offsetX ? {left: offsetX} : undefined}>
       <div aria-hidden="true" className="card-art" style={faceStyle} />
       {!hidden && availability !== "neutral" && <span className="card-availability-mark" aria-hidden="true">
-        {availability === "playable" ? "✓" : availability === "blocked" ? "×" : availability === "snap" ? "SNAP" : availability === "slam" ? "SLAM" : "S/S"}
+        {availability === "playable" ? extendsSelection ? "+" : "✓" : availability === "blocked" ? "×" : availability === "snap" ? "SNAP" : availability === "slam" ? "SLAM" : "S/S"}
       </span>}
       {onClick && !disabled ? (
         <button type="button" className="card-hit"
           aria-label={description || (hidden ? "Flip a face-down card" : card ? cardLabel(card) : "Card")}
           aria-pressed={selected}
-          aria-description={!hidden && availability !== "neutral" ? availabilityDescription[availability] : undefined}
-          title={!hidden && availability !== "neutral" ? availabilityDescription[availability] : undefined}
+          aria-description={!hidden && availability !== "neutral" ? (extendsSelection ? "Can join your selected legal group." : availabilityDescription[availability]) : undefined}
+          title={!hidden && availability !== "neutral" ? (extendsSelection ? "Can join your selected legal group." : availabilityDescription[availability]) : undefined}
           onPointerDown={pointerDown}
           onPointerMove={pointerMove}
           onPointerUp={pointerUp}

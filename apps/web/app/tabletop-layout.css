@@ -153,3 +153,17 @@
   .game-table-shell .coach-tip button { white-space: nowrap; }
   .game-table-shell .setup-controls { gap: 4px; }
 }
+
+/* Large-hand alternate view: actual cards, no clones; vertical pan instead
+   of drag capture. The normal adaptive layout remains the default. */
+.game-table-shell .player-hand.is-spread {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(clamp(56px,18vw,96px),1fr));
+  align-items:start; justify-items:center; gap:10px 4px; width:100%; min-height:0;
+  max-height:clamp(120px,32dvh,280px); overflow-y:auto; overflow-x:hidden;
+  overscroll-behavior:contain; scrollbar-gutter:stable; padding:8px 4px 10px;
+}
+.game-table-shell .player-hand.is-spread .card-hit { touch-action:pan-y; cursor:pointer; }
+.game-table-shell .player-hand.is-spread .playing-card { touch-action:pan-y; max-width:100%; }
+.game-table-shell .hand-tool[aria-pressed="true"] { background:#f6c32c; color:#172421; }
+.game-table-shell .hand-utilities { flex-wrap:wrap; gap:4px; }
+.game-table-shell .playing-card[data-extends-selection="true"] .card-availability-mark { background:#d7e9ab; }

@@ -25,3 +25,11 @@ export const availabilityDescription: Record<CardAvailability, string> = {
   "snap-slam": "Available for SNAP or SLAM. Use the corresponding action.",
   neutral: ""
 };
+
+/** A plus marker means the existing selection can be extended by this card
+ * within at least one engine-provided legal group, not merely a matching rank. */
+export function canExtendSelection(game: RoomGame, active: boolean, selection:number[], id:number): boolean {
+  return active && selection.length>0 && !selection.includes(id) &&
+    game.legal.some(move=>move.type==="play" && move.source!=="down" &&
+      move.ids?.includes(id) && selection.every(selected=>move.ids?.includes(selected)));
+}
