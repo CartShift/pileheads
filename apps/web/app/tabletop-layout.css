@@ -108,3 +108,18 @@
   .game-table-shell .pile-slot .playing-card { width: 80px; }
   .game-table-shell .stack-depth { width: 80px; height: 110px; bottom: 4px; }
 }
+
+/* On a wide, short screen, use the available width rather than shrinking
+   playable cards. Keep large hands in their existing full-width rows. */
+@media (min-width: 900px) and (max-height: 1000px) {
+  .game-table-shell:is([data-hand-count="0"],[data-hand-count="1"],[data-hand-count="2"],[data-hand-count="3"]) .player-zones {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    column-gap: 24px;
+    align-items: start;
+  }
+  .game-table-shell:is([data-hand-count="0"],[data-hand-count="1"],[data-hand-count="2"],[data-hand-count="3"]) .player-zones > .zone-heading:first-child { grid-area: 1 / 1; }
+  .game-table-shell:is([data-hand-count="0"],[data-hand-count="1"],[data-hand-count="2"],[data-hand-count="3"]) .faceup-row { grid-area: 2 / 1; }
+  .game-table-shell:is([data-hand-count="0"],[data-hand-count="1"],[data-hand-count="2"],[data-hand-count="3"]) .hand-heading { grid-area: 1 / 2; margin-top: 0; }
+  .game-table-shell:is([data-hand-count="0"],[data-hand-count="1"],[data-hand-count="2"],[data-hand-count="3"]) .hand-stage { grid-area: 2 / 2; }
+}
