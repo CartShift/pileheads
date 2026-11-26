@@ -83,6 +83,10 @@ render.yaml                Render service blueprint
 
 The `dist/pilehead/` directory contains **maintained source code**, despite its historical name. Build output goes into the ignored `vercel-static/` folder. Existing `/pilehead/` URLs and internal `PILEHEAD` identifiers are retained for compatibility.
 
+## Product roadmap — web experience first
+
+The active milestone is [Game Experience 4.0](docs/GAME-EXPERIENCE-MASTER-PLAN.md): polish the web tabletop, verify real-device gameplay and resolve deployment blockers before starting native app implementation. The [multiplayer master plan](docs/MULTIPLAYER-MASTER-PLAN.md) owns subsequent tournament and competitive expansion.
+
 ## Mobile roadmap
 
 See [Mobile & cross-platform implementation plan](docs/MOBILE-IMPLEMENTATION-PLAN.md) and [shared game engine](packages/game-engine/README.md). Android/iOS are planned; no native app is released yet.
