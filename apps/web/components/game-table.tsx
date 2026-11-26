@@ -576,7 +576,8 @@ export default function GameTable() {
   useCommittedCardTravel({ gameKey: visualGameKey, moveNo: g?.moves ?? 0,
     phase: g?.phase ?? "setup", pile: g?.pile ?? [], event: lastEvent, me, motionLevel });
   const feedback = useGameFeedback({gameKey:visualGameKey,moveNo:g?.moves??0,
-    phase:g?.phase??"home",event:lastEvent,me,loser:g?.loser??null});
+    phase:g?.phase??"home",event:lastEvent,me,loser:g?.loser??null,
+    roomCode:room?.code??null,turn:g?.turn??-1,freshDeal:freshDealKey.current===visualGameKey});
   useEffect(() => {
     const phase=g?.phase??"home", previous=resultCursor.current;
     resultCursor.current={key:visualGameKey,phase};
