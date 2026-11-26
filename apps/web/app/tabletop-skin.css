@@ -326,3 +326,9 @@
 .game-table-shell .results-overlay h2:focus-visible {
   outline: 2px solid #075b66; outline-offset: 3px;
 }
+
+/* Clearly separate curated training from the ordinary local/online match. */
+.stack-lobby .drill-picker { margin-top: 14px; padding-top: 10px; border-top: 1px dashed #a49373; }
+.stack-lobby .drill-picker small { display: block; color: #536254; line-height: 1.35; font-size: 12px; }
+.stack-lobby .drill-picker .learn-button { border-color: #a49373; }
+.game-table-shell[data-drill] .game-meta .eyebrow { color: #f6c32c; }
