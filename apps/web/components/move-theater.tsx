@@ -30,7 +30,7 @@ const Motion = require("../lib/motion-core.cjs") as {
   ) => { cursor: Cursor; cue: Cue | null; clear: boolean };
 };
 type Scene = {
-  key: string; move: number; kind: Kind; label: string; symbol: string;
+  key: string; move: number; kind: Kind; label: string; symbol: string; counter: boolean;
   detail: string; duration: number;
   at: Point; from: Point; to: Point | null; target: Point | null;
   erodedTo: Point | null; erodedCount: number;
@@ -82,7 +82,8 @@ function buildScene(event: Event, cue: Cue, gameKey: string, me: number,
     actor + " played " + cue.label;
   return {
     key: gameKey + ":" + cue.move,
-    move: cue.move, kind: cue.kind, label: cue.label, symbol: cue.symbol,
+    move: cue.move, kind: cue.kind, label: cue.label, symbol: event.type === "counter-dump" ? "↩" : cue.symbol,
+    counter: event.type === "counter-dump",
     duration: cue.duration,
     detail: cue.erodedCount ? detail + ". The visible top card was burned first" : detail,
     at: pile, from: event.type === "counter-dump" ? seatPoint(event.seat) || pile : pile, to: cue.hasTransfer ? destination : null,
@@ -165,7 +166,7 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
   return createPortal(
     <div className={`move-story-overlay move-story-stable theme-${theme}`} key={scene.key}
       data-move={scene.move} data-kind={scene.kind} data-motion={motionLevel}
-      data-eroded={scene.erodedCount > 0}
+      data-eroded={scene.erodedCount > 0} data-counter={scene.counter}
       style={{ "--story-ms": scene.duration + "ms" } as CSSProperties}>
       <span className="move-story-caption" role="status" aria-live="polite"
         aria-label={scene.detail} style={{
@@ -202,7 +203,7 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
           <b>×{scene.count}</b>
         </div>
       </div>}
-      {scene.kind === "dump" && scene.ashes && <span className="move-story-spent"
+      {scene.kind === "dump" && !scene.counter && scene.ashes && <span className="move-story-spent"
         style={{ left: scene.ashes.x, top: scene.ashes.y }} aria-hidden="true">✕</span>}
       {scene.target && <span className="move-story-recipient"
         data-target-kind={scene.kind === "skip" ? "skipped" : "recipient"}
