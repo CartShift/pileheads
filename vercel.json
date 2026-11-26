@@ -2,7 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "vercel-static",
   "git": {
-    "deploymentEnabled": false
+    "deploymentEnabled": true
   },
   "headers": [
     {
@@ -17,6 +17,19 @@
           "value": "strict-origin-when-cross-origin"
         }
       ]
+    }
+  ],
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/pilehead",
+      "destination": "/play",
+      "permanent": true
+    },
+    {
+      "source": "/pilehead/index.html",
+      "destination": "/play",
+      "permanent": true
     }
   ]
 }
