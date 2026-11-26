@@ -8,6 +8,8 @@ on:
     # Do not redeploy Render for documentation, tests or CI-only updates.
     paths:
       - 'api/**'
+      - 'packages/**'
+      - 'scripts/sync-game-engine.cjs'
       - 'apps/web/**'
       - 'dist/**'
       - 'scripts/build-integrated.mjs'
@@ -19,13 +21,17 @@ on:
       - 'package-lock.json'
       - 'render.yaml'
 
+concurrency:
+  group: stack-render-production
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
 jobs:
   sync-render:
     name: Sync production commit to Render
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2604
     timeout-minutes: 10
     steps:
       - name: Checkout release manifest and smoke script

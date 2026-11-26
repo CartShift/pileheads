@@ -39,7 +39,7 @@ type Scene = {
 };
 type Props = {
   gameKey: string; moveNo: number; phase: string; events: Event[];
-  me: number; theme: "characters" | "original"; motionLevel?: MotionLevel;
+  me: number; theme: "refined" | "characters" | "original"; motionLevel?: MotionLevel;
   nameForSeat: (seat: number) => string;
   blindReveal?: BlindReveal | null;
 };
@@ -71,7 +71,7 @@ function buildScene(event: Event, cue: Cue, gameKey: string, me: number,
     blindReveal.seat === event.seat ? blindReveal.card : null;
   const actor = nameForSeat(event.seat);
   const detail = cue.kind === "dump" && cue.recipient !== null ?
-    actor + " sent " + count + " pile cards to " + nameForSeat(cue.recipient) :
+    actor + (event.type === "counter-dump" ? " returned " : " sent ") + count + " pile cards to " + nameForSeat(cue.recipient) :
     cue.kind === "pickup" || cue.kind === "reject" ?
     actor + " collected " + count + " cards" :
     cue.kind === "burn" || cue.kind === "slam" ||
@@ -85,7 +85,7 @@ function buildScene(event: Event, cue: Cue, gameKey: string, me: number,
     move: cue.move, kind: cue.kind, label: cue.label, symbol: cue.symbol,
     duration: cue.duration,
     detail: cue.erodedCount ? detail + ". The visible top card was burned first" : detail,
-    at: pile, from: pile, to: cue.hasTransfer ? destination : null,
+    at: pile, from: event.type === "counter-dump" ? seatPoint(event.seat) || pile : pile, to: cue.hasTransfer ? destination : null,
     target, count, erodedCount: cue.erodedCount,
     erodedTo: cue.erodedCount > 0 ? ashes : null,
     reveal, ashes
@@ -163,7 +163,7 @@ export default function MoveTheater({ gameKey, moveNo, phase, events, me, theme,
   if (!scene) return null;
   const showTransfer = !!scene.to && scene.count > 0;
   return createPortal(
-    <div className="move-story-overlay move-story-stable" key={scene.key}
+    <div className={`move-story-overlay move-story-stable theme-${theme}`} key={scene.key}
       data-move={scene.move} data-kind={scene.kind} data-motion={motionLevel}
       data-eroded={scene.erodedCount > 0}
       style={{ "--story-ms": scene.duration + "ms" } as CSSProperties}>

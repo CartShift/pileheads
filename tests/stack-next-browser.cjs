@@ -26,6 +26,17 @@ function readGame(page) {
   return page.evaluate(() => JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game);
 }
 
+async function tapUndo(page, mobile) {
+  // A successful Undo removes its own button during a click. Send the
+  // physical pointer event, then assert the committed game state instead.
+  const button=page.getByRole("button",{name:"Undo",exact:true});
+  await button.scrollIntoViewIfNeeded();
+  const rect=await button.boundingBox();
+  assert.ok(rect&&rect.width>0&&rect.height>0,"Undo is visible and tappable");
+  const x=rect.x+rect.width/2,y=rect.y+rect.height/2;
+  if(mobile) await page.touchscreen.tap(x,y);
+  else await page.mouse.click(x,y);
+}
 async function endgameSettingsAndBridge(browser) {
   const Engine = require("../dist/pilehead/engine.js");
   // Never rely on a random deal to expose a rare final-hand + face-up bridge.
@@ -133,16 +144,14 @@ async function sameOriginNavigation(browser) {
   const page = await context.newPage();
   try {
     await page.goto(WEB + "/stack", {waitUntil:"domcontentloaded"});
-    await page.getByRole("link",{name:/Enter the table/}).click();
+    await page.getByRole("link",{name:"Play free online",exact:true}).click();
     await page.getByRole("button",{name:/Start game/}).waitFor();
     assert.equal(new URL(page.url()).pathname,"/play","Next landing should lead to the real playable table");
-    await page.locator(".game-header .logo").click();
-    await page.getByRole("heading",{name:/Play your cards/}).waitFor();
+    await page.getByRole("link", {name:"STACK home", exact:true}).click();
+    await page.getByRole("heading",{name:/STACK\s*THE ODDS/}).waitFor();
     assert.equal(new URL(page.url()).pathname,"/stack","logo returns to Next landing, not Classic redirect");
-    const classic=page.getByRole("link",{name:/Original Classic/});
-    assert.equal(new URL(await classic.getAttribute("href"), WEB).pathname,
-      "/pilehead/index.html","Classic remains available on same origin");
-    console.log("PASS one-server Next route transitions: /stack → /play → /stack, Classic link preserved");
+    assert.equal(await page.locator('a[href="/pilehead/index.html"]').count(),0);
+    console.log("PASS one-server Next route transitions: /stack → /play → /stack");
   } finally { await context.close(); }
 }
 async function localScenarios(browser) {
@@ -165,6 +174,21 @@ async function localScenarios(browser) {
       await page.getByRole("heading", { name: "Your move." }).waitFor({ timeout: 10000 });
       const hand = page.locator(".player-hand .card-hit");
       assert.equal(await hand.count(), 3, "opening hand holds three cards");
+      const opponentArt = await page.locator(".opponent-up .mini-face").first()
+        .evaluate(node => getComputedStyle(node).backgroundImage);
+      assert.match(opponentArt, /stack-(?:characters|refined)[^/]*\.webp/,
+        "opponent face-up cards use the real public deck art");
+      // Mobile can inspect real public face-ups without touching private hand
+      // identities or the authoritative room state.
+      const inspect=page.getByRole("button",{name:/Bot 1 face-up cards/});
+      await inspect.click();
+      const publicCards=page.getByRole("dialog",{name:"Bot 1 face-up cards"});
+      await publicCards.waitFor();
+      assert.equal(await publicCards.locator(".playing-card:not(.is-back)").count(),3,
+        "inspector shows exactly the publicly visible cards");
+      assert.match(await publicCards.textContent(),/Hands and face-down cards stay private/);
+      await page.keyboard.press("Escape");
+      assert.equal(await publicCards.count(),0,"Escape closes public-card inspection");
       // DUMP intentionally asks for a target in 3+ player matches. Avoid
       // assuming that the first randomly dealt card is a simple immediate play.
       const safeFirst = page.locator('.player-hand .card-hit:not([aria-label^="DUMP"])').first();
@@ -175,7 +199,9 @@ async function localScenarios(browser) {
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves >= 1
       );
-      await page.getByRole("button", { name: "Undo" }).click();
+      assert.equal(await page.locator(".pile-slot.played [data-arrival-motion]").count(), 0,
+        "OS reduced motion prevents native card flights");
+      await tapUndo(page, device.mobile);
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves === 0
       );
@@ -186,7 +212,7 @@ async function localScenarios(browser) {
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves >= 1
       );
-      await page.getByRole("button", { name: "Undo" }).click();
+      await tapUndo(page, device.mobile);
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves === 0
       );
@@ -538,12 +564,17 @@ async function onlineScenarios(browser, server) {
     console.log("PASS Next multiplayer: synchronized real played pile without ghosts");
     await host.getByRole("button", { name: "SNAP" }).waitFor({ timeout: 10000 });
     await guest.getByRole("button", { name: "Take pile" }).waitFor({ timeout: 12000 });
+    // Capture transient pickup effects on both clients before committing.
+    // The remote cue can disappear while Playwright awaits the other client.
+    await Promise.all([armMotionCapture(host),armMotionCapture(guest)]);
     await guest.getByRole("button", { name: "Take pile" }).click();
-    const guestPickup=guest.locator('.move-story-overlay[data-kind="pickup"]');
-    const hostPickup=host.locator('.move-story-overlay[data-kind="pickup"]');
-    await Promise.all([guestPickup.waitFor({timeout:8500}),hostPickup.waitFor({timeout:8500})]);
-    assert.ok(await hostPickup.locator(".move-story-transfer").count(),
-      "remote player sees pile flying to the recipient's hand");
+    await Promise.all([host,guest].map(page=>page.waitForFunction(()=>
+      window.__stackMotionSamples?.some(scene=>scene.kind==="pickup"),
+      null,{timeout:8500})));
+    const remotePickup=await host.evaluate(()=>
+      window.__stackMotionSamples.find(scene=>scene.kind==="pickup"));
+    assert.ok(remotePickup.hasTransfer && remotePickup.transferBackCount===1,
+      "remote player sees an opaque pile transfer to the recipient's hand");
     console.log("PASS Next multiplayer motion: pickup is visible on both screens");
     await host.getByRole("button", { name: "SNAP" }).waitFor({ state: "hidden", timeout: 13000 });
     await guest.reload({ waitUntil: "domcontentloaded" });
@@ -658,7 +689,7 @@ async function onlineMixedSeatScenarios(browser) {
 
       await guest.getByRole("combobox",{name:"Deck style"}).selectOption("original");
       assert.ok(await guest.locator(".player-hand .playing-card.theme-original").count()>0);
-      assert.ok(await host.locator(".player-hand .playing-card.theme-characters").count()>0,
+      assert.ok(await host.locator(".player-hand .playing-card.theme-refined").count()>0,
         "one player choosing a deck theme cannot rewrite the other's deck");
 
       for(const [page,label,expectedSeat] of [
@@ -758,10 +789,70 @@ async function mixedBotScenarios(browser) {
 
 
 /** Actual animated cards, not just event labels, in both client viewports. */
+async function dumpSeatTargetScenario(browser) {
+ const E=require("../dist/pilehead/engine.js");
+ const game=E.create({players:3,seed:20261124});
+ E.start(game);
+ const zones=[game.stock,game.pile,game.ashes,
+   ...game.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const source=zones.find(arr=>arr.some(card=>card.action==="dump"));
+ assert.ok(source,"DUMP test fixture has an action card");
+ const index=source.findIndex(card=>card.action==="dump");
+ [source[index],game.people[0].hand[0]]=[game.people[0].hand[0],source[index]];
+ game.turn=0;game.limit=null;game.pile.push(game.stock.pop());
+ E.invariant(game);
+ const context=await browser.newContext({viewport:{width:390,height:844},
+   isMobile:true,hasTouch:true,reducedMotion:"reduce"});
+ await context.addInitScript(saved=>localStorage.setItem("stack-next-local-save-v1",
+   JSON.stringify({version:1,game:saved})),game);
+ const page=await context.newPage();
+ try{
+   await page.goto(WEB+"/play");
+   await page.getByRole("button",{name:"Resume game"}).click();
+   await page.getByRole("button",{name:/^DUMP:/}).first().click();
+   await page.getByRole("button",{name:/Play cards/}).click();
+   const target=page.getByRole("button",{name:"Send the pile to Bot 2"});
+   assert.equal(await target.isVisible(),true,
+     "targetable real opponent seat is visible and accessible");
+   await target.click();
+   await page.waitForFunction(()=>
+     JSON.parse(localStorage.getItem("stack-next-local-save-v1"))?.game?.events?.at(-1)?.target===2,
+     null,{timeout:6000});
+   assert.equal((await readGame(page)).events.at(-1).target,2,
+     "clicking a seat sends DUMP to that exact player");
+   console.log("PASS Next DUMP: chosen seat matches authoritative recipient");
+ }finally{await context.close()}
+}
+
+async function armMotionCapture(page) {
+ await page.evaluate(() => {
+  window.__stackMotionSamples=[];
+  const capture=() => {
+   for(const el of document.querySelectorAll(".move-story-overlay")){
+    const key=el.dataset.kind+":"+el.dataset.move;
+    if(window.__stackMotionSamples.some(x=>x.key===key)) continue;
+    const sigil=el.querySelector(".move-story-sigil");
+    const caption=el.querySelector(".move-story-caption");
+    const transfer=el.querySelector(".move-story-transfer");
+    window.__stackMotionSamples.push({
+     key,kind:el.dataset.kind,
+     animation:sigil?getComputedStyle(sigil).animationName:"",
+     caption:caption?.textContent||"",hasTransfer:!!transfer,
+     transferAnimation:transfer?getComputedStyle(transfer).animationName:null,
+     transferBackCount:transfer?.querySelectorAll(".playing-card.is-back").length||0,
+     flightCount:el.querySelectorAll(".move-story-flight").length
+    });
+   }
+  };
+  new MutationObserver(capture).observe(document.body,{childList:true,subtree:true});
+  capture();
+ });
+}
 async function sharedMoveAnimationScenarios(browser) {
  const E=require("../dist/pilehead/engine.js");
  const actions=["burn","dump","under","reset","ghost"];
  for(const [i,action] of actions.entries()){
+  if(process.env.STACK_MOTION_ACTION && process.env.STACK_MOTION_ACTION!==action) continue;
   const g=E.create({players:2,seed:20261123+i});
   E.start(g);
   const destination=g.people[0].hand, zones=[g.stock,g.pile,g.ashes,
@@ -788,7 +879,10 @@ async function sharedMoveAnimationScenarios(browser) {
    // Observe before committing. The semantic cue is intentionally short and
    // must never be extended just to satisfy a slower headless test runner.
    const theater=page.locator('.move-story-overlay[data-kind="'+action+'"]');
-   const observed=theater.waitFor({timeout:6000});
+   await armMotionCapture(page);
+   const observed=page.waitForFunction(kind =>
+     window.__stackMotionSamples?.some(scene => scene.kind === kind),
+     action,{timeout:6000});
    await page.getByRole("button",{name:/Play cards/}).click();
    await observed.catch(async error => {
      const diagnostic = await page.evaluate(() => {
@@ -798,6 +892,7 @@ async function sharedMoveAnimationScenarios(browser) {
          savedPhase: saved?.phase, savedMove: saved?.moves,
          savedLastEvent: saved?.events?.at(-1),
          visibleMove: document.querySelector(".game-meta h1")?.textContent,
+         captured: window.__stackMotionSamples,
          scenes: [...document.querySelectorAll(".move-story-overlay")]
            .map(el => ({kind:el.getAttribute("data-kind"),move:el.getAttribute("data-move")})),
          pile: document.querySelectorAll(".pile-slot.played .pile-layer").length
@@ -806,26 +901,21 @@ async function sharedMoveAnimationScenarios(browser) {
      console.error("Motion test diagnostic", action, JSON.stringify(diagnostic));
      throw error;
    });
-   assert.equal(await theater.locator(".move-story-flight").count(),0,
+   await page.waitForFunction(kind =>
+     window.__stackMotionSamples?.some(scene => scene.kind === kind),
+     action,{timeout:6000});
+   const measured=await page.evaluate(kind =>
+     window.__stackMotionSamples.find(scene => scene.kind === kind),action);
+   assert.equal(measured.flightCount,0,
      "the committed action card is already on the table");
-   const measured=await theater.evaluate(el=>{
-     const sigil=el.querySelector(".move-story-sigil");
-     const caption=el.querySelector(".move-story-caption");
-     const transfer=el.querySelector(".move-story-transfer");
-     return{animation:getComputedStyle(sigil).animationName,
-       caption:caption.textContent,hasTransfer:!!transfer,
-       transferAnimation:transfer?getComputedStyle(transfer).animationName:null};
-   });
-   await page.screenshot({
-     path:path.resolve(ROOT,"artifacts/next/motion-"+action+"-390.png"),fullPage:true
-   });
+   await page.screenshot({path:path.resolve(ROOT,"artifacts/next/motion-"+action+"-390.png"),fullPage:true});
    assert.match(measured.animation,/stack-stable-(sigil|ghost|reset)/,
      "effect markers should be short and bound to the real table");
    assert.match(measured.caption,action==="under"?/^1–4$/:new RegExp(action.toUpperCase(),"i"));
    assert.ok(measured.caption.length<=6,"effect cue contains no instructional prose");
    if(["burn","dump"].includes(action)){
      assert.ok(measured.hasTransfer,action+" should move the public pile");
-     assert.equal(await theater.locator(".move-story-transfer .playing-card.is-back").count(),1,
+     assert.equal(measured.transferBackCount,1,
        "public transfer is an opaque silhouette, not a duplicated played card");
      assert.match(measured.transferAnimation,/stack-stable-transfer/);
    }else assert.equal(measured.hasTransfer,false,
@@ -843,6 +933,7 @@ async function sharedMoveAnimationScenarios(browser) {
    console.log("PASS Next motion: "+action.toUpperCase()+" visible card movement and effect");
   }finally{await context.close()}
  }
+ if(process.env.STACK_MOTION_ACTION && process.env.STACK_MOTION_ACTION!=="normal") return;
  // Ordinary plays should update the actual pile without visual replay.
  const normal=E.create({players:2,seed:20261188});
  E.start(normal);
@@ -863,20 +954,28 @@ async function sharedMoveAnimationScenarios(browser) {
  try{
   await quietPage.goto(WEB+"/play");
   await quietPage.getByRole("button",{name:"Resume game"}).click();
-  const rank=hand.find(card=>card.kind==="number"&&card.rank<10).rank;
+  const playedCard=hand.find(card=>card.kind==="number"&&card.rank<10);
+  const rank=playedCard.rank;
   await quietPage.getByRole("button",{name:"Number "+rank,exact:true}).first().click();
   await quietPage.getByRole("button",{name:/Play cards/}).click();
   await quietPage.waitForFunction(()=>
     JSON.parse(localStorage.getItem("stack-next-local-save-v1"))?.game?.moves>=1);
   assert.equal(await quietPage.locator(".move-story-overlay").count(),0,
     "ordinary play should have no ghost scene");
-  assert.equal(await quietPage.locator(".pile-slot.played .pile-layer").count(),1,
-    "real played card appears exactly once");
+  const committedCard=quietPage.locator('.pile-slot.played .pile-layer [data-card-id="'+playedCard.id+'"]');
+  assert.equal(await committedCard.count(),1,
+    "our committed card appears exactly once, even if the bot played afterward");
   assert.equal(await quietPage.locator(".event-banner").count(),0);
-  const moving=await quietPage.locator(".player-hand .playing-card").first().evaluate(el=>
-    el.getAnimations().filter(anim=>anim.effect?.getKeyframes().some(frame=>
-      frame.transform!==undefined)).length);
-  assert.equal(moving,0,"hand cards never spring/shake after a committed move");
+  assert.equal(await committedCard.getAttribute("data-arrival-motion"), "1",
+    "the actual committed card animates from its old position, not a duplicate overlay");
+  // Refill must move only the newly drawn *real* hand card. Existing hand
+  // positions must remain stable while the refill is in flight.
+  await quietPage.locator('.player-hand [data-draw-motion="1"]').first().waitFor({timeout:2500});
+  const movingExisting=await quietPage.locator(".player-hand .playing-card").evaluateAll(nodes =>
+    nodes.filter(node=>!node.hasAttribute("data-draw-motion")).some(node=>
+      node.getAnimations().some(animation=>animation.effect?.getKeyframes().some(frame=>
+        frame.transform!==undefined))));
+  assert.equal(movingExisting,false,"existing hand cards never spring/shake during refill");
   console.log("PASS Next stable normal play: one card, zero ghost flights");
  }finally{await quiet.close()}
  // Force an illegal blind card without leaking its identity before the flip.
@@ -1153,14 +1252,37 @@ async function main() {
       const response = await fetch(WEB + route);
       assert.equal(response.status, 200, "single-server route must work: " + route);
     }
-    const classic = await (await fetch(WEB + "/pilehead/index.html")).text();
-    assert.match(classic, /Pilehead|STACK/i, "Classic must still be available");
+    const legacy = await fetch(WEB + "/pilehead/index.html?room=ABCDEFGH", {redirect:"manual"});
+    assert.equal(legacy.status,308);
+    assert.equal(legacy.headers.get("location"),"/play?room=ABCDEFGH");
     const main = await (await fetch(WEB + "/")).text();
-    assert.ok(!main.includes('id="__next"'), "root must remain the original Classic landing");
+    assert.match(main, /_next\/static\//, "root must be the Next homepage");
     const html = await (await fetch(WEB + "/play")).text();
     assert.match(html, /_next\/static\//, "Next scripts must be included");
     browser = await chromium.launch({ headless: true });
-    console.log("PASS one Render server: Classic, /stack, /play, Next assets and API use one origin");
+    console.log("PASS one Render server: /stack, /play, Next assets and API use one origin");
+    // Select a focused browser scenario on a slower, self-hosted sandbox.
+    // With no selection, keep the complete production acceptance unchanged.
+    const selected=process.env.STACK_ACCEPTANCE_SCENARIO;
+    if(selected){
+      const scenarios={
+        local:()=>localScenarios(browser),
+        motion:()=>sharedMoveAnimationScenarios(browser),
+        dump:()=>dumpSeatTargetScenario(browser),
+        online:()=>onlineScenarios(browser,apiProc),
+        onlineSeats:()=>onlineMixedSeatScenarios(browser),
+        seats:()=>seatLayoutScenarios(browser),
+        hand:()=>adaptiveHandFitScenarios(browser),
+        rematch:()=>localStarterAndRematchScenario(browser),
+        interrupts:()=>localInterruptParityScenarios(browser),
+        mixed:()=>mixedBotScenarios(browser),
+        recovery:()=>abandonedRoomScenario(browser)
+      };
+      if(!Object.hasOwn(scenarios,selected)) throw Error("Unknown STACK browser scenario: "+selected);
+      await scenarios[selected]();
+      return;
+    }
+
     await sameOriginNavigation(browser);
     await endgameSettingsAndBridge(browser);
     await localScenarios(browser);
@@ -1171,6 +1293,7 @@ async function main() {
     await localInterruptParityScenarios(browser);
     await onlineScenarios(browser, apiProc);
     await onlineMixedSeatScenarios(browser);
+    await dumpSeatTargetScenario(browser);
     await sharedMoveAnimationScenarios(browser);
     await mixedBotScenarios(browser);
     await abandonedRoomScenario(browser);

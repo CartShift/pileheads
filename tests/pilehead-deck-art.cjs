@@ -3,8 +3,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const root=path.join(__dirname,'..'),read=x=>fs.readFileSync(path.join(root,x),'utf8');
 const engine=require('../dist/pilehead/engine.js');
 const artCode=read('dist/pilehead/deck-art.js'),css=read('dist/pilehead/deck-art.css');
-const index=read('dist/pilehead/index.html'),gallery=read('dist/pilehead/gallery.html'),print=read('dist/pilehead/print.html');
-const local=read('dist/pilehead/app.js'),online=read('dist/pilehead/online.js'),fx=read('dist/pilehead/immersive.js');
+const gallery=read('dist/pilehead/gallery.html'),print=read('dist/pilehead/print.html');
+const fx=read('dist/pilehead/immersive.js');
 const vercel=read('scripts/build-vercel.mjs');
 const sandbox={};new vm.Script(artCode,{filename:'deck-art.js'}).runInNewContext(sandbox);
 const A=sandbox.PileheadCardArt;
@@ -58,19 +58,7 @@ check('opponent miniatures use normal ranks and action identities',()=>{
  assert.match(A.mini({kind:'action',action:'dump'}),/data-action="dump"/);
  assert.match(A.mini(null),/ph-mini-back/);
 });
-check('UI loads artwork once before local, multiplayer and presentation modules',()=>{
- assert.match(index,/href="deck-art\.css"/);
- assert.ok(index.indexOf('src="deck-art.js"')<index.indexOf('src="immersive.js"'));
- assert.ok(index.indexOf('src="deck-art.js"')<index.indexOf('src="app.js"'));
- assert.ok(index.indexOf('src="deck-art.js"')<index.indexOf('src="online.js"'));
-});
-check('both interactive controllers share graphics; no game rules modified',()=>{
- for(const code of [local,online]){
-  assert.match(code,/PileheadCardArt/);
-  assert.match(code,/A\.face\(c\)/);assert.match(code,/A\.back\(\)/);
-  assert.match(code,/A\.mini/);
-  assert.doesNotThrow(()=>new vm.Script(code));
- }
+check('shared lab presentation can parse and use the art module',()=>{
  assert.match(fx,/PileheadCardArt/);assert.doesNotThrow(()=>new vm.Script(fx));
 });
 check('print pages use the same artwork rather than legacy mock cards',()=>{
@@ -83,7 +71,6 @@ check('gallery includes ten numerical and six action designs plus one back',()=>
  assert.match(gallery,/href="deck-art\.css"/);assert.match(gallery,/src="deck-art\.js"/);
  assert.match(gallery,/length:10/);assert.match(gallery,/Object\.keys\(E\.ACTIONS\)/);
  assert.match(gallery,/A\.face\(c\)/);assert.match(gallery,/A\.back\(\)/);
- assert.match(index,/href="gallery\.html"/);
 });
 check('Vercel includes shared deck assets',()=>{
  for(const name of ['deck-art.js','deck-art.css','gallery.html'])assert.ok(vercel.includes(name),name);
@@ -116,9 +103,8 @@ check('action labels accurately document the game instead of suggesting other ef
  assert.match(A.art('under'),/>1–4</,'UNDER explicitly shows the allowed numbers');
 });
 check('STACK is the visible identity while keeping legacy URLs and logic',()=>{
- assert.match(index,/STACK \| The Card Game/);
- assert.match(gallery,/STACK \/ DECK LAB/);
- assert.match(print,/<h1>STACK<\/h1>/);
+ assert.match(gallery,/EVERY CARD<br>HAS A ROLE/);assert.match(gallery,/stack-home-logo-web\.webp/);
+ assert.match(print,/<h1>PRINT THE DECK\.<\/h1>/);assert.match(print,/stack-home-logo-web\.webp/);
  assert.match(css,/#f6f0e3/i);
 });
 check('approved infographic rank palettes, colored corners and 3D geometry',()=>{

@@ -30,21 +30,6 @@ check('three-player games keep SKIP and legacy two-player rounds retain old iden
  E.invariant(legacy);
  assert.equal(E.effectiveDeck(legacy).length,54);
 });
-check('both original controllers inspect only the publicly played pile', () => {
- for(const file of ['dist/pilehead/app.js','dist/pilehead/online.js']){
-  const code=read(file);
-  assert.match(code,/function pileInspector\(/);
-  assert.match(code,/pile-inspect-grid/);
-  assert.match(code,/data-do="inspect-pile"/);
-  assert.match(code,/data-do="close-pile"/);
-  assert.match(code,/\.map\(c=>card\(c\)\)/);
-  assert.match(code,/function blindOverlay\(/);
-  assert.match(code,/pile-blind-reveal/);
-  assert.match(code,/is-invalid/);
- }
- const online=read('dist/pilehead/online.js');
- assert.doesNotMatch(online,/blindRevealBanner\(/,'text reveal banner must not duplicate pile reveal');
-});
 check('the API exposes face-down flips and public pile without the draw deck or opponent hands', () => {
  const code=read('api/pilehead.js');
  assert.match(code,/blindReveal:g\.blindReveal/);
@@ -75,10 +60,6 @@ check('React table renders flip and invalid flash directly on the pile, not a se
   assert.match(motionCore,/advanceCursor/);
 });
 check('shared animations respect reduced motion and serialize invalid flip before pile pickup', () => {
- const css=read('dist/pilehead/table-feedback.css');
- assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
- assert.match(css,/stack-blind-red/);
- assert.match(css,/pilehead-special-ring/);
  const reactCss=read('apps/web/app/globals.css');
  assert.match(reactCss,/stack-stable-flip/);
  assert.match(reactCss,/stack-stable-transfer/);

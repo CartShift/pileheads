@@ -3,20 +3,9 @@ on:
   workflow_dispatch:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
-  # Keep verifying direct main pushes while this private repository has no branch protection.
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/**'
-      - 'api/**'
-      - 'apps/web/**'
-      - 'dist/**'
-      - 'scripts/**'
-      - 'tests/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'render.yaml'
-      - 'vercel.json'
+  # Run heavy browser acceptance for ready PRs, and on explicit dispatch.
+  # Main still receives fast checks and the Render production smoke workflow.
+  # Avoid repeating the whole browser suite after a reviewed PR is merged.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
@@ -24,11 +13,11 @@ permissions:
   contents: read
 jobs:
   full:
-    name: 'STACK full: Classic, React, multiplayer'
+    name: 'STACK full: React, multiplayer'
     # A draft PR gets fast feedback; ready_for_review automatically runs this
     # entire suite. A new commit to a ready PR reruns it against that commit.
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
-    runs-on: ubuntu-24.04
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 18
     steps:
       - name: Check out repository
@@ -48,7 +37,7 @@ jobs:
           fi
           # Actions checks out refs/pull/<id>/merge: first parent is base main.
           changed=$(git diff --name-only HEAD^1 HEAD) || exit 1
-          if printf '%s\n' "$changed" | grep -Eq '^(\.github/workflows/|api/|apps/web/|dist/|scripts/|tests/|package(-lock)?\.json$|render\.yaml$|vercel\.json$)'; then
+          if printf '%s\n' "$changed" | grep -Eq '^(\.github/workflows/|\.circleci/|bitrise\.yml$|api/|packages/|apps/web/|dist/|scripts/|tests/|package(-lock)?\.json$|render\.yaml$|vercel\.json$)'; then
             echo 'run_full=true' >> "$GITHUB_OUTPUT"
           else
             echo 'run_full=false' >> "$GITHUB_OUTPUT"
@@ -63,50 +52,24 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             apps/web/package-lock.json
-      - name: Install locked dependencies once
+      - name: Install locked dependencies
         if: steps.scope.outputs.run_full == 'true'
-        run: |
-          npm ci --no-audit --no-fund
-          npm ci --prefix apps/web --no-audit --no-fund
-      - name: Typecheck React
+        run: npm run ci:install
+      - name: Run shared full CI core
         if: steps.scope.outputs.run_full == 'true'
-        run: npm run typecheck --prefix apps/web
-      - name: Build production Classic and React bundle
-        if: steps.scope.outputs.run_full == 'true'
-        run: npm run build
-      - name: Run all engine, game rules, API and UI regressions
-        if: steps.scope.outputs.run_full == 'true'
-        run: npm test
-      - name: Verify single-origin server and deployment
-        if: steps.scope.outputs.run_full == 'true'
-        run: node tests/stack-single-service.cjs
+        run: npm run ci:full-core
       - name: Cache pinned Chromium headless shell
         if: steps.scope.outputs.run_full == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
           key: stack-playwright-1.56.1-headless-${{ runner.os }}
-      - name: Install browser runner and headless Chromium once
+      - name: Set up pinned browser runner
         if: steps.scope.outputs.run_full == 'true'
-        run: |
-          npm install --no-save --no-audit --no-fund playwright@1.56.1
-          npx playwright install --with-deps --only-shell chromium
-      - name: Exercise Classic desktop/mobile browser and live multiplayer
+        run: npm run ci:browser-setup
+      - name: Run shared browser acceptance
         if: steps.scope.outputs.run_full == 'true'
-        run: |
-          node tests/pilehead-browser.cjs
-          node tests/pilehead-live-browser.cjs
-      - name: Exercise React desktop/mobile browser and live multiplayer
-        if: steps.scope.outputs.run_full == 'true'
-        run: node tests/stack-next-browser.cjs
-      - name: Save Classic browser failure screenshots
-        if: failure() && steps.scope.outputs.run_full == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: stack-classic-browser-failure
-          path: artifacts/browser/
-          if-no-files-found: ignore
-          retention-days: 7
+        run: npm run ci:browser-test
       - name: Save React tabletop screenshots
         if: always() && steps.scope.outputs.run_full == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

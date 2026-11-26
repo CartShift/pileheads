@@ -27,7 +27,32 @@ function tone(ctx: AudioContext, frequency: number, when: number, length: number
   oscillator.start(when);
   oscillator.stop(when + length + 0.025);
 }
+const brandedSounds: Partial<Record<SoundEffect, string>> = {
+  play: "play", burn: "burn", snap: "snap", dump: "dump", reset: "reset",
+  ghost: "ghost", under: "under", skip: "skip", win: "victory"
+};
+const cuePlayers = new Map<string, HTMLAudioElement>();
+const failedCues = new Set<string>();
+function playBranded(effect: SoundEffect): boolean {
+  const name = brandedSounds[effect];
+  if (!name || typeof Audio === "undefined" || failedCues.has(name)) return false;
+  try {
+    let audio = cuePlayers.get(name);
+    if (!audio) {
+      audio = new Audio("/pilehead/assets/sound-v2/" + name + ".mp3");
+      audio.preload = "auto";
+      audio.volume = 0.45;
+      if (!audio.canPlayType("audio/mpeg")) return false;
+      cuePlayers.set(name, audio);
+    }
+    audio.currentTime = 0;
+    void audio.play().catch(() => { failedCues.add(name); });
+    return true;
+  } catch { failedCues.add(name); return false; }
+}
 export function playSound(effect: SoundEffect) {
+  if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+  if (playBranded(effect)) return;
   const ctx = context();
   if (!ctx) return;
   const start = ctx.currentTime + 0.004;

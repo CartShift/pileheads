@@ -1,6 +1,9 @@
 {
-  "buildCommand": "node scripts/build-vercel.mjs",
+  "buildCommand": "npm run build",
   "outputDirectory": "vercel-static",
+  "git": {
+    "deploymentEnabled": false
+  },
   "headers": [
     {
       "source": "/(.*)",

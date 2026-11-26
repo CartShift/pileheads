@@ -6,7 +6,10 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/**'
+      - '.circleci/**'
+      - 'bitrise.yml'
       - 'api/**'
+      - 'packages/**'
       - 'apps/web/**'
       - 'dist/**'
       - 'docs/**'
@@ -24,8 +27,8 @@ permissions:
   contents: read
 jobs:
   test:
-    name: 'STACK fast: engine, API, types and Classic'
-    runs-on: ubuntu-24.04
+    name: 'STACK fast: engine, API, types and shared assets'
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 8
     steps:
       - name: Check out repository
@@ -41,19 +44,6 @@ jobs:
             package-lock.json
             apps/web/package-lock.json
       - name: Install locked dependencies
-        run: |
-          npm ci --no-audit --no-fund
-          npm ci --prefix apps/web --no-audit --no-fund
-      - name: Verify React types (without a production build)
-        run: npm run typecheck --prefix apps/web
-      - name: Run deterministic engine, API, UI and rules regression tests
-        run: npm test
-      - name: Build only the Classic static bundle
-        run: npm run build:classic
-      - name: Verify Classic publish boundaries
-        run: |
-          test -f vercel-static/index.html
-          test -f vercel-static/pilehead/index.html
-          test -f vercel-static/pilehead/assets/stack-sheet.webp
-          test ! -e vercel-static/tilt
-          test ! -e vercel-static/engine-v5.js
+        run: npm run ci:install
+      - name: Run shared fast checks
+        run: npm run ci:fast

@@ -1,21 +1,20 @@
 # STACK Motion & UX: implementation audit and visual contract
 
-_Last source review: 2026-11-23. Production Classic and React are different renderers over the same authoritative game rules._
+_Reconciled 2026-11-26: React is the sole supported web frontend. Legacy Classic references below are historical._
 
 ## Active code paths
 
 | Surface | Owner | Current behavior | QA |
 |---|---|---|---|
-| Core moves and card conservation | `dist/pilehead/engine.js` | Sole deterministic local rules and bot logic; no animation authority | `tests/pilehead-engine.cjs`, `pilehead-physics.cjs`, room tests |
+| Core moves and card conservation | `packages/game-engine` (generated `dist/pilehead/engine.js`) | Sole deterministic local rules and bot logic; no animation authority | `tests/pilehead-engine.cjs`, `pilehead-physics.cjs`, room tests |
 | Private online rooms | `api/pilehead.js`, `scripts/realtime-hub.cjs` | Revisioned Neon commits, authenticated WebSockets, polling fallback; server redacts private hands | `tests/pilehead-online.cjs`, `pilehead-realtime-contract.cjs`, `stack-next-browser.cjs` |
-| Classic | `dist/pilehead/app.js`, `online.js`, `immersive.js`, `table-feedback.css` | Maintained 2D physical tabletop. Separate presentation from React | Classic browser acceptance and UI tests |
 | React table | `apps/web/components/game-table.tsx` | Immediate authoritative card placement, adaptive hand packing, 2–5 seats, input handling and optional SFX | React browser acceptance |
 | React motion contract | `apps/web/lib/motion-core.cjs` | Pure event classification, identity cursor, transfer/target/count contract, sound cursor | `tests/pilehead-motion-director.cjs` |
 | React motion renderer | `apps/web/components/move-theater.tsx` | One latest committed effect, DOM-positioned targets, cancellation on new event/game/visibility/resize, quiet ordinary moves | `tests/stack-next-browser.cjs` |
 | Motion CSS | `apps/web/app/globals.css` | Current `.move-story-stable` rules, non-blocking transform/opacity flights, reduced motion, hand stability | Browser screenshot artifacts and reduced-motion checks |
 | Sound | `apps/web/lib/sound.ts` | Short original synthesized effects; disabled until player opts in | Pure event-cursor tests, preference checks |
 
-The superseded React `react-special-ring`, `react-pickup-transfer`, `react-blind-reveal`, `move-story-flight` and `move-story-refill` presentation paths were removed in #77. Do **not** remove Classic styles just because they have similar names. Existing base `move-story-*` CSS is still intentionally inherited or overridden by `.move-story-stable`; removing it without computed-style acceptance would be unsafe.
+The superseded React `react-special-ring`, `react-pickup-transfer`, `react-blind-reveal`, `move-story-flight` and `move-story-refill` presentation paths were removed in #77. Classic-only presentation has since been retired. Existing base `move-story-*` CSS is still intentionally inherited or overridden by `.move-story-stable`; removing it without computed-style acceptance would be unsafe.
 
 ## Event lifecycle and precedence
 

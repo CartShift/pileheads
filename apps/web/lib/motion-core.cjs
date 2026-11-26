@@ -74,7 +74,7 @@ function fromCommittedEvent(event) {
     ? (validCount(event.erodedCount) ?? 0) : 0;
 
   return Object.freeze({
-    kind, label: snapBurn ? "SNAP + BURN" : spec.label, symbol: spec.symbol,
+    kind, label: event.type === "counter-dump" ? "COUNTER DUMP" : snapBurn ? "SNAP + BURN" : spec.label, symbol: spec.symbol,
     // The top-card erosion must visibly finish BEFORE the remaining pile
     // moves. Longer presentation never postpones turns, and a newer move
     // can safely dismiss the older effect.
@@ -102,7 +102,9 @@ function advanceCursor(previous, input) {
   const old = previous || { key: "", move: 0 };
   const key = String(input.gameKey || "");
   const move = Number.isSafeInteger(input.moveNo) ? input.moveNo : 0;
-  if (old.key !== key || input.phase !== "play")
+  // A real final action still deserves its committed feedback. First-load
+  // finished games never replay because the cursor is initialized at moveNo.
+  if (old.key !== key || !["play", "over"].includes(input.phase))
     return { cursor: { key, move }, cue: null, clear: true };
 
   if (move <= old.move) return {

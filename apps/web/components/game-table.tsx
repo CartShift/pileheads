@@ -7,6 +7,7 @@ import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { createPortal } from "react-dom";
 import { playSound } from "../lib/sound";
 import MoveTheater, { type MotionLevel } from "./move-theater";
+import { useCommittedCardTravel } from "../lib/use-committed-card-travel";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
 const MotionAudio = require("../lib/motion-core.cjs") as {
   fromCommittedEvent: (event: Event) => { kind: string; destination: string | null } | null;
@@ -20,11 +21,10 @@ import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomG
 
 type Mode = "home" | "local" | "online";
 const ACTIONS = ["reset", "ghost", "under", "skip", "burn", "dump"];
-const classicHref = "/pilehead/index.html";
 const ACTION_DESCRIPTIONS: Record<string, string> = {
   reset: "Any number can follow", ghost: "Keep the current restriction",
   under: "Next number must be 1–4", skip: "Skip the next player's turn",
-  burn: "Burn the pile and play again", dump: "Give the pile to any opponent"
+  burn: "Burn the pile and play again", dump: "Give the pile to any opponent; they can counter with their own DUMP"
 };
 const SAVE_KEY = "stack-next-local-save-v1";
 const THEME_KEY = "stack-next-deck-theme-v1";
@@ -32,7 +32,7 @@ const SOUND_KEY = "stack-next-sound-enabled-v1";
 const PRACTICE_KEY = "stack-next-practice-mode-v1";
 const FINAL_DUEL_KEY = "stack-final-duel-default-v1";
 type EndgameRule = "classic" | "final-duel";
-type DeckTheme = "characters" | "original";
+type DeckTheme = "refined" | "characters" | "original";
 type HandSort = "dealt" | "asc" | "desc";
 function orderedHand(cards: Card[], mode: HandSort) {
   if (mode === "dealt") return cards;
@@ -107,6 +107,7 @@ function asLocalRoom(game: Game): RoomGame {
     endgameRule: game.endgameRule === "final-duel" ? "final-duel" : "classic",
     stockCount: game.stock.length, pile: game.pile, ashesCount: game.ashes.length,
     limit: game.limit, pendingDump: game.pendingDump || null,
+    pendingCounter: game.pendingCounter ? { seat: game.pendingCounter.seat, attacker: game.pendingCounter.attacker, count: game.pendingCounter.ids.length } : null,
     finishedOrder: game.finishedOrder, loser: game.loser,
     players: game.people.map(p => ({
       seat: p.seat, out: p.out, up: p.up, handCount: p.hand.length, hand: p.hand,
@@ -124,7 +125,7 @@ function asLocalRoom(game: Game): RoomGame {
   };
 }
 
-function PlayingCard({ card, hidden = false, selected = false, small = false, onClick, onDrop, disabled = false, theme = "characters",
+function PlayingCard({ card, hidden = false, selected = false, small = false, onClick, onDrop, disabled = false, theme = "refined",
   description, offsetX = 0 }: {
   card?: Card; hidden?: boolean; selected?: boolean; small?: boolean; theme?: DeckTheme;
   onClick?: () => void; onDrop?: () => void; disabled?: boolean; description?: string; offsetX?: number;
@@ -134,7 +135,7 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
     : -1;
   const gesture = useRef<{x: number; y: number; moved: boolean} | null>(null);
   const blockClick = useRef(false);
-  const [floating, setFloating] = useState<{x: number; y: number} | null>(null);
+  const [floating, setFloating] = useState<{x: number; y: number; touch: boolean} | null>(null);
   function pointerDown(e: ReactPointerEvent<HTMLButtonElement>) {
     if (!onDrop || e.button !== 0) return;
     blockClick.current = false;
@@ -144,9 +145,10 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
   function pointerMove(e: ReactPointerEvent<HTMLButtonElement>) {
     const start = gesture.current;
     if (!start) return;
-    if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) < 8) return;
+    if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) <
+        (e.pointerType === "touch" ? 12 : 8)) return;
     start.moved = true;
-    setFloating({ x: e.clientX, y: e.clientY });
+    setFloating({ x: e.clientX, y: e.clientY, touch: e.pointerType === "touch" });
   }
   function pointerUp(e: ReactPointerEvent<HTMLButtonElement>) {
     const start = gesture.current;
@@ -166,7 +168,8 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
   } : {};
   return (
     <div
-      className={`playing-card theme-${theme} ${hidden ? "is-back" : ""} ${selected ? "is-selected" : ""} ${small ? "is-small" : ""} ${onClick && !disabled ? "is-interactive" : ""}`}
+      className={`playing-card theme-${theme} ${hidden ? "is-back" : ""} ${selected ? "is-selected" : ""} ${floating ? "is-dragging" : ""} ${small ? "is-small" : ""} ${onClick && !disabled ? "is-interactive" : ""}`}
+      data-card-id={card?.id}
       style={offsetX ? {left: offsetX} : undefined}>
       <div aria-hidden="true" className="card-art" style={faceStyle} />
       {onClick && !disabled ? (
@@ -186,7 +189,7 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
           }} />
       ) : null}
       {floating && createPortal(
-        <div className={"drag-ghost theme-" + theme}
+        <div className={"drag-ghost theme-" + theme + (floating.touch ? " is-touch" : "")}
           style={{left:floating.x,top:floating.y}} aria-hidden="true">
           <div className="card-art" style={faceStyle} />
         </div>, document.body)}
@@ -194,12 +197,18 @@ function PlayingCard({ card, hidden = false, selected = false, small = false, on
   );
 }
 
-function PlayerPosition({ name, seat, active, self, out, handCount, up, downCount, presence, reaction }: {
+function PlayerPosition({ name, seat, active, self, out, handCount, up, downCount, presence, reaction, theme, targetable = false, onTarget, onInspect }: {
   name: string; seat: number; active: boolean; self: boolean; out: boolean;
-  handCount: number; up: Card[]; downCount: number; presence?: string; reaction?: string;
+  handCount: number; up: Card[]; downCount: number; presence?: string; reaction?: string; theme: DeckTheme;
+  targetable?: boolean; onTarget?: () => void; onInspect?: () => void;
 }) {
-  return <div className={`opponent-seat ${active ? "seat-active" : ""} ${out ? "seat-out" : ""}`}
-    data-seat={seat} aria-label={`${name}: ${handCount} in hand, ${up.length} face-up, ${downCount} face-down`}>
+  return <div className={`opponent-seat theme-${theme} ${active ? "seat-active" : ""} ${out ? "seat-out" : ""} ${targetable ? "is-dump-target" : ""}`}
+    data-seat={seat} role={targetable ? "button" : undefined} tabIndex={targetable ? 0 : undefined}
+    onClick={targetable ? onTarget : undefined}
+    onKeyDown={targetable ? event => {
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onTarget?.(); }
+    } : undefined}
+    aria-label={targetable ? `Send the pile to ${name}` : `${name}: ${handCount} in hand, ${up.length} face-up, ${downCount} face-down`}>
     <div className="seat-heading">
       <span className="avatar" aria-hidden="true">{self ? "Y" : String(seat + 1)}</span>
       <div><strong>{name}</strong><small>{out ? "Finished" : presence === "offline" ? "Offline" :
@@ -213,13 +222,21 @@ function PlayerPosition({ name, seat, active, self, out, handCount, up, downCoun
       {!handCount && <span className="empty-seat">No hand cards</span>}
     </div>
     <div className="opponent-up">
-      {Array.from({ length: Math.max(up.length, downCount) }, (_, i) =>
-        <div className="mini-pair" key={i}>
+      {Array.from({ length: Math.max(up.length, downCount) }, (_, i) => {
+        const card = up[i];
+        const artIndex = card?.kind === "number" ? (card.rank ?? 1) - 1 :
+          card ? 10 + ACTIONS.indexOf(card.action || "") : -1;
+        return <div className="mini-pair" key={i}>
           {i < downCount && <span className="mini-back" />}
-          {up[i] && <span className="mini-face" title={cardLabel(up[i])}>
-            {up[i].kind === "number" ? up[i].rank : up[i].action?.slice(0, 1).toUpperCase()}
-          </span>}
-        </div>)}
+          {card && <span className={`mini-face theme-${theme}`} data-card-id={card.id}
+            title={cardLabel(card)} aria-label={cardLabel(card)}
+            style={{ backgroundPosition: `${(artIndex % 4) * 100 / 3}% ${Math.floor(artIndex / 4) * 100 / 3}%` }} />}
+        </div>;
+      })}
+      {!targetable && up.length > 0 && onInspect &&
+        <button className="opponent-inspect-hit" type="button"
+          aria-label={`${name} face-up cards`} title="Inspect visible cards"
+          onClick={onInspect} />}
     </div>
   </div>;
 }
@@ -239,7 +256,7 @@ export default function GameTable() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [resumeGame, setResumeGame] = useState<Game | null>(null);
-  const [deckTheme, setDeckTheme] = useState<DeckTheme>("characters");
+  const [deckTheme, setDeckTheme] = useState<DeckTheme>("refined");
   const [handSort, setHandSort] = useState<HandSort>("dealt");
   const handStageRef = useRef<HTMLDivElement | null>(null);
   const [handArea, setHandArea] = useState({ width: 0, cardWidth: 0 });
@@ -252,6 +269,21 @@ export default function GameTable() {
   const [coachDismissed, setCoachDismissed] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [pileOpen, setPileOpen] = useState(false);
+  const [inspectSeat, setInspectSeat] = useState<number | null>(null);
+  const inspectCloseRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (inspectSeat === null) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    inspectCloseRef.current?.focus();
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setInspectSeat(null);
+    };
+    document.addEventListener("keydown", escape);
+    return () => {
+      document.removeEventListener("keydown", escape);
+      previousFocus?.focus();
+    };
+  }, [inspectSeat]);
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -342,7 +374,7 @@ export default function GameTable() {
     const savedName = localStorage.getItem("stack-next-display-name");
     if (savedName) setName(savedName);
     const savedTheme = localStorage.getItem(THEME_KEY);
-    if (savedTheme === "characters" || savedTheme === "original") setDeckTheme(savedTheme);
+    if (savedTheme === "refined" || savedTheme === "characters" || savedTheme === "original") setDeckTheme(savedTheme);
     setResumeGame(loadSavedGame());
     setSoundEnabled(localStorage.getItem(SOUND_KEY) === "true");
     setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
@@ -654,6 +686,8 @@ export default function GameTable() {
     height: `${cardHeight + Math.max(0, handRows - 1) * handRowStep}px`
   };
   const lastEvent = g?.events.at(-1);
+  useCommittedCardTravel({ gameKey: visualGameKey, moveNo: g?.moves ?? 0,
+    phase: g?.phase ?? "setup", pile: g?.pile ?? [], event: lastEvent, me, motionLevel });
   useEffect(() => {
     const decision = MotionAudio.advanceSoundCursor(soundCursor.current, {
       gameKey: visualGameKey, moveNo: g?.moves ?? 0,
@@ -680,7 +714,7 @@ export default function GameTable() {
     lastEvent?.move, lastEvent?.seat, lastEvent?.reason, lastEvent?.burned, lastEvent?.type]);
   const stage = current ? current.handCount || g?.stockCount ? "hand" :
     current.up.length ? "up" : current.downCount ? "down" : "out" : "out";
-  const active = g?.phase === "play" && g.turn === me && !g.pendingDump;
+  const active = g?.phase === "play" && g.turn === me && !g.pendingDump && !g.pendingCounter;
   // Match Classic: bridge only when the full final hand is homogeneous and
   // matching face-up cards exist. No other face-up selection is legal.
   const bridgeCard = active && g?.stockCount === 0 && stage === "hand" && current?.hand?.length &&
@@ -931,19 +965,15 @@ export default function GameTable() {
   }
 
   if (!g || !current) return (
-    <main className="game-shell">
-      <header className="game-header"><Link href="/stack" className="logo">STACK<span>.</span></Link>
-        <span className="beta-tag">NEXT TABLE · PREVIEW</span></header>
+    <main className="game-shell stack-lobby">
+      <header className="lobby-masthead"><nav className="stack-site-nav" aria-label="Main navigation"><Link href="/stack" className="stack-site-brand" aria-label="STACK home" prefetch={false}><img src="/stack-media/stack-home-logo-web.webp" alt="STACK" width={220} height={185}/></Link><div className="stack-site-links"><a href="/stack">Home</a><a className="stack-nav-primary" href="/play" aria-current="page">Play online</a><a href="/pilehead/gallery.html">The deck</a><a href="/pilehead/playtest.html">How to play</a><a href="/pilehead/print.html">Print</a></div></nav></header>
       <section className="entry">
         <div className="entry-intro"><div className="eyebrow">WELCOME TO THE TABLE</div>
           <h1>One pile.<br /><em>One loser.</em></h1>
-          <p>Play the real STACK rules with a refreshed, tactile React tabletop. Your original Classic game stays untouched.</p>
-          <a href={classicHref} className="subtle-link">Open original Classic ↗</a>
-          <button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>
-            Game settings
-          </button>
+          <p>Play free with bots or invite friends to a private table. One pile, clever moves and a little friendly revenge.</p>
+          <div className="lobby-facts"><span>2–5 players</span><span>Free to play</span><span>No account</span></div><div className="lobby-art" aria-hidden="true"><span className="lobby-card lobby-burn"/><span className="lobby-card lobby-dump"/><span className="lobby-card lobby-ghost"/><img src="/stack-media/stack-home-explorer-web-mobile.webp" width={360} height={452} alt="" decoding="async"/></div><div className="lobby-links"><button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>Game settings</button></div>
         </div>
-        <div className="entry-options">
+        <div className="entry-options"><h2 className="lobby-choice-heading">Choose your table<span>.</span></h2>
           {resumeGame && <div className="resume-panel">
             <div><div className="eyebrow">SAVED LOCAL MATCH</div>
               <strong>Pick up where you left off</strong>
@@ -952,7 +982,7 @@ export default function GameTable() {
             <button className="secondary-button" onClick={resumeLocal}>Resume game</button>
           </div>}
           <div className="mode-card">
-            <div className="eyebrow">PRACTICE</div><h2>Play with bots</h2>
+            <div className="eyebrow">01 · PRACTICE</div><h2>Play with bots</h2>
             <p>Local, instant, no account required.</p>
             <label>Players <select value={players} onChange={e => setPlayers(Number(e.target.value))}>
               {[2, 3, 4, 5].map(n => <option key={n} value={n}>{n} players</option>)}
@@ -961,7 +991,7 @@ export default function GameTable() {
             <button className="learn-button" onClick={() => startLocalGame(true)}>Learn with a bot</button>
           </div>
           <div className="mode-card">
-            <div className="eyebrow">WITH FRIENDS</div><h2>Private room</h2>
+            <div className="eyebrow">02 · WITH FRIENDS</div><h2>Private room</h2>
             <p>Invite real players, fill empty seats with bots.</p>
             <label>Your name <input maxLength={24} value={name} onChange={e => setName(e.target.value)} /></label>
             <div className="field-pair"><label>Humans <select value={onlineHumans} onChange={e => setOnlineHumans(Number(e.target.value))}>
@@ -971,12 +1001,13 @@ export default function GameTable() {
             </select></label></div>
             <button className="cta" disabled={busy || !name.trim()} onClick={() => void createOnlineRoom()}>
               {busy ? "Connecting…" : "Create a room"} <span aria-hidden>→</span></button>
-            <div className="join-row"><input aria-label="Room code" maxLength={8} placeholder="8-letter room code"
+            <div className="lobby-join-label">Already have an invite?</div><div className="join-row"><input aria-label="Room code" maxLength={8} placeholder="8-letter room code"
               value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} />
               <button disabled={busy || joinCode.length !== 8 || !name.trim()} onClick={() => void joinOnlineRoom()}>Join</button></div>
           </div>
         </div>
       </section>
+      <footer className="lobby-footer"><span>STACK · The card game with character.</span><a href="/pilehead/playtest.html">Read the rules ↗</a></footer>
       {notice && <div className="alert" role="status">{notice}</div>}
       {showSettings && <div className="modal-backdrop" onClick={() => setShowSettings(false)}>
         <section className="game-modal" role="dialog" aria-label="Game settings" aria-modal="true"
@@ -1002,7 +1033,15 @@ export default function GameTable() {
   );
 
   const liveSeats = g.players.filter(p => !p.out && p.seat !== me).map(p => p.seat);
+  const inspectedOpponent = inspectSeat === null ? null : g.players.find(p => p.seat === inspectSeat);
   const canPlay = !!legal.find(m => m.type === "play" && m.source !== "down" && identicalIds(m.ids || [], selection));
+  const choosingDumpTarget = (needsTarget || g.pendingDump?.seat === me) && !busy;
+  const chooseDumpSeat = (seat: number) => {
+    if (g.pendingDump?.seat === me) {
+      if (mode === "local") commitLocal(game => Engine.resolveDump(game, me, seat));
+      else if (room) void submit({ action: "dump-target", code: room.code, revision: room.revision, target: seat });
+    } else if (needsTarget) playSelected(seat);
+  };
   const canTake = legal.some(m => m.type === "take");
   const rule = g.limit?.type === "under" ? "Next number: 1–4" : g.limit?.type === "min"
     ? `Next number: ${g.limit.value} or higher` : "Any number can follow";
@@ -1025,7 +1064,7 @@ export default function GameTable() {
   return (
     <main className="game-shell">
       <header className="game-header">
-        <Link href="/stack" className="logo">STACK<span>.</span></Link>
+        <Link href="/stack" className="logo stack-site-brand" aria-label="STACK home"><img src="/stack-media/stack-home-logo-web.webp" alt="STACK" width={220} height={185}/></Link>
         <div className="game-head-actions">
           {room && <button className={"room-code " + (copiedInvite ? "is-copied" : "")}
             onClick={() => void copyInvite()}
@@ -1034,13 +1073,12 @@ export default function GameTable() {
           {mode === "online" && <span className={`connection-chip ${connected ? "is-online" : "is-offline"}`}
             title={`Last sync: ${lastSyncAt.current ? new Date(lastSyncAt.current).toLocaleTimeString() : "pending"}`}
             role="status">{connected ? "Live" : "Reconnecting"}</span>}
-          <span className="beta-tag">REACT TABLE · PREVIEW</span>
           <button className="exit-button" onClick={() => setShowRules(true)}>Rules</button>
           <button className="exit-button" onClick={() => setShowSettings(true)}>Settings</button>
           <label className="theme-control">Deck
             <select aria-label="Deck style" value={deckTheme}
               onChange={e => setDeckTheme(e.target.value as DeckTheme)}>
-              <option value="characters">Characters</option><option value="original">Original</option>
+              <option value="refined">Illustrated V2</option><option value="characters">Characters (classic)</option><option value="original">Original</option>
             </select>
           </label>
           <button className="exit-button" onClick={leaveTable}>Leave table</button>
@@ -1063,11 +1101,13 @@ export default function GameTable() {
         "online:" + room?.code + ":" + g.round}
         moveNo={g.moves} phase={g.phase} events={g.events} blindReveal={g.blindReveal} me={me}
         theme={deckTheme} nameForSeat={nameForSeat} motionLevel={motionLevel} />
-      <div className="tabletop" role="region" aria-label="STACK card game">
+      <div className={`tabletop theme-${deckTheme}`} role="region" aria-label="STACK card game">
         <div className="table-texture" aria-hidden="true" />
         <div className="opponents-row">
           {g.players.filter(p => p.seat !== me).map(p =>
-            <PlayerPosition key={p.seat} seat={p.seat} name={nameForSeat(p.seat)} self={false} out={p.out}
+            <PlayerPosition key={p.seat} seat={p.seat} theme={deckTheme} name={nameForSeat(p.seat)} self={false} out={p.out}
+              targetable={choosingDumpTarget && !p.out} onTarget={() => chooseDumpSeat(p.seat)}
+              onInspect={() => setInspectSeat(p.seat)}
               active={g.phase === "play" && g.turn === p.seat}
               handCount={p.handCount} up={p.up} downCount={p.downCount}
               presence={room?.members.find(m => m.seat === p.seat)?.presence}
@@ -1168,7 +1208,7 @@ export default function GameTable() {
         {g.phase === "over" && <motion.section className="results-overlay"
           initial={{opacity:0, y:20, scale:.96}}
           animate={{opacity:1,y:0,scale:1}}
-          transition={{type:"spring",stiffness:220,damping:25}}
+          transition={{type:"spring",stiffness:220,damping:25,delay:.32}}
           role="region" aria-label="Round results">
           <div className="eyebrow">ROUND COMPLETE</div>
           <h2>{g.loser === me ? "You're the PILEHEAD!" : "You escaped the pile!"}</h2>
@@ -1185,6 +1225,30 @@ export default function GameTable() {
         </motion.section>}
       </div>
 
+      {inspectedOpponent && <div className="react-pile-backdrop"
+        onClick={() => setInspectSeat(null)}>
+        <section className="react-pile-panel" role="dialog" aria-modal="true"
+          aria-label={`${nameForSeat(inspectedOpponent.seat)} face-up cards`}
+          onClick={event => event.stopPropagation()}
+          onKeyDown={event => {
+            if (event.key === "Tab") { event.preventDefault(); inspectCloseRef.current?.focus(); }
+          }}>
+          <header>
+            <div><strong>{nameForSeat(inspectedOpponent.seat)} · VISIBLE CARDS</strong>
+              <small>{inspectedOpponent.up.length} face-up · {inspectedOpponent.downCount} face-down · {inspectedOpponent.handCount} in hand</small></div>
+            <button className="secondary-button" type="button" ref={inspectCloseRef}
+              onClick={() => setInspectSeat(null)}>Close</button>
+          </header>
+          <div className="react-pile-grid opponent-inspect-grid">
+            {inspectedOpponent.up.length ? inspectedOpponent.up.map(card =>
+              <div className="react-pile-item" key={card.id}>
+                <PlayingCard card={card} theme={deckTheme} />
+                <small>{card.kind === "number" ? String(card.rank) : card.action?.toUpperCase()}</small>
+              </div>) : <p>No face-up cards remain.</p>}
+          </div>
+          <p>Only publicly visible cards are shown. Hands and face-down cards stay private.</p>
+        </section>
+      </div>}
       {pileOpen && <div className="react-pile-backdrop" onClick={() => setPileOpen(false)}>
          <section className="react-pile-panel" role="dialog" aria-modal="true" aria-label="All played pile cards"
            onClick={e => e.stopPropagation()}>
@@ -1221,6 +1285,14 @@ export default function GameTable() {
             <button className="primary-button" disabled={busy}
               onClick={() => setConfirmRestart(true)}>Play another round</button>
           </div>
+        </div> : g.pendingCounter ? <div className="setup-controls">
+          {g.pendingCounter.seat === me ? <>
+            <div><strong>COUNTER DUMP</strong><p>Return {g.pendingCounter.count} cards to {nameForSeat(g.pendingCounter.attacker)} and take the next turn.</p></div>
+            <div className="button-group">
+              <button className="primary-button" disabled={busy || !g.legal.some(m => m.type === "counter-dump")} onClick={() => { const m = g.legal.find(m => m.type === "counter-dump"); if (m) playMove(m); }}>Counter DUMP</button>
+              <button className="secondary-button" disabled={busy} onClick={() => playMove({type:"counter-pass"})}>Keep cards</button>
+            </div>
+          </> : <div><strong>Waiting for {nameForSeat(g.pendingCounter.seat)}</strong><p>Resolving the DUMP.</p></div>}
         </div> : g.pendingDump?.seat === me ? <div className="setup-controls">
           <div><strong>Choose who takes the pile</strong><p>DUMP can target any active opponent.</p></div>
           <div className="button-group">{liveSeats.map(seat =>
@@ -1331,8 +1403,8 @@ export default function GameTable() {
           </div>
         </section>
       </div>}
-      <div className="table-footer"><span>STACK · React tabletop migration preview</span>
-        <a href={classicHref}>Original Classic ↗</a></div>
+      <div className="table-footer"><span>STACK · The digital tabletop</span>
+        </div>
     </main>
   );
 }
