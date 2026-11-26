@@ -667,6 +667,9 @@ async function onlineScenarios(browser, server) {
     server.send({ type: "finish", code });
     await host.getByRole("button", { name: "Play another round" }).waitFor({ timeout: 16000 });
     await host.getByRole("region", { name: "Round results" }).waitFor();
+    assert.equal(await host.locator(".results-standings li[data-self=\"true\"]").count(),1);
+    assert.equal(await host.locator(".results-overlay h2").evaluate(el=>document.activeElement===el),true,
+      "newly finished round focuses the result without stealing focus during hydration");
     const resultsGeometry = await host.evaluate(() => {
       const table = document.querySelector(".tabletop").getBoundingClientRect();
       const result = document.querySelector(".results-overlay").getBoundingClientRect();
@@ -883,8 +886,18 @@ async function guidedPracticeScenario(browser) {
     await page.getByRole("heading",{name:"Your move."}).waitFor();
     const coaching=await page.getByRole("complementary",{name:"Learning coach"}).innerText();
     assert.match(coaching,/select a card/i,"coach teaches a real opening move");
+    const coach=page.getByRole("complementary",{name:"Learning coach"});
+    assert.equal(await coach.getAttribute("data-coach-step"),"first");
+    await page.locator(".player-hand .card-hit").first().click();
+    assert.match(await coach.getAttribute("data-coach-step"),/^(confirm|burn|dump)$/);
+    await page.getByRole("button",{name:/Clear 1/}).click();
+    assert.equal(await coach.getAttribute("data-coach-step"),"first");
     await page.getByRole("button",{name:"Hide tips"}).click();
     assert.equal(await page.getByRole("complementary",{name:"Learning coach"}).count(),0);
+    await page.getByRole("button",{name:"Settings"}).click();
+    await page.getByRole("checkbox",{name:/Practice tips/}).check();
+    await page.getByRole("button",{name:"Back to table"}).click();
+    assert.equal(await coach.getAttribute("data-coach-step"),"first");
     console.log("PASS Next practice: guided first move, one bot, dismissible coaching");
   } finally {await context.close()}
 }
@@ -1279,6 +1292,8 @@ async function localStarterAndRematchScenario(browser) {
   try {
     await replay.goto(WEB+"/play");
     await replay.getByRole("button",{name:"Resume game"}).click();
+    assert.equal(await replay.locator(".results-overlay").getAttribute("data-outcome"),"escaped");
+    assert.equal(await replay.locator(".results-standings li[data-self=\"true\"]").count(),1);
     await replay.getByRole("button",{name:"Play another round"}).click();
     await replay.getByRole("button",{name:"Deal again"}).click();
     await replay.waitForFunction(()=>{
