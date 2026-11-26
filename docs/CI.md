@@ -45,3 +45,41 @@ Full browser tests run their own local servers, and the multiplayer fixtures rep
 When branch protection becomes available, protect `main`, require pull requests and **both** exact status checks above, and disallow bypass/direct pushes. Until then, never merge a PR with a skipped, pending or failed full check. In particular, do not merge a Draft PR before marking it ready and seeing full green results.
 
 CI time is measured from GitHub's actual workflow runs, not estimated from test count. Caching only saves time on cache hits, so compare cold and warm runs separately.
+
+
+## Provider-neutral fallback
+
+The canonical commands are now `node scripts/ci.mjs fast` and
+`node scripts/ci.mjs full-core`. The latter covers the production build
+and single-service check, **not** the browser acceptance suite. GitHub
+Actions retains the existing trigger policy, browser tests, artifact
+collection and Render release checks. Do not treat a fallback result as
+a substitute for the full browser gate.
+
+| Provider | Default responsibility |
+| --- | --- |
+| GitHub Actions | Existing automatic PR gates and production sync |
+| Bitrise | Manual fast fallback today; native mobile builds when native projects exist |
+| CircleCI | Manual fast fallback |
+| OpenDev/local | Run the same script without consuming hosted CI allowance |
+
+- Bitrise: after merging, select repository-managed `bitrise.yml` in the
+  Bitrise project's configuration settings (the current hosted configuration
+  is separate). Run `run_tests` manually against the intended branch.
+  Automatic triggers are intentionally absent. Node uses version prefix
+  `24`, not `24.x`, because Bitrise's mise runtime installer rejects the latter.
+  The existing Elite Linux machine is retained until a supported lower-cost
+  machine is confirmed. Verify the workspace allowance before running.
+- CircleCI: connect the repository and explicitly trigger a pipeline with
+  boolean parameter `run_fallback=true`. The default false skips the workflow;
+  disable automatic pipeline triggers in project settings if appropriate.
+- Local: from the repository root, use the same Node 24 commands.
+
+Do not enable the same automatic checks on multiple providers. Record cold
+and warm build durations and actual quota consumption before changing the
+default provider. Native mobile and OTA release workflows remain out of
+scope until the React Native project and release requirements exist.
+
+The fallback configuration is not a deployment pipeline. The existing
+Classic-specific checks reflect the current main branch and must be
+updated together with the planned Classic retirement.
