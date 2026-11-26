@@ -235,7 +235,7 @@ async function brandCaptureScenarios(browser) {
       await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.images].map(i=>i.decode().catch(()=>{})))});
       assert.match(await page.title(),/PILEHEADS/);
       assert.equal(await page.getByRole("link",{name:"PILEHEADS home",exact:true}).count(),1);
-      assert.doesNotMatch(await page.locator("body").innerText(),/\\bSTACK\\b/);
+      assert.doesNotMatch(await page.locator("body").innerText(),/\bSTACK\b/);
       await page.screenshot({path:path.join(dir,"pileheads-marketing-"+name+".png"),fullPage:true,animations:"disabled"});
     }finally{await context.close()}
   }
