@@ -37,7 +37,7 @@ jobs:
           fi
           # Actions checks out refs/pull/<id>/merge: first parent is base main.
           changed=$(git diff --name-only HEAD^1 HEAD) || exit 1
-          if printf '%s\n' "$changed" | grep -Eq '^(\.github/workflows/|api/|apps/web/|dist/|scripts/|tests/|package(-lock)?\.json$|render\.yaml$|vercel\.json$)'; then
+          if printf '%s\n' "$changed" | grep -Eq '^(\.github/workflows/|api/|packages/|apps/web/|dist/|scripts/|tests/|package(-lock)?\.json$|render\.yaml$|vercel\.json$)'; then
             echo 'run_full=true' >> "$GITHUB_OUTPUT"
           else
             echo 'run_full=false' >> "$GITHUB_OUTPUT"

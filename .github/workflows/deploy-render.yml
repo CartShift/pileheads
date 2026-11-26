@@ -8,6 +8,8 @@ on:
     # Do not redeploy Render for documentation, tests or CI-only updates.
     paths:
       - 'api/**'
+      - 'packages/**'
+      - 'scripts/sync-game-engine.cjs'
       - 'apps/web/**'
       - 'dist/**'
       - 'scripts/build-integrated.mjs'

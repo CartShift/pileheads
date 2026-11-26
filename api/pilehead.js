@@ -1,6 +1,6 @@
 'use strict';
 /* PILEHEAD public room API. Server is authoritative and hands are seat-private. */
-const crypto=require('node:crypto'),E=require('../dist/pilehead/engine.js');let client;
+const crypto=require('node:crypto'),E=require('../packages/game-engine');let client;
 function db(){if(!process.env.PILEHEAD_DATABASE_URL)throw error(503,'online_not_configured');return client||(client=require('@neondatabase/serverless').neon(process.env.PILEHEAD_DATABASE_URL))}
 function query(s,args=[]){return db().query(s,args)}
 function error(status,code){return Object.assign(Error(code),{status,code})}

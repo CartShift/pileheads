@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import engineBundle from './sync-game-engine.cjs';
+engineBundle.sync({check:true});
 
 // Only publish assets used by the current STACK game. The /api/pilehead
 // Render serves the resulting files through scripts/render-server.cjs;

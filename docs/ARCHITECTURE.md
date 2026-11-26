@@ -32,8 +32,9 @@ In online rooms, the **server** validates legal actions and controls the current
 
 ### One canonical engine
 
-- `dist/pilehead/engine.js` contains the deterministic rules and bot logic.
-- The Next app synchronizes it into its browser build through `apps/web/scripts/sync-assets.mjs`, avoiding a second implementation of the rules.
+- `packages/game-engine` owns rules, bot policy, versioned local snapshots, injected clock and shared types. The Node entry is free of browser global assignment.
+- `dist/pilehead/engine.js` is a generated compatibility bundle; regenerate with `npm run sync:engine`, check with `npm run check:engine`.
+- The Next app generates the same bundle into its browser build through `apps/web/scripts/sync-assets.mjs`, avoiding a second implementation of the rules.
 - `api/pilehead.js` validates online moves with the engine, rather than trusting commands to contain a game state.
 - Seeded simulations make unusual loops, endgames and balance changes reproducible.
 
@@ -84,3 +85,9 @@ The live environment and real two-device gameplay require their own verification
 5. **Physical + digital products:** card artwork and physical rules remain important. Browser tests do not validate how an actual printed deck feels or how people understand the rules face-to-face.
 
 For implementation details, see [online protocol](pilehead-online.md), [Next integration](nextjs-migration.md), [Render hosting](render-hosting.md), and [rules](pilehead-design.md).
+
+## Mobile roadmap
+
+See [mobile implementation plan](MOBILE-IMPLEMENTATION-PLAN.md). Native clients import the shared package; online views remain server-redacted. The initial npm workspace covers packages only; web retains its existing locked install until the Expo workspace migration is validated.
+
+The [shared room protocol](../packages/game-protocol/README.md) contains only seat-redacted DTO types. The Next adapter re-exports these; its fetch, storage and browser lifecycle remain platform-specific. No transport or API contract change is introduced in Phase 1.

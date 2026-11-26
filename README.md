@@ -46,8 +46,8 @@ Read the [architecture overview](docs/ARCHITECTURE.md), [engineering case study]
 **Requirements:** Node.js 24 and npm.
 
 ```bash
-git clone https://github.com/yotamon/spark-card-game.git
-cd spark-card-game
+git clone https://github.com/CartShift/pileheads.git
+cd pileheads
 npm ci
 npm test
 npm run build
@@ -69,7 +69,9 @@ See [`apps/web/README.md`](apps/web/README.md) for the local API origin setup, a
 
 ```text
 apps/web/                  Next.js + TypeScript tabletop
-dist/pilehead/             Original cards, shared engine, rules and lab
+packages/game-engine/      Canonical rules, bots, local snapshots and shared types
+packages/game-protocol/    Shared seat-redacted multiplayer DTOs (types only)
+dist/pilehead/             Original cards, generated browser engine, rules and lab
 api/pilehead.js            Authoritative online room commands and state
 scripts/render-server.cjs  Single-origin Node server
 scripts/realtime-hub.cjs   WebSocket room updates
@@ -81,10 +83,15 @@ render.yaml                Render service blueprint
 
 The `dist/pilehead/` directory contains **maintained source code**, despite its historical name. Build output goes into the ignored `vercel-static/` folder. Existing `/pilehead/` URLs and internal `PILEHEAD` identifiers are retained for compatibility.
 
+## Mobile roadmap
+
+See [Mobile & cross-platform implementation plan](docs/MOBILE-IMPLEMENTATION-PLAN.md) and [shared game engine](packages/game-engine/README.md). Android/iOS are planned; no native app is released yet.
+
 ## Development and verification
 
 ```bash
 npm test                            # Project regression suite
+npm run test:engine-parity          # Explicit comparison to pre-extraction Git baseline
 npm run build                       # Next static export and shared assets
 npm run typecheck --prefix apps/web # React TypeScript check
 npm run simulate -- 120 4 20261113  # Reproducible bot simulation
