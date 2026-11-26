@@ -22,3 +22,6 @@ From this review branch, run `python3 scripts/import-production-rc3-art.py /path
 
 ## Open physical and brand gates
 Native vector trace is approximate; keep approved raster primary. RC3 caption typography, retouched front packaging visual sign-off, typography/color sign-off, manufacturer dieline/stock/ICC/physical proof, real photography, trademark and legal marking clearance remain open. No factory-ready status is implied by RGB proofs.
+
+## RC3 binary integration
+The 13 mapped paths are integrated in a single review-branch commit. The 11 unique Git blobs were verified against the local RC3 exports. Cache versions and SHA-256 regression assertions are updated together. CI, browser review and live deployment remain separate gates. The importer remains available for reproducibility; it need not be rerun on this commit.
