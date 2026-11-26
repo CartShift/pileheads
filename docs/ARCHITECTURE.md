@@ -86,6 +86,10 @@ The live environment and real two-device gameplay require their own verification
 
 For implementation details, see [online protocol](pilehead-online.md), [Next integration](nextjs-migration.md), [Render hosting](render-hosting.md), and [rules](pilehead-design.md).
 
+## Active experience roadmap
+
+[Game Experience 4.0](GAME-EXPERIENCE-MASTER-PLAN.md) prioritizes web quality, modular client boundaries and real-device acceptance before new native clients or broad competitive expansion. Its proposed component boundaries are not yet implemented architecture.
+
 ## Mobile roadmap
 
 See [mobile implementation plan](MOBILE-IMPLEMENTATION-PLAN.md). Native clients import the shared package; online views remain server-redacted. The initial npm workspace covers packages only; web retains its existing locked install until the Expo workspace migration is validated.
