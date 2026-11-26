@@ -326,6 +326,26 @@ async function localScenarios(browser) {
       await cancellable.click();
       assert.equal(await cancellable.getAttribute("aria-pressed"),"false",
         "subsequent taps retain normal selection behavior");
+      // Interrupt an actual mouse drag by releasing pointer capture while
+      // the mouse remains down. A later pointer-up over the pile must be inert.
+      if(!device.mobile){
+        const source=await cancellable.boundingBox(), pile=await target.boundingBox();
+        assert.ok(source&&pile);
+        await page.mouse.move(source.x+source.width/2,source.y+source.height/2);
+        await page.mouse.down();
+        await page.mouse.move(pile.x+pile.width/2,pile.y+pile.height/2,{steps:8});
+        await page.locator(".drag-ghost").waitFor();
+        await cancellable.evaluate(el=>{if(el.hasPointerCapture(1))el.releasePointerCapture(1);});
+        // Chromium dispatches lostpointercapture at the next pointer event.
+        await page.mouse.move(pile.x+pile.width/2+1,pile.y+pile.height/2);
+        await page.locator(".drag-ghost").waitFor({state:"detached"});
+        await page.mouse.up();
+        assert.equal((await readGame(page)).moves,0,"lost capture cannot commit a move");
+        await cancellable.click();
+        assert.equal(await cancellable.getAttribute("aria-pressed"),"true","new pointer gesture works after capture loss");
+        await cancellable.click();
+        assert.equal(await cancellable.getAttribute("aria-pressed"),"false");
+      }
       await page.getByRole("button", { name: "Rules" }).click();
       await page.getByRole("dialog", { name: "PILEHEADS quick rules" }).waitFor();
       assert.ok(await page.getByText("Final Duel:", { exact: false }).count(), "rules explain duel");
