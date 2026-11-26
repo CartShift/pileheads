@@ -12,6 +12,7 @@ import ActionDock from "./action-dock";
 import { playSound } from "../lib/sound";
 import MoveTheater, { type MotionLevel } from "./move-theater";
 import { useCommittedCardTravel } from "../lib/use-committed-card-travel";
+import { useRoundChoreography } from "../lib/use-round-choreography";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
 const MotionAudio = require("../lib/motion-core.cjs") as {
   fromCommittedEvent: (event: Event) => { kind: string; destination: string | null } | null;
@@ -203,6 +204,7 @@ export default function GameTable() {
   const undoRef = useRef<Game | null>(null);
   const roomEpoch = useRef(0);
   const soundCursor = useRef({key:"",move:0});
+  const freshDealKey = useRef<string | null>(null);
   // A successful blind flip animates only on a *new committed move*, never when
   // resuming an old local game or reconnecting to an existing online room.
   const blindMotionCursor = useRef({ key: "", move: 0 });
@@ -270,6 +272,8 @@ export default function GameTable() {
     try {
       const next = await requestRoom(payload, noAuth ? null : tokenRef.current);
       if (epoch !== roomEpoch.current) return;
+      if (payload.action === "create" && next.game.phase === "setup")
+        freshDealKey.current = "online:" + next.code + ":" + next.game.round;
       applyRoom(next);
       setSelection([]); setSwapHand(null); setNeedsTarget(false);
     } catch (err) {
@@ -564,6 +568,9 @@ export default function GameTable() {
     height: `${cardHeight + Math.max(0, handRows - 1) * handRowStep}px`
   };
   const lastEvent = g?.events.at(-1);
+  useRoundChoreography({gameKey: visualGameKey, roomCode: room?.code ?? null,
+    phase: g?.phase ?? "home", moveNo: g?.moves ?? 0, turn: g?.turn ?? -1,
+    freshDeal: freshDealKey.current === visualGameKey, motionLevel});
   useCommittedCardTravel({ gameKey: visualGameKey, moveNo: g?.moves ?? 0,
     phase: g?.phase ?? "setup", pile: g?.pile ?? [], event: lastEvent, me, motionLevel });
   useEffect(() => {
@@ -699,6 +706,7 @@ export default function GameTable() {
     setPracticeMode(withCoach);
     setCoachDismissed(false);
     const game = createGame(seatCount ?? (withCoach ? 2 : players), endgameRule, previousWinner, withCoach);
+    freshDealKey.current = "local:" + game.seed;
     localRef.current = game;
     undoRef.current = null; setUndoAvailable(false);
     setLocal(game); setRoom(null); setMode("local"); setSelection([]); setNotice("");
@@ -714,6 +722,7 @@ export default function GameTable() {
     roomEpoch.current++;
     const saved = loadSavedGame();
     if (!saved) { setResumeGame(null); setNotice("Saved game is unavailable."); return; }
+    freshDealKey.current = null;
     localRef.current = saved; undoRef.current = null; setUndoAvailable(false);
     setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
     setEndgameRule(saved.endgameRule === "final-duel" ? "final-duel" : "classic");
@@ -725,6 +734,7 @@ export default function GameTable() {
   function leaveTable() {
     roomEpoch.current++;
     if (wsRef.current) wsRef.current.close();
+    freshDealKey.current = null;
     setMode("home"); setLocal(null); setRoom(null); roomRef.current = null;
     tokenRef.current = null; setBusy(false); inFlight.current = false;
     setConnected(false); setConfirmRestart(false); setShowRules(false); setPileOpen(false);
@@ -995,10 +1005,10 @@ export default function GameTable() {
           onSort={() => setHandSort(order => order === "dealt" ? "asc" : order === "asc" ? "desc" : "dealt")}
           handSort={handSort} handStageRef={handStageRef} handCount={handCount} handLayout={handLayout}
           handRows={handRows} handColumns={handColumns} handCards={handCards} lastRowShift={lastRowShift} swapHand={swapHand} />
-        {g.phase === "over" && <motion.section className="results-overlay"
-          initial={{opacity:0, y:20, scale:.96}}
+        {g.phase === "over" && <motion.section className="results-overlay" data-outcome={g.loser === me ? "loss" : "win"}
+          initial={motionLevel === "reduced" ? false : {opacity:0, y:20, scale:.96}}
           animate={{opacity:1,y:0,scale:1}}
-          transition={{type:"spring",stiffness:220,damping:25,delay:.32}}
+          transition={motionLevel === "reduced" ? {duration:0} : {type:"spring",stiffness:220,damping:25,delay:.32}}
           role="region" aria-label="Round results">
           <div className="eyebrow">ROUND COMPLETE</div>
           <h2>{g.loser === me ? "You're the PILEHEAD!" : "You escaped the pile!"}</h2>
