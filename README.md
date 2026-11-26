@@ -4,9 +4,9 @@
 
 PILEHEADS is an original, 54-card shedding game for 2–5 players. It combines a printable deck, fast tactical interruptions, bot opponents and private online multiplayer. The browser experience is built to feel like playing with real cards, while the rules engine remains the source of truth.
 
-[**Play online**](https://stack-card-game-t7vx.onrender.com/play) · [**See the deck gallery**](https://stack-card-game-t7vx.onrender.com/pilehead/gallery.html) · [**Read the engineering case study**](docs/CASE-STUDY.md)
+[**Play online**](https://pileheads.com/play) · [**See the deck gallery**](https://pileheads.com/pilehead/gallery.html) · [**Read the engineering case study**](docs/CASE-STUDY.md)
 
-> **Project status:** Active product/playtest project, not a commercial release. Hosted demo availability and real-device multiplayer acceptance must be verified separately from automated tests. The Render free tier may sleep between visits.
+> **Project status:** Active product/playtest project, not a commercial release. Hosted demo availability and real-device multiplayer acceptance must be verified separately from automated tests. The canonical playtest is hosted on Vercel; Render is retained as a fallback until real-device acceptance.
 
 ![PILEHEADS illustrated card faces, arranged as a 4 × 4 deck sprite sheet](dist/pilehead/assets/stack-characters.webp)
 
@@ -34,7 +34,7 @@ The 54-card deck has 40 number cards (1–10, four of each) and six kinds of act
 | **Multiplayer** | Server-authoritative room API, revision-based concurrency control and private player views |
 | **Real-time** | Authenticated WebSocket room updates and reactions, with HTTP polling fallback |
 | **Persistence** | Neon PostgreSQL for rooms, seats and session state |
-| **Deployment** | One Node.js 24 service on Render, serving the Next frontend and the same-origin API |
+| **Deployment** | Vercel static Next.js export and same-origin Node.js 24 HTTP/WebSocket functions; Render fallback |
 | **Quality** | Automated engine, rules, multiplayer, privacy, responsive/browser and deployment regression checks |
 
 **A key design constraint:** animations cannot change game outcomes. Card moves are committed by the engine or server first; visual effects render the resulting events. This matters particularly for time-sensitive SNAP and SLAM interactions.
@@ -63,7 +63,7 @@ npm ci --prefix apps/web
 npm run dev --prefix apps/web
 ```
 
-See [`apps/web/README.md`](apps/web/README.md) for the local API origin setup, and [`docs/render-hosting.md`](docs/render-hosting.md) for server configuration. **Never commit `PILEHEAD_DATABASE_URL` or other credentials.**
+See [`apps/web/README.md`](apps/web/README.md) for the local API origin setup, and [`docs/vercel-hosting.md`](docs/vercel-hosting.md) for canonical hosting configuration. **Never commit `PILEHEAD_DATABASE_URL` or other credentials.**
 
 ## Repository guide
 
@@ -75,6 +75,8 @@ dist/pilehead/             Original cards, generated browser engine, rules and l
 api/pilehead.js            Authoritative online room commands and state
 scripts/render-server.cjs  Single-origin Node server
 scripts/realtime-hub.cjs   WebSocket room updates
+api/pilehead/live.mjs      Vercel WebSocket entry point
+scripts/smoke-live.cjs     Deployed multiplayer acceptance
 scripts/                   Build, production probes and simulations
 tests/                     Engine, privacy, UX and integration regressions
 docs/                      Rules, architecture, experiments and release notes
@@ -107,7 +109,7 @@ GitHub Actions additionally exercises browser interactions and integrated HTTP/W
 
 PILEHEADS is an independent game-design and full-stack product-development project by [Yotam](https://github.com/yotamon), exploring how physical game mechanics translate into intuitive, fair and expressive digital multiplayer experiences.
 
-For the product story, technical decisions and trade-offs, start with the [case study](docs/CASE-STUDY.md). Before making the repository public, review the [publication checklist](docs/PUBLIC-RELEASE-CHECKLIST.md).
+For the product story, technical decisions and trade-offs, start with the [case study](docs/CASE-STUDY.md). For the public repository, review the [publication checklist](docs/PUBLIC-RELEASE-CHECKLIST.md).
 
 **Code and artwork licensing:** No open-source license is currently granted. Unless stated otherwise, all rights are reserved.
 
