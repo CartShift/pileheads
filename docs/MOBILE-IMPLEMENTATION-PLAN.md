@@ -1,12 +1,15 @@
 # PILEHEADS / STACK — Mobile & cross-platform implementation master plan
 
-Status: approved direction, Phase 1 draft implementation; acceptance pending. Last updated: 2026-11-26.
+Status: approved direction; shared-core Phase 1 merged in #101; release/device acceptance pending. Native Phase 2+ is deferred until the web quality gate in [Game Experience 4.0](GAME-EXPERIENCE-MASTER-PLAN.md) (GE-09) is accepted. Shared core maintenance can continue. Last updated: 2026-11-26.
 Owner: product/engineering. Internal repository and package identifiers remain STACK until branding/domain/store IDs are confirmed. This is the living roadmap; mark a task done only with a commit and evidence. Do not confuse a proposed target with a shipped feature.
 
 ## Product vision and principles
 Physical deck, instant-play web and native Android/iOS are three entry points to one game and community. QR/invite links open the installed app or fall back to playable web. Guest-first, offline bots, server-authoritative cross-play, fair competitive play, cosmetic-only monetization, accessible retro comic identity, low operational overhead. No WebView-only port, new game engine, second multiplayer backend, microservices, free-text public chat at launch, aggressive ads, or pay-to-win. Start with one matchmaking pool until population supports more.
 
 ## Baseline and dependencies
+
+Current main at fa6074f: Next /play is the sole supported tabletop; Classic retired, #90 Counter Dump and #101 shared core merged. See [current experience audit](GAME-EXPERIENCE-MASTER-PLAN.md) for evidence and deployment blocker. The following original planning baseline is historical, not current status.
+
 Main at ea5d940148d7d8b7f3fec71b4372c0c57e043dd7: deterministic JavaScript engine in dist/pilehead/engine.js, Classic browser UI, Next.js static export (apps/web; React 19, TS, Motion), Node 24 Render service, /api/pilehead HTTP authoritative moves + authenticated /api/pilehead/live WebSockets and polling fallback, Neon PostgreSQL room persistence. Existing deck assets and sound are canonical. Classic dist is maintained source, not disposable build output. PR #90 Counter Dump, #91 commercial foundation (guest profiles, OIDC, entitlements, test checkout, redemption, offline cache), #92 CircleCI and #96 homepage are open at planning time. Tournament work is a related stream; verify actual branch/status before integration. Never overwrite other work; retain legacy URLs, card IDs, serialized rules versions, existing sessions, and stable releases. A draft PR is not a deployment.
 
 ## Target architecture and decisions
