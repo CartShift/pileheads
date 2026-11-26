@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import CampaignPlayLink from "../components/campaign-play-link";
 import DeckWaitlist from "../components/deck-waitlist";
+import {FunnelConsent} from "../components/funnel-provider";
 import styles from "./official-home.module.css";
 import polish from "./homepage-refinement.module.css";
 
@@ -76,6 +77,6 @@ export default function HomePage() {
       <div><p className={styles.kicker}>From screen to table</p><h2>The physical<br/>game<span>.</span></h2><p>Small box. Big fun. Made for game nights, holidays and spontaneous showdowns. The physical deck is currently in playtesting.</p><Button href="/pilehead/playtest.html" kind="yellow">Explore the playtest edition →</Button><p className={styles.releaseNote}>Physical retail launch to be announced.</p><DeckWaitlist/></div><div className={polish.physicalFan} role="group" aria-label="Three illustrated numbered cards">{["2","3","1"].map((name,i)=><Card key={name} name={name} className={polish["physicalCard"+i]}/>)}</div>
     </div></section>
     <section className={styles.closing}><div className={styles.closingArt} aria-hidden="true"><img src="/stack-media/stack-home-sunset.webp" alt="" width={700} height={165} loading="lazy"/></div><div className={styles.closingCopy}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring PILEHEADS<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></div></section>
-    <footer className={styles.footer}><Link href="/" aria-label="PILEHEADS home"><Brand/></Link><nav aria-label="Footer navigation"><CampaignPlayLink href="/play">Play online</CampaignPlayLink><a href="/pilehead/playtest.html">Rules & playtest</a><a href="/pilehead/gallery.html">The deck</a></nav><small>© PILEHEADS</small></footer>
+    <footer className={styles.footer}><Link href="/" aria-label="PILEHEADS home"><Brand/></Link><nav aria-label="Footer navigation"><CampaignPlayLink href="/play">Play online</CampaignPlayLink><a href="/pilehead/playtest.html">Rules & playtest</a><a href="/pilehead/gallery.html">The deck</a></nav><small>© PILEHEADS</small><FunnelConsent/></footer>
   </main>;
 }

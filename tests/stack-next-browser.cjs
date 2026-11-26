@@ -1039,6 +1039,46 @@ async function playtestInsightsScenario(browser) {
   } finally { await context.close(); }
 }
 
+async function consentedFunnelScenario(browser) {
+  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+  const page=await context.newPage(),posts=[];
+  try {
+    await page.route("**/api/growth**",async route=>{
+      const req=route.request();
+      if(req.method()==="POST"){
+        posts.push(req.postDataJSON());
+        await route.fulfill({status:200,json:{ok:true}});
+      }else await route.fulfill({status:200,json:{ok:true,reports:false,waitlist:false,funnel:true,privacyUrl:"https://pileheads.com/privacy",noticeVersion:"test-v1"}});
+    });
+    await page.goto(WEB+"/?utm_source=instagram&utm_medium=organic_social&utm_campaign=launch&utm_content=PRIVATE");
+    const allow=page.getByRole("button",{name:"Allow session measurement"});
+    await allow.waitFor();
+    assert.equal(posts.length,0,"no analytics POST before explicit consent");
+    assert.equal(await page.evaluate(()=>sessionStorage.getItem("pileheads-funnel-consent-v1")),null);
+    await allow.click();
+    await page.getByText("Session measurement is on.",{exact:true}).waitFor();
+    assert.equal(posts.length,1);
+    const start=posts[0];
+    assert.equal(start.action,"funnel_start");assert.equal(start.entry,"home");
+    assert.deepEqual(start.attribution,{source:"instagram",medium:"organic_social",campaign:"launch"});
+    assert.ok(!JSON.stringify(start).includes("PRIVATE"));
+    await page.getByRole("link",{name:/Play free online/}).click();
+    await page.getByRole("button",{name:"Learn with a bot"}).waitFor();
+    await page.getByRole("button",{name:"Learn with a bot"}).click();
+    await page.getByRole("button",{name:"Start round"}).click();
+    for(let i=0;i<80&&!posts.some(p=>p.event==="first_started");i++)await sleep(100);
+    assert.deepEqual(posts.filter(p=>p.action==="funnel_event").map(p=>p.event),["play_opened","first_started"]);
+    assert.ok(posts.every(p=>p.id===start.id&&p.token===start.token),"session is consistent across navigation");
+    await page.getByRole("button",{name:"Settings"}).click();
+    const settings=page.getByRole("dialog",{name:"Game settings"});
+    await settings.getByRole("button",{name:"Stop and remove session data"}).click();
+    await settings.getByText("Measurement stopped and session removal requested.",{exact:true}).waitFor();
+    assert.equal(posts.at(-1).action,"funnel_delete");
+    assert.equal(await page.evaluate(()=>sessionStorage.getItem("pileheads-funnel-consent-v1")),null);
+    console.log("PASS consented session funnel: explicit consent, safe attribution, navigation, observed game start, removal");
+  }finally{await context.close();}
+}
+
 async function roundChoreographyScenario(browser) {
   const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:"no-preference"});
   const page=await context.newPage();
@@ -1661,6 +1701,7 @@ async function main() {
         round:()=>roundChoreographyScenario(browser),
         feedback:()=>feedbackSettingsScenario(browser),
         playtestInsights:()=>playtestInsightsScenario(browser),
+        consentedFunnel:()=>consentedFunnelScenario(browser),
         drills:()=>specialMoveDrillsScenario(browser),
         interrupts:()=>localInterruptParityScenarios(browser),
         mixed:()=>mixedBotScenarios(browser),
@@ -1682,6 +1723,7 @@ async function main() {
     await roundChoreographyScenario(browser);
     await feedbackSettingsScenario(browser);
     await playtestInsightsScenario(browser);
+    await consentedFunnelScenario(browser);
     await specialMoveDrillsScenario(browser);
     await localStarterAndRematchScenario(browser);
     await localInterruptParityScenarios(browser);
