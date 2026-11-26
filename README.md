@@ -107,3 +107,7 @@ STACK is an independent game-design and full-stack product-development project b
 For the product story, technical decisions and trade-offs, start with the [case study](docs/CASE-STUDY.md). Before making the repository public, review the [publication checklist](docs/PUBLIC-RELEASE-CHECKLIST.md).
 
 **Code and artwork licensing:** No open-source license is currently granted. Unless stated otherwise, all rights are reserved.
+
+### Counter Dump
+
+When a player uses DUMP on an active rival who already holds a DUMP in hand, the recipient can immediately spend it to return only the transferred pile cards to the original attacker and take the next turn. Both DUMP cards are spent. Choosing **Keep cards** instead preserves the ordinary attacker's repeat turn. The optional Final Duel rule burns the visible top card only once, on the original pickup.

@@ -16,6 +16,13 @@ module.exports=function createSnapshotCodec({invariant,VERSION}){
   requireValid(g.limit===null||(g.limit&& (g.limit.type==='under'||(g.limit.type==='min'&&Number.isInteger(g.limit.value)&&g.limit.value>=1&&g.limit.value<=10))),'restriction');
   requireValid(g.pendingDump==null||(seat(g.pendingDump.seat)&&['hand','up','down'].includes(g.pendingDump.source)&&Number.isInteger(g.pendingDump.count)&&g.pendingDump.count>=1&&g.pendingDump.count<=4),'pending DUMP');
   requireValid(g.followUp==null||(seat(g.followUp.seat)&&Number.isInteger(g.followUp.rank)&&Array.isArray(g.followUp.ids)&&g.followUp.ids.every(uint)),'SNAP');
+  if(g.pendingCounter!=null){
+   const c=g.pendingCounter;
+   requireValid(g.phase==='play'&&seat(c.seat)&&seat(c.attacker)&&c.seat!==c.attacker&&g.turn===c.seat&&!g.pendingDump&&!g.people[c.seat].out,'pending Counter Dump seat');
+   requireValid(Array.isArray(c.ids)&&c.ids.length>0&&c.ids.every(uint)&&new Set(c.ids).size===c.ids.length&&uint(c.cardId)&&!c.ids.includes(c.cardId),'pending Counter Dump IDs');
+   const hand=g.people[c.seat].hand;
+   requireValid(c.ids.every(id=>hand.some(card=>card&&card.id===id))&&hand.some(card=>card&&card.id===c.cardId&&card.action==='dump'),'pending Counter Dump ownership');
+  }
   requireValid(typeof g.slamOpen==='boolean','SLAM flag');
   invariant(g);
   return g;

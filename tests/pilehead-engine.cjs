@@ -199,7 +199,9 @@ test('DUMP targets any active rival, preserving the actor repeat turn',()=>{
   const g=opened(players,93),dump=inject(g,0,'hand',c=>c.action==='dump');
   g.pile.push(extract(g,c=>c.kind==='number'&&c.rank===8),extract(g,c=>c.kind==='number'&&c.rank===9));
   g.limit={type:'min',value:9};g.slamOpen=true;
-  const target=players===2?1:players-1, before=g.people[target].hand.length,ashes=g.ashes.length;
+  const target=players===2?1:players-1;
+  const other=g.people[target].hand.find(c=>c.action==='dump');if(other){g.people[target].hand=g.people[target].hand.filter(c=>c.id!==other.id);g.stock.push(other)}
+  const before=g.people[target].hand.length,ashes=g.ashes.length;
   const ev=E.move(g,0,{type:'play',source:'hand',ids:[dump.id],target});
   assert.equal(ev.action,'dump');assert.equal(ev.target,target);assert.equal(ev.takenCount,2);
   assert.equal(ev.burned,false);assert.equal(g.people[target].hand.length,before+2);
@@ -241,6 +243,7 @@ test('Blind DUMP reveals first, then pauses until chosen target resolves',()=>{
  assert.throws(()=>E.move(g,1,{type:'take'}),/Choose the DUMP recipient/);
  assert.throws(()=>E.resolveDump(g,0,0),/Invalid DUMP target/);
  assert.throws(()=>E.resolveDump(g,1,3),/No DUMP awaiting/);
+ const other=g.people[3].hand.find(c=>c.action==='dump');if(other){g.people[3].hand=g.people[3].hand.filter(c=>c.id!==other.id);g.ashes.push(other)}
  const before=g.people[3].hand.length;
  const result=E.resolveDump(g,0,3);
  assert.equal(result.target,3);assert.equal(result.takenCount,1);
@@ -371,5 +374,55 @@ test('seeded bots conserve every card across whole games for 2–5 players',()=>
   E.invariant(g);
   if(g.phase==='over'){assert.equal(g.people.filter(p=>!p.out).length,1);assert.ok(g.loser!==null)}
  }
+});
+test('Counter Dump returns only transferred cards, spends both cards and grants recipient next turn',()=>{
+ for(const players of [2,3,4,5]){
+  const g=opened(players,441),target=players-1,a=inject(g,0,'hand',c=>c.id===50),b=inject(g,target,'hand',c=>c.id===51);
+  g.pile.push(extract(g,c=>c.kind==='number'),extract(g,c=>c.kind==='number'));
+  const ids=g.pile.map(c=>c.id),original=g.people[target].hand.filter(c=>c.id!==b.id).map(c=>c.id);
+  E.move(g,0,{type:'play',source:'hand',ids:[a.id],target});
+  assert.equal(g.turn,target);assert.ok(g.pendingCounter);
+  assert.throws(()=>E.move(g,0,{type:'counter-pass'}),/Only the DUMP recipient/);
+  assert.throws(()=>E.move(g,target,{type:'counter-dump',source:'hand',ids:[a.id]}),/Invalid counter card/);
+  const choice=E.options(g,target)[0],event=E.move(g,target,choice);
+  assert.equal(event.type,'counter-dump');assert.equal(g.turn,target);assert.equal(g.pendingCounter,null);
+  assert.ok(ids.every(id=>g.people[0].hand.some(c=>c.id===id)));
+  assert.ok(original.every(id=>g.people[target].hand.some(c=>c.id===id)));
+  assert.ok(g.ashes.some(c=>c.id===a.id)&&g.ashes.some(c=>c.id===b.id));
+  assert.throws(()=>E.move(g,target,choice));E.invariant(g);
+ }
+});
+test('Counter Dump pass retains the pile and restores original repeat turn',()=>{
+ const g=opened(2,442),a=inject(g,0,'hand',c=>c.id===50),b=inject(g,1,'hand',c=>c.id===51);
+ const card=extract(g,c=>c.kind==='number');g.pile.push(card);
+ E.move(g,0,{type:'play',source:'hand',ids:[a.id]});
+ E.move(g,1,{type:'counter-pass'});
+ assert.equal(g.turn,0);assert.ok(g.people[1].hand.some(c=>c.id===card.id));assert.ok(g.people[1].hand.some(c=>c.id===b.id));E.invariant(g);
+});
+test('Counter Dump prevents premature round end when attacker plays their last card',()=>{
+ const g=opened(2,443),a=inject(g,0,'hand',c=>c.id===50),b=inject(g,1,'hand',c=>c.id===51);
+ g.ashes.push(...g.stock.splice(0),...g.people[0].up.splice(0),...g.people[0].down.splice(0));
+ g.ashes.push(...g.people[0].hand.filter(c=>c.id!==a.id));g.people[0].hand=[a];
+ const card=extract(g,c=>c.kind==='number');g.pile.push(card);
+ E.move(g,0,{type:'play',source:'hand',ids:[a.id]});
+ assert.equal(g.phase,'play');assert.equal(g.people[0].out,false);
+ E.move(g,1,E.options(g,1)[0]);assert.equal(g.phase,'play');assert.equal(g.turn,1);assert.equal(g.people[0].hand[0].id,card.id);E.invariant(g);
+});
+test('Blind DUMP supports Counter Dump and gives the defender the turn',()=>{
+ const g=opened(3,444),a=inject(g,0,'down',c=>c.id===50),b=inject(g,2,'hand',c=>c.id===51);
+ g.ashes.push(...g.stock.splice(0),...g.people[0].hand.splice(0),...g.people[0].up.splice(0));
+ const card=extract(g,c=>c.kind==='number');g.pile.push(card);
+ assert.equal(E.move(g,0,{type:'play',source:'down',ids:[a.id]}).type,'dump-pending');
+ E.resolveDump(g,0,2);assert.equal(g.turn,2);
+ E.move(g,2,E.options(g,2)[0]);assert.equal(g.turn,2);assert.ok(g.people[0].hand.some(c=>c.id===card.id));E.invariant(g);
+});
+test('Counter Dump does not burn the Final Duel top card twice',()=>{
+ const g=opened(2,445,'final-duel'),a=inject(g,0,'hand',c=>c.id===50),b=inject(g,1,'hand',c=>c.id===51);
+ g.ashes.push(...g.stock.splice(0));
+ const bottom=extract(g,c=>c.kind==='number'),top=extract(g,c=>c.kind==='number');g.pile.push(bottom,top);
+ E.move(g,0,{type:'play',source:'hand',ids:[a.id]});
+ assert.equal(g.pendingCounter.ids.length,1);const burned=g.ashes.length;
+ E.move(g,1,E.options(g,1)[0]);assert.equal(g.ashes.length,burned+1);
+ assert.ok(g.ashes.some(c=>c.id===top.id));assert.ok(g.people[0].hand.some(c=>c.id===bottom.id));assert.equal(g.turn,1);E.invariant(g);
 });
 console.log('PILEHEAD engine: '+checks+' test groups passed');

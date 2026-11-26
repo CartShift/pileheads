@@ -30,6 +30,7 @@ export type RoomGame = {
   ashesCount: number;
   limit: null | { type: "under" | "min"; value?: number };
   pendingDump: null | { seat: number };
+  pendingCounter?: null | { seat: number; attacker: number; count: number };
   finishedOrder: number[];
   loser: number | null;
   players: PublicSeat[];

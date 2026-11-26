@@ -7,7 +7,7 @@ export type Card = {
   action?: Action;
 };
 export type Move = {
-  type: "play" | "take" | "slam" | "followup";
+  type: "play" | "take" | "slam" | "followup" | "counter-dump" | "counter-pass";
   source?: "hand" | "up" | "down";
   ids?: number[];
   target?: number;
@@ -53,6 +53,7 @@ export type Game = {
   people: Player[];
   limit: null | { type: "under" | "min"; value?: number };
   pendingDump?: null | { seat: number };
+  pendingCounter?: null | { seat: number; attacker: number; ids: number[]; cardId: number };
   followUp?: null | { seat: number };
   finishedOrder: number[];
   loser: number | null;

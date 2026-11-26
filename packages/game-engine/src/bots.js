@@ -3,6 +3,7 @@
 module.exports=function createBotPolicy({options,assert,withBotTarget,finalDuelActive,random,stage,topRun,slamOptions,move}){
 function choose(g,seat,style='greedy'){
  const opts=options(g,seat);assert(opts.length,'No moves');
+ if(g.pendingCounter)return opts[0]; // Counter sheds cards and wins the next turn.
  if(opts.length===1)return withBotTarget(g,seat,opts[0]);
  // Classic permits long two-player cycles without Final Duel. After
  // unusually many legal turns, stop choosing the same highest-scoring rank

@@ -78,3 +78,27 @@ assert.equal(clock.count(old),52);
 clock.invariant(old);
 assert.deepEqual(clock.restore(clock.serialize(old)),old);
 console.log('PASS pending DUMP/SNAP, injected blind reveal clock, and legacy 52-card local snapshots');
+
+
+function counterFixture(E){
+ const g=E.create({players:3,seed:99});E.start(g);
+ const zones=[g.stock,g.pile,g.ashes,...g.people.flatMap(p=>[p.hand,p.up,p.down])];
+ const extract=predicate=>{for(const z of zones){const i=z.findIndex(predicate);if(i>=0)return z.splice(i,1)[0];}throw Error('missing card');};
+ const attack=extract(c=>c.action==='dump'),defense=extract(c=>c.action==='dump'),pileCard=extract(c=>c.kind==='number');
+ g.people[0].hand.push(attack);g.people[1].hand.push(defense);g.pile.push(pileCard);
+ E.invariant(g);E.move(g,0,{type:'play',source:'hand',ids:[attack.id],target:1});
+ return g;
+}
+
+const counter=counterFixture(clock);
+assert.ok(counter.pendingCounter);assert.equal(counter.turn,1);
+for(const decision of clock.options(counter,1)){
+ const a=clock.restore(clock.serialize(counter)),b=clock.restore(clock.serialize(counter));
+ assert.deepEqual(clock.move(a,1,decision),clock.move(b,1,decision));
+ assert.deepEqual(a,b);assert.equal(a.pendingCounter,null);
+ assert.equal(a.turn,decision.type==='counter-dump'?1:0);
+}
+const invalidCounter=JSON.parse(clock.serialize(counter));
+invalidCounter.state.pendingCounter.cardId=invalidCounter.state.pendingCounter.ids[0];
+assert.throws(()=>clock.restore(JSON.stringify(invalidCounter)));
+console.log('PASS Counter Dump and pass survive save/resume; invalid private counter state rejected');
