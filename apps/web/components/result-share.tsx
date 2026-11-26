@@ -4,7 +4,7 @@ import { useState } from "react";
 
 type SharePayload = { title:string; text:string; url:string };
 
-export default function ResultShare({payload}:{payload:SharePayload}) {
+export default function ResultShare({payload,onShared}:{payload:SharePayload;onShared?:()=>void}) {
   const [status,setStatus] = useState("");
   const [busy,setBusy] = useState(false);
   async function share() {
@@ -15,6 +15,7 @@ export default function ResultShare({payload}:{payload:SharePayload}) {
       if (typeof navigator.share === "function") {
         try {
           await navigator.share(payload);
+          onShared?.();
           return;
         } catch (error) {
           if (error instanceof Error && error.name === "AbortError") return;
@@ -26,6 +27,7 @@ export default function ResultShare({payload}:{payload:SharePayload}) {
         if (!navigator.clipboard?.writeText) throw new Error("clipboard_unsupported");
         await navigator.clipboard.writeText(text);
         setStatus("Result copied.");
+        onShared?.();
       } catch {
         window.prompt("Copy your PILEHEADS result:",text);
       }
