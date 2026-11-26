@@ -69,7 +69,7 @@ See [`apps/web/README.md`](apps/web/README.md) for the local API origin setup, a
 
 ```text
 apps/web/                  Next.js + TypeScript tabletop
-dist/pilehead/             Original cards, shared engine, rules, lab and retired UI source
+dist/pilehead/             Original cards, shared engine, rules and lab
 api/pilehead.js            Authoritative online room commands and state
 scripts/render-server.cjs  Single-origin Node server
 scripts/realtime-hub.cjs   WebSocket room updates

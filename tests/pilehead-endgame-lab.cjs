@@ -7,7 +7,6 @@ const original=fs.readFileSync(path.join(__dirname,'../dist/pilehead/engine.js')
 const html=fs.readFileSync(path.join(__dirname,'../dist/pilehead/endgame-lab.html'),'utf8');
 const app=fs.readFileSync(path.join(__dirname,'../dist/pilehead/endgame-lab-app.js'),'utf8');
 const manifest=fs.readFileSync(path.join(__dirname,'../scripts/build-vercel.mjs'),'utf8');
-const classic=fs.readFileSync(path.join(__dirname,'../dist/pilehead/index.html'),'utf8');
 function engine(rule,code=source){
  const root={StackEndgameLabMode:rule};
  new Function('globalThis','module',code)(root,{exports:{}});
@@ -16,8 +15,6 @@ function engine(rule,code=source){
 const canonical=engine('final-burn',original);
 assert.equal(canonical.VERSION,'pilehead-1.7.0');
 assert.equal(canonical.ENDGAME_RULE,undefined);
-assert(!classic.includes('endgame-lab-app.js'));
-assert(!classic.includes('endgame-lab-engine.js'));
 for(const asset of ['endgame-lab.html','endgame-lab.css','endgame-lab-engine.js','endgame-lab-app.js']){
  assert(manifest.includes("'"+asset+"'"),'Render build missing '+asset);
 }

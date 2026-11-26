@@ -12,15 +12,13 @@
     "simulate": "node scripts/simulate.mjs",
     "test:pilehead": "node scripts/test.mjs",
     "test:pilehead-online": "node tests/pilehead-online.cjs",
-    "test:pilehead-ui": "node tests/pilehead-firstperson.cjs && node tests/pilehead-production-ui.cjs && node tests/pilehead-physics.cjs",
-    "test:pilehead-art": "node tests/pilehead-deck-art.cjs && node tests/pilehead-raster-assets.cjs && node tests/pilehead-stack-brand.cjs",
+    "test:pilehead-art": "node tests/pilehead-deck-art.cjs && node tests/pilehead-raster-assets.cjs && node tests/pilehead-deck-theme.cjs",
     "test:pilehead-groups": "node tests/pilehead-matching-actions.cjs",
-    "test:pilehead-hand": "node tests/pilehead-hand-ui.cjs && node tests/pilehead-actions-ux.cjs",
-    "test:pilehead-finale": "node tests/pilehead-finale.cjs",
     "test:pilehead-playtest": "node tests/pilehead-playtest.cjs",
     "bench:endgame-lab": "node scripts/bench-endgame-lab.cjs",
     "test:endgame-lab-browser": "node tests/stack-endgame-lab-browser.cjs",
-    "build:shared-assets": "node scripts/build-vercel.mjs"
+    "build:shared-assets": "node scripts/build-vercel.mjs",
+    "test:web": "node tests/stack-next-browser.cjs"
   },
   "engines": {
     "node": "24.x"

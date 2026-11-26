@@ -105,15 +105,13 @@ check('character sprite is an exact 4×4 grid with one physical ratio per card',
  assert.equal(width/4,252);assert.equal(height/4,355);
  assert.ok(b.length>30000,'character sheet must not be empty');
 });
-check('tabletop, gallery and print all load theme code and styling',()=>{
- for(const p of ['index.html','gallery.html','print.html']){
+check('gallery and print load theme code and styling',()=>{
+ for(const p of ['gallery.html','print.html']){
   const html=read('dist/pilehead/'+p);
   assert.ok(html.indexOf('deck-raster.js')<html.indexOf('deck-theme.js'),p+' renderer order');
   assert.match(html,/deck-theme\.css/);
   assert.match(html,/deck-theme\.js/);
  }
- assert.match(read('dist/pilehead/app.js'),/stack-deck-theme-change/);
- assert.match(read('dist/pilehead/online.js'),/stack-deck-theme-change/);
  assert.match(read('dist/pilehead/gallery.html'),/stack-deck-theme-change/);
  assert.match(read('dist/pilehead/print.html'),/stack-deck-theme-change/);
 });
