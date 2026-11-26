@@ -643,7 +643,7 @@ function starterHTML({names,seat,reason,startedAt}={}){
  const isWinner=reason==='winner';
  return '<div class="stack-starter-reveal" role="dialog" aria-modal="true" aria-label="Starting player reveal">'+
   '<div class="stack-starter-panel">'+
-   '<div class="stack-starter-eyebrow">STACK · ROUND OPENING</div>'+
+   '<div class="stack-starter-eyebrow">PILEHEADS · ROUND OPENING</div>'+
    '<div class="stack-starter-heading">'+(isWinner?'CHAMPION STARTS':'WHO STARTS?')+'</div>'+
    (isWinner?'<div class="stack-starter-trophy" aria-hidden="true">★</div>':
      '<div class="stack-starter-window"><div class="stack-starter-reel" style="--landing-offset:-'+

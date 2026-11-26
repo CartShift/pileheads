@@ -1,8 +1,8 @@
-# STACK repository maintenance
+# PILEHEADS repository maintenance
 
 ## Current product
 
-Only STACK/PILEHEAD is built and tested. The original repository name `spark-card-game` and the `pilehead` paths remain unchanged to avoid breaking Vercel settings, links, API imports and browser persistence. Rename separately only after deployment verification.
+Only PILEHEADS/PILEHEAD is built and tested. The original repository name `spark-card-game` and the `pilehead` paths remain unchanged to avoid breaking Vercel settings, links, API imports and browser persistence. Rename separately only after deployment verification.
 
 The canonical frontend lives in `apps/web/`. `dist/pilehead/` retains shared rules, artwork, physical-game resources and the isolated Endgame Lab; `vercel-static/` is generated and ignored.
 
@@ -18,6 +18,6 @@ The canonical frontend lives in `apps/web/`. `dist/pilehead/` retains shared rul
 
 The retired `/pilehead/index.html` URL redirects to `/play`, retaining query parameters. The Next homepage is served at `/`. Printable pages, `/api/pilehead`, the authoritative database and room protocol remain. Classic local saves and browser credentials are not automatically migrated into the React client.
 
-SPARK/TILT prototypes, the Sites/D1 Worker and original simulation hub have been retired from the active source tree. Historical content is still accessible through Git history. Do not restore the old backends into the STACK deployment.
+SPARK/TILT prototypes, the Sites/D1 Worker and original simulation hub have been retired from the active source tree. Historical content is still accessible through Git history. Do not restore the old backends into the PILEHEADS deployment.
 
 The raster sheet `stack-sheet.webp` and back `stack-back.webp` are active production assets, not generated garbage. `deck-art.js` supplies active semantics/compatibility; `deck-raster.js` provides visible sprites. Do not delete either layer without replacing every consumer and adjusting its tests.

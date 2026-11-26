@@ -1,7 +1,7 @@
-# STACK Next.js table (single Render service)
+# PILEHEADS Next.js table (single Render service)
 
 The new React/TypeScript tabletop is exported as **static HTML, JS and CSS**
-and served by the existing STACK Node.js server. The web game uses the same
+and served by the existing PILEHEADS Node.js server. The web game uses the same
 domain, authoritative HTTP API, WebSocket server and Neon database.
 **No second Render service, CORS setting or extra Next.js runtime is needed.**
 

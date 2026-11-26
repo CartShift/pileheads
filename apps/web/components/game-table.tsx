@@ -855,7 +855,7 @@ export default function GameTable() {
 
   if (!g || !current) return (
     <main className="game-shell stack-lobby">
-      <header className="lobby-masthead"><nav className="stack-site-nav" aria-label="Main navigation"><Link href="/stack" className="stack-site-brand" aria-label="STACK home" prefetch={false}><img src="/stack-media/stack-home-logo-web.webp" alt="STACK" width={220} height={185}/></Link><div className="stack-site-links"><a href="/stack">Home</a><a className="stack-nav-primary" href="/play" aria-current="page">Play online</a><a href="/pilehead/gallery.html">The deck</a><a href="/pilehead/playtest.html">How to play</a><a href="/pilehead/print.html">Print</a></div></nav></header>
+      <header className="lobby-masthead"><nav className="stack-site-nav" aria-label="Main navigation"><Link href="/" className="stack-site-brand" aria-label="PILEHEADS home" prefetch={false}><img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={640} height={356}/></Link><div className="stack-site-links"><a href="/">Home</a><a className="stack-nav-primary" href="/play" aria-current="page">Play online</a><a href="/pilehead/gallery.html">The deck</a><a href="/pilehead/playtest.html">How to play</a><a href="/pilehead/print.html">Print</a></div></nav></header>
       <section className="entry">
         <div className="entry-intro"><div className="eyebrow">WELCOME TO THE TABLE</div>
           <h1>One pile.<br /><em>One loser.</em></h1>
@@ -903,7 +903,7 @@ export default function GameTable() {
           </div>
         </div>
       </section>
-      <footer className="lobby-footer"><span>STACK · The card game with character.</span><a href="/pilehead/playtest.html">Read the rules ↗</a></footer>
+      <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/pilehead/playtest.html">Read the rules ↗</a></footer>
       {notice && <div className="alert" role="status">{notice}</div>}
       {showSettings && <div className="modal-backdrop" onClick={() => setShowSettings(false)}>
         <section className="game-modal" role="dialog" aria-label="Game settings" aria-modal="true"
@@ -946,7 +946,7 @@ export default function GameTable() {
   return (
     <main className="game-shell game-table-shell" data-phase={g.phase} data-drill={drill?.id} data-hand-count={handCount} data-turn={g.phase === "play" ? active ? "self" : "other" : "none"}>
       <header className="game-header">
-        <Link href="/stack" className="logo stack-site-brand" aria-label="STACK home"><img src="/stack-media/stack-home-logo-web.webp" alt="STACK" width={220} height={185}/></Link>
+        <Link href="/" className="logo stack-site-brand" aria-label="PILEHEADS home"><img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={640} height={356}/></Link>
         <div className="game-head-actions">
           {room && <button className={"room-code " + (copiedInvite ? "is-copied" : "")}
             onClick={() => void copyInvite()}
@@ -960,7 +960,7 @@ export default function GameTable() {
           <label className="theme-control">Deck
             <select aria-label="Deck style" value={deckTheme}
               onChange={e => setDeckTheme(e.target.value as DeckTheme)}>
-              <option value="refined">Illustrated V2</option><option value="characters">Characters (classic)</option><option value="original">Original</option>
+              <option value="refined">Illustrated V3</option><option value="characters">Illustrated (compact)</option><option value="original">Original</option>
             </select>
           </label>
           <button className="exit-button" onClick={leaveTable}>Leave table</button>
@@ -983,7 +983,7 @@ export default function GameTable() {
         "online:" + room?.code + ":" + g.round}
         moveNo={g.moves} phase={g.phase} events={g.events} blindReveal={g.blindReveal} me={me}
         theme={deckTheme} nameForSeat={nameForSeat} motionLevel={motionLevel} />
-      <div className={`tabletop theme-${deckTheme}`} role="region" aria-label="STACK card game">
+      <div className={`tabletop theme-${deckTheme}`} role="region" aria-label="PILEHEADS card game">
         <div className="table-texture" aria-hidden="true" />
         <OpponentsStrip g={g} me={me} theme={deckTheme} room={room} nameForSeat={nameForSeat}
           choosingDumpTarget={choosingDumpTarget} chooseDumpSeat={chooseDumpSeat} onInspect={setInspectSeat}
@@ -1095,7 +1095,7 @@ export default function GameTable() {
         </section>
       </div>}
       {showRules && <div className="modal-backdrop" role="presentation" onClick={() => setShowRules(false)}>
-        <section className="game-modal" role="dialog" aria-modal="true" aria-label="STACK quick rules"
+        <section className="game-modal" role="dialog" aria-modal="true" aria-label="PILEHEADS quick rules"
           onClick={e => e.stopPropagation()}>
           <div className="eyebrow">HOW TO PLAY</div><h2>One pile. One loser.</h2>
           <p>Play a number equal to or higher than the current restriction, or play any special card.
@@ -1126,7 +1126,7 @@ export default function GameTable() {
           </div>
         </section>
       </div>}
-      <div className="table-footer"><span>STACK · The digital tabletop</span>
+      <div className="table-footer"><span>PILEHEADS · The digital tabletop</span>
         </div>
     </main>
   );

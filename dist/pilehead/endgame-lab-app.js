@@ -1,4 +1,4 @@
-/* STACK Endgame Lab local playtest UI. Intentionally isolated from Classic saves. */
+/* PILEHEADS Endgame Lab local playtest UI. Intentionally isolated from Classic saves. */
 (function(){'use strict';
 if(new URLSearchParams(location.search).has('online')||new URLSearchParams(location.search).has('room'))return;
 const E=globalThis.PileheadEngine,A=globalThis.PileheadCardArt,$=id=>document.getElementById(id),app=$('app'),KEY='pilehead-endgame-lab-v1-'+globalThis.StackEndgameLabMode+'-'+globalThis.StackEndgameLabSeed;
@@ -107,13 +107,13 @@ function eventName(e){const who=playerName(e.seat);
  if(e.burned)return who+' burned the pile';
  if(e.action)return who+' played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase();
  return who+' played '+e.count+' × '+e.rank}
-function setupView(){if(!g)return '<section class="setup panel"><div class="eyebrow">STACK / THE CARD GAME</div>'+
+function setupView(){if(!g)return '<section class="setup panel"><div class="eyebrow">PILEHEADS / THE CARD GAME</div>'+
  '<h2>ENDGAME LAB</h2><p>Try '+(E.ENDGAME_RULE==='final-burn'?'Final Burn':'Final Duel')+' against bots. Once its trigger is active, taking the pile burns exactly one top card and collects the rest. This is a local experiment; Classic and live multiplayer rules are unchanged.</p>'+
  '<div class="fields"><label>Players<select id="seat-count">'+[2,3,4,5].map(n=>'<option value="'+n+'" '+(seats===n?'selected':'')+'>'+n+' players</option>').join('')+'</select></label>'+
  '<label>Play against<select id="game-mode"><option value="bots" '+(mode==='bots'?'selected':'')+'>Computer opponents</option><option value="hotseat" '+(mode==='hotseat'?'selected':'')+'>Local pass-and-play</option></select></label></div>'+
  '<div class="toolbar"><button class="action primary" data-do="practice">Learn with a bot</button><button class="action secondary" data-do="create">Deal cards</button><a class="action secondary" href="index.html?online=1">Live multiplayer (classic rules)</a></div><p class="stack-intro-note">New here? Learn by playing one round. Already know the rules? Deal cards or invite friends.</p></section>';
  const p=g.people[setupSeat],had=swapFrom!==null;
- return '<section class="setup panel"><div class="eyebrow">STACK / OPENING HAND · '+playerName(setupSeat)+'</div><h2>SET THE TABLE.</h2>'+
+ return '<section class="setup panel"><div class="eyebrow">PILEHEADS / OPENING HAND · '+playerName(setupSeat)+'</div><h2>SET THE TABLE.</h2>'+
  '<p>Tap a card in your hand, then a face-up card to swap them. Face-up cards become playable after your draw deck and hand are gone. Three blind cards stay hidden.</p>'+(practiceMode?'<p class="stack-practice-setup"><strong>Practice · Step 1:</strong> Pick three cards you want to keep face-up for later, then select Start the game. You can play normally against a bot.</p>':'')+
  '<div class="area-label"><span>YOUR FACE-UP CARDS</span></div>'+rowCards(p.up,'up',true)+
  '<div class="area-label"><span>YOUR HAND</span><span>'+(had?'Now tap the card to exchange':'Tap any card to select')+'</span></div>'+

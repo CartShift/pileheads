@@ -1,6 +1,6 @@
 'use strict';
 
-// Node adapter for the Vercel-compatible STACK multiplayer function.
+// Node adapter for the Vercel-compatible PILEHEADS multiplayer function.
 // Keeps the existing same-origin API, room protocol and Neon database.
 const http = require('node:http');
 const path = require('node:path');
@@ -132,13 +132,13 @@ const server = http.createServer(async (req, res) => {
     else if (url.pathname === '/api/pilehead') await serveApi(req, res, url);
     else await serveFile(req, res, url);
   } catch (error) {
-    console.error('STACK request error:', error.message);
+    console.error('PILEHEADS request error:', error.message);
     if (!res.headersSent) respond(res, 500, 'Internal Server Error');
     else res.destroy();
   }
 });
 liveHub=attachRealtime(server,roomHandler);
-server.listen(port, '0.0.0.0', () => console.log(`STACK listening on port ${port} with WebSocket rooms`));
+server.listen(port, '0.0.0.0', () => console.log(`PILEHEADS listening on port ${port} with WebSocket rooms`));
 process.once('SIGTERM',()=>{
  liveHub.shutdown();
  server.close(()=>process.exit(0));

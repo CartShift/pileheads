@@ -1,0 +1,16 @@
+"use strict";
+const assert=require("node:assert/strict");
+const fs=require("node:fs"),path=require("node:path");
+const root=path.resolve(__dirname,".."),read=f=>fs.readFileSync(path.join(root,f),"utf8");
+const surfaces=["apps/web/app/layout.tsx","apps/web/app/page.tsx","apps/web/components/game-table.tsx","dist/pilehead/gallery.html","dist/pilehead/playtest.html","dist/pilehead/print.html","dist/pilehead/endgame-lab.html","dist/pilehead/endgame-lab-app.js","dist/pilehead/immersive.js","dist/pilehead/deck-theme.js","dist/pilehead/deck-art.js"];
+for(const f of surfaces) assert.doesNotMatch(read(f),/\bSTACK\b(?![-_])/,"legacy brand in "+f);
+for(const f of ["apps/web/app/layout.tsx","apps/web/app/page.tsx","apps/web/components/game-table.tsx","dist/pilehead/gallery.html","dist/pilehead/playtest.html","dist/pilehead/print.html","dist/pilehead/endgame-lab.html"])assert.match(read(f),/PILEHEADS/,"missing brand in "+f);
+assert.match(read("apps/web/app/layout.tsx"),/pileheads-icon\.png/);
+assert.equal(JSON.parse(read("package.json")).name,"pileheads-card-game");
+assert.equal(JSON.parse(read("apps/web/package.json")).name,"@pileheads/web");
+assert.equal(JSON.parse(read("packages/game-engine/package.json")).name,"@pileheads/game-engine");
+assert.equal(JSON.parse(read("packages/game-protocol/package.json")).name,"@pileheads/game-protocol");
+const b=f=>fs.readFileSync(path.join(root,f));
+assert.ok(b("dist/pilehead/assets/stack-back.webp").equals(b("dist/pilehead/assets/stack-back-v2.webp")),"every raster theme has the same approved directional back");
+for(const n of ["stack-home-logo-web.webp","stack-home-logo-v2.webp","stack-home-box-web.webp","stack-home-back-web.webp"])assert.equal(b("apps/web/public/stack-media/"+n).subarray(8,12).toString(),"WEBP");
+console.log("PASS Pileheads brand surfaces, package identity and single directional back");

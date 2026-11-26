@@ -1,10 +1,10 @@
-# STACK: from physical card game to real-time multiplayer product
+# PILEHEADS: from physical card game to real-time multiplayer product
 
 *A product engineering case study: game design, state consistency, interactive UX and full-stack delivery.*
 
 ## The idea
 
-STACK started from a simple question: **can a physical-first card game preserve its tactile, fast and social feeling when people play remotely?**
+PILEHEADS started from a simple question: **can a physical-first card game preserve its tactile, fast and social feeling when people play remotely?**
 
 The product combines a custom 54-card deck with a browser tabletop. It supports local bots, private multiplayer rooms, multiple card designs, a printable playtest kit, and a newer React-based interface. The physical game and the digital simulator inform each other: the simulator helps test rules, while real tabletop expectations shape the UX.
 
@@ -80,7 +80,7 @@ JavaScript · TypeScript · React 19 · Next.js 16 · Node.js 24 · WebSockets �
 
 ## Status
 
-STACK is an **actively developed playtest product**, not a certified commercial multiplayer service. CI includes automated checks; actual production readiness, visual polish on physical devices, accessibility and live two-device play require separate acceptance evidence.
+PILEHEADS is an **actively developed playtest product**, not a certified commercial multiplayer service. CI includes automated checks; actual production readiness, visual polish on physical devices, accessibility and live two-device play require separate acceptance evidence.
 
 **Explore:** [Classic tabletop](https://stack-card-game-t7vx.onrender.com/pilehead/index.html) · [React tabletop](https://stack-card-game-t7vx.onrender.com/play) · [Deck gallery](https://stack-card-game-t7vx.onrender.com/pilehead/gallery.html) · [Rules](pilehead-design.md)
 

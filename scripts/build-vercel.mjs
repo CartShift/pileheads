@@ -3,7 +3,7 @@ import path from 'node:path';
 import engineBundle from './sync-game-engine.cjs';
 engineBundle.sync({check:true});
 
-// Only publish assets used by the current STACK game. The /api/pilehead
+// Only publish assets used by the current PILEHEADS game. The /api/pilehead
 // Render serves the resulting files through scripts/render-server.cjs;
 // the historical Vercel builder name remains for compatibility.
 const root = path.resolve('dist');
@@ -32,4 +32,4 @@ for (const asset of assets) {
 const brandDir = path.resolve('apps/web/public/stack-media');
 fs.mkdirSync(path.join(output,'stack-media'),{recursive:true});
 for(const name of ['stack-design-system.css','stack-home-logo-web.webp','barlow-condensed-black-italic.ttf','barlow-OFL.txt','print-grain.svg']) fs.copyFileSync(path.join(brandDir,name),path.join(output,'stack-media',name));
-console.log('Built STACK static site: ' + assets.length + ' shared game assets');
+console.log('Built PILEHEADS static site: ' + assets.length + ' shared game assets');

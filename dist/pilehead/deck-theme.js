@@ -1,13 +1,13 @@
-/* STACK deck themes: a local visual preference, never part of game state or room messages.
+/* PILEHEADS deck themes: a local visual preference, never part of game state or room messages.
  * One selector works in the tabletop, gallery and print preview.
  */
 (function(root){'use strict';
 const KEY='stack-deck-theme-v1';
 const OPTIONS=Object.freeze([
-  {id:'refined',label:'STACK Illustrated V2',detail:'Refined original character artwork'},
-  {id:'geometry',label:'STACK Original',detail:'Geometric artwork'},
-  {id:'characters',label:'STACK Characters',detail:'Illustrated numbers and actions'},
-  {id:'studio',label:'STACK Studio',detail:'Minimal vector artwork'}
+  {id:'refined',label:'PILEHEADS Illustrated V3',detail:'Current no-logo character artwork'},
+  {id:'geometry',label:'PILEHEADS Original',detail:'Geometric artwork'},
+  {id:'characters',label:'PILEHEADS Illustrated (compact)',detail:'Compact-resolution current artwork'},
+  {id:'studio',label:'PILEHEADS Studio',detail:'Minimal vector artwork'}
 ]);
 const allowed=new Set(OPTIONS.map(t=>t.id));
 function normalized(value){return allowed.has(value)?value:'refined';}

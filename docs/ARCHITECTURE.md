@@ -1,6 +1,6 @@
-# STACK: technical architecture
+# PILEHEADS: technical architecture
 
-STACK uses **one shared rules engine, one supported web presentation and one authoritative multiplayer backend**. The same Render Node process serves the Next.js static export and shared physical-game resources, the HTTP room API and authenticated WebSocket connections.
+PILEHEADS uses **one shared rules engine, one supported web presentation and one authoritative multiplayer backend**. The same Render Node process serves the Next.js static export and shared physical-game resources, the HTTP room API and authenticated WebSocket connections.
 
 ## System overview
 

@@ -749,7 +749,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 }
 
 
-/* STACK Motion UX 2.0: a single semantics-first presentation layer.
+/* PILEHEADS Motion UX 2.0: a single semantics-first presentation layer.
    Existing pile/hand DOM is the truth; these effects are non-interactive. */
 .move-story-stable{--story-ms:520ms}
 .move-story-stable .move-story-caption{animation-duration:var(--story-ms)}
@@ -885,7 +885,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
   .pile-layer.is-blind-reveal .playing-card{animation:none!important}
 }
 
-/* STACK Experience 3.0: tangible cards, actual public deck art, quiet hierarchy.
+/* PILEHEADS Experience 3.0: tangible cards, actual public deck art, quiet hierarchy.
    State animations are owned by useCommittedCardTravel and never block turns. */
 .opponent-seat{transition:border-color 160ms ease-out,background-color 160ms ease-out}
 .opponent-seat.seat-active{background:linear-gradient(160deg,#275343c7,#092d27dd)}
@@ -983,7 +983,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
   font-size:10px;font-weight:800;letter-spacing:.08em;color:#f0dfbd
 }
 
-/* STACK Illustrated V2. Explicitly scope hidden-card art to its own theme. */
+/* PILEHEADS Illustrated V2. Explicitly scope hidden-card art to its own theme. */
 .hero-card {background-image:url("/pilehead/assets/stack-characters-v2.webp")}
 .playing-card.theme-refined .card-art,
 .drag-ghost.theme-refined .card-art,

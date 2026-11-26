@@ -149,11 +149,11 @@ async function sameOriginNavigation(browser) {
     await page.getByRole("link",{name:"Play free online",exact:true}).click();
     await page.getByRole("button",{name:/Start game/}).waitFor();
     assert.equal(new URL(page.url()).pathname,"/play","Next landing should lead to the real playable table");
-    await page.getByRole("link", {name:"STACK home", exact:true}).click();
-    await page.getByRole("heading",{name:/STACK\s*THE ODDS/}).waitFor();
-    assert.equal(new URL(page.url()).pathname,"/stack","logo returns to Next landing, not Classic redirect");
+    await page.getByRole("link", {name:"PILEHEADS home", exact:true}).click();
+    await page.getByRole("heading",{name:/PLAY\s*THE ODDS/}).waitFor();
+    assert.equal(new URL(page.url()).pathname,"/","logo returns to Next landing, not Classic redirect");
     assert.equal(await page.locator('a[href="/pilehead/index.html"]').count(),0);
-    console.log("PASS one-server Next route transitions: /stack → /play → /stack");
+    console.log("PASS one-server Next route transitions: /stack → /play → /");
   } finally { await context.close(); }
 }
 // Check actual initial viewport geometry, not Playwright's automatic scroll-to-click.
@@ -217,6 +217,28 @@ async function assertOrdinaryViewport(page, label) {
   assert.ok(geometry.buttons.length && geometry.buttons.every(b=>b.height>=44 && b.bottom<=geometry.height+2),
     label+" action buttons should have a 44px target and fit: "+JSON.stringify(geometry));
   console.log("PASS initial viewport: "+label+" "+JSON.stringify(geometry));
+}
+
+// Capture real current gameplay for the public website, without private data.
+async function brandCaptureScenarios(browser) {
+  const dir=path.resolve(ROOT,"artifacts/next"); fs.mkdirSync(dir,{recursive:true});
+  for(const [name,width,height] of [["mobile",390,844],["wide",768,900],["desktop",1280,860]]){
+    const context=await browser.newContext({viewport:{width,height},isMobile:name==="mobile",hasTouch:name==="mobile",reducedMotion:"reduce"});
+    try{
+      const page=await context.newPage();
+      await page.goto(WEB+"/play",{waitUntil:"domcontentloaded"});
+      await page.getByRole("button",{name:"Learn with a bot"}).click();
+      await page.getByRole("button",{name:"Start round"}).click();
+      await page.getByRole("heading",{name:"Your move."}).waitFor();
+      await page.getByRole("combobox",{name:"Deck style"}).selectOption("refined");
+      await page.waitForFunction(()=>document.querySelectorAll(".player-hand .playing-card.theme-refined").length===3);
+      await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.images].map(i=>i.decode().catch(()=>{})))});
+      assert.match(await page.title(),/PILEHEADS/);
+      assert.equal(await page.getByRole("link",{name:"PILEHEADS home",exact:true}).count(),1);
+      assert.doesNotMatch(await page.locator("body").innerText(),/\bSTACK\b/);
+      await page.screenshot({path:path.join(dir,"pileheads-marketing-"+name+".png"),fullPage:true,animations:"disabled"});
+    }finally{await context.close()}
+  }
 }
 
 async function localScenarios(browser) {
@@ -305,7 +327,7 @@ async function localScenarios(browser) {
       assert.equal(await cancellable.getAttribute("aria-pressed"),"false",
         "subsequent taps retain normal selection behavior");
       await page.getByRole("button", { name: "Rules" }).click();
-      await page.getByRole("dialog", { name: "STACK quick rules" }).waitFor();
+      await page.getByRole("dialog", { name: "PILEHEADS quick rules" }).waitFor();
       assert.ok(await page.getByText("Final Duel:", { exact: false }).count(), "rules explain duel");
       await page.getByRole("button", { name: "Back to table" }).click();
       await page.getByRole("combobox", { name: "Deck style" }).selectOption("original");
@@ -1545,6 +1567,7 @@ async function main() {
     const selected=process.env.STACK_ACCEPTANCE_SCENARIO;
     if(selected){
       const scenarios={
+        brand:()=>brandCaptureScenarios(browser),
         local:()=>localScenarios(browser),
         motion:()=>sharedMoveAnimationScenarios(browser),
         dump:()=>dumpSeatTargetScenario(browser),
@@ -1561,11 +1584,12 @@ async function main() {
         mixed:()=>mixedBotScenarios(browser),
         recovery:()=>abandonedRoomScenario(browser)
       };
-      if(!Object.hasOwn(scenarios,selected)) throw Error("Unknown STACK browser scenario: "+selected);
+      if(!Object.hasOwn(scenarios,selected)) throw Error("Unknown PILEHEADS browser scenario: "+selected);
       await scenarios[selected]();
       return;
     }
 
+    await brandCaptureScenarios(browser);
     await sameOriginNavigation(browser);
     await endgameSettingsAndBridge(browser);
     await localScenarios(browser);

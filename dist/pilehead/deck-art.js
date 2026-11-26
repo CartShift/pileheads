@@ -1,4 +1,4 @@
-/* STACK · one authoritative vector deck for simulator, online rooms, gallery and print.
+/* PILEHEADS · one authoritative vector deck for simulator, online rooms, gallery and print.
  * Illustration is presentation-only: numeric cards have NO powers.
  * No card ID, game engine state or rules depend on these drawings.
  */
@@ -23,7 +23,7 @@ const palette=[C.blue,C.red,C.amber,C.olive,C.ink];
 const topPalette=['#4391B8','#F17960','#F7D367','#A5AB63','#535454'];
 const sidePalette=['#10455F','#A43125','#C6911D','#575D2B','#101112'];
 /* All illustration geometry is expressed in SVG units and shared by screen/print.
- * Fixed rank recipes mirror the approved STACK overview. Every numbered card is
+ * Fixed rank recipes mirror the approved PILEHEADS overview. Every numbered card is
  * ordinary in the rules; the height, color and count only communicate its rank.
  */
 const rankPalettes=Object.freeze({
@@ -172,10 +172,8 @@ function face(c){
    '<path d="M22 166H218" stroke="#201D19" stroke-width="3"/>'+
    '<path d="M22 171H218" stroke="'+accent+'" stroke-width="2"/>'+
    '<text class="ph-index-top-vector" x="21" y="42" fill="#201C19" font-family="'+displayFont+'" font-size="29" font-weight="900">'+n+'</text>'+
-   '<text x="207" y="30" font-family="'+displayFont+'" font-size="15" font-weight="900" fill="#FFF8EA" transform="rotate(34 207 30)">S</text>'+
    '<text class="ph-number-main-vector" x="120" y="150" text-anchor="middle" fill="#17191A" font-family="'+displayFont+'" font-size="'+numberSize+'" font-weight="900" letter-spacing="-6">'+n+'</text>'+
    '<g class="ph-stack-art-vector">'+embedded(numberArt(n),'ph-stack-illustration','ph-stack-illustration-vector',8,174,224,150)+'</g>'+
-   '<text x="22" y="329" font-family="'+displayFont+'" font-size="10" letter-spacing="2" fill="#292A26">STACK / '+String(n).padStart(2,'0')+'</text>'+
    '<text class="ph-index-bottom-vector" x="217" y="322" text-anchor="end" fill="#201C19" font-family="'+displayFont+'" font-size="24" font-weight="900" transform="rotate(180 217 322)">'+n+'</text>';
   return '<span class="ph-plate ph-number-plate ph-composed-plate" data-rank="'+n+'" style="--rank-accent:'+accent+'" aria-hidden="true">'+faceSvg(main,'ph-number-vector')+'</span>';
  }
@@ -205,8 +203,7 @@ function back(){
   '<path d="M16 16H224V328H16Z" fill="none" stroke="#D44630" stroke-width="3"/>'+
   '<path d="M23 23H217V321H23Z" fill="none" stroke="#F6F0E3" stroke-opacity=".5" stroke-width="1"/>'+
   '<path d="M30 123H210M30 221H210" stroke="#F6F0E3" stroke-opacity=".5" stroke-width="2"/>'+
-  '<text class="ph-back-title-vector" x="120" y="85" text-anchor="middle" font-family="'+displayFont+'" font-size="58" font-weight="900" letter-spacing="-3" fill="#F6F0E3">STACK</text>'+
-  '<text x="120" y="85" text-anchor="middle" font-family="'+displayFont+'" font-size="58" font-weight="900" letter-spacing="-3" fill="#F6F0E3" transform="rotate(180 120 172)">STACK</text>'+
+  '<text class="ph-back-title-vector" x="120" y="85" text-anchor="middle" font-family="'+displayFont+'" font-size="32" font-weight="900" letter-spacing="-1" fill="#F6F0E3">PILEHEADS</text>'+
   '<g class="ph-back-stack-vector">'+
    slab(44,134,144,0,12)+slab(50,153,132,2,12)+
    '<g transform="rotate(180 120 172)">'+slab(44,134,144,0,12)+slab(50,153,132,2,12)+'</g>'+

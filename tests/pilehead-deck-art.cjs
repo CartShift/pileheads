@@ -19,7 +19,7 @@ check('engine has 54 cards and no powers on numbered tens',()=>{
  for(let n=1;n<=10;n++)assert.equal(deck.filter(c=>c.rank===n).length,4);
  for(const [action,n] of Object.entries(engine.ACTIONS))assert.equal(n,action==='burn'?4:2);
 });
-check('ten numbered cards use STACK paper layout and precisely matching structural layers',()=>{
+check('ten numbered cards use PILEHEADS paper layout and precisely matching structural layers',()=>{
  for(let n=1;n<=10;n++){
   const html=A.face({kind:'number',rank:n});
   assert.match(html,/ph-number-plate/);assert.match(html,/ph-number-main/);
@@ -47,11 +47,11 @@ check('six special cards each have a large unique inline illustration and rule',
  }
  assert.equal(svg.size,6);assert.throws(()=>A.face({kind:'action',action:'joker'}));
 });
-check('card back is universal and carries the STACK identity',()=>{
+check('card back is universal and carries the PILEHEADS identity',()=>{
  assert.equal(A.back(),A.back());
  assert.match(A.back(),/ph-back-plate/);assert.match(A.back(),/ph-back-title/);
  assert.match(A.back(),/ph-back-stack/);assert.match(A.back(),/ph-back-frame/);
- assert.match(A.back(),/>STACK</);
+ assert.match(A.back(),/>PILEHEADS</);
 });
 check('opponent miniatures use normal ranks and action identities',()=>{
  assert.match(A.mini({kind:'number',rank:10}),/ph-mini-number/);
@@ -102,7 +102,7 @@ check('action labels accurately document the game instead of suggesting other ef
  assert.equal(all.size,6,'Every special action needs its own distinct illustration');
  assert.match(A.art('under'),/>1–4</,'UNDER explicitly shows the allowed numbers');
 });
-check('STACK is the visible identity while keeping legacy URLs and logic',()=>{
+check('PILEHEADS is the visible identity while keeping legacy URLs and logic',()=>{
  assert.match(gallery,/EVERY CARD<br>HAS A ROLE/);assert.match(gallery,/stack-home-logo-web\.webp/);
  assert.match(print,/<h1>PRINT THE DECK\.<\/h1>/);assert.match(print,/stack-home-logo-web\.webp/);
  assert.match(css,/#f6f0e3/i);
@@ -130,7 +130,7 @@ check('phone setup is unclipped without changing the fan in active play',()=>{
 });
 
 
-check('STACK v3 renders each card as one self-scaling SVG surface',()=>{
+check('PILEHEADS v3 renders each card as one self-scaling SVG surface',()=>{
  for(const n of [1,2,5,9,10]){
   const face=A.face({kind:'number',rank:n});
   assert.match(face,/ph-composed-plate/);
@@ -151,13 +151,13 @@ check('STACK v3 renders each card as one self-scaling SVG surface',()=>{
  }
  assert.match(A.back(),/ph-composed-face/);
  assert.match(A.back(),/ph-back-stack-vector/);
- assert.match(css,/STACK v3 · atomic artwork/);
+ assert.match(css,/PILEHEADS v3 · atomic artwork/);
  assert.match(css,/\.ph-card \.ph-composed-face\{/);
  assert.match(css,/@container \(max-width:76px\)/);
  assert.match(css,/\.ph-action-long-rule\{display:none\}/);
  assert.doesNotMatch(css,/\.ph-card \.ph-composed-face\{[^}]*transform:scale/);
 });
-check('STACK v3 rank geometry stays inside the source coordinates',()=>{
+check('PILEHEADS v3 rank geometry stays inside the source coordinates',()=>{
  for(let n=1;n<=10;n++){
   const art=A.numberArt(n);
   assert.equal((art.match(/data-slab="1"/g)||[]).length,n);
@@ -169,4 +169,4 @@ check('STACK v3 rank geometry stays inside the source coordinates',()=>{
  assert.doesNotMatch(dump,/NEXT PLAYER/);
 });
 
-console.log('STACK illustrated deck: '+count+' test groups passed');
+console.log('PILEHEADS illustrated deck: '+count+' test groups passed');
