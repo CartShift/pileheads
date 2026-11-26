@@ -63,7 +63,7 @@ async function req(handler,{method="POST",body=data,query={},headers={}}={}){
 }
 async function main(){
   const disabled=createHandler({env:{},db,mail});
-  assert.deepEqual((await req(disabled,{method:"GET",query:{status:"1"}})).value,{ok:true,reports:false,waitlist:false,privacyUrl:null,noticeVersion:null});
+  assert.deepEqual((await req(disabled,{method:"GET",query:{status:"1"}})).value,{ok:true,reports:false,waitlist:false,funnel:false,privacyUrl:null,noticeVersion:null});
   assert.equal((await req(disabled)).status,503);
   assert.equal(calls.length,0);
   const noNotice=createHandler({env:{...env,PILEHEAD_GROWTH_PRIVACY_URL:"https://evil.example/privacy"},db,mail});
