@@ -154,6 +154,66 @@ async function sameOriginNavigation(browser) {
     console.log("PASS one-server Next route transitions: /stack → /play → /stack");
   } finally { await context.close(); }
 }
+// Check actual initial viewport geometry, not Playwright's automatic scroll-to-click.
+async function assertOrdinaryViewport(page, label) {
+  await page.evaluate(() => window.scrollTo({top:0, left:0, behavior:"instant"}));
+  await page.waitForFunction(() => {
+    const hand = document.querySelector(".player-hand");
+    return hand && Number(hand.dataset.handColumns) >= 3 && hand.clientWidth > 50;
+  });
+  // Wait for the actual layout stylesheet, fonts and ResizeObserver grid
+  // measurements to settle, independent of whether the geometry passes.
+  await page.waitForFunction(() => {
+    const shell=document.querySelector(".game-table-shell");
+    return shell && getComputedStyle(shell).getPropertyValue("--tabletop-layout-ready").trim()==="1";
+  });
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    const selectors=[".game-header",".game-meta",".table-center",".hand-stage",".control-panel"];
+    let previous="", stable=0;
+    const start=performance.now();
+    while(stable<4 && performance.now()-start<2000){
+      await new Promise(resolve=>requestAnimationFrame(resolve));
+      const snapshot=JSON.stringify(selectors.map(selector=>{
+        const r=document.querySelector(selector)?.getBoundingClientRect();
+        return r ? [r.top,r.bottom,r.width].map(n=>Math.round(n*2)/2) : null;
+      }));
+      stable=snapshot===previous ? stable+1 : 0;
+      previous=snapshot;
+    }
+    if(stable<4) throw Error("Tabletop geometry did not stabilize");
+    window.scrollTo({top:0,left:0,behavior:"instant"});
+  });
+  const geometry = await page.evaluate(() => {
+    const rect = selector => {
+      const el=document.querySelector(selector);
+      if(!el) return null;
+      const r=el.getBoundingClientRect();
+      return {top:r.top,bottom:r.bottom,left:r.left,right:r.right};
+    };
+    return {height:window.innerHeight,width:window.innerWidth,
+      scrollY:window.scrollY, pageWidth:document.documentElement.scrollWidth,
+      pile:rect(".pile-slot.played"), hand:rect(".hand-stage"),
+      actions:rect(".control-panel"), turn:rect(".game-meta"),
+      header:rect(".game-header"), coach:rect(".coach-tip"), opponents:rect(".opponents-row"),
+      faceup:rect(".faceup-row"), headingFont:getComputedStyle(document.querySelector(".game-meta h1")).fontSize,
+      buttons:[...document.querySelectorAll(".control-panel .button-group > button")].map(el=>{
+        const r=el.getBoundingClientRect(); return {label:el.textContent.trim(),top:r.top,bottom:r.bottom,height:r.height};
+      })};
+  });
+  assert.ok(geometry.scrollY <= 2, label+" must start at scroll zero");
+  assert.ok(geometry.pageWidth <= geometry.width+2,label+" horizontal overflow");
+  for(const key of ["pile","hand","actions","turn"]){
+    const r=geometry[key];
+    assert.ok(r && r.top>=-2 && r.bottom<=geometry.height+2,
+      label+" "+key+" must fit the initial viewport: "+JSON.stringify(geometry));
+  }
+  assert.ok(geometry.actions.top>=geometry.hand.bottom-2,label+" dock must not cover hand");
+  assert.ok(geometry.buttons.length && geometry.buttons.every(b=>b.height>=44 && b.bottom<=geometry.height+2),
+    label+" action buttons should have a 44px target and fit: "+JSON.stringify(geometry));
+  console.log("PASS initial viewport: "+label+" "+JSON.stringify(geometry));
+}
+
 async function localScenarios(browser) {
   for (const device of [
     { width: 1280, height: 860, mobile: false },
@@ -170,8 +230,10 @@ async function localScenarios(browser) {
     try {
       await page.goto(WEB + "/play", { waitUntil: "domcontentloaded" });
       await page.getByRole("button", { name: "Learn with a bot" }).click();
+      await assertOrdinaryViewport(page, "practice setup "+device.width+"x"+device.height);
       await page.getByRole("button", { name: "Start round" }).click();
       await page.getByRole("heading", { name: "Your move." }).waitFor({ timeout: 10000 });
+      await assertOrdinaryViewport(page, "practice play "+device.width+"x"+device.height);
       const hand = page.locator(".player-hand .card-hit");
       assert.equal(await hand.count(), 3, "opening hand holds three cards");
       const opponentArt = await page.locator(".opponent-up .mini-face").first()
@@ -379,7 +441,7 @@ async function adaptiveHandFitScenarios(browser) {
 }
 
 async function seatLayoutScenarios(browser) {
-  for (const players of [2, 3, 5]) {
+  for (const players of [2, 3, 4, 5]) {
     const context = await browser.newContext({
       viewport: {width:360,height:740},isMobile:true,hasTouch:true,
       reducedMotion:"reduce"
@@ -389,7 +451,9 @@ async function seatLayoutScenarios(browser) {
       await page.goto(WEB + "/play");
       await page.getByRole("combobox", {name:"Players"}).selectOption(String(players));
       await page.getByRole("button", {name:/Start game/}).click();
+      await assertOrdinaryViewport(page, players+"-seat local setup");
       await page.getByRole("button", {name:"Start round"}).click();
+      await assertOrdinaryViewport(page, players+"-seat local play");
       assert.equal(await page.locator(".opponent-seat").count(), players - 1,
         "the correct number of opponents must appear");
       const measurements = await page.evaluate(() => ({
@@ -405,6 +469,7 @@ async function seatLayoutScenarios(browser) {
         await page.screenshot({
           path:path.resolve(ROOT,"artifacts/next/five-players-360.png"),fullPage:true
         });
+        await page.screenshot({path:path.resolve(ROOT,"artifacts/next/five-players-360-viewport.png")});
       }
       console.log("PASS Next local: " + players + " seats on 360px mobile without overflow");
     } finally {await context.close()}
@@ -488,6 +553,8 @@ async function onlineScenarios(browser, server) {
       assert.ok(geometry.scrollWidth <= geometry.viewport + 2,
         label + " online room overflows its viewport: " + JSON.stringify(geometry));
     }
+    await assertOrdinaryViewport(host, "online host setup");
+    await assertOrdinaryViewport(guest, "online guest setup");
     await host.screenshot({path:path.resolve(ROOT,"artifacts/next/setup-host.png"),fullPage:true});
     await guest.screenshot({path:path.resolve(ROOT,"artifacts/next/setup-guest.png"),fullPage:true});
     // Regression: the opponent's Ready button must remain a real tap target

@@ -3,8 +3,12 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
-import { createPortal } from "react-dom";
+import type { CSSProperties } from "react";
+import { ACTIONS, ACTION_DESCRIPTIONS, cardLabel, PlayingCard, type DeckTheme } from "./card-view";
+import OpponentsStrip from "./opponents-strip";
+import CenterBoard from "./center-board";
+import PlayerHandArea, { type HandSort } from "./player-hand-area";
+import ActionDock from "./action-dock";
 import { playSound } from "../lib/sound";
 import MoveTheater, { type MotionLevel } from "./move-theater";
 import { useCommittedCardTravel } from "../lib/use-committed-card-travel";
@@ -20,20 +24,12 @@ const MotionAudio = require("../lib/motion-core.cjs") as {
 import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame, type Reaction } from "../lib/room";
 
 type Mode = "home" | "local" | "online";
-const ACTIONS = ["reset", "ghost", "under", "skip", "burn", "dump"];
-const ACTION_DESCRIPTIONS: Record<string, string> = {
-  reset: "Any number can follow", ghost: "Keep the current restriction",
-  under: "Next number must be 1–4", skip: "Skip the next player's turn",
-  burn: "Burn the pile and play again", dump: "Give the pile to any opponent; they can counter with their own DUMP"
-};
 const SAVE_KEY = "stack-next-local-save-v1";
 const THEME_KEY = "stack-next-deck-theme-v1";
 const SOUND_KEY = "stack-next-sound-enabled-v1";
 const PRACTICE_KEY = "stack-next-practice-mode-v1";
 const FINAL_DUEL_KEY = "stack-final-duel-default-v1";
 type EndgameRule = "classic" | "final-duel";
-type DeckTheme = "refined" | "characters" | "original";
-type HandSort = "dealt" | "asc" | "desc";
 function orderedHand(cards: Card[], mode: HandSort) {
   if (mode === "dealt") return cards;
   const weight = (card: Card) => card.kind === "number" ? card.rank || 0 :
@@ -70,8 +66,6 @@ const messageForError = (message: string) =>
 const humanLabel = (n: number) => n === 0 ? "You" : `Bot ${n}`;
 const sameFace = (a?: Card, b?: Card) => !!a && !!b &&
   a.kind === b.kind && (a.kind === "number" ? a.rank === b.rank : a.action === b.action);
-const cardLabel = (card: Card) => card.kind === "number" ? `Number ${card.rank}` :
-  `${card.action?.toUpperCase()}: ${ACTION_DESCRIPTIONS[card.action || ""]}`;
 const identicalIds = (left: number[], right: number[]) =>
   left.length === right.length && left.every(id => right.includes(id));
 
@@ -123,122 +117,6 @@ function asLocalRoom(game: Game): RoomGame {
     followup: game.phase === "play" ? Engine.followUpOptions(game, 0) : [],
     setupReady: game.setupReady || []
   };
-}
-
-function PlayingCard({ card, hidden = false, selected = false, small = false, onClick, onDrop, disabled = false, theme = "refined",
-  description, offsetX = 0 }: {
-  card?: Card; hidden?: boolean; selected?: boolean; small?: boolean; theme?: DeckTheme;
-  onClick?: () => void; onDrop?: () => void; disabled?: boolean; description?: string; offsetX?: number;
-}) {
-  const index = !hidden && card
-    ? card.kind === "number" ? (card.rank || 1) - 1 : 10 + ACTIONS.indexOf(card.action || "")
-    : -1;
-  const gesture = useRef<{x: number; y: number; moved: boolean} | null>(null);
-  const blockClick = useRef(false);
-  const [floating, setFloating] = useState<{x: number; y: number; touch: boolean} | null>(null);
-  function pointerDown(e: ReactPointerEvent<HTMLButtonElement>) {
-    if (!onDrop || e.button !== 0) return;
-    blockClick.current = false;
-    gesture.current = { x: e.clientX, y: e.clientY, moved: false };
-    e.currentTarget.setPointerCapture(e.pointerId);
-  }
-  function pointerMove(e: ReactPointerEvent<HTMLButtonElement>) {
-    const start = gesture.current;
-    if (!start) return;
-    if (!start.moved && Math.hypot(e.clientX - start.x, e.clientY - start.y) <
-        (e.pointerType === "touch" ? 12 : 8)) return;
-    start.moved = true;
-    setFloating({ x: e.clientX, y: e.clientY, touch: e.pointerType === "touch" });
-  }
-  function pointerUp(e: ReactPointerEvent<HTMLButtonElement>) {
-    const start = gesture.current;
-    if (!start) return;
-    gesture.current = null; setFloating(null);
-    if (!start.moved) return;
-    // Pointer capture sends the mouseup to this card even when it was
-    // released over the pile. Suppress only the synthetic click generated
-    // by this drag; never swallow the player's next intentional tap.
-    blockClick.current = true;
-    window.setTimeout(() => { blockClick.current = false; }, 0);
-    if (document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-drop-target="pile"]'))
-      onDrop?.();
-  }
-  const faceStyle: CSSProperties = index >= 0 ? {
-    backgroundPosition: `${(index % 4) * 100 / 3}% ${Math.floor(index / 4) * 100 / 3}%`
-  } : {};
-  return (
-    <div
-      className={`playing-card theme-${theme} ${hidden ? "is-back" : ""} ${selected ? "is-selected" : ""} ${floating ? "is-dragging" : ""} ${small ? "is-small" : ""} ${onClick && !disabled ? "is-interactive" : ""}`}
-      data-card-id={card?.id}
-      style={offsetX ? {left: offsetX} : undefined}>
-      <div aria-hidden="true" className="card-art" style={faceStyle} />
-      {onClick && !disabled ? (
-        <button type="button" className="card-hit"
-          aria-label={description || (hidden ? "Flip a face-down card" : card ? cardLabel(card) : "Card")}
-          aria-pressed={selected}
-          onPointerDown={pointerDown}
-          onPointerMove={pointerMove}
-          onPointerUp={pointerUp}
-          onPointerCancel={() => { gesture.current = null; setFloating(null); }}
-          onClick={e => {
-            if (blockClick.current && e.detail !== 0) {
-              blockClick.current = false; e.preventDefault(); return;
-            }
-            blockClick.current = false;
-            onClick();
-          }} />
-      ) : null}
-      {floating && createPortal(
-        <div className={"drag-ghost theme-" + theme + (floating.touch ? " is-touch" : "")}
-          style={{left:floating.x,top:floating.y}} aria-hidden="true">
-          <div className="card-art" style={faceStyle} />
-        </div>, document.body)}
-    </div>
-  );
-}
-
-function PlayerPosition({ name, seat, active, self, out, handCount, up, downCount, presence, reaction, theme, targetable = false, onTarget, onInspect }: {
-  name: string; seat: number; active: boolean; self: boolean; out: boolean;
-  handCount: number; up: Card[]; downCount: number; presence?: string; reaction?: string; theme: DeckTheme;
-  targetable?: boolean; onTarget?: () => void; onInspect?: () => void;
-}) {
-  return <div className={`opponent-seat theme-${theme} ${active ? "seat-active" : ""} ${out ? "seat-out" : ""} ${targetable ? "is-dump-target" : ""}`}
-    data-seat={seat} role={targetable ? "button" : undefined} tabIndex={targetable ? 0 : undefined}
-    onClick={targetable ? onTarget : undefined}
-    onKeyDown={targetable ? event => {
-      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onTarget?.(); }
-    } : undefined}
-    aria-label={targetable ? `Send the pile to ${name}` : `${name}: ${handCount} in hand, ${up.length} face-up, ${downCount} face-down`}>
-    <div className="seat-heading">
-      <span className="avatar" aria-hidden="true">{self ? "Y" : String(seat + 1)}</span>
-      <div><strong>{name}</strong><small>{out ? "Finished" : presence === "offline" ? "Offline" :
-          presence === "away" ? "Away" : active ? "Playing now" : `${handCount} in hand`}</small></div>
-      {active && <span className="turn-dot" aria-label="Current turn" />}
-      {reaction && <span className="seat-reaction" role="status">{reaction}</span>}
-    </div>
-    <div className="opponent-card-stack" aria-hidden="true">
-      {Array.from({ length: Math.min(5, handCount) }, (_, i) =>
-        <span className="hand-back" key={i} style={{ transform: `translateX(${i * 12}px) rotate(${(i - 2) * 5}deg)` }} />)}
-      {!handCount && <span className="empty-seat">No hand cards</span>}
-    </div>
-    <div className="opponent-up">
-      {Array.from({ length: Math.max(up.length, downCount) }, (_, i) => {
-        const card = up[i];
-        const artIndex = card?.kind === "number" ? (card.rank ?? 1) - 1 :
-          card ? 10 + ACTIONS.indexOf(card.action || "") : -1;
-        return <div className="mini-pair" key={i}>
-          {i < downCount && <span className="mini-back" />}
-          {card && <span className={`mini-face theme-${theme}`} data-card-id={card.id}
-            title={cardLabel(card)} aria-label={cardLabel(card)}
-            style={{ backgroundPosition: `${(artIndex % 4) * 100 / 3}% ${Math.floor(artIndex / 4) * 100 / 3}%` }} />}
-        </div>;
-      })}
-      {!targetable && up.length > 0 && onInspect &&
-        <button className="opponent-inspect-hit" type="button"
-          aria-label={`${name} face-up cards`} title="Inspect visible cards"
-          onClick={onInspect} />}
-    </div>
-  </div>;
 }
 
 export default function GameTable() {
@@ -1062,7 +940,7 @@ export default function GameTable() {
   const joined = mode === "local" ? true : room?.members.length === g.players.length - g.botSeats.length;
 
   return (
-    <main className="game-shell">
+    <main className="game-shell game-table-shell" data-phase={g.phase} data-hand-count={handCount}>
       <header className="game-header">
         <Link href="/stack" className="logo stack-site-brand" aria-label="STACK home"><img src="/stack-media/stack-home-logo-web.webp" alt="STACK" width={220} height={185}/></Link>
         <div className="game-head-actions">
@@ -1103,108 +981,20 @@ export default function GameTable() {
         theme={deckTheme} nameForSeat={nameForSeat} motionLevel={motionLevel} />
       <div className={`tabletop theme-${deckTheme}`} role="region" aria-label="STACK card game">
         <div className="table-texture" aria-hidden="true" />
-        <div className="opponents-row">
-          {g.players.filter(p => p.seat !== me).map(p =>
-            <PlayerPosition key={p.seat} seat={p.seat} theme={deckTheme} name={nameForSeat(p.seat)} self={false} out={p.out}
-              targetable={choosingDumpTarget && !p.out} onTarget={() => chooseDumpSeat(p.seat)}
-              onInspect={() => setInspectSeat(p.seat)}
-              active={g.phase === "play" && g.turn === p.seat}
-              handCount={p.handCount} up={p.up} downCount={p.downCount}
-              presence={room?.members.find(m => m.seat === p.seat)?.presence}
-              reaction={newestReactions.filter(r => r.seat === p.seat).slice(-1)
-                .map(r => reactionSymbols[r.kind]).join("")} />)}
-        </div>
-        <div className="table-center">
-          <div className="pile-zone">
-            <span className="pile-title">DRAW DECK</span>
-            <div className="pile-slot">
-              {g.stockCount > 0 ? <PlayingCard hidden theme={deckTheme} /> : <div className="slot-empty">Empty</div>}
-              {g.stockCount > 1 && <span className="stack-depth" />}
-            </div>
-            <span className="pile-counter">{g.stockCount} cards</span>
-          </div>
-          <div className="pile-zone is-main">
-            <span className="pile-title">PLAY PILE</span>
-            <div className={"pile-slot played " + (selection.length ? "is-drop-ready" : "")}
-              data-drop-target="pile" role="button" tabIndex={0}
-              aria-label="Play selected cards onto the pile"
-              aria-disabled={!canPlay || busy}
-              onClick={() => { if (selection.length && !busy) playSelected(); }}
-              onKeyDown={e => {
-                if ((e.key === "Enter" || e.key === " ") && selection.length && !busy) {
-                  e.preventDefault(); playSelected();
-                }
-              }}>
-              {g.pile.slice(-5).map((card, i) => <div key={card.id}
-                  className={"pile-layer" + (freshBlindMove === g.moves && g.pile.at(-1)?.id === card.id ? " is-blind-reveal" : "")} style={{ transform: `translate(${(i - 2) * 10}px, ${(i - 2) * -3}px) rotate(${(i - 2) * 3}deg)` }}>
-                  <PlayingCard card={card} theme={deckTheme} />
-                </div>)}
-              {!g.pile.length && <div className="slot-empty">Pile clear</div>}
-            </div>
-            {g.limit && <span className="pile-rule-marker" data-rule={g.limit.type}
-                aria-label={rule}>{g.limit.type === "under" ? "1–4" : "≥ " + g.limit.value}</span>}
-              <span className="pile-counter">{g.pile.length} cards{g.limit ? "" : " · Any number can follow"}</span>
-             <button type="button" className="react-pile-inspect" disabled={!g.pile.length}
-               onClick={() => setPileOpen(true)}>Inspect pile</button>
-          </div>
-          <div className="pile-zone">
-            <span className="pile-title">BURNED</span>
-            <div className="pile-slot burned"><span className="burn-mark" aria-hidden="true">✕</span></div>
-            <span className="pile-counter">{g.ashesCount} removed</span>
-          </div>
-        </div>
-
+        <OpponentsStrip g={g} me={me} theme={deckTheme} room={room} nameForSeat={nameForSeat}
+          choosingDumpTarget={choosingDumpTarget} chooseDumpSeat={chooseDumpSeat} onInspect={setInspectSeat}
+          newestReactions={newestReactions} reactionSymbols={reactionSymbols} />
+        <CenterBoard g={g} theme={deckTheme} selection={selection} canPlay={canPlay} busy={busy}
+          playSelected={playSelected} freshBlindMove={freshBlindMove} rule={rule} onInspect={() => setPileOpen(true)} />
         {finalDuel && <div className="duel-banner" role="status">
           <strong>FINAL DUEL</strong><span>Every pickup burns the visible top card first.</span>
         </div>}
-        <div className="player-zones">
-          <div className="zone-heading"><strong>YOUR FACE-UP CARDS</strong><span>{current.up.length} cards · {current.downCount} blind</span></div>
-          <div className="faceup-row">
-            {Array.from({ length: Math.max(current.up.length, current.downCount) }, (_, index) => {
-              const upCard = current.up[index];
-              const canUp = g.phase === "setup" ? !ready : active &&
-                (stage === "up" || canBridge(upCard));
-              return <div className="faceup-pair" key={index}>
-                {index < current.downCount && <div className="blind-under">
-                  <PlayingCard hidden theme={deckTheme} onClick={stage === "down" && active ? () => clickBlind(index) : undefined} />
-                </div>}
-                {upCard && <div className="visible-up">
-                  <PlayingCard card={upCard} theme={deckTheme} selected={selection.includes(upCard.id)}
-                    onClick={canUp ? () => g.phase === "setup" ? swap(upCard, "up") : chooseCard(upCard) : undefined}
-                    onDrop={canUp && g.phase === "play" ? () => playCardDirect(upCard) : undefined} />
-                </div>}
-              </div>;
-            })}
-          </div>
-          <div className="zone-heading hand-heading"><strong>YOUR HAND · {current.handCount}</strong>
-            <span className="hand-utilities">
-              {selection.length > 0 && <button type="button" className="hand-tool"
-                onClick={() => {setSelection([]);setNeedsTarget(false);}}>
-                Clear {selection.length}
-              </button>}
-              {g.phase === "setup" ? "Swap cards before starting" :
-                <button type="button" className="hand-tool" aria-label="Sort hand"
-                  onClick={() => setHandSort(order => order === "dealt" ? "asc" :
-                    order === "asc" ? "desc" : "dealt")}>
-                  Sort {handSort === "dealt" ? "↑" : handSort === "asc" ? "↓" : "↺"}
-                </button>}
-            </span></div>
-          <div className="hand-stage" ref={handStageRef}
-            role="group" aria-label={`Your hand, ${current.handCount} cards`}>
-            <div className={`player-hand ${handCount ? "is-adaptive" : "is-empty"}`}
-              style={handCount ? handLayout : undefined} data-hand-rows={handRows}
-              data-hand-columns={handColumns}>
-              {handCards.map((card, index) =>
-                <PlayingCard key={card.id} card={card}
-                  offsetX={lastRowShift && Math.floor(index / handColumns) === handRows - 1 ? lastRowShift : 0}
-                  theme={deckTheme} selected={selection.includes(card.id) || swapHand === card.id}
-                  onClick={g.phase === "setup" ? (!ready ? () => swap(card, "hand") : undefined) :
-                    (active || g.followup.length > 0) && stage === "hand" ? () => chooseCard(card) : undefined}
-                  onDrop={active && stage === "hand" ? () => playCardDirect(card) : undefined} />)}
-              {!current.handCount && <span className="hand-placeholder">No cards in hand</span>}
-            </div>
-          </div>
-        </div>
+        <PlayerHandArea g={g} current={current} theme={deckTheme} ready={ready} active={active} stage={stage}
+          canBridge={canBridge} clickBlind={clickBlind} selection={selection} swap={swap} chooseCard={chooseCard}
+          playCardDirect={playCardDirect} onClear={() => {setSelection([]);setNeedsTarget(false);}}
+          onSort={() => setHandSort(order => order === "dealt" ? "asc" : order === "asc" ? "desc" : "dealt")}
+          handSort={handSort} handStageRef={handStageRef} handCount={handCount} handLayout={handLayout}
+          handRows={handRows} handColumns={handColumns} handCards={handCards} lastRowShift={lastRowShift} swapHand={swapHand} />
         {g.phase === "over" && <motion.section className="results-overlay"
           initial={{opacity:0, y:20, scale:.96}}
           animate={{opacity:1,y:0,scale:1}}
@@ -1261,83 +1051,18 @@ export default function GameTable() {
            <p>Only cards that have been played are visible. The draw deck stays hidden.</p>
          </section>
        </div>}
-       <div className="control-panel" aria-label="Game actions">
-        {g.phase === "setup" ? (
-          <div className="setup-controls">
-            <div><strong>{mode === "online" ? `${room?.members.length || 0} joined · ${g.players.length - g.botSeats.length} humans required` : "Set up your cards"}</strong>
-              <p>{ready ? "Waiting for players to be ready" : "Choose the three cards to leave face-up."}</p></div>
-            {mode === "local" ? <div className="button-group">
-              <button className="secondary-button" onClick={() => commitLocal(game => Engine.autoSetup(game, 0))}>Auto arrange</button>
-              <button className="primary-button" onClick={() => commitLocal(game => Engine.start(game))}>Start round</button></div> :
-              <div className="button-group">
-                <button className="secondary-button" disabled={busy}
-                  onClick={() => room && void submit({ action: "ready", ready: !ready,
-                    code: room.code, revision: room.revision })}>{ready ? "Change cards" : "I'm ready"}</button>
-                {room?.host && <button className="primary-button" disabled={busy || !allReady || !joined}
-                  onClick={() => void submit({ action: "start", code: room.code, revision: room.revision })}>Start round</button>}
-              </div>}
-          </div>
-        ) : g.phase === "over" ? <div className="setup-controls">
-          <div><strong>Game over</strong><p>First out: {nameForSeat(g.finishedOrder[0] ?? -1)}</p></div>
-          <div className="button-group">
-            {mode === "local" && undoAvailable &&
-              <button className="secondary-button" data-hotkey="undo" onClick={undo}>Undo last move</button>}
-            <button className="primary-button" disabled={busy}
-              onClick={() => setConfirmRestart(true)}>Play another round</button>
-          </div>
-        </div> : g.pendingCounter ? <div className="setup-controls">
-          {g.pendingCounter.seat === me ? <>
-            <div><strong>COUNTER DUMP</strong><p>Return {g.pendingCounter.count} cards to {nameForSeat(g.pendingCounter.attacker)} and take the next turn.</p></div>
-            <div className="button-group">
-              <button className="primary-button" disabled={busy || !g.legal.some(m => m.type === "counter-dump")} onClick={() => { const m = g.legal.find(m => m.type === "counter-dump"); if (m) playMove(m); }}>Counter DUMP</button>
-              <button className="secondary-button" disabled={busy} onClick={() => playMove({type:"counter-pass"})}>Keep cards</button>
-            </div>
-          </> : <div><strong>Waiting for {nameForSeat(g.pendingCounter.seat)}</strong><p>Resolving the DUMP.</p></div>}
-        </div> : g.pendingDump?.seat === me ? <div className="setup-controls">
-          <div><strong>Choose who takes the pile</strong><p>DUMP can target any active opponent.</p></div>
-          <div className="button-group">{liveSeats.map(seat =>
-            <button className="primary-button" key={seat} disabled={busy} onClick={() =>
-              mode === "local" ? commitLocal(game => Engine.resolveDump(game, me, seat)) :
-                room && void submit({ action: "dump-target", code: room.code, revision: room.revision, target: seat })
-            }>{nameForSeat(seat)}</button>)}</div>
-        </div> : needsTarget ? <div className="setup-controls">
-          <div><strong>Choose a DUMP target</strong><p>Who should pick up the pile?</p></div>
-          <div className="button-group">
-            {liveSeats.map(seat => <button key={seat} className="primary-button"
-              onClick={() => playSelected(seat)}>{nameForSeat(seat)}</button>)}
-            <button className="secondary-button" onClick={() => setNeedsTarget(false)}>Cancel</button>
-          </div>
-        </div> : (
-          <div className="play-controls">
-            <div className="selection-note">{selectedCards.length ?
-              <><strong>{selectedCards.length} selected</strong><span>{selectedAction ? ACTION_DESCRIPTIONS[selectedAction] : cardLabel(selectedCards[0])}</span></> :
-              <><strong>{active ? "Your turn" : `Waiting for ${nameForSeat(g.turn)}`}</strong>
-                <span>{active ? "Select one or more matching cards." : "Watch for a SNAP or SLAM opportunity."}</span></>}</div>
-            <div className="button-group">
-              {mode === "online" && <div className="reaction-menu">
-                <button className="secondary-button reaction-trigger"
-                  aria-expanded={reactionsOpen} aria-label="Send a reaction"
-                  onClick={() => setReactionsOpen(open => !open)}>React</button>
-                {reactionsOpen && <div className="reaction-picker" role="group" aria-label="Choose a reaction">
-                  {(Object.keys(reactionSymbols) as Reaction["kind"][]).map(kind =>
-                    <button key={kind} title={kind} aria-label={"React " + kind}
-                      onClick={() => void sendReaction(kind)}>{reactionSymbols[kind]}</button>)}
-                </div>}
-              </div>}
-              {mode === "local" && undoAvailable && <button className="secondary-button" data-hotkey="undo" onClick={undo}>Undo</button>}
-              {!!g.followup.length && <button className="snap-button" data-hotkey="snap" disabled={busy}
-                onClick={() => playMove(g.followup[0])}>SNAP</button>}
-              {!!g.slam.length && <button className="slam-button" data-hotkey="slam" disabled={busy}
-                onClick={() => playMove(g.slam[0])}>SLAM</button>}
-              <button className="secondary-button" data-hotkey="take" disabled={busy || !canTake}
-                onClick={() => playMove({ type: "take" })}>Take pile</button>
-              <button className="primary-button" data-hotkey="play" disabled={busy || !active || !canPlay}
-                onClick={() => playSelected()}>Play cards <span aria-hidden>→</span></button>
-            </div>
-          </div>
-        )}
-      </div>
-      {notice && <div className="alert" role="alert">{notice}</div>}
+       <ActionDock g={g} mode={mode} room={room} ready={ready} allReady={allReady} joined={joined} busy={busy}
+          undoAvailable={undoAvailable} undo={undo} onRematch={() => setConfirmRestart(true)} me={me}
+          nameForSeat={nameForSeat} playMove={playMove} liveSeats={liveSeats} chooseDumpSeat={chooseDumpSeat}
+          needsTarget={needsTarget} playSelected={playSelected} onCancelTarget={() => setNeedsTarget(false)}
+          selectedCards={selectedCards} selectedAction={selectedAction} active={active} reactionsOpen={reactionsOpen}
+          onToggleReactions={() => setReactionsOpen(open => !open)} reactionSymbols={reactionSymbols}
+          sendReaction={sendReaction} canTake={canTake} canPlay={canPlay}
+          onAutoArrange={() => commitLocal(game => Engine.autoSetup(game, 0))}
+          onStart={() => { if (mode === "local") commitLocal(game => Engine.start(game));
+            else if (room) void submit({action:"start",code:room.code,revision:room.revision}); }}
+          onReady={() => { if (room) void submit({action:"ready",ready:!ready,code:room.code,revision:room.revision}); }} />
+       {notice && <div className="alert" role="alert">{notice}</div>}
       {showSettings && <div className="modal-backdrop" onClick={() => setShowSettings(false)}>
         <section className="game-modal" role="dialog" aria-label="Game settings" aria-modal="true"
           onClick={event => event.stopPropagation()}>
