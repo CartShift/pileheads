@@ -22,7 +22,7 @@ function validate(b){
     const a=attribution(b.attribution);
     if(Object.keys(a).some(k=>a[k]!==b.attribution[k]))throw Error("invalid_attribution");
   }else if(b.action==="funnel_event"){
-    if(!exact(b,["action","id","token","event","noticeVersion"])||!Object.hasOwn(EVENTS,b.event)||
+    if(!exact(b,["action","id","token","event","noticeVersion"])||typeof b.event!=="string"||!Object.hasOwn(EVENTS,b.event)||
        typeof b.noticeVersion!=="string"||!/^[a-zA-Z0-9._-]{1,40}$/.test(b.noticeVersion))throw Error("invalid_event");
   }else if(b.action==="funnel_delete"){
     if(!exact(b,["action","id","token"]))throw Error("invalid_delete");
@@ -40,8 +40,11 @@ function metrics(rows){
     startFraction:fraction(started,opened),completionFraction:fraction(completed,started),rematchFraction:fraction(rematch,completed)};
 }
 function summarize(rows){
-  const sources={};
-  for(const row of rows){const key=attribution({source:row.source}).source??"unknown";(sources[key]??=[]).push(row);}
-  return {all:metrics(rows),sources:Object.fromEntries(Object.entries(sources).map(([k,v])=>[k,metrics(v)]))};
+  const groups=field=>{
+    const grouped={};
+    for(const row of rows){const key=attribution(row)[field]??"unknown";(grouped[key]??=[]).push(row);}
+    return Object.fromEntries(Object.entries(grouped).map(([k,v])=>[k,metrics(v)]));
+  };
+  return {all:metrics(rows),sources:groups("source"),campaigns:groups("campaign")};
 }
 module.exports={EVENTS,validate,metrics,summarize};
