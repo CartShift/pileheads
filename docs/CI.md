@@ -4,17 +4,17 @@ The repository has **two CI levels**, not three overlapping browser runners.
 
 | Level | Trigger | What runs | Purpose |
 | --- | --- | --- | --- |
-| **Fast checks** | Every relevant PR update (including Draft), and pushes to `main` | Locked npm installs, React TypeScript, all deterministic tests (`npm test`), Classic-only static build, publish-boundary assertions | Find common regressions quickly without Chromium or a full Next.js production build |
-| **Full acceptance** | Non-draft PR creation/update, Draft → **Ready for review**, manual GitHub Actions dispatch, and direct `main` pushes | Typecheck, complete production build, deterministic tests, single-origin server check, **both Classic and React desktop/mobile browser suites, real HTTP/WebSocket multiplayer with mock Neon** | Verify production-relevant behavior before merging |
+| **Fast checks** | Every relevant PR update (including Draft), and pushes to `main` | Locked npm installs, React TypeScript, all deterministic tests (`npm test`), shared-assets build, publish-boundary assertions | Find common regressions quickly without Chromium or a full Next.js production build |
+| **Full acceptance** | Non-draft PR creation/update, Draft → **Ready for review**, manual GitHub Actions dispatch | Typecheck, complete production build, deterministic tests, single-origin server check, **React desktop/mobile browser suite, real HTTP/WebSocket multiplayer with mock Neon** | Verify production-relevant behavior before merging |
 
 ### Day-to-day
 
 1. Develop using a **Draft PR**. Each commit runs the fast checks automatically; the full browser suite is skipped.
 2. When the change is ready to merge, click **Ready for review**. This automatically triggers full acceptance against that PR's current head. No label or manual workflow trigger is needed.
-3. Wait for **both** `STACK fast: engine, API, types and Classic` and `STACK full: Classic, React, multiplayer` to pass before merging. If code changes after a green result, the corresponding checks rerun on the new commit.
-4. For exceptional debugging, run the **STACK full acceptance** workflow with `workflow_dispatch`. It also runs on pushes to `main` as a safety net while branch protection is unavailable.
+3. Wait for **both** `STACK fast: engine, API, types and shared assets` and `STACK full: React, multiplayer` to pass before merging. If code changes after a green result, the corresponding checks rerun on the new commit.
+4. For exceptional debugging, run the **STACK full acceptance** workflow with `workflow_dispatch`. Fast checks and production smoke still run for relevant main pushes.
 
-When superseded commits arrive, the previous run of the *same workflow* is cancelled. Browser dependencies are cached and the full suite shares **one** installed Chromium and **one** production build across both frontends. A draft PR's skipped full job is **not** an approval for merge.
+When superseded commits arrive, the previous run of the *same workflow* is cancelled. Browser dependencies are cached and the full suite shares **one** installed Chromium and **one** production build for the sole frontend. A draft PR's skipped full job is **not** an approval for merge.
 
 ### Local equivalents
 
@@ -24,15 +24,13 @@ npm ci
 npm ci --prefix apps/web
 npm run typecheck --prefix apps/web
 npm test
-npm run build:classic
+npm run build:shared-assets
 
 # Full acceptance
 npm run build
 node tests/stack-single-service.cjs
 npm install --no-save playwright@1.56.1
 npx playwright install --with-deps --only-shell chromium
-node tests/pilehead-browser.cjs
-node tests/pilehead-live-browser.cjs
 node tests/stack-next-browser.cjs
 ```
 

@@ -4,7 +4,7 @@
 
 Only STACK/PILEHEAD is built and tested. The original repository name `spark-card-game` and the `pilehead` paths remain unchanged to avoid breaking Vercel settings, links, API imports and browser persistence. Rename separately only after deployment verification.
 
-The canonical frontend lives in `dist/pilehead/`. Despite its name, `dist` is **source**, while `vercel-static/` is generated and ignored.
+The canonical frontend lives in `apps/web/`. `dist/pilehead/` retains shared rules, artwork, physical-game resources and the isolated Endgame Lab; `vercel-static/` is generated and ignored.
 
 ## Workflow
 
@@ -16,7 +16,7 @@ The canonical frontend lives in `dist/pilehead/`. Despite its name, `dist` is **
 
 ## Compatibility
 
-The cleanup preserves `/pilehead/index.html`, printable pages, `/api/pilehead`, database migrations already implemented in the API, browser save keys and saved-room compatibility. Site root `/` redirects to STACK, retaining URL parameters and fragments when JavaScript runs.
+The retired `/pilehead/index.html` URL redirects to `/play`, retaining query parameters. The Next homepage is served at `/`. Printable pages, `/api/pilehead`, the authoritative database and room protocol remain. Classic local saves and browser credentials are not automatically migrated into the React client.
 
 SPARK/TILT prototypes, the Sites/D1 Worker and original simulation hub have been retired from the active source tree. Historical content is still accessible through Git history. Do not restore the old backends into the STACK deployment.
 
