@@ -2,19 +2,20 @@
    Keep the dock in document flow: no fixed overlay covering a large hand.
    A short viewport, zoom or an exceptional hand may scroll naturally. */
 .game-table-shell.game-shell {
+  --tabletop-layout-ready: 1;
   padding: 0 clamp(8px, 2vw, 24px) max(8px, env(safe-area-inset-bottom));
 }
 .game-table-shell .game-header {
   min-height: 56px; gap: 10px; padding: 5px 4px;
 }
 .game-table-shell .game-header .stack-site-brand img {
-  width: auto; height: 40px; display: block;
+  width: auto; height: 40px; max-width: 120px; object-fit: contain; display: block;
 }
 .game-table-shell .game-meta {
   margin: 2px auto 6px; padding: 0 4px; align-items: center;
 }
 .game-table-shell .game-meta h1 {
-  font-size: clamp(20px, 2.5vw, 30px); margin: 2px 0;
+  font-size: clamp(20px, 2.5vw, 30px); line-height: 1.12; margin: 2px 0;
 }
 .game-table-shell .meta-right { gap: 8px; }
 .game-table-shell .coach-tip { margin-bottom: 6px; padding: 7px 10px; }
@@ -123,3 +124,7 @@
   .game-table-shell:is([data-hand-count="0"],[data-hand-count="1"],[data-hand-count="2"],[data-hand-count="3"]) .hand-heading { grid-area: 1 / 2; margin-top: 0; }
   .game-table-shell:is([data-hand-count="0"],[data-hand-count="1"],[data-hand-count="2"],[data-hand-count="3"]) .hand-stage { grid-area: 2 / 2; }
 }
+
+/* Do not let the legacy adaptive-hand minimum height reserve a second row
+   when the measured grid is only one row tall. */
+.game-table-shell .player-hand.is-adaptive { min-height: 0; }
