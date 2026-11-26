@@ -5,11 +5,12 @@ const Campaign = require("./growth-attribution.cjs") as {
 };
 export const campaignFromSearch=Campaign.attributionFromSearch;
 export const campaignPlayHref=Campaign.playHref;
-export async function growthStatus():Promise<{reports:boolean;waitlist:boolean}> {
+export type GrowthStatus={reports:boolean;waitlist:boolean;privacyUrl:string|null;noticeVersion:string|null};
+export async function growthStatus():Promise<GrowthStatus> {
   const response=await fetch("/api/growth?status=1",{cache:"no-store",credentials:"omit",referrerPolicy:"no-referrer",signal:AbortSignal.timeout(6000)});
   if(!response.ok)throw Error("unavailable");
   const data=await response.json();
-  return {reports:data.reports===true,waitlist:data.waitlist===true};
+  return {reports:data.reports===true,waitlist:data.waitlist===true,privacyUrl:typeof data.privacyUrl==="string"?data.privacyUrl:null,noticeVersion:typeof data.noticeVersion==="string"?data.noticeVersion:null};
 }
 export async function growthPost(body:object) {
   const response=await fetch("/api/growth",{method:"POST",credentials:"omit",cache:"no-store",referrerPolicy:"no-referrer",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(15000)});
