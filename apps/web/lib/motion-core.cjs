@@ -139,6 +139,27 @@ function advanceSoundCursor(previous, snapshot) {
   };
 }
 
+/** Lifecycle cues are separate from committed card moves. Initial hydration
+ * is silent unless the client explicitly initiated a new deal. */
+function advanceRoundCursor(previous, input) {
+  const next = {
+    key: input.gameKey, room: input.roomCode ?? null,
+    phase: input.phase, move: input.moveNo, turn: input.turn
+  };
+  let cue = null;
+  if (next.phase === "setup" && previous?.key !== next.key &&
+      (input.freshDeal === true ||
+        (next.room && previous?.room === next.room && previous.phase === "over")))
+    cue = "deal";
+  else if (previous?.key === next.key && previous.phase === "setup" &&
+      next.phase === "play" && next.move === 0)
+    cue = "start";
+  else if (previous?.key === next.key && previous.phase === "play" &&
+      next.phase === "play" && next.move === previous.move + 1 && next.turn !== previous.turn)
+    cue = "handoff";
+  return { cursor: next, cue: input.visible === false || input.reduced === true ? null : cue };
+}
+
 module.exports = {
-  EFFECTS, chooseKind, fromCommittedEvent, advanceCursor, advanceSoundCursor
+  EFFECTS, chooseKind, fromCommittedEvent, advanceCursor, advanceSoundCursor, advanceRoundCursor
 };
