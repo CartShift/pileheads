@@ -76,6 +76,8 @@ async function endgameSettingsAndBridge(browser) {
     await page.getByRole("button",{name:"Resume game"}).click();
     const faceup=page.locator(".faceup-row .visible-up .card-hit");
     const expectedBridgeCards = p.up.filter(sameFace).length;
+    assert.equal(await page.locator('.faceup-row .visible-up .playing-card[data-availability="playable"]').count(), expectedBridgeCards,
+      "bridge hints include complete hand plus matching face-up groups");
     assert.equal(await faceup.count(),expectedBridgeCards,
       "only genuinely matching face-up cards can be selected for a bridge");
     await faceup.first().click();
@@ -239,6 +241,11 @@ async function localScenarios(browser) {
       await assertOrdinaryViewport(page, "practice play "+device.width+"x"+device.height);
       const hand = page.locator(".player-hand .card-hit");
       assert.equal(await hand.count(), 3, "opening hand holds three cards");
+      assert.equal(await page.locator('.player-hand .playing-card[data-availability="playable"]').count(), 3,
+        "all opening hand cards are legal at an empty pile");
+      assert.match(await hand.first().getAttribute("aria-description"), /legal play/);
+      assert.equal(await page.locator('.blind-under .playing-card[data-availability="neutral"]').count(), 3,
+        "blind cards never receive legality hints");
       assert.equal(await page.locator(".game-table-shell").getAttribute("data-turn"), "self",
         "the highlighted player-turn treatment follows the authoritative state");
       assert.equal(await page.locator(".opponent-card-stack .hand-stack-count").first().textContent(), "3",
