@@ -1,0 +1,24 @@
+# Manual fallback; do not duplicate GitHub PR checks.
+format_version: "26"
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: node-js
+meta:
+  bitrise.io:
+    machine_type_id: elite
+    stack: ubuntu-noble-24.04-bitrise-2025-android
+tools:
+  node: "24"
+workflows:
+  run_tests:
+    steps:
+      - activate-ssh-key@4: {}
+      - git-clone@8: {}
+      - restore-npm-cache@3: {}
+      - script@1:
+          title: Shared fast CI checks
+          inputs:
+            - content: |-
+                #!/usr/bin/env bash
+                set -euo pipefail
+                node scripts/ci.mjs fast
+      - save-npm-cache@1: {}
