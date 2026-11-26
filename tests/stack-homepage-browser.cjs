@@ -10,7 +10,7 @@ const ROOT = path.resolve(__dirname, "..");
 const PORT = 44292;
 const BASE = "http://127.0.0.1:" + PORT;
 const ARTIFACTS = path.resolve(process.env.STACK_HOMEPAGE_ARTIFACTS || path.join(ROOT,"artifacts","website"));
-const assets = ["faces-v2","box-v2","back-v2","logo-v2","explorer-v2","gameplay-v2","gameplay-wide-v2","gameplay-desktop-v2","sunset","box-side-v2","box-top-v2","burn-beach","faces-web-desktop","faces-web-mobile","logo-web","box-web","explorer-web-desktop","explorer-web-mobile","back-web"].map(x=>"/stack-media/stack-home-"+x+".webp");
+const assets = ["faces-v2","box-v2","back-v2","logo-v2","explorer-v2","gameplay-v7","gameplay-wide-v7","gameplay-desktop-v7","sunset","box-side-v2","box-top-v2","burn-beach","faces-web-desktop","faces-web-mobile","logo-web","box-web","explorer-web-desktop","explorer-web-mobile","back-web"].map(x=>"/stack-media/stack-home-"+x+".webp");
 async function waitReady(){
   for(let i=0;i<100;i++){try{if((await fetch(BASE+"/livez")).ok)return}catch{} await new Promise(r=>setTimeout(r,200))}
   throw Error("Integrated server did not become ready");
@@ -33,7 +33,7 @@ async function check(browser,width,height){
     const sprite=await page.locator("#main-content [role=img]").first().evaluate(el=>getComputedStyle(el).backgroundImage);
     assert.ok(sprite.includes(width<=600?"faces-web-mobile.webp":"faces-web-desktop.webp"),"responsive card sprite");
     const gamePreview=page.locator('img[alt^="Actual PILEHEADS browser game"]');
-    assert.ok((await gamePreview.evaluate(el=>el.currentSrc)).endsWith(width>850?"stack-home-gameplay-desktop-v2.webp":width>600?"stack-home-gameplay-wide-v2.webp":"stack-home-gameplay-v2.webp"),"the device uses its genuine responsive V2 capture");
+    assert.ok((await gamePreview.evaluate(el=>el.currentSrc)).endsWith(width>850?"stack-home-gameplay-desktop-v7.webp":width>600?"stack-home-gameplay-wide-v7.webp":"stack-home-gameplay-v7.webp"),"the device uses its genuine responsive V7 capture");
     const layout=await page.evaluate(()=>({
       documentWidth:document.documentElement.scrollWidth, viewport:innerWidth,
       broken:[...document.images].filter(x=>!x.complete||x.naturalWidth===0).map(x=>x.src),

@@ -12,6 +12,6 @@ The current illustrated deck uses the 16 card faces approved on 2026-11-26. The 
 - `apps/web/scripts/sync-assets.mjs`: copies the canonical simulator assets into the Next frontend.
 - `tests/pilehead-raster-assets.cjs`: pinned hashes of the five updated exports and slot mapping checks.
 
-V7 supplies the default/compact simulator themes (hands, opponents, piles, drag and travel animations), the gallery, print preview, lobby, landing-page card fans and illustrated rules. Existing gameplay screenshots and packaging/mascot illustrations are historical captures or separate artwork, not regenerated card faces; refresh genuine gameplay captures after the V7 site is built and reviewed.
+V7 supplies the default/compact simulator themes (hands, opponents, piles, drag and travel animations), the gallery, print preview, lobby, landing-page card fans and illustrated rules. Gameplay screenshots (desktop, wide and mobile) are actual V7 browser acceptance captures from run 45878348885, cropped to omit the old header label and optimized for the web. Packaging/mascot illustrations are separate artwork.
 
 Run `npm run test:pilehead-art`, `npm run build`, and the browser acceptance suite. Review the live homepage, /play, /pilehead/gallery.html, and /pilehead/print.html. Use the individual full-resolution masters for commercial print preparation, not web sprites.
