@@ -1483,11 +1483,24 @@ async function localStarterAndRematchScenario(browser) {
   await replay.addInitScript(serialized=>{
     localStorage.setItem("stack-next-local-save-v1",serialized);
   },JSON.stringify({version:1,game:finished}));
+  await replay.addInitScript(()=>{
+    Object.defineProperty(navigator,"share",{configurable:true,value:async payload=>{window.__resultShare=payload;}});
+  });
   try {
     await replay.goto(WEB+"/play");
     await replay.getByRole("button",{name:"Resume game"}).click();
     assert.equal(await replay.locator(".results-overlay").getAttribute("data-outcome"),"escaped");
     assert.equal(await replay.locator(".results-standings li[data-self=\"true\"]").count(),1);
+    await replay.getByRole("button",{name:"Share result",exact:true}).click();
+    const shared = await replay.evaluate(()=>window.__resultShare);
+    assert.deepEqual(shared,{title:"PILEHEADS",text:"I escaped the pile! Good friends. Bad moves. Play PILEHEADS.",url:"https://pileheads.com/play?utm_source=player_share&utm_medium=referral&utm_campaign=round_result"});
+    await replay.evaluate(()=>{
+      Object.defineProperty(navigator,"share",{configurable:true,value:undefined});
+      Object.defineProperty(navigator,"clipboard",{configurable:true,value:{writeText:async text=>{window.__copiedResult=text;}}});
+    });
+    await replay.getByRole("button",{name:"Share result",exact:true}).click();
+    await replay.getByText("Result copied.",{exact:true}).waitFor();
+    assert.equal(await replay.evaluate(()=>window.__copiedResult),shared.text+"\n"+shared.url);
     await replay.getByRole("button",{name:"Play another round"}).click();
     await replay.getByRole("button",{name:"Deal again"}).click();
     await replay.waitForFunction(()=>{
