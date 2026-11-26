@@ -1541,6 +1541,14 @@ async function localStarterAndRematchScenario(browser) {
     await replay.getByRole("button",{name:"Share result",exact:true}).click();
     await replay.getByText("Result copied.",{exact:true}).waitFor();
     assert.equal(await replay.evaluate(()=>window.__copiedResult),shared.text+"\n"+shared.url);
+    const saving=replay.waitForEvent("download");
+    await replay.getByRole("button",{name:"Save result card",exact:true}).click();
+    const savedCard=await saving;
+    assert.equal(savedCard.suggestedFilename(),"pileheads-round-result.png");
+    const png=fs.readFileSync(await savedCard.path());
+    assert.equal(png.toString("ascii",1,4),"PNG");
+    assert.equal(png.readUInt32BE(16),1080);assert.equal(png.readUInt32BE(20),1350);
+    fs.writeFileSync(path.resolve(ROOT,"artifacts/next/result-card.png"),png);
     await replay.getByRole("button",{name:"Play another round"}).click();
     await replay.getByRole("button",{name:"Deal again"}).click();
     await replay.waitForFunction(()=>{
