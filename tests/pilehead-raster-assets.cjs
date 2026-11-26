@@ -74,4 +74,20 @@ test('Vercel includes raster scripts, styles and original binary assets',()=>{
  for(const name of ['deck-raster.js','deck-raster.css','stack-sheet.webp','stack-back.webp'])
   assert.ok(text.includes(name),script+' must include '+name);
 });
+test('approved V7 sprites are identical across gameplay and marketing exports',()=>{
+ const assets=[
+  ['dist/pilehead/assets/stack-characters.webp','90868f620278dcd4fe7da227dd9573dc4a87ebe6f61c82ffe045a3202fd1f8d8'],
+  ['dist/pilehead/assets/stack-characters-v2.webp','b0fdd383c80a964e44f49933a9a556175acde0698b3ffe5d4bb648410e333255'],
+  ['apps/web/public/stack-media/stack-home-faces-v2.webp','b0fdd383c80a964e44f49933a9a556175acde0698b3ffe5d4bb648410e333255'],
+  ['apps/web/public/stack-media/stack-home-faces-web-desktop.webp','4379ae7145e642298df8276546bc34432bf268101d6c6963adc9a00c69368487'],
+  ['apps/web/public/stack-media/stack-home-faces-web-mobile.webp','7fac3ba27a7b1a5eeb3be1b9b0e50e742a75169661026839d177febc38087582']
+ ];
+ for(const [name,sha] of assets){
+  const bytes=fs.readFileSync(path.join(base,name));
+  assert.equal(bytes.subarray(8,12).toString(),'WEBP',name);
+  assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),sha,name);
+ }
+ for(const p of ['apps/web/app/globals.css','apps/web/app/official-home.module.css','apps/web/public/stack-media/stack-design-system.css','dist/pilehead/deck-raster.css'])
+  assert.match(read(p),/white-border-v7/,p+' cache version');
+});
 console.log('STACK raster assets: '+count+' checks passed');

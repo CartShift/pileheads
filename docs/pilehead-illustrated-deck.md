@@ -1,16 +1,17 @@
-# STACK / PILEHEAD card artwork
+# PILEHEADS card artwork — White Border V7
 
-The current deck uses one approved **4 × 4 raster sprite sheet** for all 10 numbered ranks and six special faces, plus a separate back.
+The current illustrated deck uses the 16 card faces approved on 2026-11-26. The web sprites were composed from the individual files, not a regenerated collage. Slot order is numbers 1–10, RESET, GHOST, UNDER, SKIP, BURN, DUMP, row-major in a 4 × 4 grid. The rules engine, card IDs and back artwork are unchanged.
 
 ## Current source of truth
+- Drive digital exports: https://drive.google.com/drive/folders/1ZA4WccE-1fJOewzw1F9nUhq9cLB7E18e
+- `dist/pilehead/assets/stack-characters-v2.webp`: default V7 illustrated artwork, 2016 × 2816 (504 × 704 per face).
+- `dist/pilehead/assets/stack-characters.webp`: compact V7, 1008 × 1420, retaining the existing compact sprite geometry.
+- `apps/web/public/stack-media/stack-home-faces-{v2,web-desktop,web-mobile}.webp`: V7 marketing sprites, in the same slot order.
+- `dist/pilehead/assets/stack-sheet.webp`: deliberately retained legacy Original theme; Studio remains a separate vector theme.
+- `dist/pilehead/assets/stack-back*.webp`: existing card backs; not changed by this face-art release.
+- `apps/web/scripts/sync-assets.mjs`: copies the canonical simulator assets into the Next frontend.
+- `tests/pilehead-raster-assets.cjs`: pinned hashes of the five updated exports and slot mapping checks.
 
-- `dist/pilehead/assets/stack-sheet.webp`: sixteen approved card faces.
-- `dist/pilehead/assets/stack-back.webp`: universal card back.
-- `dist/pilehead/deck-raster.js` and `deck-raster.css`: sprite mapping and scalable rendering.
-- `dist/pilehead/deck-art.js` and `deck-art.css`: required action/rank metadata and SVG-compatible renderer. Both scripts remain in use and load in order.
-- `dist/pilehead/gallery.html`, `print.html`, `index.html`: gallery, printed sheets, solo and multiplayer tables.
-- `tests/pilehead-raster-assets.cjs`: pinned approved raster digest, mapping, loading and build checks.
+V7 supplies the default/compact simulator themes (hands, opponents, piles, drag and travel animations), the gallery, print preview, lobby, landing-page card fans and illustrated rules. Existing gameplay screenshots and packaging/mascot illustrations are historical captures or separate artwork, not regenerated card faces; refresh genuine gameplay captures after the V7 site is built and reviewed.
 
-The deck has four copies of each rank 1–10 and two of each action: RESET, GHOST, UNDER, SKIP, BURN and DUMP. Art captions must match the real rules. Changing approved art requires updating its pinned test digest and visually reviewing the gallery, live table and print sheets.
-
-Use `npm run test:pilehead-art`, `npm run build`, and inspect `/pilehead/gallery.html`. Print a physical sample before production.
+Run `npm run test:pilehead-art`, `npm run build`, and the browser acceptance suite. Review the live homepage, /play, /pilehead/gallery.html, and /pilehead/print.html. Use the individual full-resolution masters for commercial print preparation, not web sprites.
