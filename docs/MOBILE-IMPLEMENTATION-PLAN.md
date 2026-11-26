@@ -1,6 +1,6 @@
 # PILEHEADS / STACK — Mobile & cross-platform implementation master plan
 
-Status: approved direction, implementation in progress. Last updated: 2026-11-26.
+Status: approved direction, Phase 1 draft implementation; acceptance pending. Last updated: 2026-11-26.
 Owner: product/engineering. Internal repository and package identifiers remain STACK until branding/domain/store IDs are confirmed. This is the living roadmap; mark a task done only with a commit and evidence. Do not confuse a proposed target with a shipped feature.
 
 ## Product vision and principles
@@ -22,7 +22,7 @@ Main at ea5d940148d7d8b7f3fec71b4372c0c57e043dd7: deterministic JavaScript engin
 
 ### Phase 0 — audit & safety
 - [ ] Inventory engine globals/time/RNG, state versions, bot semantics, web/Classic/server/build/test consumers, protocol/privacy, assets and pending branches.
-- [ ] Establish baseline regression and build results; record failures with exact commands and SHAs. Check Hermes compatibility (device validation in Phase 2).
+- [ ] Establish baseline regression and build results (baseline npm ci --offline and npm test passed all 32 files on Node 24.22.0 in OpenDev; baseline build not yet run); record failures with exact commands and SHAs. Check Hermes compatibility (device validation in Phase 2).
 - [ ] Document migration/rollback and version compatibility. No gameplay rule edits as part of refactor.
 Gate: known dependencies, baseline, migration plan and no unexplained behavioral changes.
 
@@ -90,3 +90,6 @@ Opt-in/minimal telemetry; never log full hands, tokens or sensitive data. Define
 
 ## Execution and tracking
 Milestones: 0.1 engine + native APK; 0.2 offline playable; 0.3 cross-play; 0.4 competitive beta; 1.0 store-ready commercial. Track phases in PRs/issues with checkboxes, evidence (SHA, command, result, real-device evidence where needed), blockers and next action. Keep docs/ARCHITECTURE.md and README in sync. Merge small tested increments; coordinate pending PRs, especially #90 and #91. No deploy, production DB migration, new paid service or merge from a draft without passing gates. Roll back by reverting the phase PR and preserve the existing engine/browser artifacts and API wire contract. Update this document when decisions or scope change.
+
+## Phase 1 implementation evidence (2026-11-26)
+Baseline main ea5d940: npm ci --offline and npm test passed 32 files, 144/144 stress simulations. Initial package extraction, browser generator, shared types, clock, local snapshot codec and regression added in draft. Post-change tests, integrated build, Hermes and pending-PR reconciliation are not yet verified. No production changes.

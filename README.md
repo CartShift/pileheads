@@ -70,7 +70,8 @@ See [`apps/web/README.md`](apps/web/README.md) for the local API origin setup, a
 
 ```text
 apps/web/                  Next.js + TypeScript tabletop
-dist/pilehead/             Classic tabletop, original cards and shared game engine
+packages/game-engine/      Canonical rules, bots, local snapshots and shared types
+dist/pilehead/             Classic tabletop, original cards and generated browser engine
 api/pilehead.js            Authoritative online room commands and state
 scripts/render-server.cjs  Single-origin Node server
 scripts/realtime-hub.cjs   WebSocket room updates
@@ -81,6 +82,10 @@ render.yaml                Render service blueprint
 ```
 
 The `dist/pilehead/` directory contains **maintained source code**, despite its historical name. Build output goes into the ignored `vercel-static/` folder. Existing `/pilehead/` URLs and internal `PILEHEAD` identifiers are retained for compatibility.
+
+## Mobile roadmap
+
+See [Mobile & cross-platform implementation plan](docs/MOBILE-IMPLEMENTATION-PLAN.md) and [shared game engine](packages/game-engine/README.md). Android/iOS are planned; no native app is released yet.
 
 ## Development and verification
 

@@ -20,7 +20,10 @@
     "test:pilehead-playtest": "node tests/pilehead-playtest.cjs",
     "bench:endgame-lab": "node scripts/bench-endgame-lab.cjs",
     "test:endgame-lab-browser": "node tests/stack-endgame-lab-browser.cjs",
-    "build:classic": "node scripts/build-vercel.mjs"
+    "build:classic": "node scripts/build-vercel.mjs",
+    "sync:engine": "node scripts/sync-game-engine.cjs",
+    "check:engine": "node scripts/sync-game-engine.cjs --check",
+    "test:shared-core": "node tests/pilehead-shared-core.cjs"
   },
   "engines": {
     "node": "24.x"
@@ -29,5 +32,8 @@
     "@neondatabase/serverless": "1.2.0",
     "ws": "8.23.0"
   },
-  "description": "STACK physical-first card game and online multiplayer"
+  "description": "STACK physical-first card game and online multiplayer",
+  "workspaces": [
+    "packages/*"
+  ]
 }
