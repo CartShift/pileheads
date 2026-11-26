@@ -59,7 +59,7 @@ test('approved 4×4 corner-index artwork remains the simulator source',()=>{
  assert.deepEqual([art.cell({kind:'action',action:'dump'}).col,art.cell({kind:'action',action:'dump'}).row],[3,3]);
 });
 test('every display surface selects the raster art after compatibility module',()=>{
- for(const page of ['index.html','gallery.html','print.html']){
+ for(const page of ['gallery.html','print.html']){
   const html=read('dist/pilehead/'+page);
   assert.ok(html.indexOf('src="deck-art.js"')<html.indexOf('src="deck-raster.js"'));
   assert.ok(html.indexOf('href="deck-art.css"')<html.indexOf('href="deck-raster.css"'));

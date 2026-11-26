@@ -2,32 +2,22 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
-const html=read('dist/pilehead/index.html'),app=read('dist/pilehead/app.js');
 const engine=read('dist/pilehead/engine.js'),print=read('dist/pilehead/print.html');
-const root=read('dist/index.html'),simulation=read('dist/pilehead-sim-core.js');
+const simulation=read('dist/pilehead-sim-core.js');
 const build=read('scripts/build-vercel.mjs');
 const renderServer=read('scripts/render-server.cjs');
 assert.match(renderServer,/url\.pathname === '\/livez'/);
 assert.match(renderServer,/url\.pathname === '\/readyz'/);
 assert.match(renderServer,/duration > 1000 \|\| res\.statusCode >= 500/);
-for(const [label,source]of [['engine',engine],['table',app],['simulation',simulation]])
+for(const [label,source]of [['engine',engine],['simulation',simulation]])
  assert.doesNotThrow(()=>new vm.Script(source,{filename:label+'.js'}));
-assert.match(html,/src="engine\.js"/);
-assert.match(html,/src="app\.js"/);
-assert.match(html,/prefers-reduced-motion/);
-assert.match(app,/data-card=.*data-source/);
-assert.match(app,/if\(back\)return/);
-assert.match(app,/Flip face-down card/);
-assert.match(app,/back:true,interactive:canDown/);
-assert.match(app,/E\.slamOptions/);
-assert.match(app,/E\.invariant/);
-assert.match(app,/pilehead-playtest-v11/);
 assert.match(print,/STACK/);
 assert.match(print,/deck=E\.deck\(\)/);
-assert.match(root,/pilehead\/index\.html/);
-assert.doesNotMatch(root,/SPARK Simple\+/);
-for(const asset of ['index.html','app.js','engine.js','online.js','playtest.html','stack-sheet.webp','stack-back.webp'])
+for(const asset of ['engine.js','playtest.html','stack-sheet.webp','stack-back.webp'])
  assert.ok(build.includes(asset),asset);
+assert.match(renderServer, /res\.statusCode = 308/);
+const table=read('apps/web/components/game-table.tsx');
+for(const name of ['classicHref','Play Classic','Original Classic'])assert.ok(!table.includes(name),name);
 globalThis.PileheadEngine=require('../dist/pilehead/engine.js');
 const sim=require('../dist/pilehead-sim-core.js');
 const report=sim.runSimulation({games:4,players:2,seed:30});
@@ -36,4 +26,4 @@ assert.equal(report.summary.completed,4);
 const baseline=JSON.parse(read('dist/pilehead-simulation-results.json'));
 assert.equal(baseline.game,'pilehead');
 assert.equal(baseline.conditions.games,120);
-console.log('PASS STACK UI, simulator, deck and deployment smoke checks');
+console.log('PASS STACK Next route, simulator, deck and deployment smoke checks');

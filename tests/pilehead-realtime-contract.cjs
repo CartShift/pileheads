@@ -4,9 +4,9 @@ const fs=require('node:fs'),vm=require('node:vm');
 const read=p=>fs.readFileSync(p,'utf8');
 const api=read('api/pilehead.js'),server=read('scripts/render-server.cjs');
 const hub=read('scripts/realtime-hub.cjs'),live=read('dist/pilehead/live.js');
-const online=read('dist/pilehead/online.js'),html=read('dist/pilehead/index.html');
+const table=read('apps/web/components/game-table.tsx');
 const css=read('dist/pilehead/live.css'),build=read('scripts/build-vercel.mjs');
-for(const [path,source] of Object.entries({api,server,hub,live,online}))
+for(const [path,source] of Object.entries({api,server,hub,live}))
  assert.doesNotThrow(()=>new vm.Script(source),path+' must parse');
 const pkg=JSON.parse(read('package.json'));
 assert.equal(pkg.dependencies.ws,'8.23.0');
@@ -35,11 +35,7 @@ assert.match(api,/reactions:recentReactions\(g\)/);
 assert.match(live,/new WebSocket\(/);
 assert.match(live,/type:'auth',code:room,token/);
 assert.doesNotMatch(live,/encodeURIComponent\(token\)/,'never put tokens in URLs');
-assert.match(online,/window\.StackLive\?\.connect/);
-assert.match(online,/window\.StackLive\?\.react/);
-assert.match(online,/window\.StackLive\?\.isLive/);
-assert.match(html,/href="live\.css"/);
-assert.match(html,/src="live\.js"/);
+assert.match(table,/new WebSocket\(/);
 assert.match(build,/'live\.css', 'live\.js'/);
 assert.match(css,/prefers-reduced-motion:reduce/);
 assert.match(css,/\.stack-reaction-bubble/);

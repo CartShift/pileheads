@@ -1,49 +1,7 @@
-import type { Card, Event, Move } from "./engine";
+import type { Move } from "./engine";
+import type { Room, RoomMoveCommand } from "../../../packages/game-protocol";
+export type { Reaction, BlindReveal, PublicSeat, RoomGame, Room, RoomMoveCommand, RoomCommandResult } from "../../../packages/game-protocol";
 
-export type Reaction = { id: string; seat: number; kind: "fire" | "wow" | "laugh" | "ouch" | "gg"; at: number };
-export type BlindReveal = { seat: number; card: Omit<Card,"id">; move: number; expiresAt: number };
-export type PublicSeat = {
-  seat: number; out: boolean; up: Card[]; handCount: number; downCount: number;
-  hand?: Card[]; blindSlots?: number[]; pickups: number;
-};
-export type RoomGame = {
-  phase: "setup" | "play" | "over";
-  turn: number;
-  moves: number;
-  round: number;
-  botSeats: number[];
-  endgameRule?: "final-duel" | "classic";
-  omitSkip?: boolean;
-  botFollowupReady?: boolean;
-  botSlamReady?: boolean;
-  reactions?: Reaction[];
-  blindReveal?: BlindReveal | null;
-  stockCount: number;
-  pile: Card[];
-  ashesCount: number;
-  limit: null | { type: "under" | "min"; value?: number };
-  pendingDump: null | { seat: number };
-  finishedOrder: number[];
-  loser: number | null;
-  players: PublicSeat[];
-  events: Event[];
-  legal: Move[];
-  slam: Move[];
-  followup: Move[];
-  setupReady: boolean[];
-};
-export type Room = {
-  ok: boolean;
-  code: string;
-  session?: string;
-  revision: number;
-  status: string;
-  me: number;
-  host: boolean;
-  capacity: number;
-  members: { seat: number; name: string; presence: string }[];
-  game: RoomGame;
-};
 export const backendOrigin = (process.env.NEXT_PUBLIC_STACK_API_ORIGIN || "").replace(/\/$/, "");
 export class RoomError extends Error {}
 export async function requestRoom<T extends object>(payload: T, token?: string | null,
@@ -75,6 +33,6 @@ export async function requestRoom<T extends object>(payload: T, token?: string |
   } finally { clearTimeout(timer); }
 }
 export function sessionKey(code: string) { return `stack-next-room-${code.toUpperCase()}`; }
-export function roomMove(choice: Move, code: string, revision: number) {
+export function roomMove(choice: Move, code: string, revision: number): RoomMoveCommand {
   return { action: "move", code, revision, move: choice };
 }

@@ -1,5 +1,7 @@
 # Single-Render Next.js integration
 
+> Historical migration record: Classic is being retired by PR #104. For the current deployment contract see [Classic retirement](CLASSIC-RETIREMENT.md); the two-UI rollout details below describe the earlier architecture.
+
 ## Decision
 
 One Node.js service remains the only runtime:

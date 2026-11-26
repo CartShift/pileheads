@@ -14,11 +14,10 @@ import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomG
 
 type Mode = "home" | "local" | "online";
 const ACTIONS = ["reset", "ghost", "under", "skip", "burn", "dump"];
-const classicHref = "/pilehead/index.html";
 const ACTION_DESCRIPTIONS: Record<string, string> = {
   reset: "Any number can follow", ghost: "Keep the current restriction",
   under: "Next number must be 1–4", skip: "Skip the next player's turn",
-  burn: "Burn the pile and play again", dump: "Give the pile to any opponent"
+  burn: "Burn the pile and play again", dump: "Give the pile to any opponent; they can counter with their own DUMP"
 };
 const SAVE_KEY = "stack-next-local-save-v1";
 const THEME_KEY = "stack-next-deck-theme-v1";
@@ -101,6 +100,7 @@ function asLocalRoom(game: Game): RoomGame {
     endgameRule: game.endgameRule === "final-duel" ? "final-duel" : "classic",
     stockCount: game.stock.length, pile: game.pile, ashesCount: game.ashes.length,
     limit: game.limit, pendingDump: game.pendingDump || null,
+    pendingCounter: game.pendingCounter ? { seat: game.pendingCounter.seat, attacker: game.pendingCounter.attacker, count: game.pendingCounter.ids.length } : null,
     finishedOrder: game.finishedOrder, loser: game.loser,
     players: game.people.map(p => ({
       seat: p.seat, out: p.out, up: p.up, handCount: p.hand.length, hand: p.hand,
@@ -704,7 +704,7 @@ export default function GameTable() {
   }, [soundEventId, soundEnabled, g?.phase, lastEvent?.reason, lastEvent?.burned, lastEvent?.type]);
   const stage = current ? current.handCount || g?.stockCount ? "hand" :
     current.up.length ? "up" : current.downCount ? "down" : "out" : "out";
-  const active = g?.phase === "play" && g.turn === me && !g.pendingDump;
+  const active = g?.phase === "play" && g.turn === me && !g.pendingDump && !g.pendingCounter;
   // Match Classic: bridge only when the full final hand is homogeneous and
   // matching face-up cards exist. No other face-up selection is legal.
   const bridgeCard = active && g?.stockCount === 0 && stage === "hand" && current?.hand?.length &&
@@ -961,7 +961,7 @@ export default function GameTable() {
         <div className="entry-intro"><div className="eyebrow">WELCOME TO THE TABLE</div>
           <h1>One pile.<br /><em>One loser.</em></h1>
           <p>Play free with bots or invite friends to a private table. One pile, clever moves and a little friendly revenge.</p>
-          <div className="lobby-facts"><span>2–5 players</span><span>Free to play</span><span>No account</span></div><div className="lobby-art" aria-hidden="true"><span className="lobby-card lobby-burn"/><span className="lobby-card lobby-dump"/><span className="lobby-card lobby-ghost"/><img src="/stack-media/stack-home-explorer-web-mobile.webp" width={360} height={452} alt="" decoding="async"/></div><div className="lobby-links"><a href={classicHref} className="subtle-link">Play Classic ↗</a><button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>Game settings</button></div>
+          <div className="lobby-facts"><span>2–5 players</span><span>Free to play</span><span>No account</span></div><div className="lobby-art" aria-hidden="true"><span className="lobby-card lobby-burn"/><span className="lobby-card lobby-dump"/><span className="lobby-card lobby-ghost"/><img src="/stack-media/stack-home-explorer-web-mobile.webp" width={360} height={452} alt="" decoding="async"/></div><div className="lobby-links"><button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>Game settings</button></div>
         </div>
         <div className="entry-options"><h2 className="lobby-choice-heading">Choose your table<span>.</span></h2>
           {resumeGame && <div className="resume-panel">
@@ -1275,6 +1275,14 @@ export default function GameTable() {
             <button className="primary-button" disabled={busy}
               onClick={() => setConfirmRestart(true)}>Play another round</button>
           </div>
+        </div> : g.pendingCounter ? <div className="setup-controls">
+          {g.pendingCounter.seat === me ? <>
+            <div><strong>COUNTER DUMP</strong><p>Return {g.pendingCounter.count} cards to {nameForSeat(g.pendingCounter.attacker)} and take the next turn.</p></div>
+            <div className="button-group">
+              <button className="primary-button" disabled={busy || !g.legal.some(m => m.type === "counter-dump")} onClick={() => { const m = g.legal.find(m => m.type === "counter-dump"); if (m) playMove(m); }}>Counter DUMP</button>
+              <button className="secondary-button" disabled={busy} onClick={() => playMove({type:"counter-pass"})}>Keep cards</button>
+            </div>
+          </> : <div><strong>Waiting for {nameForSeat(g.pendingCounter.seat)}</strong><p>Resolving the DUMP.</p></div>}
         </div> : g.pendingDump?.seat === me ? <div className="setup-controls">
           <div><strong>Choose who takes the pile</strong><p>DUMP can target any active opponent.</p></div>
           <div className="button-group">{liveSeats.map(seat =>
@@ -1386,7 +1394,7 @@ export default function GameTable() {
         </section>
       </div>}
       <div className="table-footer"><span>STACK · The digital tabletop</span>
-        <a href={classicHref}>Original Classic ↗</a></div>
+        </div>
     </main>
   );
 }
