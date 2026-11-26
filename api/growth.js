@@ -13,10 +13,15 @@ async function query(text,params) {
 }
 function configured(env) {
   const ready=!!env.PILEHEAD_GROWTH_DATABASE_URL;
-  const reports=ready&&env.PILEHEAD_GROWTH_ENABLED==="1";
-  const waitlist=ready&&env.PILEHEAD_WAITLIST_ENABLED==="1"&&!!env.RESEND_API_KEY&&!!env.PILEHEAD_WAITLIST_FROM;
+  const origin=env.PILEHEAD_GROWTH_ORIGIN||"https://pileheads.com";
+  let privacyUrl=null;
+  try { const u=new URL(env.PILEHEAD_GROWTH_PRIVACY_URL); if(u.protocol==="https:"&&u.origin===origin&&u.pathname!=="/"&&!u.search&&!u.hash&&!u.username&&!u.password)privacyUrl=u.href; } catch {}
+  const noticeVersion=/^[a-zA-Z0-9._-]{1,40}$/.test(env.PILEHEAD_GROWTH_NOTICE_VERSION||"")?env.PILEHEAD_GROWTH_NOTICE_VERSION:null;
+  const approved=ready&&!!privacyUrl&&!!noticeVersion;
+  const reports=approved&&env.PILEHEAD_GROWTH_ENABLED==="1";
+  const waitlist=approved&&env.PILEHEAD_WAITLIST_ENABLED==="1"&&!!env.RESEND_API_KEY&&!!env.PILEHEAD_WAITLIST_FROM;
   const operator=ready&&!!env.PILEHEAD_GROWTH_OPERATOR_TOKEN&&env.PILEHEAD_GROWTH_OPERATOR_TOKEN.length>=32;
-  return {reports,waitlist,operator};
+  return {reports,waitlist,operator,privacyUrl:reports||waitlist?privacyUrl:null,noticeVersion:reports||waitlist?noticeVersion:null};
 }
 function authorized(header,secret) {
   if(typeof header!=="string"||typeof secret!=="string"||secret.length<32)return false;
@@ -46,7 +51,7 @@ function createHandler({env=process.env,db=query,mail=sendEmail}={}) {
     const flags=configured(env);
     const origin=env.PILEHEAD_GROWTH_ORIGIN||"https://pileheads.com";
     try {
-      if(req.method==="GET"&&req.query?.status==="1")return send(200,{ok:true,reports:flags.reports,waitlist:flags.waitlist});
+      if(req.method==="GET"&&req.query?.status==="1")return send(200,{ok:true,reports:flags.reports,waitlist:flags.waitlist,privacyUrl:flags.privacyUrl,noticeVersion:flags.noticeVersion});
       if(req.method==="GET"&&req.query?.summary==="1"){
         if(!flags.operator||!authorized(req.headers.authorization,env.PILEHEAD_GROWTH_OPERATOR_TOKEN))return send(401,{ok:false,error:"unauthorized"});
         const rows=await db("SELECT report,attribution FROM pileheads_growth_reports WHERE created_at>=now()-interval '30 days' ORDER BY created_at DESC LIMIT 10001",[]);
@@ -66,18 +71,18 @@ function createHandler({env=process.env,db=query,mail=sendEmail}={}) {
       }catch{return send(400,{ok:false,error:"invalid_json"});}
       if(b?.action==="report"){
         if(!flags.reports)return send(503,{ok:false,error:"disabled"});
-        let data;try{data=validateSubmission(b);}catch{return send(400,{ok:false,error:"invalid_report"});}
+        let data;try{if(b.noticeVersion!==flags.noticeVersion)throw Error("notice_changed");data=validateSubmission(b);}catch{return send(400,{ok:false,error:"invalid_report"});}
         if(!(await quota("report",300)))return send(429,{ok:false,error:"try_later"});
-        await db("INSERT INTO pileheads_growth_reports(id,report,attribution) VALUES($1,$2::jsonb,$3::jsonb) ON CONFLICT(id) DO NOTHING",[data.id,JSON.stringify(data.report),JSON.stringify(data.attribution)]);
+        await db("INSERT INTO pileheads_growth_reports(id,report,attribution,notice_version) VALUES($1,$2::jsonb,$3::jsonb,$4) ON CONFLICT(id) DO NOTHING",[data.id,JSON.stringify(data.report),JSON.stringify(data.attribution),flags.noticeVersion]);
         return send(202,{ok:true});
       }
       if(b?.action==="waitlist_request"){
         if(!flags.waitlist)return send(503,{ok:false,error:"disabled"});
         const email=emailAddress(b.email);
-        if(Object.keys(b).sort().join(",")!=="action,consent,email"||!email||b.consent!==true)return send(400,{ok:false,error:"invalid_request"});
+        if(Object.keys(b).sort().join(",")!=="action,consent,email,noticeVersion"||!email||b.consent!==true||b.noticeVersion!==flags.noticeVersion)return send(400,{ok:false,error:"invalid_request"});
         if(!(await quota("waitlist",50)))return send(429,{ok:false,error:"try_later"});
         const confirm=hex(),unsubscribe=hex(),hash=digest(confirm);
-        const rows=await db("INSERT INTO pileheads_waitlist(email,confirm_hash,unsubscribe_hash,expires_at) VALUES($1,$2,$3,now()+interval '24 hours') ON CONFLICT(email) DO UPDATE SET confirm_hash=excluded.confirm_hash,unsubscribe_hash=excluded.unsubscribe_hash,requested_at=now(),expires_at=excluded.expires_at WHERE pileheads_waitlist.confirmed_at IS NULL AND pileheads_waitlist.requested_at<now()-interval '15 minutes' RETURNING email",[email,hash,digest(unsubscribe)]);
+        const rows=await db("INSERT INTO pileheads_waitlist(email,confirm_hash,unsubscribe_hash,expires_at,notice_version) VALUES($1,$2,$3,now()+interval '24 hours',$4) ON CONFLICT(email) DO UPDATE SET confirm_hash=excluded.confirm_hash,unsubscribe_hash=excluded.unsubscribe_hash,requested_at=now(),expires_at=excluded.expires_at,notice_version=excluded.notice_version WHERE pileheads_waitlist.confirmed_at IS NULL AND pileheads_waitlist.requested_at<now()-interval '15 minutes' RETURNING email",[email,hash,digest(unsubscribe),flags.noticeVersion]);
         if(rows.length)try{await mail(env,email,confirm,unsubscribe);}catch{
           await db("DELETE FROM pileheads_waitlist WHERE confirm_hash=$1 AND confirmed_at IS NULL",[hash]);
           console.warn("PILEHEADS waitlist confirmation delivery failed");
