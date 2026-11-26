@@ -11,7 +11,10 @@ function command(bin,args,cwd){
   return r.stdout;
 }
 function probe(file){return JSON.parse(command("ffprobe",["-v","error","-show_streams","-show_format","-of","json",file]));}
-function digest(file){return hash(fs.readFileSync(file));}
+function digest(file){
+ const h=require("node:crypto").createHash("sha256"),fd=fs.openSync(file,"r"),buf=Buffer.alloc(1024*1024);
+ try{for(let n;(n=fs.readSync(fd,buf,0,buf.length,null))>0;)h.update(buf.subarray(0,n));return h.digest("hex");}finally{fs.closeSync(fd);}
+}
 function read(file){if(fs.statSync(file).size>100000)throw Error("Manifest too large");return JSON.parse(fs.readFileSync(file,"utf8"));}
 function write(dir,m){const tmp=path.join(dir,"manifest.tmp");fs.writeFileSync(tmp,JSON.stringify(m,null,2)+"\n",{flag:"wx",mode:0o600});fs.renameSync(tmp,path.join(dir,"manifest.json"));}
 function verify(dir,m){
