@@ -1005,14 +1005,14 @@ async function sharedMoveAnimationScenarios(browser) {
   const scene=blindPage.locator('.move-story-overlay[data-kind="reject"]');
   await scene.waitFor({timeout:6000});
   assert.equal(await scene.locator(".move-story-flight").count(),0);
-  await blindPage.screenshot({
-    path:path.resolve(ROOT,"artifacts/next/motion-blind-reject-390.png"),fullPage:true
-  });
   assert.equal(await scene.locator(".move-story-flip .playing-card:not(.is-back)").count(),1,
     "the real face is publicly revealed once on the central pile");
     const late=await scene.locator(".move-story-transfer").evaluate(el=>
    getComputedStyle(el).animationDelay);
   assert.equal(late,"0.79s","the red rejection comes before pile collection");
+  await blindPage.screenshot({
+    path:path.resolve(ROOT,"artifacts/next/motion-blind-reject-390.png"),fullPage:true
+  });
   console.log("PASS Next blind flip: revealed face, red rejection, then pile pickup");
  }finally{await blindCtx.close()}
  // System reduced motion still communicates what happened, without flying cards.
