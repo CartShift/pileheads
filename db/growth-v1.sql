@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS pileheads_growth_reports (
   id uuid PRIMARY KEY,
   report jsonb NOT NULL,
   attribution jsonb NOT NULL,
+  notice_version text NOT NULL CHECK (length(notice_version) BETWEEN 1 AND 40),
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS pileheads_growth_reports_created ON pileheads_growth_reports(created_at);
@@ -17,6 +18,7 @@ CREATE TABLE IF NOT EXISTS pileheads_waitlist (
   email text PRIMARY KEY CHECK (length(email) <= 254),
   confirm_hash text UNIQUE,
   unsubscribe_hash text UNIQUE NOT NULL,
+  notice_version text NOT NULL CHECK (length(notice_version) BETWEEN 1 AND 40),
   requested_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL,
   confirmed_at timestamptz
