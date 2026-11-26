@@ -957,10 +957,13 @@ async function roundChoreographyScenario(browser) {
     await page.getByRole("button",{name:"Learn with a bot"}).click();
     const table=page.locator(".tabletop");
     await table.locator("xpath=self::*[@data-round-cue='deal']").waitFor({timeout:3000});
+    assert.ok(await table.locator(".card-art[data-deal-motion]").count()>0,"actual existing artwork moves during a fresh deal");
+    assert.equal(await table.locator(".player-hand .playing-card").count(),3,"deal never duplicates own cards");
     // Setup can commit while the cosmetic deal is still active.
     await page.getByRole("button",{name:"Start round"}).click();
     await page.getByRole("heading",{name:"Your move."}).waitFor();
     assert.equal((await readGame(page)).phase,"play");
+    assert.equal(await table.locator("[data-deal-motion]").count(),0,"first input settles the decorative deal");
     await page.reload();
     await page.getByRole("button",{name:"Resume game"}).click();
     assert.equal(await table.getAttribute("data-round-cue"),null,"resume is silent");
