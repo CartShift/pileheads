@@ -80,14 +80,11 @@ test('SNAP opportunity is not time limited, and ends on the next action',()=>{
  assert.equal(E.followUpOptions(g,0).length,0,'normal move ends the earlier opportunity');
  E.invariant(g);
 });
-test('UI has a time-gate repaint and a shared visible lottery',()=>{
+test('API has the blind reveal expiry without SNAP deadline',()=>{
  const read=s=>fs.readFileSync(path.resolve(__dirname,'..',s),'utf8');
- const online=read('dist/pilehead/online.js'),api=read('api/pilehead.js');
- assert.match(online,/timeGateChanged/);assert.match(online,/transitionTimer=setTimeout/);
+ const api=read('api/pilehead.js');
  assert.doesNotMatch(api,/snapUntil:g\.followUp/);
  assert.match(api,/blindReveal:g\.blindReveal\?\.expiresAt>Date\.now\(\)/);
- for(const file of ['dist/pilehead/app.js','dist/pilehead/online.js','dist/pilehead/immersive.js'])
-  assert.match(read(file),/starterHTML/);
  assert.match(read('dist/pilehead/stack-brand.css'),/stack-starter-roll/);
 });
 console.log('STACK turn flow: '+passed+' cases passed');

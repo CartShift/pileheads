@@ -7,8 +7,8 @@ This deployment serves the same STATIC browser UI and Neon-backed API as the Ver
 1. In Render, link the private GitHub repository `yotamon/spark-card-game` (authorize access to this repository).
 2. Create a **New > Blueprint** from this repository's `render.yaml`. Choose the branch containing these changes, or merge the reviewed PR first. Free web services sleep while idle; choose a paid instance if reliable availability is required.
 3. In Render's secure environment-variable prompt, set `PILEHEAD_DATABASE_URL` to the existing dedicated Neon project **Pilehead Multiplayer** connection string. The connection string must not be committed or shared in chat or logs.
-4. Deploy. Verify `/pilehead/index.html` renders and `/api/pilehead?health=1` returns `{ "ok": true }`.
-5. Visit `/pilehead/index.html?online=1` on one browser, create a room, join from a separate browser/device, play a few turns, reload, and test rematch. Only share the Render URL once this succeeds.
+4. Deploy. Verify `/` serves the Next homepage, `/play` serves the game and `/pilehead/index.html` redirects and `/api/pilehead?health=1` returns `{ "ok": true }`.
+5. Visit `/play` on one browser, create a room, join from a separate browser/device, play a few turns, reload, and test rematch. Only share the Render URL once this succeeds.
 
 The new `scripts/render-server.cjs` adapter maps the existing `/api/pilehead` handler to Node HTTP and serves `vercel-static/` produced by `npm run build`. This preserves same-origin requests, the card rules, room code/session semantics, and existing Neon tables. Do not create a new database. Room sessions still expire after 24 hours.
 
@@ -25,7 +25,7 @@ The `Deploy STACK to Render` GitHub Actions workflow mirrors `main` into the bra
 
 - `/livez` is healthy, WebSocket mode is enabled, and the running Render service reports **the same Git SHA** via `RENDER_GIT_COMMIT`.
 - `/readyz` has successfully queried the existing Neon multiplayer database.
-- Classic `/pilehead/index.html` and React `/play` are both served by the same origin.
+- The Next homepage `/` and the React game `/play` are served by the same origin.
 
 GitHub Actions must be green **on the release commit** before stating production is live. If the probe fails, inspect its exact endpoint/status and the Render deploy events instead of repeatedly triggering another deploy. The check is not a substitute for a real two-device room or physical-device visual QA.
 

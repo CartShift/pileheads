@@ -15,10 +15,10 @@ function run(label, command, args, env = process.env) {
 if (!fs.existsSync(path.join(root, 'apps/web/node_modules/next/package.json'))) {
   run('Install Next.js frontend dependencies', npm, ['ci', '--prefix', 'apps/web', '--no-audit', '--no-fund']);
 }
-run('Build original Classic static site', process.execPath, ['scripts/build-vercel.mjs']);
+run('Publish shared deck, rules and lab assets', process.execPath, ['scripts/build-vercel.mjs']);
 // Guarantee same-origin HTTP/WebSocket even if an obsolete env var is
 // present in the existing Render service configuration.
 run('Export Next.js React tabletop', npm, ['run', 'build', '--prefix', 'apps/web'],
   {...process.env, NEXT_PUBLIC_STACK_API_ORIGIN: ''});
-run('Publish Next static export with Classic', process.execPath, ['scripts/publish-next.mjs']);
+run('Publish the sole Next static export', process.execPath, ['scripts/publish-next.mjs']);
 console.log('[STACK build] Integrated single-Render build completed');

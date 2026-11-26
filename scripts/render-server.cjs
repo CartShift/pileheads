@@ -74,7 +74,13 @@ async function serveFile(req, res, url) {
   catch { return respond(res, 400, 'Bad Request'); }
   if (pathname === '/') pathname = '/index.html';
   // Next.js is statically exported. Map friendly routes to real files;
-  // Classic URLs remain untouched, with no catch-all SPA fallback.
+  // Preserve old bookmarks and invitation query parameters, not the old UI.
+  if (['/pilehead','/pilehead/','/pilehead/index.html'].includes(pathname)) {
+    res.statusCode = 308;
+    res.setHeader('Location', '/play' + url.search);
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.end();
+  }
   if (pathname === '/play' || pathname === '/play/') pathname = '/play.html';
   else if (pathname === '/stack' || pathname === '/stack/') pathname = '/stack.html';
   if (pathname.includes('\0') || pathname.includes('\\')) return respond(res, 400, 'Bad Request');

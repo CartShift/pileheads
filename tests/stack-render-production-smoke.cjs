@@ -10,7 +10,7 @@ const assert=require("node:assert/strict");
  const pages={
    "/livez":JSON.stringify(ok),
    "/readyz":JSON.stringify(ready),
-   "/pilehead/index.html":"<title>STACK - Pilehead</title>",
+   "/":"<html><script src=\"/_next/static/chunks/main.js\"></script></html>",
    "/play":"<html><script src=\"/_next/static/chunks/main.js\"></script></html>"
  };
  const called=[];
@@ -26,7 +26,7 @@ const assert=require("node:assert/strict");
  assert.throws(()=>normalizedOrigin("https://user:secret@example.com"),/HTTPS/);
  const result=await probeOnce({origin:"https://stack-card-game-t7vx.onrender.com",
    expectedSha:sha,fetchImpl});
- assert.deepEqual(called,["/livez","/readyz","/pilehead/index.html","/play"]);
+ assert.deepEqual(called,["/livez","/readyz","/","/play"]);
  assert.equal(result.database,true);
  assert.equal(result.commit,sha);
  await assert.rejects(()=>probeOnce({
@@ -50,5 +50,5 @@ const assert=require("node:assert/strict");
  await assert.rejects(()=>waitForProduction({expectedSha:sha,maxAttempts:2,
    retryMs:0,sleep:async()=>{},log:()=>{},
    fetchImpl:async()=>({ok:false,status:503,text:async()=>""})}),/failed after 2 attempts/);
- console.log("PASS Render post-deploy smoke contract: commit, DB readiness, both games, retry, no writes");
+ console.log("PASS Render post-deploy smoke contract: commit, DB readiness, Next homepage and game, retry, no writes");
 })().catch(err=>{console.error(err);process.exitCode=1});
