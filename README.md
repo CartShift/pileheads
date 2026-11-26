@@ -4,7 +4,7 @@
 
 STACK is an original, 54-card shedding game for 2–5 players. It combines a printable deck, fast tactical interruptions, bot opponents and private online multiplayer. The browser experience is built to feel like playing with real cards, while the rules engine remains the source of truth.
 
-[**Try the Classic tabletop**](https://stack-card-game-t7vx.onrender.com/pilehead/index.html) · [**Explore the React tabletop**](https://stack-card-game-t7vx.onrender.com/play) · [**See the deck gallery**](https://stack-card-game-t7vx.onrender.com/pilehead/gallery.html) · [**Read the engineering case study**](docs/CASE-STUDY.md)
+[**Play online**](https://stack-card-game-t7vx.onrender.com/play) · [**See the deck gallery**](https://stack-card-game-t7vx.onrender.com/pilehead/gallery.html) · [**Read the engineering case study**](docs/CASE-STUDY.md)
 
 > **Project status:** Active product/playtest project, not a commercial release. Hosted demo availability and real-device multiplayer acceptance must be verified separately from automated tests. The Render free tier may sleep between visits.
 
@@ -20,8 +20,7 @@ The 54-card deck has 40 number cards (1–10, four of each) and six kinds of act
 
 ### Ways to play
 
-- **Classic tabletop:** a mobile-friendly, tactile card table with solo bots, local play and online rooms.
-- **React tabletop:** an alternative Next.js/TypeScript interface with event-driven motion and responsive presentation.
+- **React tabletop:** the canonical Next.js/TypeScript interface with event-driven motion and responsive presentation.
 - **Private multiplayer:** 2–5 seats, with supported human/bot combinations, private hand information, reconnect and same-room rematches.
 - **Official playtest kit:** [printable rules and facilitator materials](dist/pilehead/playtest.html), deck gallery, printable cards and local-only playtest feedback.
 - **Game balance lab:** deterministic simulations for exploring rules and endgame behavior.
@@ -31,11 +30,11 @@ The 54-card deck has 40 number cards (1–10, four of each) and six kinds of act
 | Area | Implementation |
 | --- | --- |
 | **Game engine** | Shared deterministic JavaScript engine, validated moves, bots and reproducible simulations |
-| **Client** | Classic vanilla JS/CSS tabletop plus a Next.js 16, React 19 and TypeScript tabletop |
+| **Client** | Next.js 16, React 19 and TypeScript tabletop |
 | **Multiplayer** | Server-authoritative room API, revision-based concurrency control and private player views |
 | **Real-time** | Authenticated WebSocket room updates and reactions, with HTTP polling fallback |
 | **Persistence** | Neon PostgreSQL for rooms, seats and session state |
-| **Deployment** | One Node.js 24 service on Render, serving both frontends and the same-origin API |
+| **Deployment** | One Node.js 24 service on Render, serving the Next frontend and the same-origin API |
 | **Quality** | Automated engine, rules, multiplayer, privacy, responsive/browser and deployment regression checks |
 
 **A key design constraint:** animations cannot change game outcomes. Card moves are committed by the engine or server first; visual effects render the resulting events. This matters particularly for time-sensitive SNAP and SLAM interactions.
@@ -55,7 +54,7 @@ npm run build
 node scripts/render-server.cjs
 ```
 
-Open `http://localhost:10000/pilehead/index.html` for Classic or `http://localhost:10000/play` for the React tabletop. Local bot play does **not** require database credentials. Hosted/private rooms do.
+Open `http://localhost:10000/play` for the game. Local bot play does **not** require database credentials. Hosted/private rooms do.
 
 For independent React UI development:
 
@@ -70,7 +69,7 @@ See [`apps/web/README.md`](apps/web/README.md) for the local API origin setup, a
 
 ```text
 apps/web/                  Next.js + TypeScript tabletop
-dist/pilehead/             Classic tabletop, original cards and shared game engine
+dist/pilehead/             Original cards, shared engine, rules, lab and retired UI source
 api/pilehead.js            Authoritative online room commands and state
 scripts/render-server.cjs  Single-origin Node server
 scripts/realtime-hub.cjs   WebSocket room updates
@@ -86,7 +85,7 @@ The `dist/pilehead/` directory contains **maintained source code**, despite its 
 
 ```bash
 npm test                            # Project regression suite
-npm run build                       # Classic + Next static export
+npm run build                       # Next static export and shared assets
 npm run typecheck --prefix apps/web # React TypeScript check
 npm run simulate -- 120 4 20261113  # Reproducible bot simulation
 ```

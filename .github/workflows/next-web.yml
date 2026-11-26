@@ -13,7 +13,7 @@ permissions:
   contents: read
 jobs:
   full:
-    name: 'STACK full: Classic, React, multiplayer'
+    name: 'STACK full: React, multiplayer'
     # A draft PR gets fast feedback; ready_for_review automatically runs this
     # entire suite. A new commit to a ready PR reruns it against that commit.
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
@@ -60,7 +60,7 @@ jobs:
       - name: Typecheck React
         if: steps.scope.outputs.run_full == 'true'
         run: npm run typecheck --prefix apps/web
-      - name: Build production Classic and React bundle
+      - name: Build production Next.js bundle
         if: steps.scope.outputs.run_full == 'true'
         run: npm run build
       - name: Run all engine, game rules, API and UI regressions
@@ -80,22 +80,9 @@ jobs:
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.56.1
           npx playwright install --with-deps --only-shell chromium
-      - name: Exercise Classic desktop/mobile browser and live multiplayer
-        if: steps.scope.outputs.run_full == 'true'
-        run: |
-          node tests/pilehead-browser.cjs
-          node tests/pilehead-live-browser.cjs
       - name: Exercise React desktop/mobile browser and live multiplayer
         if: steps.scope.outputs.run_full == 'true'
         run: node tests/stack-next-browser.cjs
-      - name: Save Classic browser failure screenshots
-        if: failure() && steps.scope.outputs.run_full == 'true'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: stack-classic-browser-failure
-          path: artifacts/browser/
-          if-no-files-found: ignore
-          retention-days: 7
       - name: Save React tabletop screenshots
         if: always() && steps.scope.outputs.run_full == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

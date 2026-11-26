@@ -19,15 +19,17 @@ const assets = [
 
 fs.rmSync(output, { recursive: true, force: true });
 fs.mkdirSync(path.join(output, 'pilehead'), { recursive: true });
-for (const asset of assets) {
+// The retired tabletop is source-only until the engine extraction lands.
+const retired = new Set(['index.html','app.js','online.js','classic-premium.css','classic-clean.css','table-feedback.css']);
+for (const asset of assets.filter(name => !retired.has(name))) {
   const source = path.join(game, asset);
   const destination = path.join(output, 'pilehead', asset);
   fs.mkdirSync(path.dirname(destination), { recursive: true });
   fs.copyFileSync(source, destination);
 }
-fs.copyFileSync(path.join(root, 'index.html'), path.join(output, 'index.html'));
+// The Next export supplies the only public homepage.
 // Publish the same canonical design system in standalone and integrated builds.
 const brandDir = path.resolve('apps/web/public/stack-media');
 fs.mkdirSync(path.join(output,'stack-media'),{recursive:true});
 for(const name of ['stack-design-system.css','stack-home-logo-web.webp','barlow-condensed-black-italic.ttf','barlow-OFL.txt','print-grain.svg']) fs.copyFileSync(path.join(brandDir,name),path.join(output,'stack-media',name));
-console.log('Built STACK static site: ' + assets.length + ' game assets + root redirect');
+console.log('Built STACK static site: ' + (assets.length - retired.size) + ' shared game assets');
