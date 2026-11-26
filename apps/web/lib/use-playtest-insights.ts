@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { campaignFromSearch, growthStatus, growthPost, type Attribution } from "./growth-api";
 
 type Summary = { local: { started: number; completed: number }; online: { started: number; completed: number }; truncated: boolean };
 type Sample = { key: string; mode: "home" | "local" | "online"; phase: string; drill: boolean };
@@ -18,6 +19,20 @@ export function usePlaytestInsights(sample: Sample) {
   const [summary, setSummary] = useState<Summary>(() => Core.summarize(Core.createLog()));
   const [ratings, setRatings] = useState<Ratings>({});
   const log = useRef<Log | null>(null);
+  const attribution = useRef<Attribution>({source:null,medium:null,campaign:null});
+  const submission = useRef<object|null>(null);
+  const generation = useRef(0);
+  const pending = useRef(false);
+  const [notice,setNotice] = useState<{privacyUrl:string;noticeVersion:string}|null>(null);
+  const canSubmit=!!notice;
+  const [sendState,setSendState] = useState<"idle"|"sending"|"sent"|"error">("idle");
+  useEffect(() => { attribution.current=campaignFromSearch(window.location.search); }, []);
+  useEffect(() => {
+    if(!enabled)return;
+    let active=true;
+    growthStatus().then(s=>{if(active&&s.reports&&s.privacyUrl&&s.noticeVersion)setNotice({privacyUrl:s.privacyUrl,noticeVersion:s.noticeVersion});}).catch(()=>{});
+    return ()=>{active=false;};
+  },[enabled]);
   const { key, mode, phase, drill } = sample;
 
   useEffect(() => {
@@ -26,6 +41,11 @@ export function usePlaytestInsights(sample: Sample) {
   }, [enabled, key, mode, phase, drill]);
 
   function changeEnabled(value: boolean) {
+    generation.current++;
+    submission.current=null;
+    pending.current=false;
+    setSendState("idle");
+    setNotice(null);
     log.current = value ? Core.createLog() : null;
     setSummary(Core.summarize(log.current ?? Core.createLog()));
     setRatings({});
@@ -45,5 +65,17 @@ export function usePlaytestInsights(sample: Sample) {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  return { enabled, summary, ratings, setRatings, changeEnabled, download };
+  async function submitReport() {
+    if(!enabled||!notice||!log.current||pending.current||sendState==="sent")return;
+    const epoch=generation.current;
+    try {
+      submission.current ??= {action:"report",id:crypto.randomUUID(),report:Core.exportReport(log.current,ratings),attribution:attribution.current,noticeVersion:notice.noticeVersion};
+      pending.current=true;
+      setSendState("sending");
+      await growthPost(submission.current);
+      if(epoch===generation.current)setSendState("sent");
+    } catch { if(epoch===generation.current)setSendState("error"); }
+    finally { if(epoch===generation.current)pending.current=false; }
+  }
+  return { enabled, summary, ratings, setRatings, changeEnabled, download, canSubmit, privacyUrl:notice?.privacyUrl, sendState, submitReport };
 }
