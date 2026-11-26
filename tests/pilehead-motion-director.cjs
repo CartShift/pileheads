@@ -1,6 +1,6 @@
 "use strict";
 const assert = require("node:assert/strict");
-const { EFFECTS, chooseKind, fromCommittedEvent, advanceCursor, advanceSoundCursor } =
+const { EFFECTS, chooseKind, fromCommittedEvent, advanceCursor, advanceSoundCursor, advanceRoundCursor } =
   require("../apps/web/lib/motion-core.cjs");
 
 const e = (extra = {}) => ({ type: "play", seat: 0, move: 1, ...extra });
@@ -119,3 +119,19 @@ assert.equal(audio({gameKey:"online:ROOMB:2",moveNo:0,
   phase:"setup",event:null}).shouldPlay,false,
   "rematch setup cannot emit stale sound");
 console.log("PASS STACK Motion Director: physical event contract, counts, Final Duel, SNAP, no stale replay");
+
+const setup = {gameKey:"local:1",roomCode:null,phase:"setup",moveNo:0,turn:0,visible:true,reduced:false,freshDeal:false};
+assert.equal(advanceRoundCursor(null,setup).cue,null,"resume never replays a deal");
+let round=advanceRoundCursor(null,{...setup,freshDeal:true});
+assert.equal(round.cue,"deal");
+assert.equal(advanceRoundCursor(round.cursor,{...setup,freshDeal:true}).cue,null,"same snapshot does not replay");
+round=advanceRoundCursor(round.cursor,{...setup,phase:"play"});
+assert.equal(round.cue,"start");
+assert.equal(advanceRoundCursor(round.cursor,{...setup,phase:"play",moveNo:1,turn:1}).cue,"handoff");
+assert.equal(advanceRoundCursor(round.cursor,{...setup,phase:"play",moveNo:2,turn:1}).cue,null,"missed snapshots do not replay handoffs");
+assert.equal(advanceRoundCursor(round.cursor,{...setup,phase:"play",moveNo:1,turn:1,reduced:true}).cue,null);
+assert.equal(advanceRoundCursor(round.cursor,{...setup,phase:"play",moveNo:1,turn:1,visible:false}).cue,null);
+const ended={key:"online:ROOM:1",room:"ROOM",phase:"over",move:42,turn:0};
+assert.equal(advanceRoundCursor(ended,{...setup,gameKey:"online:ROOM:2",roomCode:"ROOM"}).cue,"deal");
+assert.equal(advanceRoundCursor(ended,{...setup,gameKey:"online:OTHER:1",roomCode:"OTHER"}).cue,null);
+console.log("PASS round lifecycle: fresh deals, start, handoff, rematch, reduced motion, no hydration replay");
