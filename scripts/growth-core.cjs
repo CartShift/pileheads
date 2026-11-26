@@ -4,7 +4,7 @@ const {validateReport,aggregateReports}=require("./playtest-report-aggregate.cjs
 const {SOURCES,attribution,attributionFromSearch}=require("../apps/web/lib/growth-attribution.cjs");
 const exact=(v,ks)=>v&&typeof v==="object"&&!Array.isArray(v)&&Object.keys(v).length===ks.length&&ks.every(k=>Object.hasOwn(v,k));
 function validateSubmission(b) {
-  if(!exact(b,["action","id","report","attribution"])||b.action!=="report"||
+  if(!exact(b,["action","id","report","attribution","noticeVersion"])||b.action!=="report"||typeof b.noticeVersion!=="string"||!/^[a-zA-Z0-9._-]{1,40}$/.test(b.noticeVersion)||
      typeof b.id!=="string"||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(b.id)||
      !exact(b.attribution,["source","medium","campaign"])) throw Error("invalid_report");
   const clean=attribution(b.attribution);
