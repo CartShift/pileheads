@@ -35,6 +35,7 @@ const stages = {
   ],
   'browser-test': [
     node('tests/stack-next-browser.cjs'),
+    node('tests/creative-studio-browser.cjs'),
   ],
 };
 stages.full = [...stages['full-core'], ...stages['browser-setup'], ...stages['browser-test']];

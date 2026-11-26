@@ -1,0 +1,17 @@
+{
+  "id": "action-spotlight-example",
+  "template": "spotlight",
+  "headline": [
+    "YOUR PROBLEM.",
+    "THEIR PROBLEM."
+  ],
+  "body": "DUMP: give the existing pile to a rival. They may counter.",
+  "cards": [
+    "DUMP"
+  ],
+  "accent": "red",
+  "caption": "A draft example of an action-card spotlight. Check the rules and creative before publishing.",
+  "alt": "The illustrated DUMP card on a cream background with a red comic burst.",
+  "sourceRelease": "RC3",
+  "cta": "play"
+}
