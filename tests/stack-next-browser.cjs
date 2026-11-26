@@ -762,6 +762,11 @@ async function onlineScenarios(browser, server) {
     assert.equal(await host.locator(".results-standings li[data-self=\"true\"]").count(),1);
     assert.equal(await host.locator(".results-overlay h2").evaluate(el=>document.activeElement===el),true,
       "newly finished round focuses the result without stealing focus during hydration");
+    await host.waitForFunction(()=>{
+      const el=document.querySelector(".results-overlay");
+      return el&&Number(getComputedStyle(el).opacity)>=.99&&!document.querySelector(".move-story-overlay");
+    },null,{timeout:4000});
+    assert.ok(await host.locator(".results-overlay h2").isVisible(),"result heading is visible before evidence capture");
     const resultsGeometry = await host.evaluate(() => {
       const table = document.querySelector(".tabletop").getBoundingClientRect();
       const result = document.querySelector(".results-overlay").getBoundingClientRect();
