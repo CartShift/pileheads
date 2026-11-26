@@ -17,6 +17,11 @@ import { useRoundChoreography } from "../lib/use-round-choreography";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
 import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame, type Reaction } from "../lib/room";
 
+const Coach = require("../lib/coach-core.cjs") as {
+  coachTip: (game: RoomGame, context: {me:number;active:boolean;stage:string;selection:number[];
+    canPlay:boolean;needsTarget:boolean;selectedAction?:string}) => {id:string;text:string}|null;
+  roundOutcome: (game: RoomGame, me:number) => {kind:string;title:string;description:string}|null;
+};
 type Mode = "home" | "local" | "online";
 const SAVE_KEY = "stack-next-local-save-v1";
 const THEME_KEY = "stack-next-deck-theme-v1";
@@ -137,6 +142,8 @@ export default function GameTable() {
   const [showSettings, setShowSettings] = useState(false);
   const [practiceMode, setPracticeMode] = useState(false);
   const [coachDismissed, setCoachDismissed] = useState(false);
+  const resultTitleRef = useRef<HTMLHeadingElement | null>(null);
+  const resultCursor = useRef({key:"",phase:"home"});
   const [showRules, setShowRules] = useState(false);
   const [pileOpen, setPileOpen] = useState(false);
   const [inspectSeat, setInspectSeat] = useState<number | null>(null);
@@ -561,6 +568,13 @@ export default function GameTable() {
     phase: g?.phase ?? "setup", pile: g?.pile ?? [], event: lastEvent, me, motionLevel });
   const feedback = useGameFeedback({gameKey:visualGameKey,moveNo:g?.moves??0,
     phase:g?.phase??"home",event:lastEvent,me,loser:g?.loser??null});
+  useEffect(() => {
+    const phase=g?.phase??"home", previous=resultCursor.current;
+    resultCursor.current={key:visualGameKey,phase};
+    if(previous.key===visualGameKey && previous.phase==="play" && phase==="over" &&
+        !document.querySelector('[role="dialog"]'))
+      resultTitleRef.current?.focus({preventScroll:true});
+  },[visualGameKey,g?.phase]);
   const stage = current ? current.handCount || g?.stockCount ? "hand" :
     current.up.length ? "up" : current.downCount ? "down" : "out" : "out";
   const active = g?.phase === "play" && g.turn === me && !g.pendingDump && !g.pendingCounter;
@@ -893,16 +907,8 @@ export default function GameTable() {
     ? `Next number: ${g.limit.value} or higher` : "Any number can follow";
   const finalDuel = g.endgameRule === "final-duel" && g.phase === "play" &&
     g.stockCount === 0 && g.players.filter(p => !p.out).length === 2;
-  const coachText = g.phase === "setup" ?
-    "Choose three face-up cards. Tap a hand card, then a face-up card to swap. Auto arrange can help." :
-    g.moves === 0 ?
-    "Your first move: select a card in your hand, then Play cards. You can also drag it onto the pile." :
-    !active ? "Watch the bot's move. SNAP and SLAM opportunities can interrupt a turn." :
-    g.stockCount > 0 ? "Play numbers at least as high as the restriction. Your hand refills to three while the deck lasts." :
-    stage === "hand" ? "The deck is empty. Empty your hand to uncover your face-up cards." :
-    stage === "up" ? "Play your visible face-up cards before touching the blind cards." :
-    stage === "down" ? "Flip a blind card and hope it plays. An invalid flip makes you collect the pile." :
-    "Keep an eye on the pile and your opponents.";
+  const coach = Coach.coachTip(g,{me,active,stage,selection,canPlay,needsTarget,selectedAction});
+  const outcome = Coach.roundOutcome(g,me);
   const ready = !!g.setupReady[me];
   const allReady = g.setupReady.every(Boolean);
   const joined = mode === "local" ? true : room?.members.length === g.players.length - g.botSeats.length;
@@ -937,9 +943,9 @@ export default function GameTable() {
             active ? "Your move." : `${nameForSeat(g.turn)} is playing.`}</h1></div>
         <div className="meta-right"><span>{g.moves} moves</span><span>{g.players.length} players</span></div>
       </section>
-      {mode === "local" && practiceMode && !coachDismissed && g.phase !== "over" &&
-        <aside className="coach-tip" aria-label="Learning coach">
-          <div><strong>LEARN BY PLAYING</strong><span aria-live="polite">{coachText}</span></div>
+      {mode === "local" && practiceMode && !coachDismissed && coach &&
+        <aside className="coach-tip" aria-label="Learning coach" data-coach-step={coach.id}>
+          <div><strong>LEARN BY PLAYING</strong><span aria-live="polite">{coach.text}</span></div>
           <button type="button" onClick={() => setCoachDismissed(true)}>Hide tips</button>
         </aside>}
 
@@ -963,18 +969,18 @@ export default function GameTable() {
           onSort={() => setHandSort(order => order === "dealt" ? "asc" : order === "asc" ? "desc" : "dealt")}
           handSort={handSort} handStageRef={handStageRef} handCount={handCount} handLayout={handLayout}
           handRows={handRows} handColumns={handColumns} handCards={handCards} lastRowShift={lastRowShift} swapHand={swapHand} />
-        {g.phase === "over" && <motion.section className="results-overlay" data-outcome={g.loser === me ? "loss" : "win"}
+        {outcome && <motion.section className="results-overlay" data-outcome={outcome.kind}
           initial={motionLevel === "reduced" ? false : {opacity:0, y:20, scale:.96}}
           animate={{opacity:1,y:0,scale:1}}
           transition={motionLevel === "reduced" ? {duration:0} : {type:"spring",stiffness:220,damping:25,delay:.32}}
           role="region" aria-label="Round results">
           <div className="eyebrow">ROUND COMPLETE</div>
-          <h2>{g.loser === me ? "You're the PILEHEAD!" : "You escaped the pile!"}</h2>
-          <p>The cards are down. Here is how everyone finished.</p>
+          <h2 ref={resultTitleRef} tabIndex={-1}>{outcome.title}</h2>
+          <p>{outcome.description}</p>
           <ol className="results-standings">
             {[...g.finishedOrder, ...(g.loser === null ? [] : [g.loser])].map((seat, index) =>
-              <li key={seat} className={seat === g.loser ? "results-loser" : ""}>
-                <span>{index + 1}</span><strong>{nameForSeat(seat)}</strong>
+              <li key={seat} data-self={seat === me} className={seat === g.loser ? "results-loser" : ""}>
+                <span>{index + 1}</span><strong>{nameForSeat(seat)}{mode === "online" && seat === me ? " (you)" : ""}</strong>
                 <small>{seat === g.loser ? "PILEHEAD" : index === 0 ? "First out" : "Escaped"}</small>
               </li>)}
           </ol>
@@ -1046,6 +1052,10 @@ export default function GameTable() {
           </label>
           {motionSetting}
           <FeedbackSettings feedback={feedback} />
+          {mode === "local" && practiceMode && <label className="rule-toggle">
+            <input type="checkbox" checked={!coachDismissed} onChange={event=>setCoachDismissed(!event.target.checked)} />
+            <span><strong>Practice tips</strong><small>Show contextual learning guidance.</small></span>
+          </label>}
           <p className="settings-hint">{g.phase !== "setup"
             ? "Rules are locked once the round begins. The setting stays the same for rematches."
             : mode === "online" && !room?.host
@@ -1065,7 +1075,7 @@ export default function GameTable() {
             <strong>{action.toUpperCase()}</strong><span>{ACTION_DESCRIPTIONS[action]}</span>
           </div>)}</div>
           <p><strong>SNAP:</strong> A matching number you just drew may be played until another player acts.
-            <strong> SLAM:</strong> Complete four matching numbers to burn the pile. <strong>Final Duel:</strong> When
+            <strong> SLAM:</strong> Complete four matching numbers to burn the pile. <strong>Counter DUMP:</strong> If you already held a DUMP when the pile was sent to you, you can return the received cards or keep them. <strong>Final Duel:</strong> When
             only two players remain and the deck is empty, the top card burns before pile pickup
             <em> only when enabled in Settings</em>.</p>
           <div className="button-group">
@@ -1079,7 +1089,7 @@ export default function GameTable() {
         <section className="game-modal" role="dialog" aria-modal="true" aria-label="Confirm next round"
           onClick={e => e.stopPropagation()}>
           <div className="eyebrow">FRESH SHUFFLE</div><h2>Another round?</h2>
-          <p>{mode === "local" ? "Start a fresh local game against the bots?" : "Keep the same players and room, and deal a new round?"}</p>
+          <p>{mode === "local" ? "Start a fresh local game against the bots?" : "Keep the same players and room, and deal a new round?"} {g.finishedOrder.length > 0 ? `${nameForSeat(g.finishedOrder[0])} starts the next round.` : ""}</p>
           <div className="button-group">
             <button className="secondary-button" onClick={() => setConfirmRestart(false)}>Cancel</button>
             <button className="primary-button" onClick={() => {setConfirmRestart(false);newRound();}}>Deal again</button>
