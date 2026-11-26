@@ -145,5 +145,11 @@
   .game-table-shell .zone-heading { padding-block: 2px; margin-bottom: 2px; }
   .game-table-shell .hand-stage { padding-block: 9px 5px; }
   .game-table-shell .control-panel { margin-top: 4px; padding-block: 5px; }
+  .game-table-shell .hand-heading { margin-top: 0; }
+  .game-table-shell .game-meta { margin-bottom: 3px; }
+  .game-table-shell .opponents-row { padding-top: 3px; }
+  .game-table-shell .coach-tip span { font-size: 11px; line-height: 1.25; }
+  .game-table-shell .coach-tip div { min-width: 0; }
+  .game-table-shell .coach-tip button { white-space: nowrap; }
   .game-table-shell .setup-controls { gap: 4px; }
 }
