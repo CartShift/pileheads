@@ -960,7 +960,7 @@ export default function GameTable() {
           <label className="theme-control">Deck
             <select aria-label="Deck style" value={deckTheme}
               onChange={e => setDeckTheme(e.target.value as DeckTheme)}>
-              <option value="refined">Illustrated V3</option><option value="characters">Illustrated (compact)</option><option value="original">Original</option>
+              <option value="refined">Illustrated V7</option><option value="characters">Illustrated (compact)</option><option value="original">Original</option>
             </select>
           </label>
           <button className="exit-button" onClick={leaveTable}>Leave table</button>
