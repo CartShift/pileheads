@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import CampaignPlayLink from "../components/campaign-play-link";
+import DeckWaitlist from "../components/deck-waitlist";
 import styles from "./official-home.module.css";
 import polish from "./homepage-refinement.module.css";
 
@@ -18,7 +20,7 @@ function Brand() {
 }
 function Button({href, children, kind = "red"}: {href: string; children: React.ReactNode; kind?: "red"|"cream"|"yellow"}) {
   const cls = styles.button + " " + styles[kind];
-  return href.startsWith("/play") ? <Link className={cls} href={href} prefetch={false}>{children}</Link> : <a className={cls} href={href}>{children}</a>;
+  return href.startsWith("/play") ? <CampaignPlayLink className={cls} href={href}>{children}</CampaignPlayLink> : <a className={cls} href={href}>{children}</a>;
 }
 function BenefitIcon({kind}: {kind: "bolt"|"friends"|"repeat"}) {
   return <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" strokeWidth="3.6" strokeLinecap="round" strokeLinejoin="round">
@@ -32,7 +34,7 @@ export default function HomePage() {
     <header className={styles.header}><div className={styles.nav}>
       <Link href="/" className={styles.homeLink}><Brand/></Link>
       <nav aria-label="Main navigation">
-        <Link href="/play" className={styles.navPlay} prefetch={false}>Play online</Link>
+        <CampaignPlayLink href="/play" className={styles.navPlay}>Play online</CampaignPlayLink>
         <a href="/pilehead/playtest.html">How to play</a><a href="/pilehead/gallery.html">The deck</a><a href="#physical">The game</a>
       </nav>
     </div></header>
@@ -71,9 +73,9 @@ export default function HomePage() {
     </div></section>
     <section className={styles.physical} id="physical"><div className={styles.split + " " + polish.physicalLayout}>
       <div className={styles.productArt} aria-label="PILEHEADS card deck illustration" role="group"><div className={styles.productBox + " " + polish.box}><img src="/stack-media/stack-home-box-web.webp?v=production-rc3" alt="PILEHEADS packaging concept, 54 cards for 2–5 players" width={440} height={607} loading="lazy"/><img className={polish.boxSide} src="/stack-media/stack-home-box-side-v2.webp?v=production-rc3" alt="" width={242} height={1000} loading="lazy"/><img className={polish.boxTop} src="/stack-media/stack-home-box-top-v2.webp?v=production-rc3" alt="" width={720} height={240} loading="lazy"/></div><div className={styles.productBack}/></div>
-      <div><p className={styles.kicker}>From screen to table</p><h2>The physical<br/>game<span>.</span></h2><p>Small box. Big fun. Made for game nights, holidays and spontaneous showdowns. The physical deck is currently in playtesting.</p><Button href="/pilehead/playtest.html" kind="yellow">Explore the playtest edition →</Button><p className={styles.releaseNote}>Physical retail launch to be announced.</p></div><div className={polish.physicalFan} role="group" aria-label="Three illustrated numbered cards">{["2","3","1"].map((name,i)=><Card key={name} name={name} className={polish["physicalCard"+i]}/>)}</div>
+      <div><p className={styles.kicker}>From screen to table</p><h2>The physical<br/>game<span>.</span></h2><p>Small box. Big fun. Made for game nights, holidays and spontaneous showdowns. The physical deck is currently in playtesting.</p><Button href="/pilehead/playtest.html" kind="yellow">Explore the playtest edition →</Button><p className={styles.releaseNote}>Physical retail launch to be announced.</p><DeckWaitlist/></div><div className={polish.physicalFan} role="group" aria-label="Three illustrated numbered cards">{["2","3","1"].map((name,i)=><Card key={name} name={name} className={polish["physicalCard"+i]}/>)}</div>
     </div></section>
     <section className={styles.closing}><div className={styles.closingArt} aria-hidden="true"><img src="/stack-media/stack-home-sunset.webp" alt="" width={700} height={165} loading="lazy"/></div><div className={styles.closingCopy}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring PILEHEADS<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></div></section>
-    <footer className={styles.footer}><Link href="/" aria-label="PILEHEADS home"><Brand/></Link><nav aria-label="Footer navigation"><Link href="/play" prefetch={false}>Play online</Link><a href="/pilehead/playtest.html">Rules & playtest</a><a href="/pilehead/gallery.html">The deck</a></nav><small>© PILEHEADS</small></footer>
+    <footer className={styles.footer}><Link href="/" aria-label="PILEHEADS home"><Brand/></Link><nav aria-label="Footer navigation"><CampaignPlayLink href="/play">Play online</CampaignPlayLink><a href="/pilehead/playtest.html">Rules & playtest</a><a href="/pilehead/gallery.html">The deck</a></nav><small>© PILEHEADS</small></footer>
   </main>;
 }
