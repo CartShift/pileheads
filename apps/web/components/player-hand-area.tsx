@@ -3,6 +3,7 @@ import type { CSSProperties, RefObject } from "react";
 import type { Card } from "../lib/engine";
 import type { RoomGame } from "../lib/room";
 import { PlayingCard, type DeckTheme } from "./card-view";
+import { getCardAvailability } from "../lib/card-availability";
 export type HandSort = "dealt" | "asc" | "desc";
 export default function PlayerHandArea({g, current, theme: deckTheme, ready, active, stage, canBridge, clickBlind, selection, swap, chooseCard, playCardDirect, onClear, onSort, handSort, handStageRef, handCount, handLayout, handRows, handColumns, handCards, lastRowShift, swapHand}: {
   g: RoomGame; current: RoomGame["players"][number]; theme: DeckTheme; ready: boolean;
@@ -21,12 +22,14 @@ export default function PlayerHandArea({g, current, theme: deckTheme, ready, act
               const upCard = current.up[index];
               const canUp = g.phase === "setup" ? !ready : active &&
                 (stage === "up" || canBridge(upCard));
+              const upAvailability = upCard ? getCardAvailability(g, active, upCard.id) : "neutral";
               return <div className="faceup-pair" key={index}>
                 {index < current.downCount && <div className="blind-under">
                   <PlayingCard hidden theme={deckTheme} onClick={stage === "down" && active ? () => clickBlind(index) : undefined} />
                 </div>}
                 {upCard && <div className="visible-up">
                   <PlayingCard card={upCard} theme={deckTheme} selected={selection.includes(upCard.id)}
+                    availability={upAvailability === "blocked" && !canUp ? "neutral" : upAvailability}
                     onClick={canUp ? () => g.phase === "setup" ? swap(upCard, "up") : chooseCard(upCard) : undefined}
                     onDrop={canUp && g.phase === "play" ? () => playCardDirect(upCard) : undefined} />
                 </div>}
@@ -54,6 +57,7 @@ export default function PlayerHandArea({g, current, theme: deckTheme, ready, act
                 <PlayingCard key={card.id} card={card}
                   offsetX={lastRowShift && Math.floor(index / handColumns) === handRows - 1 ? lastRowShift : 0}
                   theme={deckTheme} selected={selection.includes(card.id) || swapHand === card.id}
+                  availability={getCardAvailability(g, active, card.id)}
                   onClick={g.phase === "setup" ? (!ready ? () => swap(card, "hand") : undefined) :
                     (active || g.followup.length > 0) && stage === "hand" ? () => chooseCard(card) : undefined}
                   onDrop={active && stage === "hand" ? () => playCardDirect(card) : undefined} />)}
