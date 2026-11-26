@@ -97,3 +97,17 @@ Baseline main ea5d940: npm ci --offline and npm test passed 32 files, 144/144 st
 Shared room DTO types extracted into @stack/game-protocol; web imports/re-exports them without changing HTTP/WS behavior. Reproducible parity runner: npm run test:engine-parity (requires original Git object). Keep Phase 1 gate open until full Node/Next/integrated checks pass and pending branches are reconciled. Hermes is Phase 2.
 
 Additional focused post-extraction verification on commit 3df7e90: exact existing test scripts pilehead-engine (31 groups), pilehead-final-duel, pilehead-matching-actions (12 groups), pilehead-optional-duel and stack-next-simulator-stress (144/144) passed in V8 using CommonJS/assert/structuredClone shims. This is not the full Node suite. Targeted pending DUMP/SNAP save/restore, blind reveal injected clock and legacy 52-card snapshot tests passed in the same harness and were added to the checked-in regression. PR [#101](https://github.com/yotamon/spark-card-game/pull/101) remains draft; no merge/deployment. Next: run npm ci, npm run test:engine-parity, npm test, npm run build:classic, Next typecheck/build, and integrated HTTP/WS smoke against an authenticated fresh checkout, then reconcile open rule/commercial branches.
+
+### OpenDev acceptance continuation (2026-11-26)
+Tested runtime source at 5f56a1f19a1f4d96f9910d078d3612eb5adb2e17 against baseline ea5d940. A direct Git fetch failed because the sandbox had no authenticated GitHub CLI session. Reconstructed 20 changed runtime/test/manifest/doc files from connector-fetched text over the existing baseline checkout, checked each Git blob ID, and independently regenerated Classic engine matching committed blob 5b6779c13d3db52298b426521b395ef8d30c4230. CI-only and other docs-only files were not reconstructed; do not call this a complete branch checkout.
+
+| Gate | Evidence | Result |
+| --- | --- | --- |
+| Root lock/install | npm ci --offline --no-audit --no-fund | PASS |
+| Generated engine consistency | npm run check:engine | PASS |
+| Original/package/browser parity | npm run test:engine-parity; 48/48 games, 6214 actions, 390 saves | PASS |
+| Focused local persistence and clock | npm run test:shared-core | PASS |
+| Full Node regression | npm test; all 33 test files; 144/144 stress simulations | PASS |
+| Classic production build | npm run build:classic; 42 game assets | PASS |
+
+OpenDev jobs jgvE5tnUAL2aSA71TT9L and aXRSXluasPdnR8mvO9Em completed with exit code 0. No shim was used in these Node 24.22.0 runs. Third GitHub draft fast-check 45726841692 failed in four seconds with no job steps/log URL; cause unknown. Next typecheck, integrated build and browser acceptance remain separate gates. Counter Dump #90 and CircleCI #92 were not mergeable against main when inspected; commercial #91 remained mergeable as a draft. Do not mix rule or CI changes into the behavior-preserving extraction. No production change.
