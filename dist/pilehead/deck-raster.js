@@ -23,7 +23,7 @@ function sprite(c){
  return '<span class="ph-raster-cell" data-card-art="'+slot.name+'" style="--stack-x:'+pos[slot.col]+';--stack-y:'+pos[slot.row]+'"></span>';
 }
 function face(c){return root.StackDeckThemes?.get?.()==='studio'?prior.face(c):'<span class="ph-plate ph-raster-plate" aria-hidden="true">'+sprite(c)+'</span>';}
-function backSrc(){return root.StackDeckThemes?.get?.()==='refined'?'assets/stack-back-v2.webp?v=white-border-v8':'assets/stack-back.webp?v=white-border-v8';}
+function backSrc(){return root.StackDeckThemes?.get?.()==='refined'?'assets/stack-back-v2.webp?v=production-rc3':'assets/stack-back.webp?v=production-rc3';}
 function back(){
  return '<span class="ph-plate ph-raster-plate ph-back-raster" aria-hidden="true"><img class="ph-raster-back" src="'+backSrc()+'" alt="" draggable="false" decoding="async"></span>';
 }

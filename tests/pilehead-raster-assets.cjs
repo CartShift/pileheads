@@ -74,13 +74,21 @@ test('Vercel includes raster scripts, styles and original binary assets',()=>{
  for(const name of ['deck-raster.js','deck-raster.css','stack-sheet.webp','stack-back.webp'])
   assert.ok(text.includes(name),script+' must include '+name);
 });
-test('approved V7 sprites with V8 embedded card backs match gameplay and marketing exports',()=>{
+test('RC3 card and packaging artwork matches the review release',()=>{
  const assets=[
-  ['dist/pilehead/assets/stack-characters.webp','bf0000d9381a1866d25ae8c69f646775b3f30ae161cac516131139a333533bc5'],
-  ['dist/pilehead/assets/stack-characters-v2.webp','ca6ee8d7012202b90362eb6e19f58c05e29fb36027cfa7a3900b56300de6674e'],
-  ['apps/web/public/stack-media/stack-home-faces-v2.webp','ca6ee8d7012202b90362eb6e19f58c05e29fb36027cfa7a3900b56300de6674e'],
-  ['apps/web/public/stack-media/stack-home-faces-web-desktop.webp','c9a2d653b7afb423022e709d418d4f9f6d39d520b938af8e530c4ea0e88a9b18'],
-  ['apps/web/public/stack-media/stack-home-faces-web-mobile.webp','b3a6213e2232f5d083d78eb145a71fd229ccb7bd767e34a09645f4db3a7c9ff3']
+  ["dist/pilehead/assets/stack-characters.webp","4d739a521736a4636aeb32d0055fab7c2d417742b85da92a4bbd43a34523b1fe"],
+  ["dist/pilehead/assets/stack-characters-v2.webp","3e135d338857081ac6506fabbc49aacd0797f60979181902605cdc94a4a9616d"],
+  ["apps/web/public/stack-media/stack-home-faces-v2.webp","3e135d338857081ac6506fabbc49aacd0797f60979181902605cdc94a4a9616d"],
+  ["apps/web/public/stack-media/stack-home-faces-web-desktop.webp","25aa986728334f33b54b741d8fd972c55a9c7083134ee9f09a4585984acaef2a"],
+  ["apps/web/public/stack-media/stack-home-faces-web-mobile.webp","ca58f990836f2cbc49026436a3bf1d187ef2cd09e76c99ef83cfa8224a988044"],
+  ["dist/pilehead/assets/stack-back.webp","d4e383786bab607d04472e8a5c05a01953b674c59e29dadcd649c14099fbda79"],
+  ["dist/pilehead/assets/stack-back-v2.webp","d4e383786bab607d04472e8a5c05a01953b674c59e29dadcd649c14099fbda79"],
+  ["apps/web/public/stack-media/stack-home-back-web.webp","016e9301d892b788a1308a5b5e7ae87af7b15831601b94db7ecbfb1173898157"],
+  ["apps/web/public/stack-media/stack-home-back-v2.webp","6cda1999f30cc205cf7b4679b7f0e4467131cef74382ffaa53d2ee4c3dae888a"],
+  ["apps/web/public/stack-media/stack-home-box-web.webp","3ffff49708bda55de5a1c1b0ada9a824f96b953b2282c83a81025b213ded93fb"],
+  ["apps/web/public/stack-media/stack-home-box-v2.webp","91335b1e72476ef43730df8aab9e2796c5c6318f3bbf346ddc6367fcdaef50bf"],
+  ["apps/web/public/stack-media/stack-home-box-side-v2.webp","79ac8205686a6aea1a925353976266bda77217838fdfb6939387df1825d2eb4f"],
+  ["apps/web/public/stack-media/stack-home-box-top-v2.webp","fa635c36457cce77f68972e8a76afc7dad795476970809c5f348bae98e817e18"]
  ];
  for(const [name,sha] of assets){
   const bytes=fs.readFileSync(path.join(base,name));
@@ -88,6 +96,6 @@ test('approved V7 sprites with V8 embedded card backs match gameplay and marketi
   assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'),sha,name);
  }
  for(const p of ['apps/web/app/globals.css','apps/web/app/official-home.module.css','apps/web/public/stack-media/stack-design-system.css','dist/pilehead/deck-raster.css'])
-  assert.match(read(p),/white-border-v7.1-back-v8/,p+' cache version');
+  assert.match(read(p),/production-rc3/,p+' cache version');
 });
 console.log('STACK raster assets: '+count+' checks passed');
