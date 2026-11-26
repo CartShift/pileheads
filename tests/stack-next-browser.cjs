@@ -1261,6 +1261,22 @@ async function localInterruptParityScenarios(browser) {
       await exercise(page);
     }finally{await context.close()}
   }
+  const limited=open(2026112300);
+  const high=rankCards(10)[0], low=rankCards(2)[0];
+  transfer(limited,high.id,limited.pile);
+  transfer(limited,low.id,limited.people[0].hand);
+  limited.limit={type:"min",value:10};
+  assert.ok(!E.options(limited,0).some(m=>m.type==="play"&&m.ids?.includes(low.id)),
+    "fixture contains a truly blocked card");
+  await runSaved(limited,async page=>{
+    const blocked=page.locator('.player-hand .playing-card[data-card-id="'+low.id+'"]');
+    assert.equal(await blocked.getAttribute("data-availability"),"blocked");
+    assert.match(await blocked.locator(".card-hit").getAttribute("aria-description"),/Not currently/);
+    await blocked.locator(".card-hit").click();
+    assert.equal(await page.getByRole("button",{name:/Play cards/}).isDisabled(),true,
+      "a blocked selection never becomes a legal committed move");
+    assert.equal((await readGame(page)).moves,limited.moves);
+  });
   const slam=open(2026112301);
   for(const card of rankCards(7))transfer(slam,card.id,slam.people[1].hand);
   const filler=slam.stock.find(c=>c.kind==="number"&&c.rank!==7);
@@ -1284,6 +1300,8 @@ async function localInterruptParityScenarios(browser) {
   snap.followUp={seat:0,rank:6,ids:[cards[3].id]};
   assert.equal(E.followUpOptions(snap,0).length,1);
   await runSaved(snap,async page=>{
+    const hint=page.locator('.player-hand .playing-card[data-card-id="'+cards[3].id+'"]');
+    assert.match(await hint.getAttribute("data-availability"),/^snap(?:-slam)?$/);
     await page.getByRole("button",{name:"SNAP"}).click();
     const theater=page.locator('.move-story-overlay[data-kind="burn"]');
     await theater.waitFor({timeout:3000});
