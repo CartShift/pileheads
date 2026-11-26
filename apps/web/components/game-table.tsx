@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { ACTIONS, ACTION_DESCRIPTIONS, cardLabel, PlayingCard, type DeckTheme } from "./card-view";
@@ -142,6 +142,8 @@ export default function GameTable() {
   const handStageRef = useRef<HTMLDivElement | null>(null);
   const [handArea, setHandArea] = useState({ width: 0, cardWidth: 0 });
   const [motionLevel, setMotionLevel] = useState<MotionLevel>("balanced");
+  const systemReducedMotion = useReducedMotion();
+  const staticResults = motionLevel === "reduced" || systemReducedMotion === true;
   const [endgameRule, setEndgameRule] = useState<EndgameRule>("classic");
   const [pendingRule, setPendingRule] = useState<EndgameRule | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -1000,9 +1002,9 @@ export default function GameTable() {
           handSort={handSort} handStageRef={handStageRef} handCount={handCount} handLayout={handLayout}
           handRows={handRows} handColumns={handColumns} handCards={handCards} lastRowShift={lastRowShift} swapHand={swapHand} />
         {outcome && <motion.section className="results-overlay" data-outcome={outcome.kind}
-          initial={motionLevel === "reduced" ? false : {opacity:0, y:20, scale:.96}}
+          initial={staticResults ? false : {opacity:0, y:8, scale:.98}}
           animate={{opacity:1,y:0,scale:1}}
-          transition={motionLevel === "reduced" ? {duration:0} : {type:"spring",stiffness:220,damping:25,delay:.32}}
+          transition={staticResults ? {duration:0} : {duration:.18,ease:"easeOut"}}
           role="region" aria-label="Round results">
           <div className="eyebrow">ROUND COMPLETE</div>
           <h2 ref={resultTitleRef} tabIndex={-1}>{outcome.title}</h2>
