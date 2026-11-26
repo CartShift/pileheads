@@ -2,6 +2,7 @@
 
 const crypto=require("node:crypto");
 const {validateSubmission,emailAddress,summarizeRows}=require("../scripts/growth-core.cjs");
+const {funnelAction,funnelSummary}=require("../scripts/funnel-server.cjs");
 const hex=()=>crypto.randomBytes(32).toString("hex");
 const digest=value=>crypto.createHash("sha256").update(value).digest("hex");
 const token=value=>typeof value==="string"&&/^[a-f0-9]{64}$/.test(value);
@@ -20,8 +21,10 @@ function configured(env) {
   const approved=ready&&!!privacyUrl&&!!noticeVersion;
   const reports=approved&&env.PILEHEAD_GROWTH_ENABLED==="1";
   const waitlist=approved&&env.PILEHEAD_WAITLIST_ENABLED==="1"&&!!env.RESEND_API_KEY&&!!env.PILEHEAD_WAITLIST_FROM;
+  const funnelSchemaReady=ready&&env.PILEHEAD_FUNNEL_SCHEMA_READY==="1";
+  const funnel=approved&&funnelSchemaReady&&env.PILEHEAD_FUNNEL_ENABLED==="1";
   const operator=ready&&!!env.PILEHEAD_GROWTH_OPERATOR_TOKEN&&env.PILEHEAD_GROWTH_OPERATOR_TOKEN.length>=32;
-  return {reports,waitlist,operator,privacyUrl:reports||waitlist?privacyUrl:null,noticeVersion:reports||waitlist?noticeVersion:null};
+  return {reports,waitlist,operator,funnel,funnelSchemaReady,privacyUrl:reports||waitlist||funnel?privacyUrl:null,noticeVersion:reports||waitlist||funnel?noticeVersion:null};
 }
 function authorized(header,secret) {
   if(typeof header!=="string"||typeof secret!=="string"||secret.length<32)return false;
@@ -51,13 +54,14 @@ function createHandler({env=process.env,db=query,mail=sendEmail}={}) {
     const flags=configured(env);
     const origin=env.PILEHEAD_GROWTH_ORIGIN||"https://pileheads.com";
     try {
-      if(req.method==="GET"&&req.query?.status==="1")return send(200,{ok:true,reports:flags.reports,waitlist:flags.waitlist,privacyUrl:flags.privacyUrl,noticeVersion:flags.noticeVersion});
+      if(req.method==="GET"&&req.query?.status==="1")return send(200,{ok:true,reports:flags.reports,waitlist:flags.waitlist,funnel:flags.funnel,privacyUrl:flags.privacyUrl,noticeVersion:flags.noticeVersion});
       if(req.method==="GET"&&req.query?.summary==="1"){
         if(!flags.operator||!authorized(req.headers.authorization,env.PILEHEAD_GROWTH_OPERATOR_TOKEN))return send(401,{ok:false,error:"unauthorized"});
         const rows=await db("SELECT report,attribution FROM pileheads_growth_reports WHERE created_at>=now()-interval '30 days' ORDER BY created_at DESC LIMIT 10001",[]);
         if(rows.length>10000)return send(503,{ok:false,error:"report_limit"});
         const counts=await db("SELECT count(*) FILTER(WHERE confirmed_at IS NOT NULL)::integer AS confirmed,count(*) FILTER(WHERE confirmed_at IS NULL AND expires_at>now())::integer AS pending FROM pileheads_waitlist",[]);
-        return send(200,{ok:true,windowDays:30,...summarizeRows(rows),waitlist:{confirmed:Number(counts[0]?.confirmed||0),pending:Number(counts[0]?.pending||0)}});
+        const funnel=flags.funnelSchemaReady?await funnelSummary(db):null;
+        return send(200,{ok:true,windowDays:30,...summarizeRows(rows),funnel,waitlist:{confirmed:Number(counts[0]?.confirmed||0),pending:Number(counts[0]?.pending||0)}});
       }
       if(req.method!=="POST"){res.setHeader("Allow","GET, POST");return send(405,{ok:false,error:"method"});}
       if(req.headers.origin!==origin)return send(403,{ok:false,error:"origin"});
@@ -69,6 +73,10 @@ function createHandler({env=process.env,db=query,mail=sendEmail}={}) {
         if(!raw||Buffer.byteLength(raw)>4096)return send(413,{ok:false,error:"too_large"});
         b=JSON.parse(raw);
       }catch{return send(400,{ok:false,error:"invalid_json"});}
+      if(["funnel_start","funnel_event","funnel_delete"].includes(b?.action)){
+        if(!flags.funnelSchemaReady)return send(503,{ok:false,error:"disabled"});
+        const result=await funnelAction(db,flags,b);return send(result.status,result.body);
+      }
       if(b?.action==="report"){
         if(!flags.reports)return send(503,{ok:false,error:"disabled"});
         let data;try{if(b.noticeVersion!==flags.noticeVersion)throw Error("notice_changed");data=validateSubmission(b);}catch{return send(400,{ok:false,error:"invalid_report"});}
