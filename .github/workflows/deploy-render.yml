@@ -29,7 +29,7 @@ permissions:
 jobs:
   sync-render:
     name: Sync production commit to Render
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2604
     timeout-minutes: 10
     steps:
       - name: Checkout release manifest and smoke script
