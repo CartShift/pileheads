@@ -7,6 +7,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { stat } = require('node:fs/promises');
 const roomHandler = require('../api/pilehead.js');
+const growthHandler = require('../api/growth.js');
 const { attachRealtime } = require('./realtime-hub.cjs');
 let liveHub = null;
 
@@ -35,13 +36,13 @@ function respond(res, status, data, type = 'text/plain; charset=utf-8') {
   res.end(data);
 }
 
-async function serveApi(req, res, url) {
+async function serveApi(req, res, url, handler = roomHandler) {
   req.query = Object.fromEntries(url.searchParams.entries());
   // Vercel provides res.status().json(); preserve that interface here.
   res.status = function (status) { this.statusCode = status; return this; };
   res.json = function (value) {
     // Only notify peers after the authoritative database response succeeded.
-    if(value?.ok&&value.code&&liveHub){
+    if(handler===roomHandler&&value?.ok&&value.code&&liveHub){
       const action=typeof req.body==='string'?(()=>{try{return JSON.parse(req.body)?.action}catch{return null}})():null;
       if(value.reaction)liveHub.pushReaction(value.code,value.reaction);
       else if(['move','swap','ready','start','rematch','advance','dump-target','decline','join','settings'].includes(action))
@@ -61,7 +62,7 @@ async function serveApi(req, res, url) {
     }
     req.body = body; // Existing handler parses and validates it.
   }
-  await roomHandler(req, res);
+  await handler(req, res);
 }
 
 async function serveFile(req, res, url) {
@@ -83,6 +84,7 @@ async function serveFile(req, res, url) {
   }
   if (pathname === '/play' || pathname === '/play/') pathname = '/play.html';
   else if (pathname === '/stack' || pathname === '/stack/') pathname = '/stack.html';
+  else if (['/growth','/growth/','/deck-updates','/deck-updates/'].includes(pathname)) pathname = pathname.replace(/\/$/,'') + '.html';
   if (pathname.includes('\0') || pathname.includes('\\')) return respond(res, 400, 'Bad Request');
 
   const filename = path.resolve(root, '.' + pathname);
@@ -130,6 +132,7 @@ const server = http.createServer(async (req, res) => {
       await serveApi(req, res, url);
     }
     else if (url.pathname === '/api/pilehead') await serveApi(req, res, url);
+    else if (url.pathname === '/api/growth') await serveApi(req, res, url, growthHandler);
     else await serveFile(req, res, url);
   } catch (error) {
     console.error('PILEHEADS request error:', error.message);
