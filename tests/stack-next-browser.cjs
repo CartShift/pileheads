@@ -161,6 +161,29 @@ async function assertOrdinaryViewport(page, label) {
     const hand = document.querySelector(".player-hand");
     return hand && Number(hand.dataset.handColumns) >= 3 && hand.clientWidth > 50;
   });
+  // Wait for the actual layout stylesheet, fonts and ResizeObserver grid
+  // measurements to settle, independent of whether the geometry passes.
+  await page.waitForFunction(() => {
+    const shell=document.querySelector(".game-table-shell");
+    return shell && getComputedStyle(shell).getPropertyValue("--tabletop-layout-ready").trim()==="1";
+  });
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    const selectors=[".game-header",".game-meta",".table-center",".hand-stage",".control-panel"];
+    let previous="", stable=0;
+    const start=performance.now();
+    while(stable<4 && performance.now()-start<2000){
+      await new Promise(resolve=>requestAnimationFrame(resolve));
+      const snapshot=JSON.stringify(selectors.map(selector=>{
+        const r=document.querySelector(selector)?.getBoundingClientRect();
+        return r ? [r.top,r.bottom,r.width].map(n=>Math.round(n*2)/2) : null;
+      }));
+      stable=snapshot===previous ? stable+1 : 0;
+      previous=snapshot;
+    }
+    if(stable<4) throw Error("Tabletop geometry did not stabilize");
+    window.scrollTo({top:0,left:0,behavior:"instant"});
+  });
   const geometry = await page.evaluate(() => {
     const rect = selector => {
       const el=document.querySelector(selector);
@@ -172,6 +195,8 @@ async function assertOrdinaryViewport(page, label) {
       scrollY:window.scrollY, pageWidth:document.documentElement.scrollWidth,
       pile:rect(".pile-slot.played"), hand:rect(".hand-stage"),
       actions:rect(".control-panel"), turn:rect(".game-meta"),
+      header:rect(".game-header"), coach:rect(".coach-tip"), opponents:rect(".opponents-row"),
+      faceup:rect(".faceup-row"), headingFont:getComputedStyle(document.querySelector(".game-meta h1")).fontSize,
       buttons:[...document.querySelectorAll(".control-panel .button-group > button")].map(el=>{
         const r=el.getBoundingClientRect(); return {label:el.textContent.trim(),top:r.top,bottom:r.bottom,height:r.height};
       })};
