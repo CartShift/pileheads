@@ -9,6 +9,8 @@ import OpponentsStrip from "./opponents-strip";
 import CenterBoard from "./center-board";
 import PlayerHandArea, { type HandSort } from "./player-hand-area";
 import ActionDock from "./action-dock";
+import ResultShare from "./result-share";
+const ResultShareCore = require("../lib/result-share-core.cjs") as { resultShare: (input: { phase:string; kind:string; players:number; drill:boolean }) => {title:string;text:string;url:string} | null };
 import { useGameFeedback } from "../lib/use-game-feedback";
 import FeedbackSettings from "./feedback-settings";
 import PlaytestInsights from "./playtest-insights";
@@ -945,6 +947,7 @@ export default function GameTable() {
     g.stockCount === 0 && g.players.filter(p => !p.out).length === 2;
   const coach = Coach.coachTip(g,{me,active,stage,selection,canPlay,needsTarget,selectedAction});
   const outcome = Coach.roundOutcome(g,me);
+  const sharePayload = ResultShareCore.resultShare({phase:g.phase,kind:outcome?.kind ?? "",players:g.players.length,drill:!!drill});
   const ready = !!g.setupReady[me];
   const allReady = g.setupReady.every(Boolean);
   const joined = mode === "local" ? true : room?.members.length === g.players.length - g.botSeats.length;
@@ -1062,7 +1065,8 @@ export default function GameTable() {
          </section>
        </div>}
        <ActionDock g={g} mode={mode} room={room} ready={ready} allReady={allReady} joined={joined} busy={busy}
-          undoAvailable={undoAvailable} undo={undo} onRematch={() => setConfirmRestart(true)} me={me}
+          undoAvailable={undoAvailable} undo={undo} onRematch={() => setConfirmRestart(true)}
+           resultShare={sharePayload ? <ResultShare key={visualGameKey} payload={sharePayload} /> : null} me={me}
           nameForSeat={nameForSeat} playMove={playMove} liveSeats={liveSeats} chooseDumpSeat={chooseDumpSeat}
           needsTarget={needsTarget} playSelected={playSelected} onCancelTarget={() => setNeedsTarget(false)}
           selectedCards={selectedCards} selectedAction={selectedAction} active={active} reactionsOpen={reactionsOpen}
