@@ -811,6 +811,37 @@ async function onlineMixedSeatScenarios(browser) {
   }
 }
 
+async function specialMoveDrillsScenario(browser) {
+  const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:"reduce"});
+  const page=await context.newPage();
+  try {
+    await page.goto(WEB+"/play");
+    await page.getByRole("button",{name:"Learn with a bot"}).click();
+    await page.getByRole("button",{name:"Start round"}).click();
+    await page.waitForFunction(()=>JSON.parse(localStorage.getItem("stack-next-local-save-v1")||"null")?.game?.phase==="play");
+    const original=await page.evaluate(()=>localStorage.getItem("stack-next-local-save-v1"));
+    await page.getByRole("button",{name:"Leave table"}).click();
+    for(const [id,action] of [["snap","SNAP"],["slam","SLAM"],["counter","Counter DUMP"]]){
+      await page.getByRole("combobox",{name:"Special move drill"}).selectOption(id);
+      await page.getByRole("button",{name:"Practice special move"}).click();
+      assert.equal(await page.locator(".game-table-shell").getAttribute("data-drill"),id);
+      const button=page.getByRole("button",{name:action,exact:true});
+      await button.waitFor();
+      // Unlike the live race, this explicitly labelled exercise waits.
+      await page.waitForTimeout(900);
+      assert.equal(await button.isEnabled(),true,"initial drill action waits for learner");
+      await button.click();
+      await page.waitForFunction(()=>document.querySelector(".move-story-overlay")!==null);
+      await page.getByRole("button",{name:"Leave table"}).click();
+      assert.equal(await page.evaluate(()=>localStorage.getItem("stack-next-local-save-v1")),original,
+        "practice drills never overwrite saved games");
+    }
+    await page.getByRole("button",{name:"Resume game"}).click();
+    assert.equal(await page.locator(".game-table-shell").getAttribute("data-drill"),null);
+    assert.equal(await page.evaluate(()=>localStorage.getItem("stack-next-local-save-v1")),original);
+    console.log("PASS special drills: actual SNAP, SLAM, Counter DUMP, isolated save, learner-paced first action");
+  }finally{await context.close();}
+}
 async function feedbackSettingsScenario(browser) {
   const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:"reduce"});
   await context.addInitScript(()=>{
@@ -1451,6 +1482,7 @@ async function main() {
         rematch:()=>localStarterAndRematchScenario(browser),
         round:()=>roundChoreographyScenario(browser),
         feedback:()=>feedbackSettingsScenario(browser),
+        drills:()=>specialMoveDrillsScenario(browser),
         interrupts:()=>localInterruptParityScenarios(browser),
         mixed:()=>mixedBotScenarios(browser),
         recovery:()=>abandonedRoomScenario(browser)
@@ -1468,6 +1500,7 @@ async function main() {
     await guidedPracticeScenario(browser);
     await roundChoreographyScenario(browser);
     await feedbackSettingsScenario(browser);
+    await specialMoveDrillsScenario(browser);
     await localStarterAndRematchScenario(browser);
     await localInterruptParityScenarios(browser);
     await onlineScenarios(browser, apiProc);

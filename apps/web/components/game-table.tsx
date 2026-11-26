@@ -22,6 +22,11 @@ const Coach = require("../lib/coach-core.cjs") as {
     canPlay:boolean;needsTarget:boolean;selectedAction?:string}) => {id:string;text:string}|null;
   roundOutcome: (game: RoomGame, me:number) => {kind:string;title:string;description:string}|null;
 };
+type DrillId = "snap" | "slam" | "counter";
+const Drills = require("../lib/practice-drills.cjs") as {
+  DRILLS: {id:DrillId;label:string;description:string}[];
+  buildDrill: (engine:typeof Engine,id:DrillId)=>Game;
+};
 type Mode = "home" | "local" | "online";
 const SAVE_KEY = "stack-next-local-save-v1";
 const THEME_KEY = "stack-next-deck-theme-v1";
@@ -141,6 +146,8 @@ export default function GameTable() {
   const [pendingRule, setPendingRule] = useState<EndgameRule | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [practiceMode, setPracticeMode] = useState(false);
+  const [drill, setDrill] = useState<{id:DrillId;startMove:number}|null>(null);
+  const [drillChoice, setDrillChoice] = useState<DrillId>("snap");
   const [coachDismissed, setCoachDismissed] = useState(false);
   const resultTitleRef = useRef<HTMLHeadingElement | null>(null);
   const resultCursor = useRef({key:"",phase:"home"});
@@ -309,19 +316,19 @@ export default function GameTable() {
   // Store only local bot matches. Online secrets/state stay in their existing
   // per-room storage; never persist another player's private cards.
   useEffect(() => {
-    if (mode !== "local" || !local) return;
+    if (mode !== "local" || !local || drill) return;
     try {
       localStorage.setItem(SAVE_KEY, JSON.stringify({ version: 1, game: local }));
       setResumeGame(local);
     } catch { /* private browsing/quota: current match remains playable */ }
-  }, [mode, local]);
+  }, [mode, local, drill]);
   useEffect(() => {
     try { localStorage.setItem(THEME_KEY, deckTheme); } catch {}
   }, [deckTheme]);
   useEffect(() => {
-    if (mode !== "local" || !local) return;
+    if (mode !== "local" || !local || drill) return;
     try { localStorage.setItem(PRACTICE_KEY, String(practiceMode)); } catch {}
-  }, [mode, local, practiceMode]);
+  }, [mode, local, practiceMode, drill]);
 
   const applyReaction = useCallback((reaction: Reaction) => {
     const old = roomRef.current;
@@ -447,6 +454,8 @@ export default function GameTable() {
   // This is the same priority contract used by Classic and the online server.
   const localBotKey = (() => {
     if (mode !== "local" || !local || local.phase !== "play") return null;
+    // A labelled teaching fixture holds only the initial bot action until the learner acts.
+    if (drill && local.moves === drill.startMove) return null;
     const opportunity = localBotOpportunity(local);
     if (!opportunity) return null;
     // Human SNAP must not restart an already scheduled rival turn.
@@ -678,9 +687,19 @@ export default function GameTable() {
     setSwapHand(null);
   }
 
+  function startDrill(id:DrillId) {
+    const game=Drills.buildDrill(Engine,id);
+    roomEpoch.current++;
+    freshDealKey.current=null;
+    setDrill({id,startMove:game.moves}); setPracticeMode(true); setCoachDismissed(false);
+    localRef.current=game; undoRef.current=null; setUndoAvailable(false);
+    setLocal(game); setRoom(null); setMode("local"); setSelection([]); setSwapHand(null); setNeedsTarget(false); setNotice("");
+  }
+
   function startLocalGame(withCoach = practiceMode, previousWinner: number | null = null,
     seatCount: number | null = null) {
     roomEpoch.current++;
+    setDrill(null);
     setPracticeMode(withCoach);
     setCoachDismissed(false);
     const game = createGame(seatCount ?? (withCoach ? 2 : players), endgameRule, previousWinner, withCoach);
@@ -691,6 +710,7 @@ export default function GameTable() {
   }
 
   function newRound() {
+    if (drill) { startDrill(drill.id); return; }
     if (mode === "local") startLocalGame(practiceMode, local?.finishedOrder[0] ?? null,
       local?.people.length ?? null);
     else if (room) void submit({ action: "rematch", code: room.code, revision: room.revision });
@@ -700,6 +720,7 @@ export default function GameTable() {
     roomEpoch.current++;
     const saved = loadSavedGame();
     if (!saved) { setResumeGame(null); setNotice("Saved game is unavailable."); return; }
+    setDrill(null);
     freshDealKey.current = null;
     localRef.current = saved; undoRef.current = null; setUndoAvailable(false);
     setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
@@ -712,6 +733,7 @@ export default function GameTable() {
   function leaveTable() {
     roomEpoch.current++;
     if (wsRef.current) wsRef.current.close();
+    setDrill(null);
     freshDealKey.current = null;
     setMode("home"); setLocal(null); setRoom(null); roomRef.current = null;
     tokenRef.current = null; setBusy(false); inFlight.current = false;
@@ -855,6 +877,13 @@ export default function GameTable() {
             </select></label>
             <button className="cta" onClick={() => startLocalGame(false)}>Start game <span aria-hidden>→</span></button>
             <button className="learn-button" onClick={() => startLocalGame(true)}>Learn with a bot</button>
+            <div className="drill-picker">
+              <label>Special move drill <select value={drillChoice} onChange={e=>setDrillChoice(e.target.value as DrillId)}>
+                {Drills.DRILLS.map(d=><option key={d.id} value={d.id}>{d.label}</option>)}
+              </select></label>
+              <small>Isolated practice. The bot waits for your first action; saved matches stay untouched.</small>
+              <button className="learn-button" onClick={()=>startDrill(drillChoice)}>Practice special move</button>
+            </div>
           </div>
           <div className="mode-card">
             <div className="eyebrow">02 · WITH FRIENDS</div><h2>Private room</h2>
@@ -914,7 +943,7 @@ export default function GameTable() {
   const joined = mode === "local" ? true : room?.members.length === g.players.length - g.botSeats.length;
 
   return (
-    <main className="game-shell game-table-shell" data-phase={g.phase} data-hand-count={handCount} data-turn={g.phase === "play" ? active ? "self" : "other" : "none"}>
+    <main className="game-shell game-table-shell" data-phase={g.phase} data-drill={drill?.id} data-hand-count={handCount} data-turn={g.phase === "play" ? active ? "self" : "other" : "none"}>
       <header className="game-header">
         <Link href="/stack" className="logo stack-site-brand" aria-label="STACK home"><img src="/stack-media/stack-home-logo-web.webp" alt="STACK" width={220} height={185}/></Link>
         <div className="game-head-actions">
@@ -937,7 +966,7 @@ export default function GameTable() {
         </div>
       </header>
       <section className="game-meta">
-        <div><div className="eyebrow">{g.phase === "setup" ? "SET YOUR TABLE" : g.phase === "over" ? "ROUND COMPLETE" : "GAME IN PROGRESS"}</div>
+        <div><div className="eyebrow">{drill ? "SPECIAL MOVE DRILL" : g.phase === "setup" ? "SET YOUR TABLE" : g.phase === "over" ? "ROUND COMPLETE" : "GAME IN PROGRESS"}</div>
           <h1>{g.phase === "over" ? `${nameForSeat(g.loser ?? -1)} is the PILEHEAD!` :
             g.phase === "setup" ? "Choose your opening cards" :
             active ? "Your move." : `${nameForSeat(g.turn)} is playing.`}</h1></div>
@@ -976,7 +1005,7 @@ export default function GameTable() {
           role="region" aria-label="Round results">
           <div className="eyebrow">ROUND COMPLETE</div>
           <h2 ref={resultTitleRef} tabIndex={-1}>{outcome.title}</h2>
-          <p>{outcome.description}</p>
+          <p>{drill ? "Practice complete. Repeat the drill or leave the table." : outcome.description}</p>
           <ol className="results-standings">
             {[...g.finishedOrder, ...(g.loser === null ? [] : [g.loser])].map((seat, index) =>
               <li key={seat} data-self={seat === me} className={seat === g.loser ? "results-loser" : ""}>
@@ -1089,7 +1118,7 @@ export default function GameTable() {
         <section className="game-modal" role="dialog" aria-modal="true" aria-label="Confirm next round"
           onClick={e => e.stopPropagation()}>
           <div className="eyebrow">FRESH SHUFFLE</div><h2>Another round?</h2>
-          <p>{mode === "local" ? "Start a fresh local game against the bots?" : "Keep the same players and room, and deal a new round?"} {g.finishedOrder.length > 0 ? `${nameForSeat(g.finishedOrder[0])} starts the next round.` : ""}</p>
+          <p>{drill ? "Repeat the same isolated practice drill?" : mode === "local" ? "Start a fresh local game against the bots?" : "Keep the same players and room, and deal a new round?"} {!drill && g.finishedOrder.length > 0 ? `${nameForSeat(g.finishedOrder[0])} starts the next round.` : ""}</p>
           <div className="button-group">
             <button className="secondary-button" onClick={() => setConfirmRestart(false)}>Cancel</button>
             <button className="primary-button" onClick={() => {setConfirmRestart(false);newRound();}}>Deal again</button>
