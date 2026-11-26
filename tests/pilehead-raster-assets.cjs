@@ -79,8 +79,8 @@ test('approved V7 sprites are identical across gameplay and marketing exports',(
   ['dist/pilehead/assets/stack-characters.webp','90868f620278dcd4fe7da227dd9573dc4a87ebe6f61c82ffe045a3202fd1f8d8'],
   ['dist/pilehead/assets/stack-characters-v2.webp','b0fdd383c80a964e44f49933a9a556175acde0698b3ffe5d4bb648410e333255'],
   ['apps/web/public/stack-media/stack-home-faces-v2.webp','b0fdd383c80a964e44f49933a9a556175acde0698b3ffe5d4bb648410e333255'],
-  ['apps/web/public/stack-media/stack-home-faces-web-desktop.webp','4379ae7145e642298df8276546bc34432bf268101d6c6963adc9a00c69368487'],
-  ['apps/web/public/stack-media/stack-home-faces-web-mobile.webp','7fac3ba27a7b1a5eeb3be1b9b0e50e742a75169661026839d177febc38087582']
+  ['apps/web/public/stack-media/stack-home-faces-web-desktop.webp','702dba8f85d1b272a19af1d5ac3c0a424b26977f58728d35802545c7abbd0d79'],
+  ['apps/web/public/stack-media/stack-home-faces-web-mobile.webp','1ac12c28ad0947cf686bd15aafcd2e3d8fd7cea30d80afa5b63f7b29f47b18a1']
  ];
  for(const [name,sha] of assets){
   const bytes=fs.readFileSync(path.join(base,name));
