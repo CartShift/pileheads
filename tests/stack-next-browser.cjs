@@ -147,7 +147,7 @@ async function sameOriginNavigation(browser) {
     await page.getByRole("link",{name:"Play free online",exact:true}).click();
     await page.getByRole("button",{name:/Start game/}).waitFor();
     assert.equal(new URL(page.url()).pathname,"/play","Next landing should lead to the real playable table");
-    await page.locator(".game-header .logo").click();
+    await page.getByRole("link", {name:"STACK home", exact:true}).click();
     await page.getByRole("heading",{name:/STACK\s*THE ODDS/}).waitFor();
     assert.equal(new URL(page.url()).pathname,"/stack","logo returns to Next landing, not Classic redirect");
     assert.equal(await page.locator('a[href="/pilehead/index.html"]').count(),0);
