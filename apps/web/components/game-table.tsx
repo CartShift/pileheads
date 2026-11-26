@@ -9,25 +9,17 @@ import OpponentsStrip from "./opponents-strip";
 import CenterBoard from "./center-board";
 import PlayerHandArea, { type HandSort } from "./player-hand-area";
 import ActionDock from "./action-dock";
-import { playSound } from "../lib/sound";
+import { useGameFeedback } from "../lib/use-game-feedback";
+import FeedbackSettings from "./feedback-settings";
 import MoveTheater, { type MotionLevel } from "./move-theater";
 import { useCommittedCardTravel } from "../lib/use-committed-card-travel";
 import { useRoundChoreography } from "../lib/use-round-choreography";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
-const MotionAudio = require("../lib/motion-core.cjs") as {
-  fromCommittedEvent: (event: Event) => { kind: string; destination: string | null } | null;
-  advanceSoundCursor: (
-    prior: { key: string; move: number },
-    snapshot: { gameKey: string; moveNo: number; phase: string; event?: Event;
-      enabled: boolean; visible: boolean }
-  ) => { cursor: { key: string; move: number }; shouldPlay: boolean };
-};
 import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame, type Reaction } from "../lib/room";
 
 type Mode = "home" | "local" | "online";
 const SAVE_KEY = "stack-next-local-save-v1";
 const THEME_KEY = "stack-next-deck-theme-v1";
-const SOUND_KEY = "stack-next-sound-enabled-v1";
 const PRACTICE_KEY = "stack-next-practice-mode-v1";
 const FINAL_DUEL_KEY = "stack-final-duel-default-v1";
 type EndgameRule = "classic" | "final-duel";
@@ -139,7 +131,6 @@ export default function GameTable() {
   const [handSort, setHandSort] = useState<HandSort>("dealt");
   const handStageRef = useRef<HTMLDivElement | null>(null);
   const [handArea, setHandArea] = useState({ width: 0, cardWidth: 0 });
-  const [soundEnabled, setSoundEnabled] = useState(false);
   const [motionLevel, setMotionLevel] = useState<MotionLevel>("balanced");
   const [endgameRule, setEndgameRule] = useState<EndgameRule>("classic");
   const [pendingRule, setPendingRule] = useState<EndgameRule | null>(null);
@@ -203,7 +194,6 @@ export default function GameTable() {
   const wsRef = useRef<WebSocket | null>(null);
   const undoRef = useRef<Game | null>(null);
   const roomEpoch = useRef(0);
-  const soundCursor = useRef({key:"",move:0});
   const freshDealKey = useRef<string | null>(null);
   // A successful blind flip animates only on a *new committed move*, never when
   // resuming an old local game or reconnecting to an existing online room.
@@ -256,7 +246,6 @@ export default function GameTable() {
     const savedTheme = localStorage.getItem(THEME_KEY);
     if (savedTheme === "refined" || savedTheme === "characters" || savedTheme === "original") setDeckTheme(savedTheme);
     setResumeGame(loadSavedGame());
-    setSoundEnabled(localStorage.getItem(SOUND_KEY) === "true");
     setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
     setEndgameRule(localStorage.getItem(FINAL_DUEL_KEY) === "final-duel" ? "final-duel" : "classic");
     if (!code) return;
@@ -322,9 +311,6 @@ export default function GameTable() {
   useEffect(() => {
     try { localStorage.setItem(THEME_KEY, deckTheme); } catch {}
   }, [deckTheme]);
-  useEffect(() => {
-    try { localStorage.setItem(SOUND_KEY, String(soundEnabled)); } catch {}
-  }, [soundEnabled]);
   useEffect(() => {
     if (mode !== "local" || !local) return;
     try { localStorage.setItem(PRACTICE_KEY, String(practiceMode)); } catch {}
@@ -573,30 +559,8 @@ export default function GameTable() {
     freshDeal: freshDealKey.current === visualGameKey, motionLevel});
   useCommittedCardTravel({ gameKey: visualGameKey, moveNo: g?.moves ?? 0,
     phase: g?.phase ?? "setup", pile: g?.pile ?? [], event: lastEvent, me, motionLevel });
-  useEffect(() => {
-    const decision = MotionAudio.advanceSoundCursor(soundCursor.current, {
-      gameKey: visualGameKey, moveNo: g?.moves ?? 0,
-      phase: g?.phase || "home", event: lastEvent,
-      enabled: soundEnabled, visible: document.visibilityState === "visible"
-    });
-    soundCursor.current = decision.cursor;
-    if (decision.shouldPlay && lastEvent) {
-      const cue = lastEvent ? MotionAudio.fromCommittedEvent(lastEvent) : null;
-      if (g?.phase === "over") playSound("win");
-      else if (cue?.kind === "slam" || (lastEvent?.type === "followup" && lastEvent.burned))
-        playSound("slam");
-      else if (cue?.kind === "burn") playSound("burn");
-      else if (cue?.kind === "snap") playSound("snap");
-      else if (cue?.kind === "pickup" || cue?.kind === "reject") playSound("take");
-      else if (cue?.kind === "dump") playSound("dump");
-      else if (cue?.kind === "reset") playSound("reset");
-      else if (cue?.kind === "ghost") playSound("ghost");
-      else if (cue?.kind === "under") playSound("under");
-      else if (cue?.kind === "skip") playSound("skip");
-      else playSound("play");
-    }
-  }, [visualGameKey, g?.moves, g?.phase, soundEnabled,
-    lastEvent?.move, lastEvent?.seat, lastEvent?.reason, lastEvent?.burned, lastEvent?.type]);
+  const feedback = useGameFeedback({gameKey:visualGameKey,moveNo:g?.moves??0,
+    phase:g?.phase??"home",event:lastEvent,me,loser:g?.loser??null});
   const stage = current ? current.handCount || g?.stockCount ? "hand" :
     current.up.length ? "up" : current.downCount ? "down" : "out" : "out";
   const active = g?.phase === "play" && g.turn === me && !g.pendingDump && !g.pendingCounter;
@@ -617,7 +581,7 @@ export default function GameTable() {
   }, [mode, room]);
 
   function chooseCard(card: Card) {
-    if (soundEnabled) playSound("select");
+    feedback.select();
     setNotice("");
     setSelection(prev => {
       const hand = current?.hand || [], up = current?.up || [];
@@ -907,13 +871,7 @@ export default function GameTable() {
               every pile pickup burns the visible top card. Off by default.</small></span>
           </label>
           {motionSetting}
-          <label className="rule-toggle">
-            <input type="checkbox" checked={soundEnabled} onChange={event => {
-              setSoundEnabled(event.target.checked);
-              if (event.target.checked) playSound("select");
-            }} />
-            <span><strong>Sound feedback</strong><small>Original short effects, off until you opt in.</small></span>
-          </label>
+          <FeedbackSettings feedback={feedback} />
           <button className="primary-button" onClick={() => setShowSettings(false)}>Done</button>
         </section>
       </div>}
@@ -1087,13 +1045,7 @@ export default function GameTable() {
             </small></span>
           </label>
           {motionSetting}
-          <label className="rule-toggle">
-            <input type="checkbox" checked={soundEnabled} onChange={event => {
-              setSoundEnabled(event.target.checked);
-              if (event.target.checked) playSound("select");
-            }} />
-            <span><strong>Sound feedback</strong><small>Original short effects, off until you opt in.</small></span>
-          </label>
+          <FeedbackSettings feedback={feedback} />
           <p className="settings-hint">{g.phase !== "setup"
             ? "Rules are locked once the round begins. The setting stays the same for rematches."
             : mode === "online" && !room?.host
@@ -1117,12 +1069,8 @@ export default function GameTable() {
             only two players remain and the deck is empty, the top card burns before pile pickup
             <em> only when enabled in Settings</em>.</p>
           <div className="button-group">
-            <button className="secondary-button" aria-pressed={soundEnabled}
-              onClick={() => {
-                setSoundEnabled(enabled => !enabled);
-                // Unlock browser audio on the explicit click when turning it on.
-                if (!soundEnabled) playSound("select");
-              }}>{soundEnabled ? "Sound on" : "Sound off"}</button>
+            <button className="secondary-button" aria-pressed={feedback.soundEnabled}
+              onClick={() => feedback.changeSound(!feedback.soundEnabled)}>{feedback.soundEnabled ? "Sound on" : "Sound off"}</button>
             <button className="primary-button" onClick={() => setShowRules(false)}>Back to table</button>
           </div>
         </section>
