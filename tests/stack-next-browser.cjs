@@ -808,6 +808,43 @@ async function onlineMixedSeatScenarios(browser) {
   }
 }
 
+async function feedbackSettingsScenario(browser) {
+  const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:"reduce"});
+  await context.addInitScript(()=>{
+    window.__stackVibrations=[];
+    Object.defineProperty(navigator,"vibrate",{configurable:true,value:pattern=>{
+      window.__stackVibrations.push(pattern);return true;
+    }});
+  });
+  const page=await context.newPage();
+  try {
+    await page.goto(WEB+"/play");
+    await page.getByRole("button",{name:"Game settings"}).click();
+    const dialog=page.getByRole("dialog",{name:"Game settings"});
+    const sound=dialog.getByRole("checkbox",{name:/Sound feedback/});
+    const haptics=dialog.getByRole("checkbox",{name:/Haptic feedback/});
+    const volume=dialog.getByRole("slider",{name:"Effects volume"});
+    assert.equal(await sound.isChecked(),false);
+    assert.equal(await haptics.isChecked(),false);
+    assert.equal(await volume.isDisabled(),true);
+    await sound.check();
+    await volume.fill("35");
+    await haptics.check();
+    await page.waitForFunction(()=>localStorage.getItem("stack-next-sfx-volume-v1")==="35" &&
+      localStorage.getItem("stack-next-haptics-v1")==="true");
+    await page.reload();
+    await page.getByRole("button",{name:"Game settings"}).click();
+    assert.equal(await sound.isChecked(),true);
+    assert.equal(await volume.inputValue(),"35");
+    assert.equal(await haptics.isChecked(),true);
+    await sound.uncheck();
+    await haptics.uncheck();
+    await page.waitForFunction(()=>localStorage.getItem("stack-next-sound-enabled-v1")==="false" &&
+      localStorage.getItem("stack-next-haptics-v1")==="false");
+    assert.equal(await volume.isDisabled(),true);
+    console.log("PASS feedback settings: opt-in, volume, haptics persistence and mute");
+  }finally{await context.close();}
+}
 async function roundChoreographyScenario(browser) {
   const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:"no-preference"});
   const page=await context.newPage();
@@ -1398,6 +1435,7 @@ async function main() {
         hand:()=>adaptiveHandFitScenarios(browser),
         rematch:()=>localStarterAndRematchScenario(browser),
         round:()=>roundChoreographyScenario(browser),
+        feedback:()=>feedbackSettingsScenario(browser),
         interrupts:()=>localInterruptParityScenarios(browser),
         mixed:()=>mixedBotScenarios(browser),
         recovery:()=>abandonedRoomScenario(browser)
@@ -1414,6 +1452,7 @@ async function main() {
     await adaptiveHandFitScenarios(browser);
     await guidedPracticeScenario(browser);
     await roundChoreographyScenario(browser);
+    await feedbackSettingsScenario(browser);
     await localStarterAndRematchScenario(browser);
     await localInterruptParityScenarios(browser);
     await onlineScenarios(browser, apiProc);
