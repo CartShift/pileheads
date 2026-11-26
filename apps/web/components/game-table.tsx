@@ -940,7 +940,7 @@ export default function GameTable() {
   const joined = mode === "local" ? true : room?.members.length === g.players.length - g.botSeats.length;
 
   return (
-    <main className="game-shell game-table-shell" data-phase={g.phase} data-hand-count={handCount}>
+    <main className="game-shell game-table-shell" data-phase={g.phase} data-hand-count={handCount} data-turn={g.phase === "play" ? active ? "self" : "other" : "none"}>
       <header className="game-header">
         <Link href="/stack" className="logo stack-site-brand" aria-label="STACK home"><img src="/stack-media/stack-home-logo-web.webp" alt="STACK" width={220} height={185}/></Link>
         <div className="game-head-actions">

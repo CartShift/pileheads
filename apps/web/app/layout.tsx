@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./tabletop-layout.css";
+import "./tabletop-skin.css";
 
 export const metadata: Metadata = {
   title: "STACK | The Card Game",

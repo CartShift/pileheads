@@ -24,6 +24,7 @@ function PlayerPosition({ name, seat, active, self, out, handCount, up, downCoun
     <div className="opponent-card-stack" aria-hidden="true">
       {Array.from({ length: Math.min(5, handCount) }, (_, i) =>
         <span className="hand-back" key={i} style={{ transform: `translateX(${i * 12}px) rotate(${(i - 2) * 5}deg)` }} />)}
+      {!!handCount && <span className="hand-stack-count">{handCount}</span>}
       {!handCount && <span className="empty-seat">No hand cards</span>}
     </div>
     <div className="opponent-up">

@@ -201,6 +201,9 @@ async function assertOrdinaryViewport(page, label) {
         const r=el.getBoundingClientRect(); return {label:el.textContent.trim(),top:r.top,bottom:r.bottom,height:r.height};
       })};
   });
+  assert.equal(await page.locator(".game-table-shell").evaluate(el =>
+    getComputedStyle(el).getPropertyValue("--tabletop-skin-ready").trim()), "1",
+    "comic tabletop skin must be loaded");
   assert.ok(geometry.scrollY <= 2, label+" must start at scroll zero");
   assert.ok(geometry.pageWidth <= geometry.width+2,label+" horizontal overflow");
   for(const key of ["pile","hand","actions","turn"]){
@@ -236,6 +239,10 @@ async function localScenarios(browser) {
       await assertOrdinaryViewport(page, "practice play "+device.width+"x"+device.height);
       const hand = page.locator(".player-hand .card-hit");
       assert.equal(await hand.count(), 3, "opening hand holds three cards");
+      assert.equal(await page.locator(".game-table-shell").getAttribute("data-turn"), "self",
+        "the highlighted player-turn treatment follows the authoritative state");
+      assert.equal(await page.locator(".opponent-card-stack .hand-stack-count").first().textContent(), "3",
+        "opponent hand count is visible independently of turn labels");
       const opponentArt = await page.locator(".opponent-up .mini-face").first()
         .evaluate(node => getComputedStyle(node).backgroundImage);
       assert.match(opponentArt, /stack-(?:characters|refined)[^/]*\.webp/,

@@ -1,0 +1,255 @@
+/* GE-03 — Printed comic / felt hybrid.
+   Presentation only: GE-02 owns geometry and the engine owns every move.
+   Use the existing deck artwork, shared brand tokens and local print texture.
+   No fixed overlays, extra network assets, or new animation timeline. */
+.game-table-shell.game-shell {
+  --tabletop-skin-ready: 1;
+  --table-ink: #172421;
+  --table-paper: var(--brand-paper, #f9ebcb);
+  --table-gold: var(--brand-yellow, #f6c32c);
+  --table-outline: #102b26;
+  --table-teal: #12636a;
+  --table-muted: #c8d5bd;
+  background: var(--brand-grain), radial-gradient(ellipse at 50% 8%, #244e4b 0%, #142e30 48%, #101c20 100%);
+  background-size: 180px 180px, auto;
+}
+.game-table-shell .game-header {
+  border-bottom-color: #e9d4a54d;
+}
+.game-table-shell .game-head-actions .exit-button,
+.game-table-shell .theme-control select,
+.game-table-shell .room-code {
+  color: var(--table-paper);
+  background: #193d3e;
+  border-color: #bfae805e;
+  box-shadow: 0 2px 0 #0b2225;
+}
+.game-table-shell .game-head-actions .exit-button:hover,
+.game-table-shell .room-code:hover { background: #285653; }
+.game-table-shell .connection-chip.is-online { color: #d2f2b1; border-color: #99cf8c80; }
+.game-table-shell .game-meta .eyebrow {
+  color: #b9d0b9;
+  letter-spacing: .12em;
+}
+.game-table-shell .game-meta h1 {
+  color: var(--table-paper);
+  text-shadow: 1px 2px 0 #111f1d;
+}
+.game-table-shell[data-turn="self"] .game-meta h1 {
+  color: var(--table-gold);
+  text-shadow: 1px 2px 0 #111f1d, 2px 3px 0 #795920;
+}
+.game-table-shell .meta-right { color: #d1dfcb; font-variant-numeric: tabular-nums; }
+.game-table-shell .tabletop {
+  background: radial-gradient(ellipse at 50% 43%, #3c7761 0%, #245c4c 40%, #164337 75%, #12372e 100%);
+  border-color: #cfb27d;
+  box-shadow: inset 0 0 0 4px #133e34, inset 0 0 0 6px #d2c19d56, 0 4px 0 #0b2220, 0 12px 26px #071b1a6b;
+}
+.game-table-shell .table-texture {
+  opacity: .42;
+  background-image: var(--brand-grain), radial-gradient(circle, #101f222b .8px, transparent 1px), radial-gradient(ellipse, transparent 38%, #071e1c54 100%);
+  background-size: 180px 180px, 5px 5px, 100% 100%;
+}
+.game-table-shell .table-center {
+  position: relative;
+  isolation: isolate;
+}
+.game-table-shell .table-center::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  inset: 5px max(8px, 12%) 5px;
+  border: 1px dashed #dec58b55;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, #e7dbaf0d, transparent 72%);
+}
+.game-table-shell .pile-zone { position: relative; }
+.game-table-shell .pile-title {
+  color: #f4e5bd;
+  text-shadow: 1px 1px #17382e;
+  letter-spacing: .11em;
+}
+.game-table-shell .pile-zone.is-main .pile-title {
+  color: var(--table-gold);
+}
+.game-table-shell .pile-slot.played {
+  border-radius: 12px;
+  background: radial-gradient(ellipse, #f9e4ad16, #102f2652);
+  box-shadow: inset 0 0 0 1px #ebd4a54a;
+}
+.game-table-shell .pile-slot.played.is-drop-ready {
+  box-shadow: 0 0 0 2px var(--table-gold), inset 0 0 0 1px #ebd4a56a;
+  background: #477853;
+}
+.game-table-shell .slot-empty,
+.game-table-shell .burn-mark {
+  color: #e5d5b6;
+  border-color: #dfc59978;
+  background: #122e2654;
+}
+.game-table-shell .burn-mark {
+  color: #e1a17f;
+  background: radial-gradient(ellipse, #8a483746, #1b302a38);
+}
+.game-table-shell .pile-rule-marker {
+  color: var(--table-ink);
+  background: var(--table-paper);
+  border-color: #1c3831;
+  box-shadow: 0 2px 0 #183b31;
+}
+.game-table-shell .pile-rule-marker[data-rule="under"] {
+  background: #f5cf78;
+  color: #382715;
+}
+.game-table-shell .pile-counter { color: #f5edcf; font-variant-numeric: tabular-nums; }
+.game-table-shell .react-pile-inspect {
+  background: #143d35;
+  border-color: #bdaa7b;
+  color: #f6e8c8;
+}
+.game-table-shell .opponent-seat {
+  border-color: #a9bda066;
+  background: linear-gradient(165deg, #244c3e, #15372e);
+  box-shadow: 0 2px 0 #112c25;
+}
+.game-table-shell .opponent-seat .avatar {
+  background: #f4e2b6;
+  color: #1f4941;
+  box-shadow: inset 0 0 0 1px #805e2d66, 0 1px 0 #112c25;
+}
+.game-table-shell .seat-heading strong { color: #fff1d3; }
+.game-table-shell .seat-heading small { color: #d0debe; }
+.game-table-shell .opponent-seat.seat-active {
+  background: linear-gradient(150deg, #396344, #1a4034);
+  border-color: #f6c32c;
+  box-shadow: 0 0 0 1px #f6c32c, 0 3px 0 #173629;
+}
+.game-table-shell .seat-active .seat-heading small { color: #ffdf83; font-weight: 800; }
+.game-table-shell .seat-active::after {
+  background: var(--table-gold);
+  box-shadow: none;
+}
+.game-table-shell .opponent-seat.is-dump-target {
+  background: linear-gradient(150deg, #733d44, #3e3030);
+  border-color: #ffc49b;
+  box-shadow: 0 0 0 1px #ffc49b, 0 3px 0 #29211d;
+}
+.game-table-shell .opponent-seat.is-dump-target::before {
+  background: #f4b37b;
+  color: #342219;
+  box-shadow: 0 1px 0 #342219;
+}
+.game-table-shell .hand-stack-count {
+  position: absolute;
+  inset: auto 0 0 auto;
+  z-index: 2;
+  min-width: 17px;
+  padding: 1px 4px;
+  border: 1px solid #23362a;
+  border-radius: 6px;
+  background: var(--table-paper);
+  color: var(--table-ink);
+  font-size: 9px;
+  line-height: 1.2;
+  text-align: center;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.game-table-shell .zone-heading {
+  border-bottom-color: #dfc58b65;
+}
+.game-table-shell .zone-heading strong {
+  color: #f6e4b8;
+  letter-spacing: .08em;
+}
+.game-table-shell .hand-heading strong { color: var(--table-gold); }
+.game-table-shell .hand-tool {
+  background: #164239;
+  border-color: #b3b993;
+  color: #fff2ce;
+}
+.game-table-shell .playing-card {
+  box-shadow: 0 2px 0 #a78d5c, 0 4px 8px #09251f94;
+}
+.game-table-shell .playing-card.is-selected {
+  box-shadow: 0 0 0 3px var(--table-gold), 0 5px 0 #8d6937, 0 9px 15px #1028209e;
+}
+.game-table-shell .control-panel {
+  background: var(--brand-grain), linear-gradient(155deg, #1c4543, #132e30);
+  background-size: 180px 180px, auto;
+  border-color: #cfb27d;
+  box-shadow: 0 3px 0 #0c2122, 0 6px 16px #0b20236b;
+  backdrop-filter: none;
+}
+.game-table-shell .control-panel .selection-note strong,
+.game-table-shell .control-panel .setup-controls strong {
+  color: var(--table-paper);
+}
+.game-table-shell[data-turn="self"] .control-panel .selection-note strong { color: var(--table-gold); }
+.game-table-shell .control-panel .selection-note span,
+.game-table-shell .control-panel .setup-controls p { color: #d7e3ce; }
+.game-table-shell .control-panel .primary-button {
+  background: #f6c32c;
+  border-color: #172421;
+  color: #20221c;
+  border-radius: 9px;
+  box-shadow: 0 3px 0 #a47727;
+}
+.game-table-shell .control-panel .secondary-button {
+  background: #204d48;
+  color: #f9ebcb;
+  border-color: #c5b287;
+  border-radius: 9px;
+  box-shadow: 0 2px 0 #0d2727;
+}
+.game-table-shell .control-panel .snap-button {
+  color: #212b27;
+  background: #facb74;
+  border-color: #302e21;
+  border-radius: 9px;
+  box-shadow: 0 3px 0 #a37031;
+}
+.game-table-shell .control-panel .slam-button {
+  background: #ad352b;
+  color: #fff3d5;
+  border-color: #f3c3a0;
+  border-radius: 9px;
+  box-shadow: 0 3px 0 #54251f;
+}
+.game-table-shell .control-panel button:disabled { box-shadow: none; }
+.game-table-shell .coach-tip {
+  border-color: #c6b480;
+  background: #224b40;
+}
+.game-table-shell .results-overlay {
+  background: var(--brand-grain), linear-gradient(155deg, #f9ebcb, #e7cda1);
+  background-size: 180px 180px, auto;
+  color: #242a23;
+  border-color: #282b22;
+  box-shadow: 0 5px 0 #192a23, 0 16px 40px #092921b5;
+  backdrop-filter: none;
+}
+.game-table-shell .results-overlay .eyebrow { color: #86422a; }
+.game-table-shell .results-overlay h2 {
+  font-family: var(--brand-display, Georgia, serif);
+  font-style: italic;
+  color: #163d38;
+}
+.game-table-shell .results-overlay p,
+.game-table-shell .results-stats { color: #38534a; }
+.game-table-shell .results-standings li {
+  background: #fff2d6;
+  border-color: #9a865e;
+  color: #252b24;
+}
+.game-table-shell .results-standings li small { color: #405548; }
+.game-table-shell .results-standings li.results-loser { background: #a83d32; color: #fff3d5; border-color: #762a26; }
+.game-table-shell .results-standings li.results-loser small { color: #fff3d5; }
+.game-table-shell .results-standings li.results-loser > span { background: #ffe2b7; }
+@media (forced-colors: active) {
+  .game-table-shell .opponent-seat.seat-active,
+  .game-table-shell .playing-card.is-selected { outline: 2px solid Highlight; }
+  .game-table-shell .control-panel .primary-button { border-color: ButtonText; }
+}
