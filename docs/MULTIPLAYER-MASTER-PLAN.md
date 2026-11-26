@@ -2,6 +2,10 @@
 
 Status: planned, not implemented. Owner-approved product direction; numerical defaults and technical choices below are proposals until verified. Updated: 2026-11-26. Repository: CartShift/pileheads (existing STACK/PILEHEAD internal identifiers remain for compatibility). This is the living multiplayer roadmap. Check off a task only with commit/PR and verification evidence; record changes to decisions here. 
 
+## Sequencing with web experience
+
+[Game Experience 4.0](GAME-EXPERIENCE-MASTER-PLAN.md) is the active product milestone. Stabilize and polish the web tabletop and private-room experience through GE-09 before broad tournament/competitive implementation or public rollout. Non-disruptive shared contract and safety work may proceed in parallel; this document owns tournament, scoring, identity, matchmaking and progression semantics. Do not duplicate Game Experience presentation work or treat its completion as multiplayer launch acceptance.
+
 ## Product vision
 
 Every online room hosts a tournament, every tournament contributes to appropriate persistent progression, and every player can develop a competitive and social identity. The core loop is find opponents → play → see standings and memorable moments → finish tournament → see progress → voluntarily rematch or leave. Optimize for fun, fair competition, social connection and voluntary replay, not compulsive screen time. No forced streaks, lost earned rewards for inactivity, undisclosed bots, pay-to-win, paid random rewards or pressure to stay. Preserve frictionless friend invites, local/offline play, original card rules, retro comic artwork, mobile usability and accessible motion.
