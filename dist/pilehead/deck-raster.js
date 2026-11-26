@@ -1,4 +1,4 @@
-/* STACK image-first renderer.
+/* PILEHEADS image-first renderer.
  * The 16 illustrated card faces are actual raster art from one 4×4 sheet.
  * Runtime only chooses a crop. The rules engine is never consulted by this layer.
  */
@@ -28,7 +28,7 @@ function back(){
  return '<span class="ph-plate ph-raster-plate ph-back-raster" aria-hidden="true"><img class="ph-raster-back" src="'+backSrc()+'" alt="" draggable="false" decoding="async"></span>';
 }
 function mini(c){
- if(root.StackDeckThemes?.get?.()==='studio')return prior.mini(c);
+ if(c&&root.StackDeckThemes?.get?.()==='studio')return prior.mini(c);
  const label=!c?'Face down':c.kind==='number'?'Number '+c.rank:String(c.action).toUpperCase();
  return '<span class="mini ph-mini ph-raster-mini'+(!c?' back ph-mini-back':'')+'"'+
    (c?.kind==='action'?' data-action="'+c.action+'"':'')+

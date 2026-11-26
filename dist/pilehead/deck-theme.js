@@ -4,9 +4,9 @@
 (function(root){'use strict';
 const KEY='stack-deck-theme-v1';
 const OPTIONS=Object.freeze([
-  {id:'refined',label:'PILEHEADS Illustrated V2',detail:'Refined original character artwork'},
+  {id:'refined',label:'PILEHEADS Illustrated V3',detail:'Current no-logo character artwork'},
   {id:'geometry',label:'PILEHEADS Original',detail:'Geometric artwork'},
-  {id:'characters',label:'PILEHEADS Characters',detail:'Illustrated numbers and actions'},
+  {id:'characters',label:'PILEHEADS Illustrated (compact)',detail:'Compact-resolution current artwork'},
   {id:'studio',label:'PILEHEADS Studio',detail:'Minimal vector artwork'}
 ]);
 const allowed=new Set(OPTIONS.map(t=>t.id));

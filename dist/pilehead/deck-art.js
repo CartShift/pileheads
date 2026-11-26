@@ -172,7 +172,6 @@ function face(c){
    '<path d="M22 166H218" stroke="#201D19" stroke-width="3"/>'+
    '<path d="M22 171H218" stroke="'+accent+'" stroke-width="2"/>'+
    '<text class="ph-index-top-vector" x="21" y="42" fill="#201C19" font-family="'+displayFont+'" font-size="29" font-weight="900">'+n+'</text>'+
-   '<text x="207" y="30" font-family="'+displayFont+'" font-size="15" font-weight="900" fill="#FFF8EA" transform="rotate(34 207 30)">S</text>'+
    '<text class="ph-number-main-vector" x="120" y="150" text-anchor="middle" fill="#17191A" font-family="'+displayFont+'" font-size="'+numberSize+'" font-weight="900" letter-spacing="-6">'+n+'</text>'+
    '<g class="ph-stack-art-vector">'+embedded(numberArt(n),'ph-stack-illustration','ph-stack-illustration-vector',8,174,224,150)+'</g>'+
    '<text class="ph-index-bottom-vector" x="217" y="322" text-anchor="end" fill="#201C19" font-family="'+displayFont+'" font-size="24" font-weight="900" transform="rotate(180 217 322)">'+n+'</text>';

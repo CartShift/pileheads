@@ -1,12 +1,12 @@
-/* STACK shared visual system, canonical source for marketing, digital table,
+/* PILEHEADS shared visual system, canonical source for marketing, digital table,
  * Classic, experimental table and editorial/print tools. Keep card art,
  * tabletop geometry and physical print dimensions independent of this skin. */
-@font-face{font-family:"STACK Display";src:url("/stack-media/barlow-condensed-black-italic.ttf") format("truetype");font-style:italic;font-weight:900;font-display:swap}
+@font-face{font-family:"PILEHEADS Display";src:url("/stack-media/barlow-condensed-black-italic.ttf") format("truetype");font-style:italic;font-weight:900;font-display:swap}
 :root{
  --brand-paper:#f9ebcb;--brand-paper-light:#fff3d5;--brand-ink:#191b19;--brand-header:#111b1e;
  --brand-yellow:#f6c32c;--brand-red:#ce302d;--brand-teal:#006675;--brand-deep-teal:#075b66;
  --brand-muted:#536254;--brand-felt:#194b3c;--brand-line:#c3a97e;
- --brand-display:"STACK Display",Impact,"Arial Narrow",sans-serif;
+ --brand-display:"PILEHEADS Display",Impact,"Arial Narrow",sans-serif;
  --brand-body:system-ui,-apple-system,"Segoe UI",sans-serif;
  --brand-grain:url("/stack-media/print-grain.svg");
  --brand-content:1240px;--brand-radius:12px;--brand-pill:999px;

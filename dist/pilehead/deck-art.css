@@ -1,4 +1,4 @@
-/* STACK / Visual system v1
+/* PILEHEADS / Visual system v1
  * Warm paper, ink-black type, precision-stacked slabs, restrained industrial color.
  * This shared stylesheet renders local, online, gallery and print from the same SVGs.
  */
@@ -143,7 +143,7 @@
  .ph-plate{background-color:#f6f0e3!important}
  .ph-back-plate{background:#1b1b1c!important}
 }
-/* STACK identity within the existing Pilehead gameplay layout.
+/* PILEHEADS identity within the existing Pilehead gameplay layout.
  * Keep the felt table and controls working in all modes; only re-skin the shell.
  */
 body:has(.layout .top){background-color:#17211f}
@@ -158,7 +158,7 @@ body:has(.layout .top){background-color:#17211f}
 .layout>.top .links a:hover,.layout>.top .links button:hover{background:#36403c}
 
 
-/* STACK visual reference v2 · approved 52-card overview, 18 Nov 2026.
+/* PILEHEADS visual reference v2 · approved 52-card overview, 18 Nov 2026.
  * One vector component powers live table, online table, gallery and A4 print.
  * Do not turn numeric rank illustrations into special abilities.
  */
@@ -267,7 +267,7 @@ body:has(.layout .top){background-color:#17211f}
  .ph-stack-illustration,.ph-illustration{filter:none}
 }
 
-/* STACK v3 · atomic artwork.
+/* PILEHEADS v3 · atomic artwork.
    Entire 240×344 face scales together; no typography or symbols can escape
    the card at 55px play size, 150px gallery size or 57mm print size.
    Legacy CSS remains for the physical-table interaction and miniatures. */

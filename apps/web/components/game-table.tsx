@@ -855,7 +855,7 @@ export default function GameTable() {
 
   if (!g || !current) return (
     <main className="game-shell stack-lobby">
-      <header className="lobby-masthead"><nav className="stack-site-nav" aria-label="Main navigation"><Link href="/stack" className="stack-site-brand" aria-label="PILEHEADS home" prefetch={false}><img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={220} height={185}/></Link><div className="stack-site-links"><a href="/stack">Home</a><a className="stack-nav-primary" href="/play" aria-current="page">Play online</a><a href="/pilehead/gallery.html">The deck</a><a href="/pilehead/playtest.html">How to play</a><a href="/pilehead/print.html">Print</a></div></nav></header>
+      <header className="lobby-masthead"><nav className="stack-site-nav" aria-label="Main navigation"><Link href="/" className="stack-site-brand" aria-label="PILEHEADS home" prefetch={false}><img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={640} height={356}/></Link><div className="stack-site-links"><a href="/">Home</a><a className="stack-nav-primary" href="/play" aria-current="page">Play online</a><a href="/pilehead/gallery.html">The deck</a><a href="/pilehead/playtest.html">How to play</a><a href="/pilehead/print.html">Print</a></div></nav></header>
       <section className="entry">
         <div className="entry-intro"><div className="eyebrow">WELCOME TO THE TABLE</div>
           <h1>One pile.<br /><em>One loser.</em></h1>
@@ -946,7 +946,7 @@ export default function GameTable() {
   return (
     <main className="game-shell game-table-shell" data-phase={g.phase} data-drill={drill?.id} data-hand-count={handCount} data-turn={g.phase === "play" ? active ? "self" : "other" : "none"}>
       <header className="game-header">
-        <Link href="/stack" className="logo stack-site-brand" aria-label="PILEHEADS home"><img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={220} height={185}/></Link>
+        <Link href="/" className="logo stack-site-brand" aria-label="PILEHEADS home"><img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={640} height={356}/></Link>
         <div className="game-head-actions">
           {room && <button className={"room-code " + (copiedInvite ? "is-copied" : "")}
             onClick={() => void copyInvite()}
@@ -960,7 +960,7 @@ export default function GameTable() {
           <label className="theme-control">Deck
             <select aria-label="Deck style" value={deckTheme}
               onChange={e => setDeckTheme(e.target.value as DeckTheme)}>
-              <option value="refined">Illustrated V2</option><option value="characters">Characters (classic)</option><option value="original">Original</option>
+              <option value="refined">Illustrated V3</option><option value="characters">Illustrated (compact)</option><option value="original">Original</option>
             </select>
           </label>
           <button className="exit-button" onClick={leaveTable}>Leave table</button>

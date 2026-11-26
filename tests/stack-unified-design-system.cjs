@@ -3,7 +3,7 @@ const assert=require("node:assert/strict"),fs=require("node:fs"),path=require("n
 const read=p=>fs.readFileSync(path.resolve(__dirname,"..",p),"utf8");
 const shared=read("apps/web/public/stack-media/stack-design-system.css");
 for(const token of ["--brand-paper:#f9ebcb","--brand-ink:#191b19","--brand-yellow:#f6c32c","--brand-red:#ce302d","--brand-teal:#006675","--brand-display:","@media screen","@media print"])assert.ok(shared.includes(token),token);
-for(const page of ["endgame-lab","gallery","playtest","print"]){const html=read("dist/pilehead/"+page+".html");assert.ok(html.includes('href="/stack-media/stack-design-system.css"'),page);assert.ok(html.includes('href="/stack"'),page);assert.ok(html.includes('stack-home-logo-web.webp'),page)}
+for(const page of ["endgame-lab","gallery","playtest","print"]){const html=read("dist/pilehead/"+page+".html");assert.ok(html.includes('href="/stack-media/stack-design-system.css"'),page);assert.ok(html.includes('href="/"'),page);assert.ok(html.includes('stack-home-logo-web.webp'),page)}
 assert.ok(read("apps/web/app/layout.tsx").includes("/stack-media/stack-design-system.css"));
 assert.ok(read("apps/web/app/homepage-refinement.module.css").includes("var(--brand-display)"));
 assert.ok(read("apps/web/components/game-table.tsx").includes("logo stack-site-brand"));
