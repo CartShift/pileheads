@@ -25,3 +25,7 @@ Native vector trace is approximate; keep approved raster primary. RC3 caption ty
 
 ## RC3 binary integration
 The 13 mapped paths are integrated in a single review-branch commit. The 11 unique Git blobs were verified against the local RC3 exports. Cache versions and SHA-256 regression assertions are updated together. CI, browser review and live deployment remain separate gates. The importer remains available for reproducibility; it need not be rerun on this commit.
+
+
+### RC3 web delivery optimization
+Both in-game backs use the identical 504px V8 source export (the brand invariant requires byte equality). Mobile and desktop web sheets use separately pinned, quality-85 WebP derivatives at unchanged 800×1120 and 1200×1676 dimensions, 229138 and 425742 bytes, below existing 250000 and 450000 byte budgets. Download these alongside the ZIPs for repeatable import: [mobile](https://drive.google.com/file/d/1NGqYSkY_lVHr79O5VknmCrCjzRd5LbXS/view), [desktop](https://drive.google.com/file/d/1yVlC_-NwrMhhkL-1IjRC3TOj1PymH-_G/view). Master archives remain unchanged. The first fast CI detected the byte-equality invariant; this correction preserves it rather than relaxing the test.

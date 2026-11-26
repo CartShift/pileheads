@@ -35,7 +35,7 @@ FILES = [
     (W+"stack-home-faces-v2.webp", WEB, "pileheads-home-faces-v2.webp", LARGE, (1600,2236)),
     (W+"stack-home-faces-web-desktop.webp", WEB, "pileheads-home-faces-web-desktop.webp", DESKTOP, (1200,1676)),
     (W+"stack-home-faces-web-mobile.webp", WEB, "pileheads-home-faces-web-mobile.webp", MOBILE, (800,1120)),
-    (A+"stack-back.webp", DIGITAL, "pileheads-back-rc3-440.webp", BACK440, (440,615)),
+    (A+"stack-back.webp", DIGITAL, "pileheads-back-rc3-504.webp", BACK504, (504,704)),
     (A+"stack-back-v2.webp", DIGITAL, "pileheads-back-rc3-504.webp", BACK504, (504,704)),
     (W+"stack-home-back-web.webp", WEB, "pileheads-home-back-web.webp", BACK300, (300,419)),
     (W+"stack-home-back-v2.webp", WEB, "pileheads-home-back-v2.webp", BACK440, (440,615)),
@@ -44,6 +44,11 @@ FILES = [
     (W+"stack-home-box-side-v2.webp", WEB, "pileheads-home-box-side-v2.webp", "79ac8205686a6aea1a925353976266bda77217838fdfb6939387df1825d2eb4f", (242,1000)),
     (W+"stack-home-box-top-v2.webp", WEB, "pileheads-home-box-top-v2.webp", "fa635c36457cce77f68972e8a76afc7dad795476970809c5f348bae98e817e18", (720,240)),
 ]
+# Exact web-only derivatives; download beside the three original ZIPs.
+OPTIMIZED = {
+    W+"stack-home-faces-web-desktop.webp": ("pileheads-home-faces-web-desktop-optimized.webp", "25aa986728334f33b54b741d8fd972c55a9c7083134ee9f09a4585984acaef2a", (1200,1676),450000),
+    W+"stack-home-faces-web-mobile.webp": ("pileheads-home-faces-web-mobile-optimized.webp", "ca58f990836f2cbc49026436a3bf1d187ef2cd09e76c99ef83cfa8224a988044", (800,1120),250000),
+}
 OLD = {
  A+"stack-characters.webp": "bf0000d9381a1866d25ae8c69f646775b3f30ae161cac516131139a333533bc5",
  A+"stack-characters-v2.webp": "ca6ee8d7012202b90362eb6e19f58c05e29fb36027cfa7a3900b56300de6674e",
@@ -90,6 +95,12 @@ def main():
                 b=z.read(member)
                 require(sha(b)==expected and dimensions(b)==size, f"Wrong data: {member}")
                 blobs[dest]=b
+    for dest,(member,expected,size,budget) in OPTIMIZED.items():
+        p=args.archive_directory/member
+        require(p.is_file(),f"Missing optimized derivative: {member}")
+        b=p.read_bytes()
+        require(sha(b)==expected and dimensions(b)==size and len(b)<budget,f"Wrong optimized data: {member}")
+        blobs[dest]=b
     edits={}
     for dest,b in blobs.items():
         p=ROOT/dest
@@ -105,6 +116,7 @@ def main():
     for dest,_,_,digest,_ in FILES:
         if dest not in OLD: continue
         old=OLD[dest]
+        digest=sha(blobs[dest])
         require(old in t or digest in t, f"Test digest not found: {dest}")
         t=t.replace(old,digest)
     t=t.replace(OLD_CACHE,NEW_CACHE).replace("approved V7 sprites with V8 embedded card backs","reviewed RC3 sprites with V8 embedded card backs")
