@@ -483,6 +483,47 @@ async function adaptiveHandFitScenarios(browser) {
   }
 }
 
+async function viewportResilienceScenarios(browser) {
+  // These are emulated browser sizes, not physical device performance data.
+  for(const device of [
+    {width:430,height:932,mobile:true,fit:true},
+    {width:1280,height:800,mobile:false,fit:true},
+    {width:320,height:640,mobile:true,fit:false},
+    {width:740,height:360,mobile:true,fit:false}
+  ]){
+    const context=await browser.newContext({viewport:{width:device.width,height:device.height},
+      isMobile:device.mobile,hasTouch:device.mobile,reducedMotion:"reduce"});
+    const page=await context.newPage();
+    const errors=[];page.on("pageerror",error=>errors.push(error.message));
+    try{
+      await page.goto(WEB+"/play");
+      await page.getByRole("button",{name:"Learn with a bot"}).click();
+      if(device.fit) await assertOrdinaryViewport(page,"extended setup "+device.width+"x"+device.height);
+      await page.getByRole("button",{name:"Start round"}).click();
+      await page.getByRole("heading",{name:"Your move."}).waitFor();
+      if(device.fit) await assertOrdinaryViewport(page,"extended play "+device.width+"x"+device.height);
+      const card=page.locator(".player-hand .card-hit").first();
+      await card.scrollIntoViewIfNeeded();
+      const rect=await card.boundingBox();
+      assert.ok(rect&&rect.width>0&&rect.height>0);
+      if(device.mobile) await page.touchscreen.tap(rect.x+rect.width/2,rect.y+rect.height/2);
+      else await card.click();
+      assert.equal(await card.getAttribute("aria-pressed"),"true","physical pointer input selects a real card");
+      const geometry=await page.evaluate(()=>{
+        const hand=document.querySelector(".hand-stage").getBoundingClientRect();
+        const dock=document.querySelector(".control-panel").getBoundingClientRect();
+        return {width:document.documentElement.clientWidth,scrollWidth:document.documentElement.scrollWidth,hand:hand.bottom,dock:dock.top};
+      });
+      assert.ok(geometry.scrollWidth<=geometry.width+2,"no horizontal overflow "+JSON.stringify({device,geometry}));
+      assert.ok(geometry.dock>=geometry.hand-2,"dock never covers hand");
+      await page.getByRole("button",{name:/Play cards/}).click();
+      await page.waitForFunction(()=>JSON.parse(localStorage.getItem("stack-next-local-save-v1")||"null")?.game?.moves>=1);
+      await page.screenshot({path:path.resolve(ROOT,"artifacts/next/resilience-"+device.width+"x"+device.height+".png"),fullPage:true});
+      assert.deepEqual(errors,[]);
+      console.log("PASS viewport resilience "+device.width+"x"+device.height+" "+JSON.stringify(geometry));
+    }finally{await context.close();}
+  }
+}
 async function seatLayoutScenarios(browser) {
   for (const players of [2, 3, 4, 5]) {
     const context = await browser.newContext({
@@ -1507,6 +1548,7 @@ async function main() {
         online:()=>onlineScenarios(browser,apiProc),
         onlineSeats:()=>onlineMixedSeatScenarios(browser),
         seats:()=>seatLayoutScenarios(browser),
+        viewport:()=>viewportResilienceScenarios(browser),
         hand:()=>adaptiveHandFitScenarios(browser),
         rematch:()=>localStarterAndRematchScenario(browser),
         round:()=>roundChoreographyScenario(browser),
@@ -1525,6 +1567,7 @@ async function main() {
     await endgameSettingsAndBridge(browser);
     await localScenarios(browser);
     await seatLayoutScenarios(browser);
+    await viewportResilienceScenarios(browser);
     await adaptiveHandFitScenarios(browser);
     await guidedPracticeScenario(browser);
     await roundChoreographyScenario(browser);
