@@ -63,13 +63,14 @@ export function PlayingCard({ card, hidden = false, selected = false, small = fa
       style={offsetX ? {left: offsetX} : undefined}>
       <div aria-hidden="true" className="card-art" style={faceStyle} />
       {!hidden && availability !== "neutral" && <span className="card-availability-mark" aria-hidden="true">
-        {availability === "playable" ? "✓" : availability === "blocked" ? "×" : availability === "snap" ? "S" : availability === "slam" ? "!" : "S!"}
+        {availability === "playable" ? "✓" : availability === "blocked" ? "×" : availability === "snap" ? "SNAP" : availability === "slam" ? "SLAM" : "S/S"}
       </span>}
       {onClick && !disabled ? (
         <button type="button" className="card-hit"
           aria-label={description || (hidden ? "Flip a face-down card" : card ? cardLabel(card) : "Card")}
           aria-pressed={selected}
           aria-description={!hidden && availability !== "neutral" ? availabilityDescription[availability] : undefined}
+          title={!hidden && availability !== "neutral" ? availabilityDescription[availability] : undefined}
           onPointerDown={pointerDown}
           onPointerMove={pointerMove}
           onPointerUp={pointerUp}
