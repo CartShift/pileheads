@@ -1,0 +1,19 @@
+name: Vercel live multiplayer acceptance
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  staged-smoke:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'deploy/vercel-restore-20261126'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - run: npm ci --ignore-scripts
+      - name: Verify staged deployment with two authenticated players
+        run: node scripts/smoke-live.cjs https://spark-card-game-rfikzzznz-cart-shift.vercel.app
