@@ -1,0 +1,28 @@
+version: 2.1
+# Enable explicitly when GitHub Actions is unavailable.
+parameters:
+  run_fallback:
+    type: boolean
+    default: false
+jobs:
+  fast:
+    docker:
+      - image: node:24-bookworm
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - npm-v1-{{ arch }}-{{ checksum "package-lock.json" }}-{{ checksum "apps/web/package-lock.json" }}
+            - npm-v1-{{ arch }}-
+      - run:
+          name: Shared fast CI checks
+          command: node scripts/ci.mjs fast
+      - save_cache:
+          key: npm-v1-{{ arch }}-{{ checksum "package-lock.json" }}-{{ checksum "apps/web/package-lock.json" }}
+          paths:
+            - ~/.npm
+workflows:
+  manual_fallback:
+    when: << pipeline.parameters.run_fallback >>
+    jobs:
+      - fast
