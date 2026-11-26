@@ -23,13 +23,14 @@ export function usePlaytestInsights(sample: Sample) {
   const submission = useRef<object|null>(null);
   const generation = useRef(0);
   const pending = useRef(false);
-  const [canSubmit,setCanSubmit] = useState(false);
+  const [notice,setNotice] = useState<{privacyUrl:string;noticeVersion:string}|null>(null);
+  const canSubmit=!!notice;
   const [sendState,setSendState] = useState<"idle"|"sending"|"sent"|"error">("idle");
   useEffect(() => { attribution.current=campaignFromSearch(window.location.search); }, []);
   useEffect(() => {
     if(!enabled)return;
     let active=true;
-    growthStatus().then(s=>{if(active)setCanSubmit(s.reports);}).catch(()=>{});
+    growthStatus().then(s=>{if(active&&s.reports&&s.privacyUrl&&s.noticeVersion)setNotice({privacyUrl:s.privacyUrl,noticeVersion:s.noticeVersion});}).catch(()=>{});
     return ()=>{active=false;};
   },[enabled]);
   const { key, mode, phase, drill } = sample;
@@ -44,7 +45,7 @@ export function usePlaytestInsights(sample: Sample) {
     submission.current=null;
     pending.current=false;
     setSendState("idle");
-    setCanSubmit(false);
+    setNotice(null);
     log.current = value ? Core.createLog() : null;
     setSummary(Core.summarize(log.current ?? Core.createLog()));
     setRatings({});
@@ -65,10 +66,10 @@ export function usePlaytestInsights(sample: Sample) {
   }
 
   async function submitReport() {
-    if(!enabled||!canSubmit||!log.current||pending.current||sendState==="sent")return;
+    if(!enabled||!notice||!log.current||pending.current||sendState==="sent")return;
     const epoch=generation.current;
     try {
-      submission.current ??= {action:"report",id:crypto.randomUUID(),report:Core.exportReport(log.current,ratings),attribution:attribution.current};
+      submission.current ??= {action:"report",id:crypto.randomUUID(),report:Core.exportReport(log.current,ratings),attribution:attribution.current,noticeVersion:notice.noticeVersion};
       pending.current=true;
       setSendState("sending");
       await growthPost(submission.current);
@@ -76,5 +77,5 @@ export function usePlaytestInsights(sample: Sample) {
     } catch { if(epoch===generation.current)setSendState("error"); }
     finally { if(epoch===generation.current)pending.current=false; }
   }
-  return { enabled, summary, ratings, setRatings, changeEnabled, download, canSubmit, sendState, submitReport };
+  return { enabled, summary, ratings, setRatings, changeEnabled, download, canSubmit, privacyUrl:notice?.privacyUrl, sendState, submitReport };
 }
