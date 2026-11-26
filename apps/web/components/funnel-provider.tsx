@@ -33,7 +33,7 @@ function request(s:Session,action:string,extra:object={}){
 }
 
 export default function FunnelProvider({children}:{children:React.ReactNode}){
-  const pathname=usePathname();
+  const pathname=usePathname()??"";
   const [status,setStatus]=useState<GrowthStatus|null>(null);
   const [session,setSession]=useState<Session|null>(null);
   const [active,setActive]=useState(false);
@@ -48,9 +48,9 @@ export default function FunnelProvider({children}:{children:React.ReactNode}){
     if(running.current||!activeRef.current||!ref.current)return;
     const s=ref.current;
     const job=async()=>{
-      for(const event of order){
-        if(!activeRef.current||ref.current?.id!==s.id||!fresh(s))break;
-        if(!observed.current.has(event)||sent.current.has(event))continue;
+      while(activeRef.current&&ref.current?.id===s.id&&fresh(s)){
+        const event=order.find(v=>observed.current.has(v)&&!sent.current.has(v));
+        if(!event)break;
         try{await request(s,"funnel_event",{event,noticeVersion:s.noticeVersion});sent.current.add(event);}
         catch{break;} // A later observation may retry; no gameplay or infinite retries.
       }
