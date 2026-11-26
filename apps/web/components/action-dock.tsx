@@ -16,7 +16,9 @@ export default function ActionDock({g, mode, room, ready, allReady, joined, busy
         {g.phase === "setup" ? (
           <div className="setup-controls">
             <div><strong>{mode === "online" ? `${room?.members.length || 0} joined · ${g.players.length - g.botSeats.length} humans required` : "Set up your cards"}</strong>
-              <p>{ready ? "Waiting for players to be ready" : "Choose the three cards to leave face-up."}</p></div>
+              <p>{mode === "online" && !joined ? "Invite the remaining players." : ready ?
+                allReady ? room?.host ? "Everyone is ready." : "Waiting for the host." : "Waiting for other players." :
+                "Choose the three cards to leave face-up."}</p></div>
             {mode === "local" ? <div className="button-group">
               <button className="secondary-button" onClick={onAutoArrange}>Auto arrange</button>
               <button className="primary-button" onClick={onStart}>Start round</button></div> :
