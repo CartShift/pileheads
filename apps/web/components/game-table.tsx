@@ -15,6 +15,8 @@ import { useGameFeedback } from "../lib/use-game-feedback";
 import FeedbackSettings from "./feedback-settings";
 import PlaytestInsights from "./playtest-insights";
 import { usePlaytestInsights } from "../lib/use-playtest-insights";
+import {FunnelConsent,useFunnel} from "./funnel-provider";
+import {useRoundFunnel} from "../lib/use-round-funnel";
 import MoveTheater, { type MotionLevel } from "./move-theater";
 import { useCommittedCardTravel } from "../lib/use-committed-card-travel";
 import { useRoundChoreography } from "../lib/use-round-choreography";
@@ -127,6 +129,7 @@ function asLocalRoom(game: Game): RoomGame {
 }
 
 export default function GameTable() {
+  const {emit:emitFunnel}=useFunnel();
   const [mode, setMode] = useState<Mode>("home");
   const [local, setLocal] = useState<Game | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
@@ -284,6 +287,7 @@ export default function GameTable() {
       if (payload.action === "create" && next.game.phase === "setup")
         freshDealKey.current = "online:" + next.code + ":" + next.game.round;
       applyRoom(next);
+      if(payload.action==="join")emitFunnel("room_joined");
       setSelection([]); setSwapHand(null); setNeedsTarget(false);
     } catch (err) {
       if (epoch !== roomEpoch.current) return;
@@ -317,7 +321,7 @@ export default function GameTable() {
         setBusy(false);
       }
     }
-  }, [applyRoom, synchronize]);
+  }, [applyRoom, synchronize, emitFunnel]);
 
   // Store only local bot matches. Online secrets/state stay in their existing
   // per-room storage; never persist another player's private cards.
@@ -505,6 +509,7 @@ export default function GameTable() {
   const visualGameKey = mode === "local" ? "local:" + local?.seed :
     mode === "online" ? "online:" + room?.code + ":" + room?.game.round : "home";
   const insights = usePlaytestInsights({ key: visualGameKey, mode, phase: g?.phase ?? "home", drill: !!drill });
+  const roundFunnel=useRoundFunnel({key:visualGameKey,scope:mode==="local"?"local":mode==="online"&&room?"online:"+room.code:null,phase:g?.phase??"home",drill:!!drill});
   useEffect(() => {
     const move = g?.moves ?? 0;
     const previous = blindMotionCursor.current;
@@ -719,6 +724,7 @@ export default function GameTable() {
 
   function newRound() {
     if (drill) { startDrill(drill.id); return; }
+    roundFunnel.requestRematch();
     if (mode === "local") startLocalGame(practiceMode, local?.finishedOrder[0] ?? null,
       local?.people.length ?? null);
     else if (room) void submit({ action: "rematch", code: room.code, revision: room.revision });
@@ -815,6 +821,7 @@ export default function GameTable() {
       if (!navigator.clipboard?.writeText) throw new Error("clipboard_unsupported");
       await navigator.clipboard.writeText(invite);
       setCopiedInvite(true);
+      emitFunnel("invite_copied");
     } catch {
       // Explicit user interaction only. Even a browser without clipboard
       // permissions must still let the player share the invite.
@@ -910,7 +917,7 @@ export default function GameTable() {
           </div>
         </div>
       </section>
-      <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/pilehead/playtest.html">Read the rules ↗</a><button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button></footer>
+      <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/pilehead/playtest.html">Read the rules ↗</a><button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button><FunnelConsent/></footer>
       {notice && <div className="alert" role="status">{notice}</div>}
       {showSettings && <div className="modal-backdrop" onClick={() => setShowSettings(false)}>
         <section className="game-modal" role="dialog" aria-label="Game settings" aria-modal="true"
@@ -924,6 +931,7 @@ export default function GameTable() {
           {motionSetting}
           <FeedbackSettings feedback={feedback} />
            <PlaytestInsights insights={insights} />
+           <FunnelConsent/>
           <button className="primary-button" onClick={() => setShowSettings(false)}>Done</button>
         </section>
       </div>}
@@ -1066,7 +1074,7 @@ export default function GameTable() {
        </div>}
        <ActionDock g={g} mode={mode} room={room} ready={ready} allReady={allReady} joined={joined} busy={busy}
           undoAvailable={undoAvailable} undo={undo} onRematch={() => setConfirmRestart(true)}
-           resultShare={sharePayload ? <ResultShare key={visualGameKey} payload={sharePayload} /> : null} me={me}
+           resultShare={sharePayload ? <ResultShare key={visualGameKey} payload={sharePayload} onShared={()=>emitFunnel("result_shared")} /> : null} me={me}
           nameForSeat={nameForSeat} playMove={playMove} liveSeats={liveSeats} chooseDumpSeat={chooseDumpSeat}
           needsTarget={needsTarget} playSelected={playSelected} onCancelTarget={() => setNeedsTarget(false)}
           selectedCards={selectedCards} selectedAction={selectedAction} active={active} reactionsOpen={reactionsOpen}
@@ -1093,6 +1101,7 @@ export default function GameTable() {
           {motionSetting}
           <FeedbackSettings feedback={feedback} />
            <PlaytestInsights insights={insights} />
+           <FunnelConsent/>
           {mode === "local" && practiceMode && <label className="rule-toggle">
             <input type="checkbox" checked={!coachDismissed} onChange={event=>setCoachDismissed(!event.target.checked)} />
             <span><strong>Practice tips</strong><small>Show contextual learning guidance.</small></span>
