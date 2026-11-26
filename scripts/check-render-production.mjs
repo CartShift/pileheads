@@ -3,7 +3,7 @@
  *
  * This runs on the GitHub deploy workflow AFTER mirroring main to the branch
  * watched by Render. It checks the actual public service, deployed commit,
- * readiness of the existing Neon room database, and both published UIs.
+ * readiness of the existing Neon room database, and the sole Next.js UI.
  * It never creates rooms, writes data, or requires credentials.
  */
 const DEFAULT_ORIGIN = "https://stack-card-game-t7vx.onrender.com";
@@ -56,9 +56,8 @@ export async function probeOnce({
   const ready = assertJson(await get("/readyz"), "/readyz");
   if (ready.service !== "pilehead-rooms")
     throw Error("/readyz did not check the room database");
-  const classic = await get("/pilehead/index.html");
-  if (!/Pilehead|STACK/i.test(classic))
-    throw Error("Classic HTML is missing the game");
+  const home = await get("/");
+  if (!/\/_next\/static\//.test(home)) throw Error("Root is not the Next homepage");
   const react = await get("/play");
   if (!/\/_next\/static\//.test(react))
     throw Error("React /play is not serving the integrated Next.js bundle");
@@ -67,7 +66,7 @@ export async function probeOnce({
     commit:live.commit || null,
     websocket:true,
     database:true,
-    classic:true,
+    homepage:true,
     react:true
   });
 }

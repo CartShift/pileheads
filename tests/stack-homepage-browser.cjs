@@ -45,7 +45,7 @@ async function check(browser,width,height){
     const cta=page.getByRole("link",{name:"Play free online",exact:true});
     assert.equal(await cta.getAttribute("href"),"/play");
     const rect=await cta.boundingBox();assert.ok(rect&&rect.height>=44&&rect.x>=-1&&rect.x+rect.width<=width+1,"primary CTA must fit and be touch-friendly");
-    for(const href of ["/play","/pilehead/gallery.html","/pilehead/playtest.html","/pilehead/index.html"]){assert.ok(await page.locator('a[href="'+href+'"]').count(),href);assert.equal((await page.request.get(BASE+href)).status(),200,href)}
+    for(const href of ["/play","/pilehead/gallery.html","/pilehead/playtest.html"]){assert.ok(await page.locator('a[href="'+href+'"]').count(),href);assert.equal((await page.request.get(BASE+href)).status(),200,href)}
     await page.screenshot({path:path.join(ARTIFACTS,"homepage-"+width+".png"),fullPage:true,animations:"disabled"});
     await page.getByRole("navigation",{name:"Main navigation"}).getByRole("link",{name:"The deck"}).click();
     assert.equal(new URL(page.url()).hash,"#the-deck");

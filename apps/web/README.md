@@ -1,7 +1,7 @@
 # STACK Next.js table (single Render service)
 
 The new React/TypeScript tabletop is exported as **static HTML, JS and CSS**
-and served by the existing STACK Node.js server. Both versions share the same
+and served by the existing STACK Node.js server. The web game uses the same
 domain, authoritative HTTP API, WebSocket server and Neon database.
 **No second Render service, CORS setting or extra Next.js runtime is needed.**
 
@@ -29,20 +29,15 @@ node scripts/render-server.cjs
 
 Routes on the **same** Node server:
 
-- `/`: unchanged Classic landing page
-- `/pilehead/index.html`: unchanged Classic simulator
-- `/stack`: new Next landing page
+- `/`: Next landing page
+- `/pilehead/index.html`: compatibility redirect to `/play` (query preserved)
+- `/stack`: Next landing page
 - `/play`: new React game table; private-room links use `/play?room=CODE`
 - `/api/pilehead`: unchanged authoritative room endpoint
 - `/api/pilehead/live`: unchanged authenticated WebSocket
 - `/_next/static/*`: fingerprinted assets from the static export
 
-The root `npm run build` always builds Classic and Next together, regardless of
-whether an existing Render service applies Blueprint changes. The deployment
-workflow mirrors `main` to the existing Render-tracked branch. No new service
-is involved. The new paths will appear there **only
-after this PR is merged and the existing service deploys**. Until then the
-live Classic site remains completely unchanged.
+The root `npm run build` publishes the Next export and shared assets only. The deployment workflow mirrors `main` to the existing Render-tracked branch. No new service is involved.
 
 Next.js App Router handles the UI at build time and in the browser. No SSR
 or standalone Next.js server is needed for these routes. The deterministic

@@ -7,7 +7,7 @@ const read=p=>fs.readFileSync(p,'utf8');
 const kit=read('dist/pilehead/playtest.html');
 const design=read('docs/pilehead-design.md');
 const protocol=read('docs/pilehead-playtest-kit.md');
-const index=read('dist/pilehead/index.html');
+const home=read('apps/web/app/page.tsx');
 const print=read('dist/pilehead/print.html');
 const vercel=read('scripts/build-vercel.mjs');
 const readme=read('README.md');
@@ -32,7 +32,7 @@ const scripts=[...kit.matchAll(/<script>([\s\S]*?)<\/script>/g)];
 assert.equal(scripts.length,1);
 assert.doesNotThrow(()=>new vm.Script(scripts[0][1]),'Playtest inline JS must parse');
 
-assert.match(index,/href="playtest\.html">Playtest kit/);
+assert.ok(home.includes('/pilehead/playtest.html'));
 assert.match(print,/href="playtest\.html">Playtest rules/);
 assert.match(vercel,/'playtest\.html'/,'Vercel build must include playtest.html');
 assert.match(readme,/Official playtest kit/);

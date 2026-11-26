@@ -1,16 +1,16 @@
 # STACK: technical architecture
 
-STACK uses **one shared rules engine, two browser presentations and one authoritative multiplayer backend**. The same Render Node process serves the built Classic UI, the Next.js static export, the HTTP room API and authenticated WebSocket connections.
+STACK uses **one shared rules engine, one supported web presentation and one authoritative multiplayer backend**. The same Render Node process serves the Next.js static export and shared physical-game resources, the HTTP room API and authenticated WebSocket connections.
 
 ## System overview
 
 ```text
-Classic tabletop (vanilla JS)        React tabletop (Next.js static export)
-           |                                      |
-           +----- local games: shared engine -----+
-           |                                      |
-           +--- online commands over HTTP --------+
-                              |
+React tabletop (Next.js static export)
+                |
+       local shared rules engine
+                |
+       online commands over HTTP
+                |
                    Node.js 24 / Render
                               |
                    /api/pilehead room API
@@ -23,7 +23,7 @@ Classic tabletop (vanilla JS)        React tabletop (Next.js static export)
                               |
               authenticated WebSocket update
                               |
-                  both browser presentations
+                  connected React clients
 ```
 
 In online rooms, the **server** validates legal actions and controls the current room state. Browser animations are a presentation of committed events, never an alternative game authority.
@@ -33,7 +33,6 @@ In online rooms, the **server** validates legal actions and controls the current
 ### One canonical engine
 
 - `dist/pilehead/engine.js` contains the deterministic rules and bot logic.
-- The Classic tabletop uses this engine for local play.
 - The Next app synchronizes it into its browser build through `apps/web/scripts/sync-assets.mjs`, avoiding a second implementation of the rules.
 - `api/pilehead.js` validates online moves with the engine, rather than trusting commands to contain a game state.
 - Seeded simulations make unusual loops, endgames and balance changes reproducible.
@@ -48,15 +47,15 @@ In online rooms, the **server** validates legal actions and controls the current
 
 This arrangement is especially important for **SNAP** and **SLAM**, where reactions to previous plays must not freeze the next player's turn.
 
-### Two presentations, one deployment
+### One web presentation, one deployment
 
-- **Classic:** `dist/pilehead/` uses plain JavaScript, CSS and original card sprites.
+- **Shared resources:** `dist/pilehead/` contains the original card sprites, print/gallery/rules pages and isolated Endgame Lab.
 - **React:** `apps/web/` uses Next.js 16 (App Router static export), React 19, TypeScript and Motion.
-- **Build:** `scripts/build-integrated.mjs` publishes the Classic assets and Next export into one static output.
+- **Build:** `scripts/build-integrated.mjs` publishes shared resources and the Next export into one static output.
 - **Runtime:** `scripts/render-server.cjs` serves those assets, `/api/pilehead`, `/livez` and `/readyz`.
 - **Data:** Neon PostgreSQL holds multiplayer rooms; no database is required for local games.
 
-A single origin avoids an extra frontend runtime and simplifies cross-origin configuration while retaining the original Classic route as a stable fallback.
+A single origin avoids an extra frontend runtime and simplifies cross-origin configuration while redirecting retired Classic routes to `/play` for old invitations and bookmarks.
 
 ## Player experience and motion
 

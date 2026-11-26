@@ -8,7 +8,7 @@ const root = path.resolve('dist');
 const output = path.resolve('vercel-static');
 const game = path.join(root, 'pilehead');
 const assets = [
-  'index.html', 'endgame-lab.html', 'endgame-lab.css', 'endgame-lab-engine.js', 'endgame-lab-app.js', 'app.js', 'online.js', 'online-polish.css', 'classic-premium.css', 'classic-clean.css', 'table-feedback.css', 'ux-clarity.css', 'ux-clarity.js', 'live.css', 'live.js', 'engine.js',
+  'endgame-lab.html', 'endgame-lab.css', 'endgame-lab-engine.js', 'endgame-lab-app.js', 'online-polish.css', 'ux-clarity.css', 'ux-clarity.js', 'live.css', 'live.js', 'engine.js',
   'immersive.css', 'immersive.js', 'deck-art.css', 'deck-art.js',
   'deck-raster.css', 'deck-raster.js', 'stack-brand.css',
   'deck-theme.js', 'deck-theme.css',
@@ -25,9 +25,9 @@ for (const asset of assets) {
   fs.mkdirSync(path.dirname(destination), { recursive: true });
   fs.copyFileSync(source, destination);
 }
-fs.copyFileSync(path.join(root, 'index.html'), path.join(output, 'index.html'));
+// The Next export supplies the only public homepage.
 // Publish the same canonical design system in standalone and integrated builds.
 const brandDir = path.resolve('apps/web/public/stack-media');
 fs.mkdirSync(path.join(output,'stack-media'),{recursive:true});
 for(const name of ['stack-design-system.css','stack-home-logo-web.webp','barlow-condensed-black-italic.ttf','barlow-OFL.txt','print-grain.svg']) fs.copyFileSync(path.join(brandDir,name),path.join(output,'stack-media',name));
-console.log('Built STACK static site: ' + assets.length + ' game assets + root redirect');
+console.log('Built STACK static site: ' + assets.length + ' shared game assets');

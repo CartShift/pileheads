@@ -24,7 +24,7 @@ permissions:
   contents: read
 jobs:
   test:
-    name: 'STACK fast: engine, API, types and Classic'
+    name: 'STACK fast: engine, API, types and shared assets'
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 8
     steps:
@@ -48,12 +48,13 @@ jobs:
         run: npm run typecheck --prefix apps/web
       - name: Run deterministic engine, API, UI and rules regression tests
         run: npm test
-      - name: Build only the Classic static bundle
-        run: npm run build:classic
-      - name: Verify Classic publish boundaries
+      - name: Build shared non-tabletop assets
+        run: npm run build:shared-assets
+      - name: Verify retired tabletop is not published
         run: |
-          test -f vercel-static/index.html
-          test -f vercel-static/pilehead/index.html
+          test ! -e vercel-static/pilehead/index.html
+          test ! -e vercel-static/pilehead/app.js
+          test -f vercel-static/pilehead/playtest.html
           test -f vercel-static/pilehead/assets/stack-sheet.webp
           test ! -e vercel-static/tilt
           test ! -e vercel-static/engine-v5.js
