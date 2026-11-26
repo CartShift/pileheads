@@ -40,6 +40,7 @@ export function PlayingCard({ card, hidden = false, selected = false, small = fa
     if(!onDrop||disabled)cancelGesture();
   },[!!onDrop,disabled]);
   useEffect(()=>{
+    if(!onDrop||disabled)return;
     const hidden=()=>{if(document.visibilityState==="hidden")cancelGesture();};
     window.addEventListener("blur",cancelGesture);
     document.addEventListener("visibilitychange",hidden);
@@ -47,7 +48,7 @@ export function PlayingCard({ card, hidden = false, selected = false, small = fa
       window.removeEventListener("blur",cancelGesture);
       document.removeEventListener("visibilitychange",hidden);
     };
-  },[]);
+  },[!!onDrop,disabled]);
   function pointerDown(e: ReactPointerEvent<HTMLButtonElement>) {
     if (disabled || e.button !== 0 || !e.isPrimary || gesture.current) return;
     blockClick.current = false;
