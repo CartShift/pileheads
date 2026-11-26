@@ -128,3 +128,22 @@
 /* Do not let the legacy adaptive-hand minimum height reserve a second row
    when the measured grid is only one row tall. */
 .game-table-shell .player-hand.is-adaptive { min-height: 0; }
+
+/* Short mobile viewports: compact the non-card UI, not the player's cards.
+   The practice coach remains fully readable and dismissible. */
+@media (max-width: 440px) and (max-height: 800px) {
+  .game-table-shell .coach-tip { padding: 5px 7px; gap: 7px; margin-bottom: 4px; }
+  .game-table-shell .coach-tip div { display: block; }
+  .game-table-shell .coach-tip strong { display: inline; margin-right: 4px; font-size: 9px; letter-spacing: .04em; }
+  .game-table-shell .coach-tip span { line-height: 1.25; }
+  .game-table-shell .coach-tip button { padding: 5px 6px; }
+  .game-table-shell .opponents-row { padding-block: 5px 2px; }
+  .game-table-shell .opponent-seat { padding-block: 3px; }
+  .game-table-shell .opponent-card-stack { margin-block: 0; }
+  .game-table-shell .table-center { padding-block: 3px 2px; }
+  .game-table-shell .pile-zone { gap: 2px; }
+  .game-table-shell .zone-heading { padding-block: 2px; margin-bottom: 2px; }
+  .game-table-shell .hand-stage { padding-block: 9px 5px; }
+  .game-table-shell .control-panel { margin-top: 4px; padding-block: 5px; }
+  .game-table-shell .setup-controls { gap: 4px; }
+}
