@@ -1,18 +1,8 @@
 "use strict";
 
 const {validateReport,aggregateReports}=require("./playtest-report-aggregate.cjs");
-const SOURCES=["instagram","tiktok","youtube","community","creator","player_share"];
-const MEDIUMS=["organic_social","community","creator","referral"];
-const CAMPAIGNS=["launch","playtest","round_result"];
+const {SOURCES,attribution,attributionFromSearch}=require("../apps/web/lib/growth-attribution.cjs");
 const exact=(v,ks)=>v&&typeof v==="object"&&!Array.isArray(v)&&Object.keys(v).length===ks.length&&ks.every(k=>Object.hasOwn(v,k));
-function attribution(input) {
-  const clean=(key,allowed)=>allowed.includes(input?.[key])?input[key]:null;
-  return {source:clean("source",SOURCES),medium:clean("medium",MEDIUMS),campaign:clean("campaign",CAMPAIGNS)};
-}
-function attributionFromSearch(search) {
-  const p=new URLSearchParams(search);
-  return attribution({source:p.get("utm_source"),medium:p.get("utm_medium"),campaign:p.get("utm_campaign")});
-}
 function validateSubmission(b) {
   if(!exact(b,["action","id","report","attribution"])||b.action!=="report"||
      typeof b.id!=="string"||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(b.id)||
