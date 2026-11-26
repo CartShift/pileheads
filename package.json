@@ -22,7 +22,14 @@
     "sync:engine": "node scripts/sync-game-engine.cjs",
     "check:engine": "node scripts/sync-game-engine.cjs --check",
     "test:shared-core": "node tests/pilehead-shared-core.cjs",
-    "test:engine-parity": "node scripts/verify-engine-parity.cjs"
+    "test:engine-parity": "node scripts/verify-engine-parity.cjs",
+    "ci:install": "node scripts/ci.mjs install",
+    "ci:fast": "node scripts/ci.mjs fast",
+    "ci:build": "node scripts/ci.mjs build",
+    "ci:full-core": "node scripts/ci.mjs full-core",
+    "ci:browser-setup": "node scripts/ci.mjs browser-setup",
+    "ci:browser-test": "node scripts/ci.mjs browser-test",
+    "ci:full": "node scripts/ci.mjs full"
   },
   "engines": {
     "node": "24.x"

@@ -47,3 +47,9 @@ CI time is measured from GitHub's actual workflow runs, not estimated from test 
 ### Hosted runner migration
 
 The repository is now `CartShift/pileheads`. GitHub Actions remains the CI orchestration and status-check interface; Blacksmith runs the Linux jobs. The migration (#106) passed both fast checks and full acceptance. Preserve the Blacksmith runner labels when changing workflows. Monitor actual billed runner usage before increasing machine size or enabling duplicate providers.
+
+## Provider-neutral execution
+
+Use `npm run ci:install` followed by `npm run ci:fast` or `npm run ci:full` (with browser installation). `ci:full-core` excludes browser coverage; `ci:browser-setup` and `ci:browser-test` are separate cacheable stages. All providers use these commands. `-- --plan` prints the selected stage without running it.
+
+GitHub Actions on Blacksmith remains the primary gate. CircleCI and Bitrise are manual fallbacks only; do not run duplicates automatically. CircleCI requires `run_fallback=true`, with `full_acceptance=true` for full acceptance. Bitrise uses the repo-managed config after switching config source in its dashboard and validating the account allowance; no automatic triggers. Native builds are planned, not implemented. Neither fallback has been executed with this new shared script yet. See [CircleCI pilot](circleci-pilot.md).
