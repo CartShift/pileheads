@@ -52,23 +52,9 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             apps/web/package-lock.json
-      - name: Install locked dependencies once
+      - name: Run shared full core checks
         if: steps.scope.outputs.run_full == 'true'
-        run: |
-          npm ci --no-audit --no-fund
-          npm ci --prefix apps/web --no-audit --no-fund
-      - name: Typecheck React
-        if: steps.scope.outputs.run_full == 'true'
-        run: npm run typecheck --prefix apps/web
-      - name: Build production Classic and React bundle
-        if: steps.scope.outputs.run_full == 'true'
-        run: npm run build
-      - name: Run all engine, game rules, API and UI regressions
-        if: steps.scope.outputs.run_full == 'true'
-        run: npm test
-      - name: Verify single-origin server and deployment
-        if: steps.scope.outputs.run_full == 'true'
-        run: node tests/stack-single-service.cjs
+        run: node scripts/ci.mjs full-core
       - name: Cache pinned Chromium headless shell
         if: steps.scope.outputs.run_full == 'true'
         uses: actions/cache@v4
