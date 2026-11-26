@@ -253,3 +253,21 @@
   .game-table-shell .playing-card.is-selected { outline: 2px solid Highlight; }
   .game-table-shell .control-panel .primary-button { border-color: ButtonText; }
 }
+
+/* GE-04: status markers do not change geometry, the art or hit targets.
+   A legal group may require multiple cards; selection remains independent. */
+.game-table-shell .card-availability-mark {
+  position: absolute; z-index: 2; right: 0; top: 0;
+  pointer-events: none; min-width: 16px; height: 16px;
+  display: grid; place-items: center; border: 1px solid #17372d;
+  border-radius: 5px; background: #f7e9c8; color: #183c30;
+  font: 900 11px/1 system-ui, sans-serif; box-shadow: 0 1px 2px #142d2366;
+}
+.game-table-shell .playing-card[data-availability="playable"] .card-availability-mark { background: #d7e9ab; }
+.game-table-shell .playing-card[data-availability="blocked"] .card-availability-mark { background: #d9cdb3; color: #634e3c; }
+.game-table-shell .playing-card:is([data-availability="snap"],[data-availability="slam"],[data-availability="snap-slam"]) .card-availability-mark {
+  background: #f6c32c; color: #2c291b;
+}
+@media (forced-colors: active) {
+  .game-table-shell .card-availability-mark { border-color: ButtonText; color: ButtonText; background: ButtonFace; }
+}

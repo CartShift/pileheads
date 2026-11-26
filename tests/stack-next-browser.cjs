@@ -76,6 +76,8 @@ async function endgameSettingsAndBridge(browser) {
     await page.getByRole("button",{name:"Resume game"}).click();
     const faceup=page.locator(".faceup-row .visible-up .card-hit");
     const expectedBridgeCards = p.up.filter(sameFace).length;
+    assert.equal(await page.locator('.faceup-row .visible-up .playing-card[data-availability="playable"]').count(), expectedBridgeCards,
+      "bridge hints include complete hand plus matching face-up groups");
     assert.equal(await faceup.count(),expectedBridgeCards,
       "only genuinely matching face-up cards can be selected for a bridge");
     await faceup.first().click();
@@ -239,6 +241,11 @@ async function localScenarios(browser) {
       await assertOrdinaryViewport(page, "practice play "+device.width+"x"+device.height);
       const hand = page.locator(".player-hand .card-hit");
       assert.equal(await hand.count(), 3, "opening hand holds three cards");
+      assert.equal(await page.locator('.player-hand .playing-card[data-availability="playable"]').count(), 3,
+        "all opening hand cards are legal at an empty pile");
+      assert.match(await hand.first().getAttribute("aria-description"), /legal play/);
+      assert.equal(await page.locator('.blind-under .playing-card[data-availability="neutral"]').count(), 3,
+        "blind cards never receive legality hints");
       assert.equal(await page.locator(".game-table-shell").getAttribute("data-turn"), "self",
         "the highlighted player-turn treatment follows the authoritative state");
       assert.equal(await page.locator(".opponent-card-stack .hand-stack-count").first().textContent(), "3",
@@ -1254,6 +1261,22 @@ async function localInterruptParityScenarios(browser) {
       await exercise(page);
     }finally{await context.close()}
   }
+  const limited=open(2026112300);
+  const high=rankCards(10)[0], low=rankCards(2)[0];
+  transfer(limited,high.id,limited.pile);
+  transfer(limited,low.id,limited.people[0].hand);
+  limited.limit={type:"min",value:10};
+  assert.ok(!E.options(limited,0).some(m=>m.type==="play"&&m.ids?.includes(low.id)),
+    "fixture contains a truly blocked card");
+  await runSaved(limited,async page=>{
+    const blocked=page.locator('.player-hand .playing-card[data-card-id="'+low.id+'"]');
+    assert.equal(await blocked.getAttribute("data-availability"),"blocked");
+    assert.match(await blocked.locator(".card-hit").getAttribute("aria-description"),/Not currently/);
+    await blocked.locator(".card-hit").click();
+    assert.equal(await page.getByRole("button",{name:/Play cards/}).isDisabled(),true,
+      "a blocked selection never becomes a legal committed move");
+    assert.equal((await readGame(page)).moves,limited.moves);
+  });
   const slam=open(2026112301);
   for(const card of rankCards(7))transfer(slam,card.id,slam.people[1].hand);
   const filler=slam.stock.find(c=>c.kind==="number"&&c.rank!==7);
@@ -1277,6 +1300,8 @@ async function localInterruptParityScenarios(browser) {
   snap.followUp={seat:0,rank:6,ids:[cards[3].id]};
   assert.equal(E.followUpOptions(snap,0).length,1);
   await runSaved(snap,async page=>{
+    const hint=page.locator('.player-hand .playing-card[data-card-id="'+cards[3].id+'"]');
+    assert.match(await hint.getAttribute("data-availability"),/^snap(?:-slam)?$/);
     await page.getByRole("button",{name:"SNAP"}).click();
     const theater=page.locator('.move-story-overlay[data-kind="burn"]');
     await theater.waitFor({timeout:3000});
