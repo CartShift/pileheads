@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./tabletop-layout.css";
 import "./tabletop-skin.css";
+import FunnelProvider from "../components/funnel-provider";
 
 export const metadata: Metadata = {
   title: "PILEHEADS | The Card Game",
@@ -17,7 +18,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <head><link rel="stylesheet" href="/stack-media/stack-design-system.css" /></head>
-      <body>{children}</body>
+      <body><FunnelProvider>{children}</FunnelProvider></body>
     </html>
   );
 }
