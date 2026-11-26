@@ -36,9 +36,7 @@ Vercel Fluid compute is required for WebSocket support.
 
 First preview of the routing-only commit 0a469c2 returned HTTP 200 for /,
 /play, /stack and the legacy invite route. Database health returned 503
-online_not_configured. Native WebSocket deployment and authenticated
-multiplayer remain to be verified; do not treat a successful build as
-production acceptance.
+online_not_configured. The later staged production build resolved the database configuration and passed the authenticated live smoke test. A successful build alone is not production acceptance.
 
 ## Live deployment smoke test
 
@@ -61,7 +59,6 @@ promoting it.
 
 On 2026-11-26 the staged production build of 88c66bf returned 200 for /,
 /play, /stack and database health, and 426 for a non-upgrade request to
-/api/pilehead/live. Both CI suites passed on that commit. The apex still
-served the earlier build and /play returned 404. No production alias
-promotion or Render shutdown was performed; live authenticated socket
-acceptance remains pending.
+/api/pilehead/live. Both CI suites passed on that commit. The staged deployment passed all six live smoke assertions in GitHub Actions run 45908562107 (database, join, authenticated sockets, privacy and start, gameplay synchronization, reactions and reconnect). Vercel deployment dpl_12gbD9pBDXQJU7xjhLoXzNeU7gwK was then promoted; the apex homepage, /play and API health returned 200, /api/pilehead/live returned 426 without an upgrade, and www returned 308 to the apex. A second smoke test against the canonical domain is configured in the workflow. Render remains available pending manual real-device and full-session acceptance.
+
+The `Vercel live multiplayer acceptance` GitHub Actions workflow can be run manually after subsequent deployments to check https://pileheads.com without credentials. It intentionally tests the deployed version, not unbuilt pull-request changes.
