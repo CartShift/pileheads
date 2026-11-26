@@ -43,3 +43,7 @@ Full browser tests run their own local servers, and the multiplayer fixtures rep
 When branch protection becomes available, protect `main`, require pull requests and **both** exact status checks above, and disallow bypass/direct pushes. Until then, never merge a PR with a skipped, pending or failed full check. In particular, do not merge a Draft PR before marking it ready and seeing full green results.
 
 CI time is measured from GitHub's actual workflow runs, not estimated from test count. Caching only saves time on cache hits, so compare cold and warm runs separately.
+
+### Hosted runner migration
+
+The repository is now `CartShift/pileheads`. GitHub Actions remains the CI orchestration and status-check interface; Blacksmith runs the Linux jobs. The migration (#106) passed both fast checks and full acceptance. Preserve the Blacksmith runner labels when changing workflows. Monitor actual billed runner usage before increasing machine size or enabling duplicate providers.
