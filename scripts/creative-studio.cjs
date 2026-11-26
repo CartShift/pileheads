@@ -51,11 +51,12 @@ async function render(briefFile,dir,png){
           await page.evaluate(()=>document.fonts.ready);
           const layout=await page.evaluate(()=>{
             const headline=[...document.querySelectorAll(".headline span")].map(e=>{
-              const r=document.createRange();r.selectNodeContents(e);const b=r.getBoundingClientRect();return b.left>=0&&b.right<=innerWidth;
+              const r=document.createRange();r.selectNodeContents(e);const b=r.getBoundingClientRect();return b.left>=72&&b.right<=innerWidth-72;
             });
             const stage=document.querySelector(".stage").getBoundingClientRect();
             const footer=document.querySelector("footer").getBoundingClientRect();
-            return {headline:headline.every(Boolean),stage:stage.height>120,footer:footer.bottom<=innerHeight,fonts:document.fonts.check("italic 900 60px BarlowBrand")};
+            const cards=[...document.querySelectorAll(".card")].every(e=>{const b=e.getBoundingClientRect();return Math.abs(e.offsetWidth/e.offsetHeight-63/88)<.01&&b.left>=65&&b.right<=innerWidth-65&&b.top>=stage.top-4&&b.bottom<=stage.bottom+4;});
+            return {headline:headline.every(Boolean),stage:stage.height>120,cards,footer:footer.bottom<=innerHeight,fonts:document.fonts.check("italic 900 60px BarlowBrand")};
           });
           if(Object.values(layout).some(x=>!x))throw Error("Render overflow or font failure in "+format.id);
           const pngName=format.id+".png";await page.screenshot({path:path.join(dir,pngName),type:"png"});files.push({name:pngName,sha256:fileHash(path.join(dir,pngName))});
