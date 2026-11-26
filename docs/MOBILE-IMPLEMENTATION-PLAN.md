@@ -114,3 +114,24 @@ OpenDev jobs jgvE5tnUAL2aSA71TT9L and aXRSXluasPdnR8mvO9Em completed with exit c
 
 ### Reconciliation with main: Counter Dump
 During acceptance, main advanced to 1a65fdb95be23e5585fd2e4f93254301e7c43691 (merged Counter Dump). Preserve its exact UI, animation and regression changes, lift its engine logic into the canonical package, regenerate Classic, extend local and seat-redacted DTOs and validate pending-counter snapshots. The earlier Node evidence applies to pre-Counter-Dump runtime 5f56a1f; the new merged runtime needs independent Node/build/browser revalidation. Focused V8 comparison against the exact new main engine: {"games":48,"finished":48,"actions":6214,"saves":390,"interruptions":65,"dumps":86,"blind":313,"counterDecisionFixtures":2}. Both counter/pass and private save fixtures passed, invalid counter snapshot rejected. Default parity baseline now targets the new main commit. No production deployment or main update from this PR.
+
+### OpenDev acceptance: reconciled Counter Dump runtime
+Runtime tested: fd5da5de2e1df829d20e1d62f8e1e18b1fdac7da, main baseline 1a65fdb95be23e5585fd2e4f93254301e7c43691. Reconstructed and verified changed runtime blobs against GitHub; the generated browser engine matches 4b7728cccfc9407d339c72558e9685b26f7b178c. The original main engine blob 0fa9fe68d37f598e7caeabd2f3f26d9d8f71f108 was placed into a temporary local Git tree 1328909c217af026247b460798968f01176fc355 to run the unmodified parity script without remote authentication. This is runtime-source reconstruction, not a full authenticated checkout. No production secrets or live database used.
+
+| Gate | Actual Node/OpenDev result |
+| --- | --- |
+| Root locked dependency install (unchanged by reconciliation) | PASS |
+| Generated artifact integrity and original engine parity | PASS: 48/48 games, 6,214 actions, 390 saves, two explicit Counter Dump decisions |
+| Shared core and malformed snapshot rejection | PASS, including pending counter |
+| Full Node regression | PASS: 33 test files, 144/144 stress simulations |
+| Classic production build | PASS: 42 assets |
+| Next vendor sync and TypeScript | PASS |
+| Integrated Next + Classic production build | PASS: /play and /stack, static export and assets |
+| Integrated single-service check | PASS |
+| Real local HTTP/WebSocket smoke with existing mock Neon fixture | PASS: two independent bearer-authenticated sockets, create/join/ready, revision invalidation, seat privacy |
+| Real browser acceptance | OPEN: Playwright and Chromium not found at checked local paths; no full browser tests run |
+| GitHub Actions | OPEN: latest fast check 45729867353 failed, full acceptance skipped for draft; do not claim cloud CI pass |
+
+Evidence jobs: YI2Kd80XMjrTz5Hj1kmw, nSdBHuJATUufYYwT0i2X, EPhWhsXiHlHSfxnurnjX, VTeZYoPtYm4kmyXXTLtr (all exit 0). Earlier 5f56a1f pre-counter runtime also passed full Node regression, standalone Next typecheck, integrated build and static acceptance. Latest runtime supersedes it. The local HTTP/WS smoke launches the actual server on loopback with mock-neon-room.cjs; it is not a real browser, live Neon or production acceptance test.
+
+Phase 1 code and local non-browser acceptance are complete. Keep release gate open until real browser acceptance, CI/merge verification, and pending #91/#92 coordination; native Hermes remains Phase 2. #90 is merged and reconciled. No merge to main, no deployment or production DB changes from this PR.
