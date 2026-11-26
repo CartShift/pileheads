@@ -447,6 +447,35 @@ async function adaptiveHandFitScenarios(browser) {
           fullPage:true
         });
       }
+      if(width===360 && count===36) {
+        await page.getByRole("button",{name:"Spread hand"}).click();
+        const spread=page.locator(".player-hand.is-spread");
+        assert.equal(await spread.locator(".card-hit").count(),36);
+        assert.equal(await last.getAttribute("aria-pressed"),"true","changing view preserves selection");
+        const geometry=await spread.evaluate(el=>{
+          const cards=[...el.querySelectorAll(".playing-card")].map(card=>card.getBoundingClientRect());
+          const overlaps=cards.some((a,i)=>cards.slice(i+1).some(b=>
+            Math.min(a.right,b.right)-Math.max(a.left,b.left)>1 &&
+            Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1));
+          return {overlaps,scroll:el.scrollHeight,client:el.clientHeight,
+            dock:document.querySelector(".control-panel").getBoundingClientRect().top,
+            stage:el.closest(".hand-stage").getBoundingClientRect().bottom};
+        });
+        assert.equal(geometry.overlaps,false,"spread cards never overlap");
+        assert.ok(geometry.scroll>geometry.client && geometry.dock>=geometry.stage-2,
+          "spread is bounded and does not cover the action dock");
+        await last.click();
+        assert.equal(await last.getAttribute("aria-pressed"),"false","last card remains reachable");
+        const pair=Engine.options(game,0).find(m=>m.type==="play"&&m.ids?.length===2);
+        assert.ok(pair);
+        await spread.locator('.playing-card[data-card-id="'+pair.ids[0]+'"] .card-hit').click();
+        assert.equal(await spread.locator('.playing-card[data-card-id="'+pair.ids[1]+'"]').getAttribute("data-extends-selection"),"true");
+        await spread.locator('.playing-card[data-card-id="'+pair.ids[1]+'"] .card-hit').click();
+        assert.equal(await page.getByRole("button",{name:/Play cards/}).isEnabled(),true);
+        await page.screenshot({path:path.resolve(ROOT,"artifacts/next/spread-hand-360-36.png"),fullPage:true});
+        await page.getByRole("button",{name:"Spread hand"}).click();
+        assert.equal(await page.locator(".player-hand.is-adaptive .playing-card.is-selected").count(),2);
+      }
       assert.deepEqual(errors,[],"adaptive layout must not crash the client");
       console.log("PASS adaptive hand: "+count+" cards fitted at "+width+
         "px ("+dimensions.hand.rows+" rows)");
