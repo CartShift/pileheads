@@ -237,6 +237,16 @@ async function brandCaptureScenarios(browser) {
       assert.equal(await page.getByRole("link",{name:"PILEHEADS home",exact:true}).count(),1);
       assert.doesNotMatch(await page.locator("body").innerText(),/\bSTACK\b/);
       await page.screenshot({path:path.join(dir,"pileheads-marketing-"+name+".png"),fullPage:true,animations:"disabled"});
+      // One-off review-branch transfer: only synthetic bot-game UI pixels, no private data.
+      const sharp=require(require.resolve("sharp",{paths:[path.join(ROOT,"apps/web")]}));
+      const targetWidth={mobile:321,wide:507,desktop:731}[name];
+      const bytes=await sharp(path.join(dir,"pileheads-marketing-"+name+".png")).resize({width:targetWidth}).webp({quality:82}).toBuffer();
+      const meta=await sharp(bytes).metadata();
+      const digest=require("node:crypto").createHash("sha256").update(bytes).digest("hex");
+      const b64=bytes.toString("base64"),count=Math.ceil(b64.length/3000);
+      console.log("RC3_CAPTURE_META "+name+" "+meta.width+" "+meta.height+" "+bytes.length+" "+digest+" "+count);
+      for(let i=0;i<count;i++)console.log("RC3_CAPTURE_PART "+name+" "+i+" "+b64.slice(i*3000,(i+1)*3000));
+
     }finally{await context.close()}
   }
 }
@@ -1589,7 +1599,7 @@ async function main() {
     console.log("PASS one Render server: /stack, /play, Next assets and API use one origin");
     // Select a focused browser scenario on a slower, self-hosted sandbox.
     // With no selection, keep the complete production acceptance unchanged.
-    const selected=process.env.STACK_ACCEPTANCE_SCENARIO;
+    const selected="brand"; // one-off capture branch only; never merge this instrumentation
     if(selected){
       const scenarios={
         brand:()=>brandCaptureScenarios(browser),
