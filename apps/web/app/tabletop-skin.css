@@ -271,3 +271,47 @@
 @media (forced-colors: active) {
   .game-table-shell .card-availability-mark { border-color: ButtonText; color: ButtonText; background: ButtonFace; }
 }
+
+/* GE-05: short lifecycle beats only on decorative surfaces. Keep actual
+   interactive cards, focus and button geometry stable. */
+.game-table-shell .tabletop[data-round-cue="deal"] .table-texture {
+  animation: tabletop-deal-glow 520ms ease-out both;
+}
+.game-table-shell .tabletop[data-round-cue="deal"] .pile-zone:not(.is-main) .pile-slot .playing-card.is-back {
+  animation: tabletop-stock-deal 480ms cubic-bezier(.17,.77,.29,1) both;
+}
+.game-table-shell .tabletop[data-round-cue="start"] .table-center::before {
+  animation: tabletop-start-ring 340ms ease-out both;
+}
+.game-table-shell .tabletop[data-round-cue="handoff"] .seat-active::after {
+  animation: tabletop-turn-ink 320ms ease-out both;
+}
+.game-table-shell[data-turn="self"] .tabletop[data-round-cue="handoff"] .hand-heading {
+  animation: tabletop-turn-ink 320ms ease-out both;
+}
+@keyframes tabletop-deal-glow {
+  0% { opacity: .12; } 45% { opacity: .65; } 100% { opacity: .42; }
+}
+@keyframes tabletop-stock-deal {
+  0% { transform: translateY(-10px) rotate(-6deg); opacity: .65; }
+  65% { transform: translateY(1px) rotate(1deg); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+@keyframes tabletop-start-ring {
+  from { box-shadow: inset 0 0 0 2px #f6c32cbb, 0 0 14px #f6c32c66; }
+  to { box-shadow: inset 0 0 0 0 transparent, 0 0 0 transparent; }
+}
+@keyframes tabletop-turn-ink {
+  from { box-shadow: 0 0 10px #f6c32cbb; }
+  to { box-shadow: none; }
+}
+.move-story-stable[data-counter="true"] { --story-accent: #ffd18a; --story-glow: #f6c32c77; }
+.move-story-stable[data-counter="true"] .move-story-caption { border-color: #f6c32c; }
+.game-table-shell .results-overlay[data-outcome="loss"] h2 { color: #a83d32; }
+@media (prefers-reduced-motion: reduce) {
+  .game-table-shell .tabletop[data-round-cue] .table-texture,
+  .game-table-shell .tabletop[data-round-cue] .pile-slot .playing-card,
+  .game-table-shell .tabletop[data-round-cue] .table-center::before,
+  .game-table-shell .tabletop[data-round-cue] .seat-active::after,
+  .game-table-shell .tabletop[data-round-cue] .hand-heading { animation: none !important; }
+}
