@@ -7,7 +7,9 @@ const Policy = require("../lib/feedback-core.cjs") as {
   committedFeedback: (event: Event, cue: {kind:string}|null, phase: string, me:number, loser:number|null) => SoundEffect;
   HAPTICS: Partial<Record<SoundEffect,number|number[]>>;
 };
+type RoundCursor={key:string;room:string|null;phase:string;move:number;turn:number};
 const Motion = require("../lib/motion-core.cjs") as {
+  advanceRoundCursor:(previous:RoundCursor|null,input:{gameKey:string;roomCode:string|null;phase:string;moveNo:number;turn:number;freshDeal:boolean;visible:boolean;reduced:boolean})=>{cursor:RoundCursor;cue:string|null};
   fromCommittedEvent: (event: Event) => {kind:string}|null;
   advanceSoundCursor: (previous:{key:string;move:number}, input:{gameKey:string;moveNo:number;phase:string;event?:Event;enabled:boolean;visible:boolean}) => {cursor:{key:string;move:number};shouldPlay:boolean};
 };
@@ -17,8 +19,9 @@ function vibrate(pattern: number | number[]) {
   try { if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") navigator.vibrate(pattern); }
   catch { /* optional hardware */ }
 }
-export function useGameFeedback({gameKey, moveNo, phase, event, me, loser}: {
+export function useGameFeedback({gameKey, moveNo, phase, event, me, loser, roomCode, turn, freshDeal}: {
   gameKey:string; moveNo:number; phase:string; event?:Event; me:number; loser:number|null;
+  roomCode:string|null;turn:number;freshDeal:boolean;
 }) {
   const [soundEnabled,setSoundEnabled]=useState(false);
   const [volume,setVolume]=useState(70);
@@ -26,6 +29,7 @@ export function useGameFeedback({gameKey, moveNo, phase, event, me, loser}: {
   const [supported,setSupported]=useState(false);
   const [loaded,setLoaded]=useState(false);
   const cursor=useRef({key:"",move:0});
+  const roundCursor=useRef<RoundCursor|null>(null);
   const scope=useRef(gameKey);
   useEffect(()=>{
     setSupported(typeof navigator.vibrate==="function");
@@ -62,6 +66,10 @@ export function useGameFeedback({gameKey, moveNo, phase, event, me, loser}: {
   useEffect(()=>()=>{stopSound();vibrate(0);},[]);
   useEffect(()=>{
     if(scope.current!==gameKey){scope.current=gameKey;stopSound();vibrate(0);}
+    const lifecycle=Motion.advanceRoundCursor(roundCursor.current,{gameKey,roomCode,phase,moveNo,turn,freshDeal,
+      visible:document.visibilityState==="visible",reduced:false});
+    roundCursor.current=lifecycle.cursor;
+    if(lifecycle.cue==="deal"&&soundEnabled)playSound("deal");
     const result=Motion.advanceSoundCursor(cursor.current,{gameKey,moveNo,phase,event,
       enabled:soundEnabled||(haptics&&supported),visible:document.visibilityState==="visible"});
     cursor.current=result.cursor;
@@ -72,7 +80,7 @@ export function useGameFeedback({gameKey, moveNo, phase, event, me, loser}: {
     if(haptics&&supported&&(event.seat===me||phase==="over")){
       const pattern=Policy.HAPTICS[effect]; if(pattern) vibrate(pattern);
     }
-  },[gameKey,moveNo,phase,event,me,loser,soundEnabled,haptics,supported]);
+  },[gameKey,moveNo,phase,event,me,loser,soundEnabled,haptics,supported,roomCode,turn,freshDeal]);
   function changeSound(enabled:boolean){
     setSoundEnabled(enabled);
     if(enabled){setSoundVolume(volume);unlockSound();playSound("select");}
