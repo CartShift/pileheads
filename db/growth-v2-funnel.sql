@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS pileheads_funnel_sessions (
   token_hash text NOT NULL,
   notice_version text NOT NULL,
   source text CHECK(source IN ('instagram','tiktok','youtube','community','creator','player_share')),
+  medium text CHECK(medium IN ('organic_social','community','creator','referral')),
+  campaign text CHECK(campaign IN ('launch','playtest','round_result')),
   entry text NOT NULL CHECK(entry IN ('home','play','invite')),
   created_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL DEFAULT now()+interval '24 hours',
