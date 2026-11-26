@@ -29,3 +29,10 @@ The 13 mapped paths are integrated in a single review-branch commit. The 11 uniq
 
 ### RC3 web delivery optimization
 Both in-game backs use the identical 504px V8 source export (the brand invariant requires byte equality). Mobile and desktop web sheets use separately pinned, quality-85 WebP derivatives at unchanged 800×1120 and 1200×1676 dimensions, 229138 and 425742 bytes, below existing 250000 and 450000 byte budgets. Download these alongside the ZIPs for repeatable import: [mobile](https://drive.google.com/file/d/1NGqYSkY_lVHr79O5VknmCrCjzRd5LbXS/view), [desktop](https://drive.google.com/file/d/1yVlC_-NwrMhhkL-1IjRC3TOj1PymH-_G/view). Master archives remain unchanged. The first fast CI detected the byte-equality invariant; this correction preserves it rather than relaxing the test.
+
+
+## RC3 digital release — 2026-11-26
+- PR #130 merged as ef96dade9ec2187514663c4fd1f0978bc2a12083; full CI passed https://github.com/CartShift/pileheads/actions/runs/45902369485; main fast CI passed; Render live smoke passed https://github.com/CartShift/pileheads/actions/runs/45903195945 (commit, websocket, Neon, homepage and React).
+- Genuine current illustrated-deck local bot gameplay captured in Chromium with the existing brand scenario at 390, 768 and 1280px, exported to WebP widths 321, 507, 731. All three images were visually inspected before committing; no generated UI or private room data. Capture-only run https://github.com/CartShift/pileheads/actions/runs/45903419629. The temporary capture instrumentation is not included in this branch.
+- Homepage uses new RC3 screenshots and exact image dimensions; prior V7 captures preserved. Sharing metadata points to actual desktop gameplay; the existing approved-raster favicon stays, rather than automatically promoting the unapproved symbol or physical product mockup.
+- Physical proof, printer specifications, final identity/vector visual approval, legal clearance, native app assets and genuine physical product photography remain independent commercial-release gates.

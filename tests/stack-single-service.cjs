@@ -39,7 +39,7 @@ assert.ok(officialHome.includes("/stack-media/stack-home-logo-web.webp"), "Homep
 assert.ok(officialHome.includes("/stack-media/stack-home-explorer-v2.webp"), "Hero must use the canonical Explorer mascot");
 assert.equal(read("stack-media/stack-home-explorer-v2.webp").toString("ascii",8,12),"WEBP");
 
-for (const asset of ["stack-home-gameplay-v7.webp","stack-home-gameplay-wide-v7.webp","stack-home-gameplay-desktop-v7.webp","stack-home-sunset.webp"]) { assert.equal(read("stack-media/"+asset).toString("ascii",8,12),"WEBP"); assert.ok(officialHome.includes("/stack-media/"+asset)); }
+for (const asset of ["stack-home-gameplay-rc3.webp","stack-home-gameplay-wide-rc3.webp","stack-home-gameplay-desktop-rc3.webp","stack-home-sunset.webp"]) { assert.equal(read("stack-media/"+asset).toString("ascii",8,12),"WEBP"); assert.ok(officialHome.includes("/stack-media/"+asset)); }
 
 for(const asset of ["stack-home-box-side-v2.webp","stack-home-box-top-v2.webp"]) { assert.equal(read("stack-media/"+asset).toString("ascii",8,12),"WEBP"); assert.ok(officialHome.includes("/stack-media/"+asset)); }
 for(const asset of ["print-grain.svg","comic-cloud.svg","barlow-condensed-black-italic.ttf","barlow-OFL.txt"]) assert.ok(read("stack-media/"+asset).length>100,asset);
@@ -49,3 +49,10 @@ assert.equal(read("stack-media/stack-home-burn-beach.webp").toString("ascii",8,1
 for (const n of ["faces-web-desktop","faces-web-mobile","logo-web","box-web","explorer-web-desktop","explorer-web-mobile","back-web"]) assert.equal(read("stack-media/stack-home-"+n+".webp").toString("ascii",8,12),"WEBP");
 assert.ok(read("stack-media/stack-home-faces-web-mobile.webp").length<250000,"mobile sprite budget");
 assert.ok(read("stack-media/stack-home-faces-web-desktop.webp").length<450000,"desktop sprite budget");
+
+// Genuine RC3 Playwright captures are immutable release assets.
+for (const [asset,digest] of [["stack-home-gameplay-rc3.webp","060ba98725c812bd6faf250c11465c503ec9bc01f0f9350e4f48ef114136e060"],["stack-home-gameplay-wide-rc3.webp","962cc664dc1615d07525a373c3ab1302f57e4b685b8d54a0ced19d1ed2c1b0c9"],["stack-home-gameplay-desktop-rc3.webp","57274c6d6918fac7b181c94ace8f4aece4a5c309fe0b75fb8e9638f18595afe5"]]) {
+ const bytes=read("stack-media/"+asset);
+ assert.equal(require("node:crypto").createHash("sha256").update(bytes).digest("hex"),digest,asset+" capture hash");
+ assert.ok(bytes.length<50000,asset+" delivery budget");
+}
