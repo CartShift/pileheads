@@ -25,7 +25,7 @@ function playerName(i){return mode==='bots'?(i===0?'You':'Bot '+i):'Player '+(i+
 function viewSeat(){return mode==='bots'?0:g?.turn??0}
 function getPlayer(){return g.people[viewSeat()]}
 function currentStage(){return E.stage(g,viewSeat())}
-function isTurn(){return g.phase==='play'&&g.turn===viewSeat()}
+function isTurn(){return g.phase==='play'&&g.turn===viewSeat()&&!g.pendingCounter}
 function save(){try{localStorage.setItem(KEY,JSON.stringify({g,mode,seats,setupSeat,covered,notice,lastMove,practiceMode,undoState}))}catch(e){console.warn('Save unavailable',e)}}
 function restore(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');
  if(!x||!['pilehead-1.1.0','pilehead-1.2.0','pilehead-1.3.0','pilehead-1.4.0','pilehead-1.5.0','pilehead-1.6.0',E.VERSION].includes(x.g?.version)||!['bots','hotseat'].includes(x.mode))return false;
@@ -107,7 +107,7 @@ const effectInfo={
  under:'UNDER means the next number must be 1 through 4.',
  skip:'SKIP makes the next player miss a turn.',
  burn:'BURN removes the pile and gives another turn.',
- dump:'DUMP burns itself; choose any active rival to take the existing pile. You play again.'
+ dump:'DUMP gives the pile to any active rival. They may spend their own DUMP to return it and play next; otherwise you play again.'
 };
 function selectedEffect(){
  const p=getPlayer(),cards=[...p.hand,...p.up],selected=cards.find(c=>selection.includes(c.id)&&c.kind==='action');
@@ -119,7 +119,9 @@ function eventName(e){const who=playerName(e.seat),erosion=e.erodedCount?' · to
  if(e.type==='blind-fail')return who+' flipped an illegal card and took '+(e.takenCount??e.count)+erosion;
  if(e.type==='followup')return who+' snapped the just-drawn '+e.rank+' onto the pile';
  if(e.type==='dump-pending')return who+' revealed DUMP! Choose who must take the pile.';
- if(e.action==='dump')return who+' burned DUMP: '+playerName(e.target)+' took '+e.takenCount+' pile cards'+erosion+'; '+who+' plays again';
+ if(e.type==='counter-dump')return who+' returned '+e.takenCount+' cards to '+playerName(e.target)+' and takes the next turn';
+ if(e.type==='counter-pass')return who+' accepted the pile';
+ if(e.action==='dump')return who+' burned DUMP: '+playerName(e.target)+' took '+e.takenCount+' pile cards'+erosion;
  if(e.reason==='slam')return who+' SLAM! Burned the pile';
  if(e.burned)return who+' burned the pile';
  if(e.action)return who+' played '+(e.count>1?e.count+' × ':'')+e.action.toUpperCase();
@@ -158,6 +160,10 @@ function tableHUD(){
 }
 function tableActions({turn,legal,pick,slams,snap,stage}){
  let buttons='';
+ if(g.pendingCounter){
+  if(g.pendingCounter.seat!==viewSeat()||covered)return '';
+  return '<div class="toolbar table-actions" role="group" aria-label="Counter Dump"><button class="action primary" data-do="counter-dump">Counter DUMP · return '+g.pendingCounter.ids.length+' cards &amp; play</button><button class="action secondary" data-do="counter-pass">Keep cards</button></div>';
+ }
  if(g.phase==='over')buttons='<button class="action primary" data-do="rematch">Play again</button>';
  else{
   if(snap.length)buttons+='<button class="action snap" data-do="snap">SNAP · matching draw</button>';
@@ -222,7 +228,7 @@ function overlay(){
   const targets=E.dumpTargets(g,viewSeat());
   return '<div class="overlay"><div class="panel" role="dialog" aria-modal="true" aria-label="Choose DUMP target">'+
    '<div class="eyebrow">DUMP · CHOOSE YOUR TARGET</div><h2>Who takes the pile?</h2>'+
-   '<p>Choose any opponent still in the game. They take the current pile; you play again.</p>'+
+   '<p>Choose any opponent still in the game. They take the current pile. If they have DUMP, they can return it and play next.</p>'+
    '<div class="toolbar">'+targets.map(seat=>'<button class="action primary" data-do="dump-target" data-seat="'+seat+'">'+playerName(seat)+'</button>').join('')+'</div>'+
    (dumpDraft?'<button class="action secondary" data-do="cancel-dump">Cancel</button>':'')+'</div></div>';
  }
@@ -434,6 +440,9 @@ function execute(action,button){
    catch(e){notice=e.message;render()}
   }
   return;
+ }
+ if(action==='counter-dump'||action==='counter-pass'){
+  const choice=E.options(g,viewSeat()).find(m=>m.type===action);if(choice)perform(choice);return;
  }
  if(action==='play'){
   if(!selection.length)return;
