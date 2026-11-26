@@ -90,3 +90,5 @@ For implementation details, see [online protocol](pilehead-online.md), [Next int
 ## Mobile roadmap
 
 See [mobile implementation plan](MOBILE-IMPLEMENTATION-PLAN.md). Native clients import the shared package; online views remain server-redacted. The initial npm workspace covers packages only; web retains its existing locked install until the Expo workspace migration is validated.
+
+The [shared room protocol](../packages/game-protocol/README.md) contains only seat-redacted DTO types. The Next adapter re-exports these; its fetch, storage and browser lifecycle remain platform-specific. No transport or API contract change is introduced in Phase 1.

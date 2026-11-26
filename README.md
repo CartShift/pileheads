@@ -71,6 +71,7 @@ See [`apps/web/README.md`](apps/web/README.md) for the local API origin setup, a
 ```text
 apps/web/                  Next.js + TypeScript tabletop
 packages/game-engine/      Canonical rules, bots, local snapshots and shared types
+packages/game-protocol/    Shared seat-redacted multiplayer DTOs (types only)
 dist/pilehead/             Classic tabletop, original cards and generated browser engine
 api/pilehead.js            Authoritative online room commands and state
 scripts/render-server.cjs  Single-origin Node server
@@ -91,6 +92,7 @@ See [Mobile & cross-platform implementation plan](docs/MOBILE-IMPLEMENTATION-PLA
 
 ```bash
 npm test                            # Project regression suite
+npm run test:engine-parity          # Explicit comparison to pre-extraction Git baseline
 npm run build                       # Classic + Next static export
 npm run typecheck --prefix apps/web # React TypeScript check
 npm run simulate -- 120 4 20261113  # Reproducible bot simulation

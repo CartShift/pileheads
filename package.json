@@ -23,7 +23,8 @@
     "build:classic": "node scripts/build-vercel.mjs",
     "sync:engine": "node scripts/sync-game-engine.cjs",
     "check:engine": "node scripts/sync-game-engine.cjs --check",
-    "test:shared-core": "node tests/pilehead-shared-core.cjs"
+    "test:shared-core": "node tests/pilehead-shared-core.cjs",
+    "test:engine-parity": "node scripts/verify-engine-parity.cjs"
   },
   "engines": {
     "node": "24.x"
