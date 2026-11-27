@@ -1163,7 +1163,7 @@ export default function GameTable() {
               permanently burns its visible top card. Disabled by default. {g.roundLimit ? "Tournament rules are fixed at room creation." : ""}
             </small></span>
           </label>
-          {room?.historyAvailable&&tokenRef.current&&!backendOrigin&&<RoundHistoryConsent key={room.code+":"+g.round} code={room.code} round={g.round} revision={room.revision} phase={g.phase} token={tokenRef.current} busy={busy} onChanged={()=>{
+          {room?.historyAvailable&&tokenRef.current&&!backendOrigin&&<RoundHistoryConsent key={room.code+":"+g.round} code={room.code} round={g.round} revision={room.revision} phase={g.phase} token={tokenRef.current} busy={busy} progressionAvailable={room.progressionAvailable} onChanged={()=>{
             if(roomRef.current?.code!==room.code||!tokenRef.current)return;
             void synchronize(room.code,tokenRef.current,true,false);
             if(wsRef.current?.readyState===WebSocket.OPEN){try{wsRef.current.send(JSON.stringify({type:"sync-hint"}));}catch{}}

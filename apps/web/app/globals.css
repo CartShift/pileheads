@@ -1007,3 +1007,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 .history-round-list li{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;padding:.65rem 0;border-bottom:1px solid currentColor;}
 .history-round-list li>div{min-width:0;overflow-wrap:anywhere;}
 .history-round-list li>div:last-child{text-align:right;}
+
+.player-progression{border-top:1px solid currentColor;padding-top:1rem;margin-top:1rem;min-width:0;}
+.progress-level{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;}
+.progress-level strong{font-size:1.45rem;}.player-progression progress{width:100%;accent-color:currentColor;}
+.achievement-list{list-style:none;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;}
+.achievement-list li{border:1px solid currentColor;border-radius:.5rem;padding:.65rem;overflow-wrap:anywhere;}
+.achievement-list small{display:block;font-size:.75rem;line-height:1.3;}

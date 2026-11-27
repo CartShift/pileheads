@@ -3,6 +3,7 @@ import {useEffect,useRef,useState} from "react";
 import {useRouter} from "next/navigation";
 import type {DeckTheme} from "./card-view";
 import SavedRoundHistory from "./saved-round-history";
+import PlayerProgression from "./player-progression";
 type Profile={kind:"account";name:string;deck:DeckTheme;expiresAt:string};
 type Result={enabled:boolean;privacyUrl?:string|null;profile:Profile|null};
 type Action={action:"login"|"logout"|"import_guest"}|{action:"delete";confirm:true}|{action:"preferences";name:string;deck:DeckTheme};
@@ -61,9 +62,10 @@ export default function AccountPanel(){
    {saved&&<p role="status">Account preferences saved.</p>}
    <button className="learn-button" disabled={busy||!data.enabled} onClick={()=>void update({action:"import_guest"})}>Copy guest preferences to account</button>
    <button className="learn-button" disabled={busy} onClick={play}>Play with account preferences →</button>
+   <PlayerProgression/>
    <SavedRoundHistory/>
    <button className="secondary-button" disabled={busy} onClick={()=>void update({action:"logout"})}>Sign out</button>
-   {confirm?<div><p>Delete your account, saved personal history and every signed-in session? Your local games and guest profile are separate.</p><button className="secondary-button profile-danger" disabled={busy} onClick={()=>void update({action:"delete",confirm:true})}>Delete account permanently</button><button className="learn-button" disabled={busy} onClick={()=>setConfirm(false)}>Cancel account deletion</button></div>:<button className="learn-button profile-danger" disabled={busy} onClick={()=>setConfirm(true)}>Delete account</button>}
+   {confirm?<div><p>Delete your account, saved personal history, progression and every signed-in session? Your local games and guest profile are separate.</p><button className="secondary-button profile-danger" disabled={busy} onClick={()=>void update({action:"delete",confirm:true})}>Delete account permanently</button><button className="learn-button" disabled={busy} onClick={()=>setConfirm(false)}>Cancel account deletion</button></div>:<button className="learn-button profile-danger" disabled={busy} onClick={()=>setConfirm(true)}>Delete account</button>}
   </>}
  </section>;
 }

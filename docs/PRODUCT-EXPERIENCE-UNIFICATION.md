@@ -26,3 +26,5 @@ No visual approval or runtime verification is implied by a source change.
 - Extended browser scenario verifies the deck-update shell and in-game rules dialog. Actual screenshot review still required before visual sign-off.
 
 - Integrated concurrent private-history features from main without changing opt-in, authorization, retention or round logic; styled the history summaries and consent section using existing brand tokens.
+
+- Preserved concurrent progression UI and opt-in XP, aligned achievement and level styling, and updated the static design-system contract to verify the shared BrandLink instead of requiring duplicate logo markup.
