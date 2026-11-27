@@ -3,6 +3,12 @@ on:
   pull_request:
     paths:
       - 'api/player.js'
+      - 'scripts/player-retention.cjs'
+      - 'db/player-retention-access.sql'
+      - 'db/room-receipt-retention-access.sql'
+      - 'db/room-round-receipts.sql'
+      - 'tests/player-retention-postgres.cjs'
+      - 'tests/pilehead-player-retention.cjs'
       - 'scripts/account-store.cjs'
       - 'db/player-accounts-v1.sql'
       - 'tests/pilehead-account-store.cjs'
@@ -40,3 +46,7 @@ jobs:
         env:
           PG_TEST_CONTAINER: ${{ job.services.postgres.id }}
         run: node tests/player-profile-postgres.cjs
+      - name: Verify expiry-only player data maintenance in isolated database
+        env:
+          PG_TEST_CONTAINER: ${{ job.services.postgres.id }}
+        run: node tests/player-retention-postgres.cjs
