@@ -7,11 +7,13 @@ export type PublicSeat = {
   seat: number; out: boolean; up: Card[]; handCount: number; downCount: number;
   hand?: Card[]; blindSlots?: number[]; pickups: number;
 };
+export type TableStandings = { trackedFrom: number; completedRounds: number; seats: { seat: number; points: number; wins: number; lastPlace: number | null }[] };
 export type RoomGame = {
   phase: "setup" | "play" | "over";
   turn: number;
   moves: number;
   round: number;
+  standings?: TableStandings;
   rulesVersion?: string;
   humanCount?: number;
   starterSeat?: number;
