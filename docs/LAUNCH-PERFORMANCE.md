@@ -8,3 +8,6 @@ Run `node tests/stack-launch-performance.cjs` after the integrated build and pin
 
 ## Initial baseline (PR #155)
 Mobile LCP ms: home 2236, play 2176, rules 2032, deck 9688. CLS: .0385, .1395, .0019, .0019. Deck loaded the full master sprite. Use pinned optimized mobile/desktop sheets, early font preload and avoid prefetching adjacent public routes. Re-measure rather than assuming improvement. Record layout shift sources to identify remaining movement.
+
+## Second baseline (#157)
+Mobile LCP ms: home 2340, play 2296, rules 2288, deck 5292. Deck improved 45%; lobby CLS unchanged .1395, shift sources indicate wrapping navigation. Third iteration: individual lazy-loaded WebP cards generated from the official master with fixed dimensions and responsive srcset; fixed mobile navigation grid. Verify again; no quality change to canonical assets.
