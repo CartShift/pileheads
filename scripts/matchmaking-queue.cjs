@@ -12,7 +12,7 @@ const SQL={
  ON CONFLICT(account_id) DO NOTHING RETURNING ticket_id
  )
  SELECT ticket_id FROM entered`,
- status:`SELECT q.ticket_id,q.joined_at,q.expires_at,q.offer_id,o.expires_at AS offer_expires_at,
+ status:`SELECT q.ticket_id,q.joined_at,q.expires_at,q.offer_id,o.expires_at AS offer_expires_at,o.room_code,
  CASE WHEN q.account_id=o.account_a THEN o.ready_a ELSE o.ready_b END AS own_ready,
  CASE WHEN q.account_id=o.account_a THEN o.ready_b ELSE o.ready_a END AS rival_ready
  FROM pileheads_account_sessions s JOIN pileheads_queue_tickets q ON q.account_id=s.account_id
@@ -42,18 +42,18 @@ const SQL={
  )
  UPDATE pileheads_match_offers o SET ready_a=o.ready_a OR o.account_a=actor.account_id,
  ready_b=o.ready_b OR o.account_b=actor.account_id FROM actor
- WHERE o.id=$2::uuid AND o.expires_at>now() AND actor.account_id IN(o.account_a,o.account_b)
+ WHERE o.id=$2::uuid AND o.room_code IS NULL AND o.expires_at>now() AND actor.account_id IN(o.account_a,o.account_b)
  AND EXISTS(SELECT 1 FROM pileheads_queue_tickets q WHERE q.account_id=actor.account_id AND q.offer_id=o.id AND q.expires_at>now())
  AND NOT EXISTS(SELECT 1 FROM pileheads_match_blocks b WHERE (b.account_id=o.account_a AND b.blocked_account_id=o.account_b) OR (b.account_id=o.account_b AND b.blocked_account_id=o.account_a))
  RETURNING o.ready_a AND o.ready_b AS both_ready`,
  cancelOffer:`DELETE FROM pileheads_match_offers o USING pileheads_account_sessions s
- WHERE s.token_hash=$1 AND s.expires_at>now() AND o.id=$2::uuid AND s.account_id IN(o.account_a,o.account_b)
+ WHERE s.token_hash=$1 AND s.expires_at>now() AND o.id=$2::uuid AND o.room_code IS NULL AND s.account_id IN(o.account_a,o.account_b)
  RETURNING o.id`,
  cancelWaiting:`DELETE FROM pileheads_queue_tickets q USING pileheads_account_sessions s
  WHERE s.token_hash=$1 AND s.expires_at>now() AND q.account_id=s.account_id AND q.ticket_id=$2::uuid AND q.offer_id IS NULL
  RETURNING q.ticket_id`,
- expireOffers:`WITH candidates AS (SELECT id FROM pileheads_match_offers WHERE expires_at<=now() ORDER BY expires_at,id LIMIT 500),
- removed AS (DELETE FROM pileheads_match_offers o USING candidates c WHERE o.id=c.id AND o.expires_at<=now() RETURNING 1)
+ expireOffers:`WITH candidates AS (SELECT id FROM pileheads_match_offers WHERE room_code IS NULL AND expires_at<=now() ORDER BY expires_at,id LIMIT 500),
+ removed AS (DELETE FROM pileheads_match_offers o USING candidates c WHERE o.id=c.id AND o.room_code IS NULL AND o.expires_at<=now() RETURNING 1)
  SELECT count(*) AS deleted FROM removed`,
  expireWaiting:`WITH candidates AS (SELECT account_id FROM pileheads_queue_tickets WHERE offer_id IS NULL AND expires_at<=now() ORDER BY expires_at,account_id LIMIT 500),
  removed AS (DELETE FROM pileheads_queue_tickets q USING candidates c WHERE q.account_id=c.account_id AND q.offer_id IS NULL AND q.expires_at<=now() RETURNING 1)
@@ -65,6 +65,7 @@ function publicStatus(row,now=Date.now()){
  const expires=Date.parse(row.expires_at);
  if(!Number.isFinite(expires))throw Error('invalid ticket expiry');
  if(expires<=now)return {state:'expired'};
+ if(row.room_code)return {state:'assigned',offer:row.offer_id};
  if(!row.offer_id)return {state:'waiting',ticket:row.ticket_id,expiresAt:row.expires_at};
  const offerExpires=Date.parse(row.offer_expires_at);
  if(!Number.isFinite(offerExpires)||offerExpires<=now)return {state:'expired'};
