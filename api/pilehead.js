@@ -38,12 +38,15 @@ async function quota(req,action,max){const ip=String(req.headers['x-forwarded-fo
  if(rows[0].hits>max)fail(429,'rate_limited')}
 function humanCount(g){return Number.isInteger(g.humanCount)?g.humanCount:g.people.length}
 function botSeats(g){return Array.isArray(g.botSeats)?g.botSeats:[]}
-function freshGame({players,humans,bots,round=1,starterSeat=null,endgameRule='classic'}){
+const tournamentLimits=new Set([3,5,10]);
+function tournamentLimit(g){return tournamentLimits.has(g.roundLimit)?g.roundLimit:null}
+function freshGame({players,humans,bots,round=1,starterSeat=null,endgameRule='classic',roundLimit=null}){
  const seed=crypto.randomBytes(4).readUInt32BE(0);
  const game=E.create({players,seed,endgameRule});
  game.humanCount=humans;
  game.botSeats=Array.from({length:bots},(_,i)=>humans+i);
  game.round=round;
+ game.roundLimit=roundLimit;
  Standings.record(game);
  // Pick the first starter once, on the server; the clients only animate the
  // already-authoritative result. Subsequent rounds use the prior winner.
@@ -60,6 +63,7 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
    omitSkip:g.omitSkip===true,
  round:g.round||1,humanCount:humanCount(g),botSeats:botSeats(g),
  standings:Standings.publicStandings(g),
+ roundLimit:tournamentLimit(g),
  starterSeat:g.starterSeat??0,starterReason:g.starterReason||'draw',startedAt:g.startedAt||null,
  blindReveal:g.blindReveal?.expiresAt>Date.now()?g.blindReveal:null,
  botFollowupReady:botSeats(g).some(bot=>E.followUpOptions(g,bot).length>0),
@@ -93,8 +97,10 @@ async function create(req,b){
  if(!Number.isInteger(humans)||!Number.isInteger(bots)||humans<1||bots<0||cap<2||cap>5)fail(400,'invalid_capacity');
  const endgameRule=b.endgameRule===undefined?'classic':b.endgameRule;
  if(endgameRule!=='classic'&&endgameRule!=='final-duel')fail(400,'invalid_endgame_rule');
+ const roundLimit=b.roundLimit===undefined?null:b.roundLimit;
+ if(roundLimit!==null&&!tournamentLimits.has(roundLimit))fail(400,'invalid_round_limit');
  const t=secret();
- for(let tries=0;tries<4;tries++){const id=makeCode(),game=freshGame({players:cap,humans,bots,endgameRule});
+ for(let tries=0;tries<4;tries++){const id=makeCode(),game=freshGame({players:cap,humans,bots,endgameRule,roundLimit});
   try{await query("INSERT INTO pilehead_rooms(code,capacity,status,state) VALUES($1,$2,'lobby',$3::jsonb)",[id,cap,JSON.stringify(game)]);
    await query('INSERT INTO pilehead_members(code,seat,display_name,token_hash) VALUES($1,0,$2,$3)',[id,nick,h(t)]);
    return {...await view(await load(id),0),session:t};
@@ -116,6 +122,7 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
  else if(b.action==='settings'){
   if(seat!==0)fail(403,'host_only');
   if(g.phase!=='setup')fail(409,'already_started');
+  if(tournamentLimit(g)!==null)fail(409,'tournament_rules_locked');
   if(b.endgameRule!=='classic'&&b.endgameRule!=='final-duel')fail(400,'invalid_endgame_rule');
   g.endgameRule=b.endgameRule;
  }
@@ -134,13 +141,14 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
  }
  else if(b.action==='rematch'){
   if(g.phase!=='over')fail(409,'game_not_finished');
+  if(tournamentLimit(g)!==null&&(g.round||1)>=tournamentLimit(g))fail(409,'tournament_complete');
   // In STACK the first player to get rid of their cards wins this round,
   // whereas the final player still holding cards is the PILEHEAD.
   const winner=g.finishedOrder?.[0];
   const standings=Standings.record(g);
   const next=freshGame({players:g.people.length,humans:humanCount(g),bots:botSeats(g).length,
    round:(g.round||1)+1,starterSeat:Number.isInteger(winner)?winner:null,
-   endgameRule:g.endgameRule==='final-duel'?'final-duel':'classic'});
+   endgameRule:g.endgameRule==='final-duel'?'final-duel':'classic',roundLimit:tournamentLimit(g)});
   next.roomStandings=standings;
   Object.assign(g,next);
  }

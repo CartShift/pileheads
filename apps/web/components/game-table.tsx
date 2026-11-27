@@ -9,6 +9,7 @@ import OpponentsStrip from "./opponents-strip";
 import CenterBoard from "./center-board";
 import PlayerHandArea, { type HandSort } from "./player-hand-area";
 import ActionDock from "./action-dock";
+import TableStandings from "./table-standings";
 import ResultShare from "./result-share";
 import {resultCardData} from "../lib/result-card";
 const ResultShareCore = require("../lib/result-share-core.cjs") as { resultShare: (input: { phase:string; kind:string; players:number; drill:boolean }) => {title:string;text:string;url:string} | null };
@@ -140,6 +141,7 @@ export default function GameTable() {
   const [players, setPlayers] = useState(4);
   const [onlineHumans, setOnlineHumans] = useState(2);
   const [onlineBots, setOnlineBots] = useState(0);
+  const [roundLimit,setRoundLimit]=useState<3|5|10|null>(null);
   const [selection, setSelection] = useState<number[]>([]);
   const [swapHand, setSwapHand] = useState<number | null>(null);
   const [needsTarget, setNeedsTarget] = useState(false);
@@ -728,6 +730,7 @@ export default function GameTable() {
 
   function newRound() {
     if (drill) { startDrill(drill.id); return; }
+    if(room?.game.roundLimit&&room.game.round>=room.game.roundLimit)return;
     roundFunnel.requestRematch();
     if (mode === "local") startLocalGame(practiceMode, local?.finishedOrder[0] ?? null,
       local?.people.length ?? null);
@@ -836,7 +839,7 @@ export default function GameTable() {
   function changeEndgameRule(next: EndgameRule) {
     if (mode === "online" && roomRef.current) {
       const activeRoom = roomRef.current;
-      if (!activeRoom.host || activeRoom.game.phase !== "setup") return;
+      if (!activeRoom.host || activeRoom.game.phase !== "setup" || activeRoom.game.roundLimit) return;
       // Optimistic feedback for the checkbox, but the server remains the
       // single source of truth. Concurrent host/guest lobby changes may require
       // one safe revision retry, unlike card moves.
@@ -863,7 +866,7 @@ export default function GameTable() {
     }
     localStorage.setItem("stack-next-display-name", name);
     await submit({ action: "create", name, humans: onlineHumans, bots: onlineBots,
-      endgameRule }, true);
+      endgameRule, roundLimit }, true);
   }
 
   async function joinOnlineRoom() {
@@ -916,6 +919,7 @@ export default function GameTable() {
             </select></label><label>Bots <select value={onlineBots} onChange={e => setOnlineBots(Number(e.target.value))}>
               {[0, 1, 2, 3, 4].filter(n=>onlineHumans+n>=2&&onlineHumans+n<=5).map(n => <option key={n}>{n}</option>)}
             </select></label></div>
+            <label>Table format <select value={roundLimit??"endless"} onChange={e=>setRoundLimit(e.target.value==="endless"?null:Number(e.target.value) as 3|5|10)}><option value="endless">Endless table</option><option value="3">Quick tournament · 3 rounds</option><option value="5">Classic tournament · 5 rounds</option><option value="10">Grand tournament · 10 rounds</option></select></label>
             <button className="cta" disabled={busy || !name.trim()} onClick={() => void createOnlineRoom()}>
               {busy ? "Connecting…" : "Create a room"} <span aria-hidden>→</span></button>
             <div className="lobby-join-label">Already have an invite?</div><div className="join-row"><input aria-label="Room code" maxLength={8} placeholder="8-letter room code"
@@ -996,7 +1000,7 @@ export default function GameTable() {
           <h1>{g.phase === "over" ? `${nameForSeat(g.loser ?? -1)} is the PILEHEAD!` :
             g.phase === "setup" ? "Choose your opening cards" :
             active ? "Your move." : `${nameForSeat(g.turn)} is playing.`}</h1></div>
-        <div className="meta-right"><span>{g.moves} moves</span><span>{g.players.length} players</span></div>
+        <div className="meta-right">{mode==="online"&&<span>{g.roundLimit?"Tournament · "+g.round+"/"+g.roundLimit:"Round "+g.round}</span>}<span>{g.moves} moves</span><span>{g.players.length} players</span></div>
       </section>
       {mode === "local" && practiceMode && !coachDismissed && coach &&
         <aside className="coach-tip" aria-label="Learning coach" data-coach-step={coach.id}>
@@ -1039,6 +1043,8 @@ export default function GameTable() {
                 <small>{seat === g.loser ? "PILEHEAD" : index === 0 ? "First out" : "Escaped"}</small>
               </li>)}
           </ol>
+          {mode==="online"&&g.standings&&<TableStandings score={g.standings} me={me} nameForSeat={nameForSeat} final={!!g.roundLimit&&g.round>=g.roundLimit}/>}
+          {mode==="online"&&!!g.roundLimit&&g.round>=g.roundLimit&&<button className="primary-button" onClick={leaveTable}>Back to lobby</button>}
           <div className="results-stats"><span>{g.moves} plays</span>
             <span>{g.ashesCount} cards burned</span><span>{g.players.length} players</span></div>
         </motion.section>}
@@ -1099,11 +1105,11 @@ export default function GameTable() {
           <div className="eyebrow">GAME SETTINGS</div><h2>Table rules</h2>
           <label className="rule-toggle">
             <input type="checkbox" checked={(mode === "online" && pendingRule ? pendingRule : g.endgameRule) === "final-duel"}
-              disabled={busy || g.phase !== "setup" || (mode === "online" && !room?.host)}
+              disabled={busy || g.phase !== "setup" || (mode === "online" && (!room?.host || !!g.roundLimit))}
               onChange={event => changeEndgameRule(event.target.checked ? "final-duel" : "classic")} />
             <span><strong>Final Duel</strong><small>
               When the stock is empty and exactly two players remain, each pile pickup
-              permanently burns its visible top card. Disabled by default.
+              permanently burns its visible top card. Disabled by default. {g.roundLimit ? "Tournament rules are fixed at room creation." : ""}
             </small></span>
           </label>
           {motionSetting}

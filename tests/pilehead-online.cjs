@@ -621,6 +621,23 @@ async function run(){
  const rejected=await request({action:'state',code:invalid.data.code},invalid.data.session);
  assert.equal(rejected.status,409);assert.equal(rejected.data.error,'room_rules_changed');checks++;
  }
+ // Fixed-round tournaments are opt-in and retain the same roster, settings and score.
+ const invalidTournament=await request({action:'create',humans:1,bots:1,name:'Invalid format',roundLimit:4});
+ assert.equal(invalidTournament.status,400);assert.equal(invalidTournament.data.error,'invalid_round_limit');
+ // Reuse a dedicated fixture to avoid exhausting the room creation quota.
+ const tour=rooms.get(hybridCode);tour.state.roundLimit=3;
+ const tournamentView=await request({action:'state',code:hybridCode},hybridHost);
+ assert.equal(tournamentView.data.game.roundLimit,3);
+ const locked=await request({action:'settings',code:hybridCode,revision:7,endgameRule:'final-duel'},hybridHost);
+ assert.equal(locked.status,409);assert.equal(locked.data.error,'tournament_rules_locked');
+ const final=tour.state;
+ for(const seat of [1,2]){const p=final.people[seat];final.ashes.push(...p.hand.splice(0),...p.up.splice(0),...p.down.splice(0));p.out=true;}
+ final.phase='over';final.finishedOrder=[1,2];final.loser=0;final.slamOpen=false;tour.status='finished';
+ Engine.invariant(final);
+ const podium=await request({action:'state',code:hybridCode},hybridFriend);
+ assert.equal(podium.status,200);assert.equal(podium.data.game.standings.completedRounds,3);
+ const noExtraRound=await request({action:'rematch',code:hybridCode,revision:7},hybridHost);
+ assert.equal(noExtraRound.status,409);assert.equal(noExtraRound.data.error,'tournament_complete');checks++;
  console.log('PASS PILEHEAD online authoritative API: '+checks+' assertions (privacy, DUMP replay, auth, turns, CAS, room isolation)');
 }
 run().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>{
