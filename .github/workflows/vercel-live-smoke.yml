@@ -8,7 +8,7 @@ permissions:
   contents: read
 jobs:
   live-smoke:
-    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'deploy/vercel-restore-20261126')
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'deploy/vercel-restore-20261126' || github.head_ref == 'launch/production-smoke-20261127'))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -18,3 +18,26 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: Verify canonical domain with two authenticated players
         run: node scripts/smoke-live.cjs https://pileheads.com
+      - name: Verify live public routes and collection disabled
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          const origin='https://pileheads.com';
+          for (const path of ['/', '/play', '/growth', '/deck-updates']) {
+            const response=await fetch(origin+path,{redirect:'error',signal:AbortSignal.timeout(15000)});
+            assert.equal(response.status,200,path);
+            assert.match(await response.text(),/PILEHEADS/i,path);
+            console.log('PASS public route',path);
+          }
+          const status=await fetch(origin+'/api/growth?status=1',{redirect:'error',signal:AbortSignal.timeout(15000)});
+          assert.equal(status.status,200);
+          const flags=await status.json();
+          assert.equal(flags.ok,true);
+          assert.equal(flags.reports,false);
+          assert.equal(flags.waitlist,false);
+          assert.equal(flags.funnel,false);
+          console.log('PASS all public growth collection flags off');
+          const summary=await fetch(origin+'/api/growth?summary=1',{redirect:'error',signal:AbortSignal.timeout(15000)});
+          assert.equal(summary.status,401);
+          console.log('PASS operator summary access denied without token');
+          JS
