@@ -1,0 +1,78 @@
+'use strict';
+const crypto=require('node:crypto');
+const ORIGIN='https://pileheads.com',PRIVACY=ORIGIN+'/privacy',VERSION='v1';
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const HASH=/^[0-9a-f]{64}$/;
+const SQL=`SELECT database_id,privacy_reviewed,guest_profiles,accounts,round_history,private_history,progression,quick_play,pilot_accounts,
+ (to_regclass('public.pileheads_guest_profiles') IS NOT NULL AND to_regclass('public.pileheads_profile_quota') IS NOT NULL) AS player_ready,
+ (to_regclass('public.pileheads_accounts') IS NOT NULL AND to_regclass('public.pileheads_account_sessions') IS NOT NULL) AS account_ready,
+ (to_regclass('public.pileheads_round_receipts') IS NOT NULL) AS receipts_ready,
+ (to_regclass('public.pileheads_round_consents') IS NOT NULL AND to_regclass('public.pileheads_player_rounds') IS NOT NULL) AS history_ready,
+ (to_regclass('public.pileheads_player_progression') IS NOT NULL AND EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid=to_regclass('public.pileheads_round_consents') AND attname='progression_opt_in' AND NOT attisdropped)) AS progression_ready,
+ (to_regclass('public.pileheads_queue_tickets') IS NOT NULL AND to_regclass('public.pileheads_match_blocks') IS NOT NULL AND EXISTS(SELECT 1 FROM pg_attribute WHERE attrelid=to_regclass('public.pileheads_match_offers') AND attname='room_code' AND NOT attisdropped) AND EXISTS(SELECT 1 FROM pg_attribute WHERE attrelid=to_regclass('public.pileheads_match_offers') AND attname='seat_key_version' AND NOT attisdropped)) AS matchmaking_ready
+ FROM public.pileheads_product_settings WHERE singleton=true`;
+const INVITES_SQL='SELECT email_hash FROM public.pileheads_pilot_invites ORDER BY email_hash LIMIT 51';
+const managed=e=>e.VERCEL_ENV==='production';
+function emailHash(email){return typeof email==='string'?crypto.createHash('sha256').update(email.trim().toLowerCase(),'utf8').digest('hex'):null}
+function deriveSeatKey(secret){if(typeof secret!=='string'||secret.length<32)return null;return Buffer.from(crypto.hkdfSync('sha256',Buffer.from(secret),Buffer.from('pileheads-runtime-v1'),Buffer.from('quick-play-seat-signing-v1'),32)).toString('base64url')}
+function disabledEnv(e){
+ // Deliberately reconstruct, never inherit stale operational flags in production.
+ return {VERCEL_ENV:e.VERCEL_ENV,PILEHEAD_DATABASE_URL:e.PILEHEAD_DATABASE_URL,PILEHEAD_PLAYER_DATABASE_URL:e.PILEHEAD_PLAYER_DATABASE_URL,PILEHEAD_GOOGLE_CLIENT_ID:e.PILEHEAD_GOOGLE_CLIENT_ID,PILEHEAD_GOOGLE_CLIENT_SECRET:e.PILEHEAD_GOOGLE_CLIENT_SECRET,PILEHEAD_ACCOUNT_FLOW_SECRET:e.PILEHEAD_ACCOUNT_FLOW_SECRET,PILEHEAD_PLAYER_ORIGIN:ORIGIN};
+}
+function effective(e,room,player,invites){
+ const out=disabledEnv(e),flag=(k,on)=>{if(on)out[k]='1'};
+ if(!room||!player||!UUID.test(room.database_id||'')||room.database_id!==player.database_id)return out;
+ // Both separately authenticated runtime connections must observe the same schema.
+ const ready=k=>room[k]===true&&player[k]===true;
+ const on=k=>room[k]===true&&player[k]===true;
+ const privacy=on('privacy_reviewed');
+ if(privacy)out.PILEHEAD_PLAYER_PRIVACY_URL=PRIVACY;
+ const profile=ready('player_ready'),account=profile&&ready('account_ready');
+ const receipts=ready('receipts_ready'),history=account&&receipts&&ready('history_ready'),progress=history&&ready('progression_ready');
+ const hashes=Array.isArray(invites)&&invites.length>0&&invites.length<=50&&invites.every(x=>typeof x==='string'&&HASH.test(x))?[...new Set(invites)]:[];
+ const allow=Array.isArray(room.pilot_accounts)&&Array.isArray(player.pilot_accounts)&&room.pilot_accounts.length<=50&&room.pilot_accounts.every(x=>typeof x==='string'&&UUID.test(x))&&JSON.stringify(room.pilot_accounts)===JSON.stringify(player.pilot_accounts)?room.pilot_accounts:[];
+ const oauth=Boolean(out.PILEHEAD_GOOGLE_CLIENT_ID&&out.PILEHEAD_GOOGLE_CLIENT_SECRET&&deriveSeatKey(out.PILEHEAD_ACCOUNT_FLOW_SECRET));
+ const accountOn=account&&privacy&&on('accounts')&&hashes.length>0&&oauth;
+ flag('PILEHEAD_PLAYER_SCHEMA_READY',profile);flag('PILEHEAD_ACCOUNT_SCHEMA_READY',account);
+ flag('PILEHEAD_HISTORY_SHARED_DATABASE_READY',history||ready('matchmaking_ready'));
+ flag('PILEHEAD_ROUND_HISTORY_SCHEMA_READY',receipts);flag('PILEHEAD_PRIVATE_HISTORY_SCHEMA_READY',history);flag('PILEHEAD_PROGRESSION_SCHEMA_READY',progress);
+ flag('PILEHEAD_PLAYER_ENABLED',profile&&privacy&&on('guest_profiles'));
+ flag('PILEHEAD_ACCOUNT_ENABLED',accountOn);flag('PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED',accountOn);
+ out.PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES=hashes;
+ const receiptOn=receipts&&privacy&&on('round_history'),historyOn=history&&accountOn&&receiptOn&&on('private_history');
+ flag('PILEHEAD_ROUND_HISTORY_ENABLED',receiptOn);flag('PILEHEAD_PRIVATE_HISTORY_ENABLED',historyOn);flag('PILEHEAD_PROGRESSION_ENABLED',progress&&historyOn&&on('progression'));
+ flag('PILEHEAD_MATCHMAKING_SCHEMA_READY',ready('matchmaking_ready'));
+ if(accountOn&&ready('matchmaking_ready')&&on('quick_play')&&allow.length){
+  out.PILEHEAD_MATCHMAKING_LIVE_PILOT_ENABLED='1';
+  out.PILEHEAD_MATCHMAKING_PREVIEW_ORIGIN=ORIGIN;out.PILEHEAD_MATCHMAKING_PREVIEW_ACCOUNTS=allow.join(',');
+  out.PILEHEAD_MATCHMAKING_SEAT_KEYS=JSON.stringify({[VERSION]:deriveSeatKey(out.PILEHEAD_ACCOUNT_FLOW_SECRET)});out.PILEHEAD_MATCHMAKING_SEAT_KEY_VERSION=VERSION;
+ }
+ return out;
+}
+function createLoader({env=process.env,roomQuery,playerQuery,now=Date.now,ttl=3000}={}){
+ let cached=null,expires=0,pending=null;
+ return async function load(){
+  if(!managed(env))return env;
+  if(!env.PILEHEAD_DATABASE_URL||!env.PILEHEAD_PLAYER_DATABASE_URL)return disabledEnv(env);
+  if(cached&&now()<expires)return cached;
+  if(pending)return pending;
+  pending=(async()=>{
+   try{
+    const [r,p]=await Promise.all([roomQuery(SQL,[]),playerQuery(SQL,[])]);
+    const room=r[0],player=p[0];let invites=[];
+    if(room?.accounts===true&&player?.accounts===true&&room.database_id===player.database_id)invites=(await playerQuery(INVITES_SQL,[])).map(x=>x.email_hash);
+    cached=effective(env,room,player,invites);
+   }catch{cached=disabledEnv(env)}
+   expires=now()+ttl;return cached;
+  })();
+  try{return await pending}finally{pending=null}
+ };
+}
+let roomDb,playerDb;
+const query=(kind,sql,args)=>{
+ const neon=require('@neondatabase/serverless').neon;
+ if(kind==='room'){roomDb??=neon(process.env.PILEHEAD_DATABASE_URL);return roomDb.query(sql,args)}
+ playerDb??=neon(process.env.PILEHEAD_PLAYER_DATABASE_URL);return playerDb.query(sql,args);
+};
+const load=createLoader({roomQuery:(s,a)=>query('room',s,a),playerQuery:(s,a)=>query('player',s,a)});
+module.exports={SQL,INVITES_SQL,ORIGIN,PRIVACY,managed,emailHash,deriveSeatKey,effective,createLoader,load};
