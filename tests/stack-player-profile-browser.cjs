@@ -12,7 +12,7 @@ async function main(){
   let ready=false;
   for(let i=0;i<100;i++){try{if((await fetch(base+'/livez')).ok){ready=true;break}}catch{}await new Promise(r=>setTimeout(r,100))}
   assert.ok(ready,'profile server readiness: '+logs.slice(-1000));
-  for(const route of ['/profile','/profile/'])assert.equal((await fetch(base+route)).status,200);
+  for(const route of ['/profile','/profile/','/quick-play','/quick-play/'])assert.equal((await fetch(base+route)).status,200);
   const inactive=await fetch(base+'/api/player');assert.equal(inactive.status,200);
   assert.deepEqual(await inactive.json(),{enabled:false,profile:null});assert.match(inactive.headers.get('cache-control'),/no-store/);
   const inactiveAccount=await fetch(base+'/api/account');assert.equal(inactiveAccount.status,200);assert.equal((await inactiveAccount.json()).enabled,false);
@@ -168,6 +168,37 @@ async function main(){
     assert.equal(await consent.getByRole('button',{name:'Save this round',exact:true}).count(),0);
     assert.deepEqual(consentActions,['history-link','history-unlink','history-link','history-unlink']);
     console.log('PASS private history UI: '+width+'px, no auto-consent, explicit opt-in/revocation, signed-out state');
+    await page.goto(base+'/quick-play');
+    await page.getByText('Quick Play is not open yet.',{exact:false}).waitFor();
+    assert.equal(await page.getByRole('button',{name:'Find opponent'}).count(),0);
+    let queueState={state:'idle'},queueActions=[];
+    const ticket='4c0c6815-e56b-4e6f-a6e3-000000000001',offer='5c0c6815-e56b-4e6f-a6e3-000000000001';
+    const expiresAt=new Date(Date.now()+60000).toISOString();
+    await context.route('**/api/matchmaking',async route=>{
+     const req=route.request();
+     if(req.method()==='POST'){
+      const input=req.postDataJSON();queueActions.push(input.action);
+      if(input.action==='join')queueState={state:'waiting',ticket,expiresAt};
+      if(input.action==='status'&&queueState.state==='waiting')queueState={state:'offered',offer,expiresAt,ownReady:false,rivalReady:true};
+      if(input.action==='accept')queueState={state:'assigned',offer,canRelease:false};
+      if(input.action==='cancel')queueState={state:'idle'};
+      if(input.action==='recover')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({available:true,authorized:true,seat:{code:'ABCD2345',seat:0,session:'a'.repeat(43)}})});
+     }
+     await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({available:true,authorized:true,status:queueState})});
+    });
+    await page.reload();await page.getByRole('button',{name:'Find opponent'}).waitFor();
+    assert.deepEqual(queueActions,[]);
+    await page.getByRole('button',{name:'Find opponent'}).click();
+    await page.getByRole('button',{name:'Cancel search'}).click();
+    await page.getByRole('button',{name:'Find opponent'}).click();
+    await page.getByRole('button',{name:'Accept match'}).waitFor();
+    await page.getByRole('button',{name:'Accept match'}).click();
+    await page.getByRole('button',{name:'Enter table'}).waitFor();
+    await page.reload();await page.getByRole('button',{name:'Enter table'}).waitFor();
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'queue fits viewport');
+    assert.ok(queueActions.includes('cancel')&&queueActions.includes('accept'));
+    console.log('PASS Quick Play preview UI: '+width+'px, disabled route, explicit join, cancel, ready check, recovery after reload');
+
 
 
    }finally{await context.close()}
