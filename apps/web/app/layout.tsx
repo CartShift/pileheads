@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <head><link rel="stylesheet" href="/stack-media/stack-design-system.css" /></head>
+      <head><link rel="preload" href="/stack-media/barlow-condensed-black-italic.ttf" as="font" type="font/ttf" crossOrigin="anonymous"/><link rel="stylesheet" href="/stack-media/stack-design-system.css" /></head>
       <body><FunnelProvider>{children}</FunnelProvider></body>
     </html>
   );

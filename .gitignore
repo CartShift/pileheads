@@ -7,3 +7,12 @@ coverage/
 *.tar.gz
 .DS_Store
 vercel-static/
+
+# Local credentials and signing material
+.envrc
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore

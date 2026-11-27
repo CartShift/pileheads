@@ -5,3 +5,6 @@ Run `node tests/stack-launch-performance.cjs` after the integrated build and pin
 - This is a report-only baseline for performance; hard fail on horizontal overflow, uncaught client errors and third-party requests before consent. Existing asset-size budgets remain enforced by the integrated tests.
 - Report `artifacts/next/launch-performance.json` is uploaded by existing full CI. LCP 2.5s, CLS 0.1 are targets, not a claim about real devices or field percentiles. CLS here is total observed unexpected shifts, not the field session-window algorithm; INP is not measured. Run real devices and field measurement only after appropriate privacy review.
 - Use initial evidence to prioritize image loading, JS splitting and local font delivery. Do not remove useful content or weaken tests to meet a budget.
+
+## Initial baseline (PR #155)
+Mobile LCP ms: home 2236, play 2176, rules 2032, deck 9688. CLS: .0385, .1395, .0019, .0019. Deck loaded the full master sprite. Use pinned optimized mobile/desktop sheets, early font preload and avoid prefetching adjacent public routes. Re-measure rather than assuming improvement. Record layout shift sources to identify remaining movement.

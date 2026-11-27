@@ -1756,6 +1756,7 @@ async function publicLaunch(browser){
       assert.equal(response.status(),200);
       assert.equal(await page.locator('link[rel="canonical"]').getAttribute("href"),"https://pileheads.com"+route);
       assert.equal(await page.locator("h1").count(),1);
+      assert.ok(await page.locator(".public-card:not(.public-back)").first().evaluate(el=>getComputedStyle(el).backgroundImage.includes("faces-web-mobile.webp")),"optimized mobile card sprite");
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),"public page has no horizontal overflow");
       await page.screenshot({path:path.resolve(ROOT,"artifacts/next/public-"+route.slice(1)+".png"),fullPage:true,animations:"disabled"});
     }

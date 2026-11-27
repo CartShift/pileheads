@@ -16,10 +16,10 @@ async function measure(browser,route,profile){
   page.on("request",r=>{if(/^https?:/.test(r.url())&&new URL(r.url()).origin!==BASE)external.add(new URL(r.url()).origin)});
   page.on("pageerror",e=>errors.push(e.message));
   await page.addInitScript(()=>{
-   const metrics={lcp:null,cls:0,lcpObserved:false,clsObserved:false};
+   const metrics={lcp:null,cls:0,lcpObserved:false,clsObserved:false,shifts:[]};
    window.__launchMetrics=metrics;
    try{new PerformanceObserver(list=>{for(const entry of list.getEntries()){metrics.lcp=Math.round(entry.startTime);metrics.lcpObserved=true}}).observe({type:"largest-contentful-paint",buffered:true})}catch{}
-   try{new PerformanceObserver(list=>{for(const entry of list.getEntries()){if(!entry.hadRecentInput)metrics.cls+=entry.value;metrics.clsObserved=true}}).observe({type:"layout-shift",buffered:true})}catch{}
+   try{new PerformanceObserver(list=>{for(const entry of list.getEntries()){if(!entry.hadRecentInput){metrics.cls+=entry.value;metrics.shifts.push({value:entry.value,ms:Math.round(entry.startTime),sources:(entry.sources||[]).map(s=>s.node?.className?.toString()?.slice(0,120)||s.node?.nodeName||"unknown")})};metrics.clsObserved=true}}).observe({type:"layout-shift",buffered:true})}catch{}
   });
   if(profile.mobile){
    const cdp=await context.newCDPSession(page);
@@ -36,7 +36,7 @@ async function measure(browser,route,profile){
    const sum=(list,field)=>list.reduce((total,x)=>total+(x[field]||0),0);
    const js=resources.filter(x=>x.initiatorType==="script"||/\.js(?:\?|$)/.test(x.name));
    const metrics=window.__launchMetrics;
-   return {lcpMs:metrics.lcp,cls:Math.round(metrics.cls*10000)/10000,lcpObserved:metrics.lcpObserved,clsObserved:metrics.clsObserved,
+   return {lcpMs:metrics.lcp,cls:Math.round(metrics.cls*10000)/10000,lcpObserved:metrics.lcpObserved,clsObserved:metrics.clsObserved,shiftSources:metrics.shifts,
     ttfbMs:Math.round(nav.responseStart),domContentLoadedMs:Math.round(nav.domContentLoadedEventEnd),loadMs:Math.round(nav.loadEventEnd),
     encodedBytes:nav.encodedBodySize+sum(resources,"encodedBodySize"),transferBytes:nav.transferSize+sum(resources,"transferSize"),javascriptEncodedBytes:sum(js,"encodedBodySize"),requests:resources.length+1,
     horizontalOverflow:document.documentElement.scrollWidth>innerWidth+2};
