@@ -3,6 +3,7 @@ import {useEffect,useRef,useState} from "react";
 import {useRouter} from "next/navigation";
 import Link from "next/link";
 import type {DeckTheme} from "./card-view";
+import LocalPreferences from "./local-preferences";
 
 const decks:{id:DeckTheme;label:string}[]=[{id:"refined",label:"Illustrated"},{id:"characters",label:"Characters"},{id:"original",label:"Original"}];
 type Profile={kind:"guest";name:string;deck:DeckTheme;expiresAt:string};
@@ -51,7 +52,7 @@ export default function PlayerProfile(){
   <div className="eyebrow">YOUR PLAYER PROFILE</div><h2>Make it yours.</h2>
   {busy&&<p role="status">Connecting to your profile…</p>}
   {error&&<p role="alert">{error} <button type="button" className="learn-button" disabled={busy} onClick={()=>void update()}>Retry</button></p>}
-  {data&&!data.enabled&&!data.profile&&<p>Guest profiles are not available yet. You can still play for free.</p>}
+  {((data&&!data.enabled&&!data.profile)||(!data&&!!error&&!busy))&&<LocalPreferences/>}
   {data?.enabled&&!data.profile&&<>
    <p>Create an optional profile for this browser. No email or password. It expires after 90 days; clearing cookies can remove access.</p>
    <p>This is not a recoverable account or purchase wallet.</p>

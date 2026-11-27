@@ -24,7 +24,23 @@ async function main(){
     const page=await context.newPage();
     await page.goto(base+'/play');
     await page.getByRole('link',{name:'Your profile',exact:true}).click();
-    await page.getByText('Guest profiles are not available yet. You can still play for free.').waitFor();
+    const device=page.getByRole('region',{name:'Device preferences'});
+    await device.getByLabel('Nickname').waitFor();
+    assert.equal(await page.evaluate(()=>localStorage.getItem('stack-next-display-name')),null,'viewing does not save a nickname');
+    await device.getByLabel('Nickname').fill('Local Ace');
+    await device.getByLabel('Favorite deck').selectOption('characters');
+    await device.getByRole('button',{name:'Save device preferences'}).click();
+    await device.getByText('Preferences saved on this device.').waitFor();
+    await page.reload();
+    await device.getByLabel('Nickname').waitFor();
+    await page.waitForFunction(()=>document.querySelector('[aria-label="Device preferences"] input')?.value==='Local Ace');
+    assert.equal(await device.getByLabel('Favorite deck').inputValue(),'characters');
+    await device.getByRole('button',{name:/Save and play/}).click();
+    await page.waitForURL('**/play');
+    await page.waitForFunction(()=>document.querySelector('input[maxlength="24"]')?.value==='Local Ace');
+    assert.equal(await page.evaluate(()=>localStorage.getItem('stack-next-deck-theme-v1')),'characters');
+    await page.getByRole('link',{name:'Your profile',exact:true}).click();
+    await device.getByLabel('Nickname').waitFor();
     assert.equal(await page.getByRole('button',{name:'Create guest profile'}).count(),0);
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'profile must not overflow');
     // UI contract only. Mock enabled profile API while the actual server remains disabled.

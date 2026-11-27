@@ -13,3 +13,6 @@ Internal service only. No account endpoint or public login is exposed by this in
 - Still required: actual Google authorization, cancellation, provider scope acceptance (openid only), two real browsers/devices, HTTPS cookie rotation, callback access-log redaction, public abuse limits and privacy/retention approval. No real OAuth exchange, production account activation or migration by this PR. No room/profile history linkage, ranked play, purchases or entitlements.
 
 - The profile browser acceptance now exercises actual disabled account API/callback and mocked enabled account UI on mobile and desktop, including simulated provider navigation intercepted locally (no real Google traffic), preference save/reload/import, applying preferences, sign-out and deletion. This does not replace real provider/cookie acceptance.
+
+## Device-only preferences fallback
+When the guest service is disabled or its initial request fails, the profile page can edit the existing browser-local nickname and deck settings consumed by the game. Explicit save only; no server write, account creation, simulated XP or cross-device sync. Existing guest/account APIs and their privacy controls remain unchanged. The profile browser suite covers saving, reloading and using the fallback in the game at mobile and desktop widths.

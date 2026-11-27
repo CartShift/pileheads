@@ -52,7 +52,7 @@ export default function AccountPanel(){
   {busy&&<p role="status">Connecting to your account…</p>}
   {error&&<p role="alert">{error} <button type="button" className="learn-button" disabled={busy} onClick={()=>void update()}>Retry</button></p>}
   {data?.privacyUrl&&<p><a href={data.privacyUrl}>Privacy notice</a></p>}
-  {data&&!data.enabled&&!data.profile&&<p role="status">Sign-in is not available yet. Account preferences, saved rounds and optional XP will be available when enabled. You can still play for free.</p>}
+  {data&&!data.enabled&&!data.profile&&<p role="status">Sign-in is not available yet. You can set your nickname and favorite deck below on this device. Cross-device sync, saved rounds and XP require an account.</p>}
   {data?.enabled&&!data.profile&&<><p>Sign in to keep your nickname and favorite deck across devices, and access optional private history and progression when available. A free guest profile or no account still works.</p><button className="cta" disabled={busy} onClick={()=>void update({action:"login"})}>Continue with Google</button></>}
   {data?.profile&&<>
    <form onSubmit={e=>{e.preventDefault();void update({action:"preferences",name,deck});}}>
