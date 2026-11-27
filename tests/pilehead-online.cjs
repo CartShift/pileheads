@@ -420,10 +420,16 @@ async function run(){
  g.finishedOrder=[0,2];g.loser=1;g.phase='over';g.slamOpen=false;
  ended.status='finished';
  Engine.invariant(g);
- const replay=await request({action:'rematch',code:hybridCode,revision:4},hybridFriend);
+ const vote=await request({action:'rematch',code:hybridCode,revision:4},hybridFriend);
+ assert.equal(vote.status,200);assert.equal(vote.data.game.phase,'over');assert.deepEqual(vote.data.game.rematchReady,[false,true]);
+ const cancel=await request({action:'rematch-ready',ready:false,code:hybridCode,revision:5},hybridFriend);
+ assert.equal(cancel.status,200);assert.deepEqual(cancel.data.game.rematchReady,[false,false]);
+ const hostVote=await request({action:'rematch-ready',ready:true,code:hybridCode,revision:6},hybridHost);
+ assert.equal(hostVote.status,200);assert.equal(hostVote.data.game.phase,'over');
+ const replay=await request({action:'rematch',code:hybridCode,revision:7},hybridFriend);
  assert.equal(replay.status,200,JSON.stringify(replay));
  assert.equal(replay.data.code,hybridCode);
- assert.equal(replay.data.revision,5);
+ assert.equal(replay.data.revision,8);assert.deepEqual(replay.data.game.rematchReady,[false,false]);
  assert.equal(replay.data.game.phase,'setup');
  assert.equal(replay.data.game.round,2);
  assert.equal(replay.data.game.roundLimit,3);
@@ -441,7 +447,7 @@ async function run(){
  assert.equal(oldTokenStillValid.data.members.length,2);checks++;
  const staleReplay=await request({action:'rematch',code:hybridCode,revision:4},hybridHost);
  assert.equal(staleReplay.status,409);checks++;
- const tooEarlyReplay=await request({action:'rematch',code:hybridCode,revision:5},hybridFriend);
+ const tooEarlyReplay=await request({action:'rematch',code:hybridCode,revision:8},hybridFriend);
  assert.equal(tooEarlyReplay.status,409);
  assert.equal(tooEarlyReplay.data.error,'game_not_finished');checks++;
  // Finish the next round through a real authenticated move and verify CAS persists the score before rematch.
@@ -451,13 +457,15 @@ async function run(){
  finalGame.people[0].hand.push(takeNumber());finalGame.people[1].hand.push(takeNumber());
  finalGame.ashes.push(...pool);finalGame.people[2].out=true;finalGame.finishedOrder=[2];finalGame.phase='play';finalGame.turn=1;finalGame.limit=null;finalGame.slamOpen=false;finalGame.loser=null;
  rooms.get(hybridCode).status='playing';Engine.invariant(finalGame);
- const terminalCommand={action:'move',code:hybridCode,revision:5,move:{type:'play',source:'hand',ids:[finalGame.people[1].hand[0].id]}};
+ const terminalCommand={action:'move',code:hybridCode,revision:8,move:{type:'play',source:'hand',ids:[finalGame.people[1].hand[0].id]}};
  const terminal=await request(terminalCommand,hybridFriend);
  assert.equal(terminal.status,200,JSON.stringify(terminal));assert.equal(terminal.data.game.phase,'over');
  assert.equal(terminal.data.game.standings.completedRounds,2);assert.deepEqual(terminal.data.game.standings.seats.map(x=>x.points),[2,1,3]);
  assert.equal(rooms.get(hybridCode).state.roomStandings.completedRounds,2);
  assert.equal((await request(terminalCommand,hybridFriend)).status,409);
- const third=await request({action:'rematch',code:hybridCode,revision:6},hybridHost);
+ const nextVote=await request({action:'rematch',code:hybridCode,revision:9},hybridHost);
+ assert.equal(nextVote.data.game.phase,'over');
+ const third=await request({action:'rematch',code:hybridCode,revision:10},hybridFriend);
  assert.equal(third.status,200);assert.equal(third.data.game.round,3);
  assert.equal(third.data.game.roundLimit,3);
  assert.deepEqual(third.data.game.standings,terminal.data.game.standings);checks++;
@@ -631,7 +639,7 @@ async function run(){
  const tour=rooms.get(hybridCode);
  const tournamentView=await request({action:'state',code:hybridCode},hybridHost);
  assert.equal(tournamentView.data.game.roundLimit,3);
- const locked=await request({action:'settings',code:hybridCode,revision:7,endgameRule:'final-duel'},hybridHost);
+ const locked=await request({action:'settings',code:hybridCode,revision:11,endgameRule:'final-duel'},hybridHost);
  assert.equal(locked.status,409);assert.equal(locked.data.error,'tournament_rules_locked');
  const final=tour.state;
  for(const seat of [1,2]){const p=final.people[seat];final.ashes.push(...p.hand.splice(0),...p.up.splice(0),...p.down.splice(0));p.out=true;}
@@ -639,7 +647,7 @@ async function run(){
  Engine.invariant(final);
  const podium=await request({action:'state',code:hybridCode},hybridFriend);
  assert.equal(podium.status,200);assert.equal(podium.data.game.standings.completedRounds,3);
- const noExtraRound=await request({action:'rematch',code:hybridCode,revision:7},hybridHost);
+ const noExtraRound=await request({action:'rematch',code:hybridCode,revision:11},hybridHost);
  assert.equal(noExtraRound.status,409);assert.equal(noExtraRound.data.error,'tournament_complete');checks++;
  console.log('PASS PILEHEAD online authoritative API: '+checks+' assertions (privacy, DUMP replay, auth, turns, CAS, room isolation)');
 }
