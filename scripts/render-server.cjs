@@ -9,6 +9,8 @@ const { stat } = require('node:fs/promises');
 const roomHandler = require('../api/pilehead.js');
 const growthHandler = require('../api/growth.js');
 const playerHandler = require('../api/player.js');
+const accountHandler = require('../api/account.js');
+const accountCallback = require('../api/account/callback.js');
 const { attachRealtime } = require('./realtime-hub.cjs');
 let liveHub = null;
 
@@ -138,6 +140,8 @@ const server = http.createServer(async (req, res) => {
     else if (url.pathname === '/api/pilehead') await serveApi(req, res, url);
     else if (url.pathname === '/api/growth') await serveApi(req, res, url, growthHandler);
     else if (url.pathname === '/api/player') await serveApi(req, res, url, playerHandler);
+    else if (url.pathname === '/api/account') await serveApi(req, res, url, accountHandler);
+    else if (url.pathname === '/api/account/callback') await serveApi(req, res, url, accountCallback);
     else await serveFile(req, res, url);
   } catch (error) {
     console.error('PILEHEADS request failed');
