@@ -40,12 +40,12 @@ export default function QuickPlayPreview(){
  useEffect(()=>{mounted.current=true;void request();return()=>{mounted.current=false;controller.current?.abort()}},[]);
  const state=result?.status?.state;
  useEffect(()=>{
-  if(!result?.authorized||!["waiting","offered","ready"].includes(state||""))return;
+  if(!result?.authorized||(!["waiting","offered","ready"].includes(state||"")&&!(state==="assigned"&&!result.status?.canRelease)))return;
   const t=setInterval(()=>{if(document.visibilityState==="visible")void request({action:"status"})},3000);
   const onVisible=()=>{if(document.visibilityState==="visible")void request({action:"status"})};
   document.addEventListener("visibilitychange",onVisible);
   return()=>{clearInterval(t);document.removeEventListener("visibilitychange",onVisible)}
- },[state,result?.authorized]);
+ },[state,result?.authorized,result?.status?.canRelease]);
  useEffect(()=>{if(state!=="waiting"&&state!=="offered"&&state!=="ready")return;const t=setInterval(()=>setClock(Date.now()),1000);return()=>clearInterval(t)},[state]);
  const s=result?.status,seconds=s?.expiresAt?Math.max(0,Math.ceil((Date.parse(s.expiresAt)-clock)/1000)):null;
  return <section className="mode-card" aria-label="Quick Play preview">
@@ -56,7 +56,7 @@ export default function QuickPlayPreview(){
    {s?.state==="expired"&&<><p>Your ticket or ready check expired. You can try again.</p><button className="cta" disabled={busy} onClick={()=>void request({action:"join"})}>Find another opponent</button></>}
    {s?.state==="waiting"&&<><p role="status">Looking for another player… {seconds!==null&&`(${seconds}s remaining)`}</p><button className="learn-button" disabled={busy} onClick={()=>void request({action:"cancel",ticket:s.ticket!})}>Cancel search</button></>}
    {(s?.state==="offered"||s?.state==="ready")&&<><h3>Match found</h3><p role="status">{s.ownReady?"You are ready":"Confirm that you are ready"} · {s.rivalReady?"Opponent ready":"Waiting for opponent"}</p><p>{seconds!==null&&`${seconds}s remaining`}</p>{!s.ownReady&&<button className="cta" disabled={busy||seconds===0} onClick={()=>void request({action:"accept",offer:s.offer!})}>Accept match</button>}<button className="learn-button" disabled={busy} onClick={()=>void request({action:"cancel",offer:s.offer!})}>Decline match</button></>}
-   {s?.state==="assigned"&&<><h3>Your table is ready</h3><p>Your account can recover the same seat on another device.</p>{s.canRecover!==false&&<button className="cta" disabled={busy} onClick={()=>void request({action:"recover"})}>Enter table</button>}{s.canRecover===false&&<p>This room has expired. Leave the assignment to search again.</p>}{s.canRelease&&<button className="learn-button" disabled={busy} onClick={()=>void request({action:"release",offer:s.offer!})}>Leave completed match</button>}</>}
+   {s?.state==="assigned"&&<><h3>{s.canRelease?"Your match has ended":"Your table is ready"}</h3><p>{s.canRelease?"Review the table or leave the assignment to play again.":"Your account can recover the same seat on another device."}</p>{s.canRecover!==false&&<button className="cta" disabled={busy} onClick={()=>void request({action:"recover"})}>Enter table</button>}{s.canRecover===false&&<p>This room has expired. Leave the assignment to search again.</p>}{s.canRelease&&<button className="learn-button" disabled={busy} onClick={()=>void request({action:"release",offer:s.offer!})}>Leave completed match</button>}</>}
    <button className="learn-button" disabled={busy} onClick={()=>void request({action:"status"})}>Refresh queue status</button>
   </>}
   {error&&<p role="alert">{error} <button className="learn-button" disabled={busy} onClick={()=>void request()}>Retry connection</button></p>}
