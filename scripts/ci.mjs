@@ -34,6 +34,7 @@ const stages = {
     npm('exec', '--', 'playwright', 'install', ...(process.platform === 'linux' ? ['--with-deps'] : []), '--only-shell', 'chromium'),
   ],
   'browser-test': [
+    node('tests/stack-homepage-browser.cjs'),
     node('tests/stack-next-browser.cjs'),
     node('tests/creative-studio-browser.cjs'),
   ],

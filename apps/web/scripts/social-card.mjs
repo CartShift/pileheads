@@ -1,0 +1,14 @@
+import sharp from "sharp";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+const here=path.dirname(fileURLToPath(import.meta.url));
+const media=path.resolve(here,"../public/stack-media");
+const sheet=path.resolve(here,"../public/pilehead/assets/stack-characters-v2.webp");
+const meta=await sharp(sheet).metadata();
+const cardW=Math.floor(meta.width/4),cardH=Math.floor(meta.height/4);
+const face=async index=>sharp(sheet).extract({left:(index%4)*cardW,top:Math.floor(index/4)*cardH,width:cardW,height:cardH}).resize(174,245,{fit:"fill"}).png().toBuffer();
+const logo=await sharp(path.join(media,"stack-home-logo-web.webp")).resize(320,180,{fit:"contain",background:{r:0,g:0,b:0,alpha:0}}).png().toBuffer();
+const back=await sharp(path.resolve(here,"../public/pilehead/assets/stack-back-v2.webp")).resize(174,245,{fit:"fill"}).png().toBuffer();
+const background=Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><defs><pattern id="dots" width="12" height="12" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1.1" fill="#172421" opacity=".14"/></pattern></defs><rect width="1200" height="630" fill="#086879"/><rect width="1200" height="630" fill="url(#dots)"/><circle cx="898" cy="302" r="248" fill="#f6c32c" stroke="#172421" stroke-width="5"/><path d="M651 92l47 37-62 7 28 44-50-14zM1118 434l-33 42 57 4-28 48 62-26z" fill="#c92122" stroke="#172421" stroke-width="4"/><g font-family="DejaVu Sans, sans-serif" font-weight="900" font-style="italic" fill="#fff4d7" stroke="#172421" stroke-width="2" paint-order="stroke"><text x="54" y="310" font-size="66">ONE PILE.</text><text x="54" y="394" font-size="66">ONE LOSER.</text></g><rect x="54" y="446" width="485" height="74" rx="37" fill="#c92122" stroke="#172421" stroke-width="4"/><text x="297" y="492" font-family="DejaVu Sans,sans-serif" font-size="30" text-anchor="middle" font-weight="bold" fill="#fff4d7">PLAY FREE ONLINE</text><text x="55" y="568" font-family="DejaVu Sans,sans-serif" font-size="25" font-weight="bold" fill="#fff4d7">2–5 PLAYERS · NO ACCOUNT</text><rect x="14" y="14" width="1172" height="602" rx="5" fill="none" stroke="#fff4d7" stroke-width="3"/></svg>`);
+await sharp(background).composite([{input:logo,left:55,top:40},{input:await face(14),left:684,top:116},{input:await face(15),left:899,top:116},{input:await face(6),left:752,top:281},{input:back,left:929,top:285}]).png().toFile(path.join(media,"pileheads-social.png"));
+console.log("Generated 1200×630 social preview from official artwork");

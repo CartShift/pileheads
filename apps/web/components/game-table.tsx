@@ -136,6 +136,7 @@ export default function GameTable() {
   const [room, setRoom] = useState<Room | null>(null);
   const [name, setName] = useState("Player");
   const [joinCode, setJoinCode] = useState("");
+  const [inviteEntry, setInviteEntry] = useState(false);
   const [players, setPlayers] = useState(4);
   const [onlineHumans, setOnlineHumans] = useState(2);
   const [onlineBots, setOnlineBots] = useState(0);
@@ -272,7 +273,8 @@ export default function GameTable() {
     setResumeGame(loadSavedGame());
     setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
     setEndgameRule(localStorage.getItem(FINAL_DUEL_KEY) === "final-duel" ? "final-duel" : "classic");
-    if (!code) return;
+    if (!code || !/^[A-Z0-9]{8}$/.test(code)) return;
+    setInviteEntry(true);
     setJoinCode(code);
     const token = localStorage.getItem(sessionKey(code));
     if (token) { tokenRef.current = token; void synchronize(code, token); }
@@ -711,12 +713,13 @@ export default function GameTable() {
   }
 
   function startLocalGame(withCoach = practiceMode, previousWinner: number | null = null,
-    seatCount: number | null = null) {
+    seatCount: number | null = null, autoStart = false) {
     roomEpoch.current++;
     setDrill(null);
     setPracticeMode(withCoach);
     setCoachDismissed(false);
     const game = createGame(seatCount ?? (withCoach ? 2 : players), endgameRule, previousWinner, withCoach);
+    if(autoStart){Engine.autoSetup(game,0);Engine.start(game);}
     freshDealKey.current = "local:" + game.seed;
     localRef.current = game;
     undoRef.current = null; setUndoAvailable(false);
@@ -750,7 +753,7 @@ export default function GameTable() {
     if (wsRef.current) wsRef.current.close();
     setDrill(null);
     freshDealKey.current = null;
-    setMode("home"); setLocal(null); setRoom(null); roomRef.current = null;
+    setMode("home"); setInviteEntry(false); setLocal(null); setRoom(null); roomRef.current = null;
     tokenRef.current = null; setBusy(false); inFlight.current = false;
     setConnected(false); setConfirmRestart(false); setShowRules(false); setPileOpen(false);
     setShowSettings(false); setPendingRule(null); setCopiedInvite(false);
@@ -870,14 +873,15 @@ export default function GameTable() {
 
   if (!g || !current) return (
     <main className="game-shell stack-lobby">
-      <header className="lobby-masthead"><nav className="stack-site-nav" aria-label="Main navigation"><Link href="/" className="stack-site-brand" aria-label="PILEHEADS home" prefetch={false}><img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={640} height={356}/></Link><div className="stack-site-links"><a href="/">Home</a><a className="stack-nav-primary" href="/play" aria-current="page">Play online</a><a href="/pilehead/gallery.html">The deck</a><a href="/pilehead/playtest.html">How to play</a><a href="/pilehead/print.html">Print</a></div></nav></header>
-      <section className="entry">
+      <header className="lobby-masthead"><nav className="stack-site-nav" aria-label="Main navigation"><Link href="/" className="stack-site-brand" aria-label="PILEHEADS home" prefetch={false}><img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={640} height={356}/></Link><div className="stack-site-links"><a href="/">Home</a><a className="stack-nav-primary" href="/play" aria-current="page">Play online</a><a href="/deck">The deck</a><a href="/how-to-play">How to play</a><a href="/pilehead/print.html">Print</a></div></nav></header>
+      <section className="entry launch-entry">
         <div className="entry-intro"><div className="eyebrow">WELCOME TO THE TABLE</div>
-          <h1>One pile.<br /><em>One loser.</em></h1>
-          <p>Play free with bots or invite friends to a private table. One pile, clever moves and a little friendly revenge.</p>
+          <h1>{inviteEntry ? <>You’re<br/><em>invited.</em></> : <>One pile.<br /><em>One loser.</em></>}</h1>
+          <p>{inviteEntry ? "Your friends are waiting. Pick a nickname and join the table." : "Get rid of your cards before everyone else. Play free with bots or invite friends."}</p>
           <div className="lobby-facts"><span>2–5 players</span><span>Free to play</span><span>No account</span></div><div className="lobby-art" aria-hidden="true"><span className="lobby-card lobby-burn"/><span className="lobby-card lobby-dump"/><span className="lobby-card lobby-ghost"/><img src="/stack-media/stack-home-explorer-web-mobile.webp" width={360} height={452} alt="" decoding="async"/></div><div className="lobby-links"><button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>Game settings</button></div>
         </div>
-        <div className="entry-options"><h2 className="lobby-choice-heading">Choose your table<span>.</span></h2>
+        <div className="entry-options"><h2 className="lobby-choice-heading">{inviteEntry ? "Join the table" : "Choose your table"}<span>.</span></h2>
+          {inviteEntry ? <form className="mode-card invite-mode" onSubmit={event=>{event.preventDefault();if(!busy&&name.trim()&&joinCode.length===8)void joinOnlineRoom();}}><div className="eyebrow">PRIVATE INVITATION</div><h2>Room {joinCode}</h2><label>Your name <input maxLength={24} required value={name} onChange={e=>setName(e.target.value)}/></label><button className="cta" type="submit" disabled={busy||!name.trim()}>{busy?"Connecting…":"Join"} <span aria-hidden>→</span></button><button type="button" className="learn-button" onClick={()=>{setInviteEntry(false);setJoinCode("");setNotice("");history.replaceState(null,"","/play");}}>Back to all tables</button></form> : <>
           {resumeGame && <div className="resume-panel">
             <div><div className="eyebrow">SAVED LOCAL MATCH</div>
               <strong>Pick up where you left off</strong>
@@ -886,39 +890,41 @@ export default function GameTable() {
             <button className="secondary-button" onClick={resumeLocal}>Resume game</button>
           </div>}
           <div className="mode-card">
-            <div className="eyebrow">01 · PRACTICE</div><h2>Play with bots</h2>
-            <p>Local, instant, no account required.</p>
+            <div className="eyebrow">01 · QUICK PLAY</div><h2>Play with bots</h2>
+            <p>Jump in immediately with a guided two-player game.</p>
+            <button type="button" className="cta quick-start" onClick={()=>startLocalGame(true,null,2,true)}>Quick play</button>
+            <p className="custom-table-label">Or set up your own table:</p>
             <label>Players <select value={players} onChange={e => setPlayers(Number(e.target.value))}>
               {[2, 3, 4, 5].map(n => <option key={n} value={n}>{n} players</option>)}
             </select></label>
             <button className="cta" onClick={() => startLocalGame(false)}>Start game <span aria-hidden>→</span></button>
             <button className="learn-button" onClick={() => startLocalGame(true)}>Learn with a bot</button>
-            <div className="drill-picker">
+            <details className="drill-picker"><summary>Practice a special move</summary>
               <label>Special move drill <select value={drillChoice} onChange={e=>setDrillChoice(e.target.value as DrillId)}>
                 {Drills.DRILLS.map(d=><option key={d.id} value={d.id}>{d.label}</option>)}
               </select></label>
               <small>Isolated practice. The bot waits for your first action; saved matches stay untouched.</small>
               <button className="learn-button" onClick={()=>startDrill(drillChoice)}>Practice special move</button>
-            </div>
+            </details>
           </div>
           <div className="mode-card">
             <div className="eyebrow">02 · WITH FRIENDS</div><h2>Private room</h2>
             <p>Invite real players, fill empty seats with bots.</p>
             <label>Your name <input maxLength={24} value={name} onChange={e => setName(e.target.value)} /></label>
-            <div className="field-pair"><label>Humans <select value={onlineHumans} onChange={e => setOnlineHumans(Number(e.target.value))}>
+            <div className="field-pair"><label>Humans <select value={onlineHumans} onChange={e => {const humans=Number(e.target.value);setOnlineHumans(humans);setOnlineBots(bots=>Math.max(2-humans,Math.min(5-humans,bots)));}}>
               {[1, 2, 3, 4, 5].map(n => <option key={n}>{n}</option>)}
             </select></label><label>Bots <select value={onlineBots} onChange={e => setOnlineBots(Number(e.target.value))}>
-              {[0, 1, 2, 3, 4].map(n => <option key={n}>{n}</option>)}
+              {[0, 1, 2, 3, 4].filter(n=>onlineHumans+n>=2&&onlineHumans+n<=5).map(n => <option key={n}>{n}</option>)}
             </select></label></div>
             <button className="cta" disabled={busy || !name.trim()} onClick={() => void createOnlineRoom()}>
               {busy ? "Connecting…" : "Create a room"} <span aria-hidden>→</span></button>
             <div className="lobby-join-label">Already have an invite?</div><div className="join-row"><input aria-label="Room code" maxLength={8} placeholder="8-letter room code"
               value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} />
               <button disabled={busy || joinCode.length !== 8 || !name.trim()} onClick={() => void joinOnlineRoom()}>Join</button></div>
-          </div>
+          </div></>}
         </div>
       </section>
-      <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/pilehead/playtest.html">Read the rules ↗</a><button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button><FunnelConsent/></footer>
+      <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/how-to-play">Read the rules ↗</a><button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button><FunnelConsent/></footer>
       {notice && <div className="alert" role="status">{notice}</div>}
       {showSettings && <div className="modal-backdrop" onClick={() => setShowSettings(false)}>
         <section className="game-modal" role="dialog" aria-label="Game settings" aria-modal="true"
@@ -979,7 +985,7 @@ export default function GameTable() {
           <label className="theme-control">Deck
             <select aria-label="Deck style" value={deckTheme}
               onChange={e => setDeckTheme(e.target.value as DeckTheme)}>
-              <option value="refined">Illustrated V7</option><option value="characters">Illustrated (compact)</option><option value="original">Original</option>
+              <option value="refined">Official illustrated deck</option><option value="characters">Classic illustrated deck</option><option value="original">Original prototype</option>
             </select>
           </label>
           <button className="exit-button" onClick={leaveTable}>Leave table</button>
