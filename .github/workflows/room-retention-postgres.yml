@@ -7,6 +7,8 @@ on:
       - 'scripts/room-lifecycle.cjs'
       - 'scripts/round-receipts.cjs'
       - 'scripts/private-history.cjs'
+      - 'scripts/matchmaking-queue.cjs'
+      - 'tests/pilehead-matchmaking-queue.cjs'
       - 'tests/pilehead-private-history.cjs'
       - 'db/player-accounts-v1.sql'
       - 'tests/pilehead-round-receipts.cjs'
@@ -53,6 +55,7 @@ jobs:
           const {CREATE_ROOM_SQL,JOIN_ROOM_SQL}=require('./scripts/room-lifecycle.cjs');
           const {ARCHIVE_ROUND_SQL}=require('./scripts/round-receipts.cjs');
           const H=require('./scripts/private-history.cjs');
+          const Q=require('./scripts/matchmaking-queue.cjs');
           const id = process.env.PG_TEST_CONTAINER;
           assert.match(id || '', /^[a-f0-9]{12,64}$/);
           function psql(sql, role) {
@@ -191,6 +194,57 @@ jobs:
             assert.equal(count('pileheads_player_rounds'),0);assert.equal(count('pileheads_round_receipts',"room_instance_id='"+rid+"'"),1);
             assert.throws(()=>psql("SELECT provider_subject FROM pileheads_accounts;",runtime),/permission denied/i);
             console.log('PASS exact private history SQL: dual credentials, seat/account isolation, consent withdrawal, CAS, durable history and deletion cascades');
+            psql(fs.readFileSync('db/room-matchmaking-queue.sql','utf8'));
+            psql("GRANT SELECT,INSERT,UPDATE,DELETE ON pileheads_queue_tickets,pileheads_match_offers TO "+runtime+"; GRANT SELECT ON pileheads_match_blocks TO "+runtime+";");
+            const ids=Array.from({length:6},(_,i)=>'4c0c6815-e56b-4e6f-a6e3-'+String(i+1).padStart(12,'0'));
+            const keys=ids.map((_,i)=>String(i+1).repeat(64));
+            const tid=i=>'5c0c6815-e56b-4e6f-a6e3-'+String(i+1).padStart(12,'0');
+            const oid=i=>'6c0c6815-e56b-4e6f-a6e3-'+String(i+1).padStart(12,'0');
+            for(let i=0;i<ids.length;i++)psql("INSERT INTO pileheads_accounts(id,provider,provider_subject) VALUES('"+ids[i]+"','google','queue-"+i+"'); INSERT INTO pileheads_account_sessions(token_hash,account_id) VALUES('"+keys[i]+"','"+ids[i]+"');");
+            const qrun=(sql,args)=>psql("PREPARE queue_action AS "+sql+"; EXECUTE queue_action("+args.map(x=>"'"+x+"'").join(',')+");",runtime);
+            assert.equal(qrun(Q.SQL.join,['0'.repeat(64),tid(0)]),'');
+            assert.equal(qrun(Q.SQL.join,[keys[0],tid(0)]),tid(0));
+            assert.equal(qrun(Q.SQL.join,[keys[0],tid(1)]),'','duplicate identity');
+            assert.equal(qrun(Q.SQL.claim,[oid(0)]),'0','no fake opponent');
+            assert.equal(qrun(Q.SQL.join,[keys[1],tid(1)]),tid(1));
+            psql("INSERT INTO pileheads_match_blocks(account_id,blocked_account_id) VALUES('"+ids[1]+"','"+ids[0]+"');");
+            assert.equal(qrun(Q.SQL.claim,[oid(0)]),'0','block works both directions');
+            assert.equal(qrun(Q.SQL.join,[keys[2],tid(2)]),tid(2));
+            assert.equal(qrun(Q.SQL.claim,[oid(0)]),'2');
+            assert.equal(count('pileheads_match_offers'),1);assert.equal(count('pileheads_queue_tickets','offer_id IS NOT NULL'),2);
+            assert.equal(qrun(Q.SQL.accept,[keys[1],oid(0)]),'','outsider cannot accept');
+            assert.equal(qrun(Q.SQL.accept,[keys[0],oid(0)]),'f');assert.equal(qrun(Q.SQL.accept,[keys[0],oid(0)]),'f');
+            assert.equal(qrun(Q.SQL.accept,[keys[2],oid(0)]),'t');
+            assert.equal(qrun(Q.SQL.cancelOffer,[keys[1],oid(0)]),'');
+            assert.equal(qrun(Q.SQL.cancelWaiting,[keys[0],tid(0)]),'','cannot cancel a paired ticket alone');
+            assert.equal(qrun(Q.SQL.cancelOffer,[keys[0],oid(0)]),oid(0));
+            assert.equal(count('pileheads_queue_tickets'),1,'both paired tickets removed');
+            for(let i=3;i<6;i++)assert.equal(qrun(Q.SQL.join,[keys[i],tid(i)]),tid(i));
+            // Independent connections race to claim. Each account can occur in only one offer.
+            const {spawn}=require('node:child_process');
+            const claimConcurrent=id=>new Promise((resolve,reject)=>{
+              const child=spawn('docker',['exec','-i',process.env.PG_TEST_CONTAINER,'psql','-X','-qAt','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres']);
+              let out='',err='';child.stdout.on('data',d=>out+=d);child.stderr.on('data',d=>err+=d);
+              child.on('error',reject);child.on('close',code=>code===0?resolve(Number(out.trim())):reject(Error(err)));
+              child.stdin.end('SET ROLE '+runtime+"; PREPARE claim AS "+Q.SQL.claim+"; EXECUTE claim('"+id+"');");
+            });
+            // Use the same database selected by the existing psql helper.
+            const results=await Promise.all([claimConcurrent(oid(1)),claimConcurrent(oid(2))]);
+            assert.ok(results.every(n=>n===0||n===2));
+            if(count('pileheads_queue_tickets','offer_id IS NULL')===2)assert.equal(qrun(Q.SQL.claim,[oid(3)]),'2');
+            assert.equal(count('pileheads_queue_tickets','offer_id IS NOT NULL'),4);
+            assert.equal(count('pileheads_match_offers'),2);
+            assert.equal(psql("SELECT count(*) FROM (SELECT account_a AS a FROM pileheads_match_offers UNION ALL SELECT account_b FROM pileheads_match_offers) t GROUP BY a HAVING count(*)>1;"),'');
+            psql("UPDATE pileheads_match_offers SET created_at=now()-interval '2 minutes',expires_at=now()-interval '1 minute';");
+            assert.equal(qrun(Q.SQL.accept,[keys[1],oid(1)]),'');
+            assert.equal(psql(Q.SQL.expireOffers+';',runtime),'2');
+            assert.equal(count('pileheads_queue_tickets'),0);
+            assert.equal(qrun(Q.SQL.join,[keys[0],tid(0)]),tid(0));
+            psql("UPDATE pileheads_queue_tickets SET joined_at=now()-interval '10 minutes',expires_at=now()-interval '1 minute';");
+            assert.equal(psql(Q.SQL.expireWaiting+';',runtime),'1');
+            assert.equal(count('pileheads_queue_tickets'),0);
+            console.log('PASS exact matchmaking queue SQL: authentication, blocks, concurrent claims, ready check, cancellation and expiry');
+
             console.log('PASS isolated PostgreSQL: role grants, valid expiry index, dry run, 500-row batches, cascades, active records and idempotent cleanup');
           }
           main().catch(e=>{console.error(e.message);process.exitCode=1});
