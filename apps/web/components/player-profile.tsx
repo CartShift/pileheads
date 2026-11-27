@@ -70,9 +70,9 @@ export default function PlayerProfile(){
    {saved&&<p role="status">Profile saved.</p>}
    <button className="learn-button" type="button" disabled={busy} onClick={usePreferences}>Play with saved preferences →</button>
    {confirm?<div><p>Delete your guest profile? Local game saves and settings are separate.</p>
-    <button type="button" className="secondary-button" disabled={busy} onClick={()=>void update({action:"delete"})}>Delete profile permanently</button>
+    <button type="button" className="secondary-button profile-danger" disabled={busy} onClick={()=>void update({action:"delete"})}>Delete profile permanently</button>
     <button type="button" className="learn-button" disabled={busy} onClick={()=>setConfirm(false)}>Cancel</button></div>:
-    <button className="learn-button" type="button" disabled={busy} onClick={()=>setConfirm(true)}>Delete profile</button>}
+    <button className="learn-button profile-danger" type="button" disabled={busy} onClick={()=>setConfirm(true)}>Delete profile</button>}
   </>}
   <p><Link href="/play">Continue without a profile →</Link></p>
  </div>;

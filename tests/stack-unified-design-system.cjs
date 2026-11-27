@@ -6,7 +6,12 @@ for(const token of ["--brand-paper:#f9ebcb","--brand-ink:#191b19","--brand-yello
 for(const page of ["endgame-lab","gallery","playtest","print"]){const html=read("dist/pilehead/"+page+".html");assert.ok(html.includes('href="/stack-media/stack-design-system.css"'),page);assert.ok(html.includes('href="/"'),page);assert.ok(html.includes('stack-home-logo-web.webp'),page)}
 assert.ok(read("apps/web/app/layout.tsx").includes("/stack-media/stack-design-system.css"));
 assert.ok(read("apps/web/app/homepage-refinement.module.css").includes("var(--brand-display)"));
-assert.ok(read("apps/web/components/game-table.tsx").includes("logo stack-site-brand"));
+const game=read("apps/web/components/game-table.tsx"), header=read("apps/web/components/site-header.tsx");
+assert.match(game,/<BrandLink compact\s*\/>/);
+assert.match(header,/compact\?"logo ":""\)\+"stack-site-brand"/);
+assert.match(header,/stack-home-logo-web\.webp/);
+assert.match(header,/<BrandLink current=/);
+for(const page of ["apps/web/app/page.tsx","apps/web/app/profile/page.tsx","apps/web/app/deck-updates/page.tsx","apps/web/components/public-guide.tsx","apps/web/components/game-table.tsx"])assert.match(read(page),/<SiteHeader\b/);
 assert.ok(read("scripts/build-vercel.mjs").includes("stack-design-system.css"));
 assert.match(read("dist/pilehead/print.html"),/grid-template-columns:repeat\(3,57mm\);grid-template-rows:repeat\(3,82mm\)/);
 assert.match(read("dist/pilehead/playtest.html"),/<title>PILEHEADS · Official Playtest Kit<\/title>/);

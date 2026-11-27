@@ -21,7 +21,7 @@ export default function SavedRoundHistory(){
   })();
   return()=>controller.abort();
  },[retry]);
- if(data&&!data.available)return null;
+ if(data&&!data.available)return <section className="saved-round-history" aria-label="Saved round history"><div className="eyebrow">YOUR PRIVATE HISTORY</div><h3>Recent saved rounds</h3><p role="status">Private round history is not available yet.</p></section>;
  const rounds=data?.rounds??[],wins=rounds.filter(r=>r.place===1).length,losses=rounds.filter(r=>r.place===r.players).length;
  return <section className="saved-round-history" aria-label="Saved round history">
   <div className="eyebrow">YOUR PRIVATE HISTORY</div><h3>Recent saved rounds</h3>

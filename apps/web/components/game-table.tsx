@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SiteHeader, {BrandLink} from "./site-header";
 import { motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
@@ -922,11 +923,11 @@ export default function GameTable() {
     await submit({ action: "join", name, code: joinCode.trim().toUpperCase() }, true);
   }
 
-  if (g?.tournamentWithdrawal && mode==="online") return <main className="game-shell stack-lobby"><section className="entry launch-entry"><div className="entry-intro"><div className="eyebrow">TOURNAMENT ENDED</div><h1>Table<br/><em>closed.</em></h1><p>{g.tournamentWithdrawal.reason==="deadline"?(g.tournamentWithdrawal.deadlineKind==="setup"||g.tournamentWithdrawal.deadlineKind==="intermission"?"The ready window expired.":`${nameForSeat(g.tournamentWithdrawal.seat)} ran out of time.`):`${nameForSeat(g.tournamentWithdrawal.seat)} withdrew.`} No points are awarded for an unfinished round, and no tournament winner is declared.</p><div className="lobby-links"><button className="secondary-button entry-settings" onClick={leaveTable}>Back to lobby</button></div></div><div className="entry-options"><section className="mode-card"><h2>Completed rounds</h2>{g.standings?.completedRounds?<TableStandings score={g.standings} me={me} nameForSeat={nameForSeat}/>:<p>No completed rounds.</p>}</section></div></section></main>;
+  if (g?.tournamentWithdrawal && mode==="online") return <main className="game-shell stack-lobby"><SiteHeader current="/play"/><section className="entry launch-entry"><div className="entry-intro"><div className="eyebrow">TOURNAMENT ENDED</div><h1>Table<br/><em>closed.</em></h1><p>{g.tournamentWithdrawal.reason==="deadline"?(g.tournamentWithdrawal.deadlineKind==="setup"||g.tournamentWithdrawal.deadlineKind==="intermission"?"The ready window expired.":`${nameForSeat(g.tournamentWithdrawal.seat)} ran out of time.`):`${nameForSeat(g.tournamentWithdrawal.seat)} withdrew.`} No points are awarded for an unfinished round, and no tournament winner is declared.</p><div className="lobby-links"><button className="secondary-button entry-settings" onClick={leaveTable}>Back to lobby</button></div></div><div className="entry-options"><section className="mode-card"><h2>Completed rounds</h2>{g.standings?.completedRounds?<TableStandings score={g.standings} me={me} nameForSeat={nameForSeat}/>:<p>No completed rounds.</p>}</section></div></section></main>;
 
   if (!g || !current) return (
     <main className="game-shell stack-lobby">
-      <header className="lobby-masthead"><nav className="stack-site-nav" aria-label="Main navigation"><Link href="/" className="stack-site-brand" aria-label="PILEHEADS home" prefetch={false}><img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={640} height={356}/></Link><div className="stack-site-links"><a href="/">Home</a><a className="stack-nav-primary" href="/play" aria-current="page">Play online</a><a href="/deck">The deck</a><a href="/how-to-play">How to play</a><a href="/pilehead/print.html">Print</a></div></nav></header>
+      <SiteHeader current="/play"/>
       <section className="entry launch-entry">
         <div className="entry-intro"><div className="eyebrow">WELCOME TO THE TABLE</div>
           <h1>{inviteEntry ? <>You’re<br/><em>invited.</em></> : <>One pile.<br /><em>One loser.</em></>}</h1>
@@ -943,7 +944,7 @@ export default function GameTable() {
             <button className="secondary-button" onClick={resumeLocal}>Resume game</button>
           </div>}
           <div className="mode-card">
-            <div className="eyebrow">01 · QUICK PLAY</div><h2>Play with bots</h2>
+            <div className="eyebrow">01 · PRACTICE</div><h2>Play with bots</h2>
             <p>Jump in immediately with a guided two-player game.</p>
             <button type="button" className="cta quick-start" onClick={()=>startLocalGame(true,null,2,true)}>Quick play</button>
             <p className="custom-table-label">Or set up your own table:</p>
@@ -975,10 +976,10 @@ export default function GameTable() {
             <div className="lobby-join-label">Already have an invite?</div><div className="join-row"><input aria-label="Room code" maxLength={8} placeholder="8-letter room code"
               value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} />
               <button disabled={busy || joinCode.length !== 8 || !name.trim()} onClick={() => void joinOnlineRoom()}>Join</button></div>
-          </div></>}
+          </div><section className="mode-card public-matchmaking-card" aria-label="Find an online opponent"><div className="eyebrow">03 · QUICK PLAY</div><h2>Find an opponent.</h2><p>Meet another human player for a three-round table. Check availability before joining; a verified account is required.</p><Link className="cta" href="/quick-play">Find opponent <span aria-hidden>→</span></Link><Link className="learn-button" href="/profile">Your account &amp; progress</Link></section></>}
         </div>
       </section>
-      <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/how-to-play">Read the rules ↗</a><button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button><FunnelConsent/></footer>
+      <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/how-to-play">Read the rules ↗</a><a href="/pilehead/print.html">Print playtest cards</a><button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button><FunnelConsent/></footer>
       {notice && <div className="alert" role="status">{notice}</div>}
       {showSettings && <div className="modal-backdrop" onClick={() => setShowSettings(false)}>
         <section className="game-modal" role="dialog" aria-label="Game settings" aria-modal="true"
@@ -1025,7 +1026,7 @@ export default function GameTable() {
   return (
     <main className="game-shell game-table-shell" data-phase={g.phase} data-drill={drill?.id} data-hand-count={handCount} data-turn={g.phase === "play" ? active ? "self" : "other" : "none"}>
       <header className="game-header">
-        <Link href="/" className="logo stack-site-brand" aria-label="PILEHEADS home"><img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={640} height={356}/></Link>
+        <BrandLink compact/>
         <div className="game-head-actions">
           {room && !g.publicMatch && <button className={"room-code " + (copiedInvite ? "is-copied" : "")}
             onClick={() => void copyInvite()}
