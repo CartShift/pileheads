@@ -3,6 +3,7 @@ import "./globals.css";
 import "./tabletop-layout.css";
 import "./tabletop-skin.css";
 import "./launch-experience.css";
+import "./product-shell.css";
 import FunnelProvider from "../components/funnel-provider";
 
 export const metadata: Metadata = {

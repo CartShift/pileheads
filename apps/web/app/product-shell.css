@@ -1,0 +1,236 @@
+/* Shared Next.js product shell. Keep active tabletop controls and print geometry independent. */
+.pileheads-masthead {
+  background: var(--brand-grain), var(--brand-header);
+  background-size: 180px 180px, auto;
+  border-bottom: 3px solid var(--brand-line);
+  color: var(--brand-paper);
+}
+.pileheads-masthead .stack-site-nav {
+  max-width: var(--brand-content);
+  width: 100%;
+  min-height: 78px;
+  margin: 0 auto;
+  padding: 7px clamp(12px,4vw,45px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: var(--brand-paper);
+  background: transparent;
+}
+.pileheads-masthead .stack-site-nav .stack-site-brand img {
+  display:block;
+  width:auto;
+  height:clamp(43px,5vw,68px);
+  max-width:120px;
+  object-fit:contain;
+}
+.pileheads-masthead .stack-site-nav .stack-site-links {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:clamp(8px,2vw,25px);
+  flex-wrap:wrap;
+  width:auto;
+  max-width:none;
+}
+.pileheads-masthead .stack-site-nav .stack-site-links a {
+  font:italic 900 clamp(14px,1.7vw,20px)/1.15 var(--brand-display);
+  min-height:44px;
+  padding:5px 7px;
+  text-align:center;
+}
+.pileheads-masthead .stack-site-nav .stack-site-links .stack-nav-primary {
+  padding-inline:18px;
+}
+.pileheads-masthead .stack-site-nav a:focus-visible {
+  outline:3px solid var(--brand-focus);
+  outline-offset:3px;
+}
+.launch-public .public-hero {
+  background:var(--brand-grain),radial-gradient(ellipse at 72% 65%,#1e9294,var(--brand-teal) 58%,#074652);
+  background-size:180px 180px,auto;
+  border-color:var(--brand-ink);
+  border-radius:var(--brand-radius);
+  box-shadow:var(--brand-shadow);
+}
+.launch-public .public-cta {
+  font:italic 900 20px/1.1 var(--brand-display);
+  text-transform:uppercase;
+  border-color:var(--brand-ink);
+  border-radius:var(--brand-pill);
+  background:var(--brand-yellow);
+  color:var(--brand-ink);
+  box-shadow:var(--brand-shadow);
+}
+.stack-lobby .entry h1 {white-space:normal;overflow-wrap:normal;min-height:0}
+@media(max-width:600px){
+  .pileheads-masthead .stack-site-nav {
+    flex-direction:column;
+    gap:2px;
+    min-height:0;
+    padding:6px 12px 8px;
+  }
+  .pileheads-masthead .stack-site-nav .stack-site-brand img {height:48px}
+  .pileheads-masthead .stack-site-nav .stack-site-links {
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    grid-auto-rows:minmax(44px,auto);
+    width:100%;
+    max-width:480px;
+    gap:4px;
+  }
+  .pileheads-masthead .stack-site-nav .stack-site-links a {
+    font-size:14px;
+    padding:4px 3px;
+    white-space:normal;
+    overflow-wrap:normal;
+  }
+  .pileheads-masthead .stack-site-nav .stack-site-links .stack-nav-primary {padding-inline:5px}
+}
+
+/* Brand primitives shared by the lobby, player account, public guides and
+   tabletop. Keep compact control sizes and game-state meanings intact. */
+.game-shell, .launch-public {
+  font-family:var(--brand-body);
+}
+.stack-lobby .mode-card, .launch-public :is(.public-steps,.public-deck) article {
+  border-radius:var(--brand-radius);
+  background-color:var(--brand-paper-surface);
+  border-color:var(--brand-control-border);
+}
+.stack-lobby .mode-card :is(input,select) {
+  border-radius:var(--brand-control-radius);
+  min-height:var(--brand-control-min);
+}
+.stack-lobby .mode-card .cta,
+.launch-public .public-cta {
+  border-radius:var(--brand-pill);
+  box-shadow:var(--brand-shadow);
+}
+.stack-lobby .mode-card .cta:disabled,
+.game-shell .game-modal button:disabled,
+.game-table-shell .control-panel button:disabled {
+  box-shadow:none;
+}
+.game-table-shell.game-shell .game-header {
+  border-bottom-color:var(--brand-dark-edge);
+}
+.game-table-shell.game-shell .control-panel :is(.primary-button,.secondary-button,.snap-button,.slam-button) {
+  border-radius:var(--brand-control-radius);
+  min-height:var(--brand-control-min);
+}
+.game-table-shell.game-shell .control-panel .primary-button,
+.game-shell .game-modal .primary-button,
+.game-table-shell .results-overlay .primary-button {
+  background:var(--brand-yellow);
+  color:var(--brand-ink);
+  border-color:var(--brand-control-border);
+  box-shadow:var(--brand-action-shadow);
+}
+.game-table-shell.game-shell .control-panel .secondary-button,
+.game-shell .game-modal .secondary-button,
+.game-shell .react-pile-panel .secondary-button {
+  background:var(--brand-dark-surface);
+  color:var(--brand-paper);
+  border:1px solid var(--brand-dark-edge);
+  border-radius:var(--brand-control-radius);
+}
+.game-shell .game-modal,
+.game-shell .react-pile-panel {
+  background:var(--brand-grain),linear-gradient(155deg,var(--brand-dark-surface),var(--brand-dark-deep));
+  background-size:180px 180px,auto;
+  color:var(--brand-paper);
+  border:2px solid var(--brand-line);
+  border-radius:var(--brand-radius);
+  color-scheme:dark;
+}
+.game-shell .game-modal h2 {
+  font-family:var(--brand-display);
+  font-style:italic;
+  font-weight:900;
+  text-transform:uppercase;
+  color:var(--brand-paper);
+}
+.game-shell .game-modal .eyebrow {color:var(--brand-yellow)}
+.game-shell .game-modal p,
+.game-shell .game-modal .rule-toggle small {color:var(--brand-muted-light)}
+.game-shell .game-modal :is(.rule-toggle,.quick-rules>div) {
+  border-radius:var(--brand-control-radius);
+  border-color:#bfae8066;
+  background:var(--brand-dark-deep);
+}
+.game-shell .game-modal .rule-toggle input {accent-color:var(--brand-yellow)}
+.game-shell .react-pile-panel header strong {
+  font:italic 900 clamp(20px,3vw,28px)/1.05 var(--brand-display);
+  color:var(--brand-paper);
+  overflow-wrap:anywhere;
+}
+.game-table-shell .results-overlay {
+  border-radius:var(--brand-radius);
+}
+.game-table-shell .results-overlay h2 {
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:-.02em;
+}
+.stack-lobby .mode-card .profile-actions {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+  margin-top:12px;
+}
+.stack-lobby .mode-card .profile-actions > button {min-height:44px}
+.stack-lobby .mode-card .profile-danger {
+  color:var(--brand-danger);
+  background:transparent;
+  border-color:var(--brand-danger);
+  box-shadow:none;
+}
+.stack-lobby .mode-card .profile-danger:hover:not(:disabled) {
+  background:var(--brand-danger);
+  color:var(--brand-paper);
+}
+.stack-lobby .mode-card [role="alert"] {
+  border-left:3px solid var(--brand-danger);
+  padding-left:10px;
+  color:#762a26;
+}
+.stack-lobby .mode-card [role="status"] {overflow-wrap:anywhere}
+.deck-updates-shell .public-main {max-width:760px}
+.deck-updates-shell .public-hero {margin-bottom:20px}
+.deck-updates-shell .public-hero h1 {font-size:clamp(44px,7vw,72px)}
+.deck-updates-shell .public-main > a {text-decoration:underline;text-underline-offset:3px}
+.deck-updates-shell .public-hero .public-cta {margin:8px 0}
+@media (prefers-reduced-motion:reduce) {
+  .pileheads-masthead a, .game-shell .game-modal button,
+  .launch-public .public-cta {transition:none}
+}
+
+/* Private history is opt-in. Match profile and settings without changing consent. */
+.stack-lobby .saved-round-history {border-top-color:var(--brand-line)}
+.stack-lobby .saved-round-history h3 {font:italic 900 26px/1.1 var(--brand-display);text-transform:uppercase;margin:6px 0 12px;color:var(--brand-ink)}
+.stack-lobby .history-summary>div {border-color:var(--brand-line);border-radius:var(--brand-control-radius);background:var(--brand-paper);color:var(--brand-ink)}
+.stack-lobby .history-summary strong {font:italic 900 30px/1 var(--brand-display);color:var(--brand-teal)}
+.stack-lobby .history-round-list li {border-color:var(--brand-line)}
+.stack-lobby .history-round-list small {color:var(--brand-muted)}
+.game-shell .game-modal .round-history-consent {border-top-color:var(--brand-line)}
+.game-shell .game-modal .round-history-consent a {text-decoration:underline;text-underline-offset:3px;color:var(--brand-yellow)}
+.game-shell .game-modal .round-history-consent .learn-button {color:var(--brand-paper);background:transparent;border:1px solid var(--brand-line);border-radius:var(--brand-control-radius);min-height:44px;margin:6px 0 0;padding:8px 12px}
+
+/* Private casual progression uses the same paper hierarchy as saved rounds. */
+.stack-lobby .player-progression {border-top-color:var(--brand-line)}
+.stack-lobby .player-progression h3 {font:italic 900 26px/1.1 var(--brand-display);text-transform:uppercase;margin:6px 0 12px;color:var(--brand-ink)}
+.stack-lobby .player-progression .progress-level strong {font:italic 900 30px/1 var(--brand-display);color:var(--brand-teal)}
+.stack-lobby .player-progression progress {accent-color:var(--brand-teal)}
+.stack-lobby .achievement-list li {border-color:var(--brand-line);border-radius:var(--brand-control-radius);background:var(--brand-paper)}
+.stack-lobby .achievement-list small {color:var(--brand-muted)}
+
+/* Matchmaking preview is restricted; this skin does not advertise or enable it. */
+.stack-lobby .mode-card[aria-label="Quick Play preview"] h3 {font:italic 900 26px/1.1 var(--brand-display);text-transform:uppercase;margin:12px 0 8px;color:var(--brand-teal)}
+.stack-lobby .mode-card[aria-label="Quick Play preview"] a.learn-button {display:inline-flex;align-items:center;justify-content:center;padding:8px 14px}
+
+.public-matchmaking-card .cta,.public-matchmaking-card .learn-button {display:inline-flex;align-items:center;justify-content:center;text-align:center}
+.public-matchmaking-card .learn-button {padding:8px 14px;min-height:44px}
+@media(max-width:360px){.pileheads-masthead .stack-site-nav .stack-site-links {grid-template-columns:repeat(6,minmax(0,1fr))}.pileheads-masthead .stack-site-nav .stack-site-links a {grid-column:span 2}.pileheads-masthead .stack-site-nav .stack-site-links a:nth-child(-n+2){grid-column:span 3}}

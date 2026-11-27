@@ -46,13 +46,14 @@ export default function AccountPanel(){
   try{localStorage.setItem("stack-next-display-name",data.profile.name);localStorage.setItem("stack-next-deck-theme-v1",data.profile.deck);router.push("/play");}
   catch{setError("This browser could not save your game settings.")}
  }
- if(!data?.enabled&&!data?.profile&&!error)return null;
+
  return <section className="mode-card" aria-label="Persistent account">
   <div className="eyebrow">YOUR ACCOUNT</div><h2>Play on every device.</h2>
   {busy&&<p role="status">Connecting to your account…</p>}
   {error&&<p role="alert">{error} <button type="button" className="learn-button" disabled={busy} onClick={()=>void update()}>Retry</button></p>}
   {data?.privacyUrl&&<p><a href={data.privacyUrl}>Privacy notice</a></p>}
-  {data?.enabled&&!data.profile&&<><p>Sign in to keep your nickname and favorite deck across devices. A free guest profile or no account still works.</p><button className="cta" disabled={busy} onClick={()=>void update({action:"login"})}>Continue with Google</button></>}
+  {data&&!data.enabled&&!data.profile&&<p role="status">Sign-in is not available yet. Account preferences, saved rounds and optional XP will be available when enabled. You can still play for free.</p>}
+  {data?.enabled&&!data.profile&&<><p>Sign in to keep your nickname and favorite deck across devices, and access optional private history and progression when available. A free guest profile or no account still works.</p><button className="cta" disabled={busy} onClick={()=>void update({action:"login"})}>Continue with Google</button></>}
   {data?.profile&&<>
    <form onSubmit={e=>{e.preventDefault();void update({action:"preferences",name,deck});}}>
     <label>Account nickname <input maxLength={24} required value={name} disabled={busy||!data.enabled} onChange={e=>{setName(e.target.value);setSaved(false);}}/></label>
@@ -65,7 +66,7 @@ export default function AccountPanel(){
    <PlayerProgression/>
    <SavedRoundHistory/>
    <button className="secondary-button" disabled={busy} onClick={()=>void update({action:"logout"})}>Sign out</button>
-   {confirm?<div><p>Delete your account, saved personal history, progression and every signed-in session? Your local games and guest profile are separate.</p><button className="secondary-button" disabled={busy} onClick={()=>void update({action:"delete",confirm:true})}>Delete account permanently</button><button className="learn-button" disabled={busy} onClick={()=>setConfirm(false)}>Cancel account deletion</button></div>:<button className="learn-button" disabled={busy} onClick={()=>setConfirm(true)}>Delete account</button>}
+   {confirm?<div><p>Delete your account, saved personal history, progression and every signed-in session? Your local games and guest profile are separate.</p><button className="secondary-button profile-danger" disabled={busy} onClick={()=>void update({action:"delete",confirm:true})}>Delete account permanently</button><button className="learn-button" disabled={busy} onClick={()=>setConfirm(false)}>Cancel account deletion</button></div>:<button className="learn-button profile-danger" disabled={busy} onClick={()=>setConfirm(true)}>Delete account</button>}
   </>}
  </section>;
 }

@@ -11,6 +11,10 @@
  --brand-grain:url("/stack-media/print-grain.svg");
  --brand-content:1240px;--brand-radius:12px;--brand-pill:999px;
  --brand-shadow:0 4px 0 #172021;--brand-focus:#f6c32c;
+ --brand-control-radius:9px;--brand-control-border:#172421;--brand-control-min:44px;
+ --brand-action-shadow:0 3px 0 #a47727;--brand-dark-surface:#193d3e;
+ --brand-dark-deep:#132e30;--brand-dark-edge:#bfae80;--brand-danger:#a83d32;
+ --brand-paper-surface:#fffaf0;--brand-muted-light:#d9e7d5;
 }
 .stack-site-brand{display:inline-flex;align-items:center;justify-content:center;flex:none;text-decoration:none;min-width:0}
 .stack-site-brand img{display:block;width:auto;height:clamp(43px,5vw,68px);max-width:120px;object-fit:contain;filter:drop-shadow(0 2px 0 #0b1011)}

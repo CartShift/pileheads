@@ -17,7 +17,7 @@ export default function PlayerProgression(){
   }catch{if(!controller.signal.aborted)setError(true)}})();
   return()=>controller.abort();
  },[retry]);
- if(available===false)return null;
+ if(available===false)return <section className="player-progression" aria-label="Player progression"><div className="eyebrow">YOUR PROGRESS</div><h3>Make your mark.</h3><p role="status">Private progression is not available yet.</p></section>;
  return <section className="player-progression" aria-label="Player progression">
   <div className="eyebrow">YOUR PROGRESS</div><h3>Make your mark.</h3>
   {error?<p role="alert">Could not load progression. <button className="learn-button" onClick={()=>setRetry(x=>x+1)}>Retry progress</button></p>:!data?<p role="status">Loading progression…</p>:<>
