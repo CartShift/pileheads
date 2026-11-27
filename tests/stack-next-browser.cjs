@@ -1721,6 +1721,26 @@ async function privateTournament(browser,server){
     await page.getByRole("combobox",{name:"Table format"}).waitFor();
    }
   }
+  // A new room is a separate tournament. A real user can explicitly withdraw,
+  // but no withdrawal is inferred from a reload or an ordinary disconnect.
+  await page.getByRole("combobox",{name:"Humans"}).selectOption("1");
+  await page.getByRole("combobox",{name:"Table format"}).selectOption("3");
+  await page.getByRole("button",{name:/Create a room/}).click();
+  await page.waitForURL(/room=[A-HJ-NP-Z2-9]{8}/);
+  const closedCode=new URL(page.url()).searchParams.get("room");
+  assert.notEqual(closedCode,code);
+  await page.getByRole("button",{name:"I'm ready"}).click();
+  await page.getByRole("button",{name:"Start round"}).click();
+  await page.locator('.game-table-shell[data-phase="play"]').waitFor();
+  await page.getByRole("button",{name:"Settings"}).click();
+  await page.getByText("Withdraw from tournament",{exact:true}).click();
+  await page.getByRole("button",{name:"Confirm withdrawal"}).click();
+  await page.getByRole("heading",{name:/Table\s*closed\./i}).waitFor();
+  await page.getByText("No completed rounds.",{exact:true}).waitFor();
+  assert.equal(await page.getByRole("button",{name:"Play another round"}).count(),0);
+  await page.reload();
+  await page.getByRole("heading",{name:/Table\s*closed\./i}).waitFor();
+  await page.getByRole("button",{name:"Back to lobby"}).click();
   console.log("PASS private tournament: native invite, two-human readiness and withdrawal, cumulative podium, final stop");
  }finally{await context.close();await guestContext.close()}
 }

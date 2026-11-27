@@ -35,4 +35,6 @@
 .game-table-shell .results-overlay .table-standings p{color:#fff4d7}
 .game-table-shell .results-overlay .table-standings .standings-personal{color:#f6c32c}
 
+.withdraw-tournament{border:1px solid currentColor;border-radius:8px;padding:12px;margin:12px 0}.withdraw-tournament summary{cursor:pointer;min-height:44px;font-weight:800}.withdraw-tournament p{font-size:13px;line-height:1.5}.stack-lobby .table-standings table{width:100%;text-align:left;border-collapse:collapse}.stack-lobby .table-standings td,.stack-lobby .table-standings th{padding:7px 4px;overflow-wrap:anywhere;border-bottom:1px solid #bca26a}.stack-lobby .table-standings tr[data-self=true]{background:#f6c32c;color:#172421}
+
 @media(max-width:600px){.stack-lobby .stack-site-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;max-width:390px;gap:0 4px;grid-auto-rows:44px}.stack-lobby .stack-site-links a{white-space:normal;text-align:center;padding:3px 4px;line-height:1.05}.stack-lobby .stack-site-links .stack-nav-primary{padding-inline:6px}.launch-public .stack-site-links{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;max-width:390px;grid-auto-rows:44px}.launch-public .stack-site-links a{white-space:normal;text-align:center}}
