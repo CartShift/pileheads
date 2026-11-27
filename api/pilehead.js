@@ -1,6 +1,7 @@
 'use strict';
 /* PILEHEAD public room API. Server is authoritative and hands are seat-private. */
-const crypto=require('node:crypto'),E=require('../packages/game-engine');let client;
+const crypto=require('node:crypto'),E=require('../packages/game-engine');
+const Standings=require('../scripts/room-standings.cjs');let client;
 function db(){if(!process.env.PILEHEAD_DATABASE_URL)throw error(503,'online_not_configured');return client||(client=require('@neondatabase/serverless').neon(process.env.PILEHEAD_DATABASE_URL))}
 function query(s,args=[]){return db().query(s,args)}
 function error(status,code){return Object.assign(Error(code),{status,code})}
@@ -43,6 +44,7 @@ function freshGame({players,humans,bots,round=1,starterSeat=null,endgameRule='cl
  game.humanCount=humans;
  game.botSeats=Array.from({length:bots},(_,i)=>humans+i);
  game.round=round;
+ Standings.record(game);
  // Pick the first starter once, on the server; the clients only animate the
  // already-authoritative result. Subsequent rounds use the prior winner.
  game.starterSeat=starterSeat===null?crypto.randomInt(players):starterSeat;
@@ -57,6 +59,7 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
   endgameRule:g.version===E.VERSION&&g.endgameRule==='final-duel'?'final-duel':'classic',
    omitSkip:g.omitSkip===true,
  round:g.round||1,humanCount:humanCount(g),botSeats:botSeats(g),
+ standings:Standings.publicStandings(g),
  starterSeat:g.starterSeat??0,starterReason:g.starterReason||'draw',startedAt:g.startedAt||null,
  blindReveal:g.blindReveal?.expiresAt>Date.now()?g.blindReveal:null,
  botFollowupReady:botSeats(g).some(bot=>E.followUpOptions(g,bot).length>0),
@@ -134,9 +137,11 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
   // In STACK the first player to get rid of their cards wins this round,
   // whereas the final player still holding cards is the PILEHEAD.
   const winner=g.finishedOrder?.[0];
+  const standings=Standings.record(g);
   const next=freshGame({players:g.people.length,humans:humanCount(g),bots:botSeats(g).length,
    round:(g.round||1)+1,starterSeat:Number.isInteger(winner)?winner:null,
    endgameRule:g.endgameRule==='final-duel'?'final-duel':'classic'});
+  next.roomStandings=standings;
   Object.assign(g,next);
  }
  else if(b.action==='advance'){
@@ -168,6 +173,7 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
  }
  else fail(400,'unknown_action');
  E.invariant(g);
+ Standings.record(g); // finalized once in the same revision-checked room update
   // Online clients use the recent 24 events; bound persisted history to avoid JSONB growth.
   if(g.events.length>96)g.events.splice(0,g.events.length-96);
   const status=g.phase==='over'?'finished':g.phase==='play'?'playing':'lobby';
