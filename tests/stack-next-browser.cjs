@@ -150,7 +150,7 @@ async function sameOriginNavigation(browser) {
     await page.getByRole("button",{name:/Start game/}).waitFor();
     assert.equal(new URL(page.url()).pathname,"/play","Next landing should lead to the real playable table");
     await page.getByRole("link", {name:"PILEHEADS home", exact:true}).click();
-    await page.getByRole("heading",{name:/PLAY\s*THE ODDS/}).waitFor();
+    await page.getByRole("heading",{name:/ONE PILE\.\s*ONE LOSER\./}).waitFor();
     assert.equal(new URL(page.url()).pathname,"/","logo returns to Next landing, not Classic redirect");
     assert.equal(await page.locator('a[href="/pilehead/index.html"]').count(),0);
     console.log("PASS one-server Next route transitions: /stack → /play → /");
