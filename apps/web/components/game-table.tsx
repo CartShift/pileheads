@@ -11,6 +11,7 @@ import PlayerHandArea, { type HandSort } from "./player-hand-area";
 import ActionDock from "./action-dock";
 import TableStandings from "./table-standings";
 import RoundHistoryConsent from "./round-history-consent";
+import PublicDeadline from "./public-deadline";
 import ResultShare from "./result-share";
 import {resultCardData} from "../lib/result-card";
 const ResultShareCore = require("../lib/result-share-core.cjs") as { resultShare: (input: { phase:string; kind:string; players:number; drill:boolean }) => {title:string;text:string;url:string} | null };
@@ -921,7 +922,7 @@ export default function GameTable() {
     await submit({ action: "join", name, code: joinCode.trim().toUpperCase() }, true);
   }
 
-  if (g?.tournamentWithdrawal && mode==="online") return <main className="game-shell stack-lobby"><section className="entry launch-entry"><div className="entry-intro"><div className="eyebrow">TOURNAMENT ENDED</div><h1>Table<br/><em>closed.</em></h1><p>{nameForSeat(g.tournamentWithdrawal.seat)} withdrew. No points are awarded for an unfinished round, and no tournament winner is declared.</p><div className="lobby-links"><button className="secondary-button entry-settings" onClick={leaveTable}>Back to lobby</button></div></div><div className="entry-options"><section className="mode-card"><h2>Completed rounds</h2>{g.standings?.completedRounds?<TableStandings score={g.standings} me={me} nameForSeat={nameForSeat}/>:<p>No completed rounds.</p>}</section></div></section></main>;
+  if (g?.tournamentWithdrawal && mode==="online") return <main className="game-shell stack-lobby"><section className="entry launch-entry"><div className="entry-intro"><div className="eyebrow">TOURNAMENT ENDED</div><h1>Table<br/><em>closed.</em></h1><p>{g.tournamentWithdrawal.reason==="deadline"?(g.tournamentWithdrawal.deadlineKind==="setup"||g.tournamentWithdrawal.deadlineKind==="intermission"?"The ready window expired.":`${nameForSeat(g.tournamentWithdrawal.seat)} ran out of time.`):`${nameForSeat(g.tournamentWithdrawal.seat)} withdrew.`} No points are awarded for an unfinished round, and no tournament winner is declared.</p><div className="lobby-links"><button className="secondary-button entry-settings" onClick={leaveTable}>Back to lobby</button></div></div><div className="entry-options"><section className="mode-card"><h2>Completed rounds</h2>{g.standings?.completedRounds?<TableStandings score={g.standings} me={me} nameForSeat={nameForSeat}/>:<p>No completed rounds.</p>}</section></div></section></main>;
 
   if (!g || !current) return (
     <main className="game-shell stack-lobby">
@@ -1026,11 +1027,11 @@ export default function GameTable() {
       <header className="game-header">
         <Link href="/" className="logo stack-site-brand" aria-label="PILEHEADS home"><img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={640} height={356}/></Link>
         <div className="game-head-actions">
-          {room && <button className={"room-code " + (copiedInvite ? "is-copied" : "")}
+          {room && !g.publicMatch && <button className={"room-code " + (copiedInvite ? "is-copied" : "")}
             onClick={() => void copyInvite()}
             title="Copy invitation link" aria-label={"Copy invitation for room " + room.code}>
             ROOM {room.code} <span aria-live="polite">{copiedInvite ? "Copied" : "Copy invite"}</span></button>}
-          {room&&nativeShareAvailable&&<button className="exit-button" onClick={()=>void shareInvite()} aria-label="Share room invitation">Share invite</button>}
+          {room&&!g.publicMatch&&nativeShareAvailable&&<button className="exit-button" onClick={()=>void shareInvite()} aria-label="Share room invitation">Share invite</button>}
           {mode === "online" && <span className={`connection-chip ${connected ? "is-online" : "is-offline"}`}
             title={`Last sync: ${lastSyncAt.current ? new Date(lastSyncAt.current).toLocaleTimeString() : "pending"}`}
             role="status">{connected ? "Live" : "Reconnecting"}</span>}
@@ -1050,7 +1051,7 @@ export default function GameTable() {
           <h1>{g.phase === "over" ? `${nameForSeat(g.loser ?? -1)} is the PILEHEAD!` :
             g.phase === "setup" ? "Choose your opening cards" :
             active ? "Your move." : `${nameForSeat(g.turn)} is playing.`}</h1></div>
-        <div className="meta-right">{mode==="online"&&<span>{g.roundLimit?"Tournament · "+g.round+"/"+g.roundLimit:"Round "+g.round}</span>}<span>{g.moves} moves</span><span>{g.players.length} players</span></div>
+        <div className="meta-right">{mode==="online"&&<span>{g.roundLimit?"Tournament · "+g.round+"/"+g.roundLimit:"Round "+g.round}</span>}{g.deadline&&<PublicDeadline key={g.deadline.expiresAt} deadline={g.deadline} me={me}/>}<span>{g.moves} moves</span><span>{g.players.length} players</span></div>
       </section>
       {mode === "local" && practiceMode && !coachDismissed && coach &&
         <aside className="coach-tip" aria-label="Learning coach" data-coach-step={coach.id}>

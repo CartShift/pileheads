@@ -745,6 +745,28 @@ async function run(){
   assert.equal(members.get(c).length,1);
  }
  checks+=3;
+ // Server-only public deadline enforcement on a real engine state.
+ buckets.clear();
+ const timed=await request({action:'create',humans:2,bots:0,name:'Timed host',roundLimit:3});
+ const tc=timed.data.code,tt=timed.data.session;
+ const tf=await request({action:'join',code:tc,name:'Timed guest'});
+ const tg=rooms.get(tc).state;tg.publicMatch=true;
+ const D=require('../scripts/public-room-deadlines.cjs');D.advance(null,tg,Date.now());
+ const initialDeadline=tg.publicDeadline.expiresAt;
+ const ready=await request({action:'ready',code:tc,revision:0,ready:true,now:0},tt);
+ assert.equal(ready.status,200);assert.equal(ready.data.game.deadline.expiresAt,initialDeadline);
+ assert.equal(ready.data.game.deadline.kind,'setup');assert.equal(ready.data.game.deadline.key,undefined);
+ assert.equal((await request({action:'state',code:tc},tf.data.session)).status,200);
+ const live=rooms.get(tc);live.state.publicDeadline.expiresAt=Date.now()-1;
+ const expired=await request({action:'state',code:tc},tf.data.session);
+ assert.equal(expired.status,200);assert.equal(expired.data.status,'finished');
+ assert.equal(expired.data.game.tournamentWithdrawal.reason,'deadline');
+ assert.equal(expired.data.game.tournamentWithdrawal.deadlineKind,'setup');
+ assert.equal(expired.data.game.standings.completedRounds,0);
+ assert.equal(expired.data.game.deadline,null);
+ assert.equal((await request({action:'ready',code:tc,revision:expired.data.revision,ready:true},tt)).data.error,'tournament_withdrawn');
+ assert.equal(rooms.get(tc).revision,expired.data.revision);
+ checks+=5;
  console.log('PASS PILEHEAD online authoritative API: '+checks+' assertions (privacy, DUMP replay, auth, turns, CAS, room isolation)');
 }
 run().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>{
