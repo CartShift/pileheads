@@ -29,9 +29,16 @@ function compatibleLegacy(g){
    return reference&&c.kind===reference.kind&&c.rank===reference.rank&&c.action===reference.action});
  }catch{return false}
 }
-async function load(id){const r=await query('SELECT code,capacity,revision,status,state,expires_at FROM pilehead_rooms WHERE code=$1',[id]);if(!r[0])fail(404,'room_not_found');if(new Date(r[0].expires_at)<=new Date())fail(410,'room_expired');
- if(r[0].state?.version!==E.VERSION&&!compatibleLegacy(r[0].state))fail(409,'room_rules_changed');
- return r[0]}
+function validateLoaded(r){
+ if(!r)fail(404,'room_not_found');
+ if(new Date(r.expires_at)<=new Date())fail(410,'room_expired');
+ if(r.state?.version!==E.VERSION&&!compatibleLegacy(r.state))fail(409,'room_rules_changed');
+ return r;
+}
+async function load(id){
+ const rows=await query('SELECT code,capacity,revision,status,state,expires_at FROM pilehead_rooms WHERE code=$1',[id]);
+ return validateLoaded(rows[0]);
+}
 async function quota(req,action,max){const ip=String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'?').split(',')[0].slice(0,100);
  const key=h([action,Math.floor(Date.now()/3600000),ip,process.env.PILEHEAD_DATABASE_URL].join('|'));
  const rows=await query("INSERT INTO pilehead_rate_limits(bucket,hits,expires_at) VALUES ($1,1,now()+interval '2 hours') ON CONFLICT(bucket) DO UPDATE SET hits=pilehead_rate_limits.hits+1 RETURNING hits",[key]);
@@ -109,8 +116,19 @@ function requireSession(req){
  if(!match)fail(401,'session_required');
  return match;
 }
-async function auth(r,req){const match=requireSession(req);
- const rows=await query('SELECT seat FROM pilehead_members WHERE code=$1 AND token_hash=$2',[r.code,h(match[1])]);if(!rows.length)fail(403,'not_member');return Number(rows[0].seat)}
+// One database round trip for the authoritative room and its authenticated seat.
+// Preserve existing missing/expired/incompatible room errors and seat isolation.
+async function loadAuthenticated(id,req){
+ const match=requireSession(req);
+ const rows=await query(`SELECT r.code,r.capacity,r.revision,r.status,r.state,r.expires_at,
+ (SELECT m.seat FROM pilehead_members m WHERE m.code=r.code AND m.token_hash=$2) AS authenticated_seat
+ FROM pilehead_rooms r WHERE r.code=$1`,[id,h(match[1])]);
+ const r=validateLoaded(rows[0]);
+ if(r.authenticated_seat==null)fail(403,'not_member');
+ const seat=Number(r.authenticated_seat);
+ if(!Number.isInteger(seat)||seat<0||seat>=humanCount(r.state))fail(403,'not_member');
+ return {r,seat};
+}
 async function create(req,b){
  await quota(req,'create',15);
  const nick=name(b.name);
@@ -285,7 +303,7 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
   if(Buffer.byteLength(encoded)>4096)fail(413,'too_large');
   db();if(b.action==='create')return send(201,await create(req,b));if(b.action==='join')return send(201,await join(req,b));
   requireSession(req);
-  const r=await load(code(b.code)),seat=await auth(r,req);
+  const {r,seat}=await loadAuthenticated(code(b.code),req);
   if(b.action!=='state'&&b.action!=='react')await seatWriteQuota(r.code,seat);
   if(b.action==='presence'){
    if(typeof b.away!=='boolean')fail(400,'bad_presence');
@@ -305,8 +323,7 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
 module.exports.realtimeAuth=async function realtimeAuth(room,token){
  const req={headers:{authorization:typeof token==='string'?'Bearer '+token:''}};
  requireSession(req);
- const r=await load(code(room));
- const seat=await auth(r,req);
+ const {r,seat}=await loadAuthenticated(code(room),req);
  await query('UPDATE pilehead_members SET last_seen_at=now(),is_away=false WHERE code=$1 AND seat=$2',[r.code,seat]);
  return{code:r.code,seat,revision:Number(r.revision),reactions:recentReactions(r.state)};
 };
