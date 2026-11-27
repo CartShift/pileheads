@@ -226,3 +226,7 @@
 .stack-lobby .player-progression progress {accent-color:var(--brand-teal)}
 .stack-lobby .achievement-list li {border-color:var(--brand-line);border-radius:var(--brand-control-radius);background:var(--brand-paper)}
 .stack-lobby .achievement-list small {color:var(--brand-muted)}
+
+/* Matchmaking preview is restricted; this skin does not advertise or enable it. */
+.stack-lobby .mode-card[aria-label="Quick Play preview"] h3 {font:italic 900 26px/1.1 var(--brand-display);text-transform:uppercase;margin:12px 0 8px;color:var(--brand-teal)}
+.stack-lobby .mode-card[aria-label="Quick Play preview"] a.learn-button {display:inline-flex;align-items:center;justify-content:center;padding:8px 14px}

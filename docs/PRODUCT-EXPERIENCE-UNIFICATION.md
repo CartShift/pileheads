@@ -28,3 +28,5 @@ No visual approval or runtime verification is implied by a source change.
 - Integrated concurrent private-history features from main without changing opt-in, authorization, retention or round logic; styled the history summaries and consent section using existing brand tokens.
 
 - Preserved concurrent progression UI and opt-in XP, aligned achievement and level styling, and updated the static design-system contract to verify the shared BrandLink instead of requiring duplicate logo markup.
+
+- Aligned the restricted Quick Play preview with the shared header and paper control styling without adding public entry links or changing queue eligibility.

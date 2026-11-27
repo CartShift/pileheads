@@ -1796,6 +1796,9 @@ async function unifiedNavigationScenario(browser) {
         assert.ok(await nav.evaluate(el=>el.scrollWidth<=el.clientWidth+2),route+" navigation fits "+width);
         assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),route+" page fits "+width);
       }
+      await page.goto(WEB+"/quick-play");
+      assert.deepEqual(await page.getByRole("navigation",{name:"Main navigation"}).locator(".stack-site-links a").allTextContents(),["Play online","How to play","The deck","Profile"]);
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),"quick play fits "+width);
       await page.goto(WEB+"/deck-updates");
       assert.equal(await page.getByRole("navigation",{name:"Main navigation"}).count(),1);
       assert.equal(await page.getByRole("heading",{name:"Deck updates"}).count(),1);
@@ -1810,7 +1813,7 @@ async function unifiedNavigationScenario(browser) {
       assert.equal(await dialog.count(),0);
     } finally {await context.close();}
   }
-  console.log("PASS shared navigation: six routes, game dialog, current-page state and four viewport widths");
+  console.log("PASS shared navigation: seven routes, game dialog, current-page state and four viewport widths");
 }
 
 async function main() {
