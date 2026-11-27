@@ -47,6 +47,7 @@ function freshGame({players,humans,bots,round=1,starterSeat=null,endgameRule='cl
  game.botSeats=Array.from({length:bots},(_,i)=>humans+i);
  game.round=round;
  game.roundLimit=roundLimit;
+ game.rematchReady=Array.from({length:humans},()=>false);
  Standings.record(game);
  // Pick the first starter once, on the server; the clients only animate the
  // already-authoritative result. Subsequent rounds use the prior winner.
@@ -64,6 +65,7 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
  round:g.round||1,humanCount:humanCount(g),botSeats:botSeats(g),
  standings:Standings.publicStandings(g),
  roundLimit:tournamentLimit(g),
+ rematchReady:Array.from({length:humanCount(g)},(_,i)=>g.rematchReady?.[i]===true),
  starterSeat:g.starterSeat??0,starterReason:g.starterReason||'draw',startedAt:g.startedAt||null,
  blindReveal:g.blindReveal?.expiresAt>Date.now()?g.blindReveal:null,
  botFollowupReady:botSeats(g).some(bot=>E.followUpOptions(g,bot).length>0),
@@ -139,9 +141,17 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
   if(g.phase!=='play'||g.followUp?.seat!==seat)fail(409,'no_snap_available');
   g.followUp=null;
  }
- else if(b.action==='rematch'){
+ else if(b.action==='rematch'||b.action==='rematch-ready'){
   if(g.phase!=='over')fail(409,'game_not_finished');
   if(tournamentLimit(g)!==null&&(g.round||1)>=tournamentLimit(g))fail(409,'tournament_complete');
+  // Fixed tournaments require every human to explicitly opt in. Endless rooms retain legacy behavior.
+  if(b.action==='rematch-ready'&&!tournamentLimit(g))fail(400,'not_tournament');
+  if(tournamentLimit(g)){
+   if(b.action==='rematch-ready'&&typeof b.ready!=='boolean')fail(400,'bad_ready');
+   g.rematchReady=Array.from({length:humanCount(g)},(_,i)=>g.rematchReady?.[i]===true);
+   g.rematchReady[seat]=b.action==='rematch'||b.ready;
+  }
+  if(!tournamentLimit(g)||g.rematchReady.every(Boolean)){
   // In STACK the first player to get rid of their cards wins this round,
   // whereas the final player still holding cards is the PILEHEAD.
   const winner=g.finishedOrder?.[0];
@@ -151,6 +161,7 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
    endgameRule:g.endgameRule==='final-duel'?'final-duel':'classic',roundLimit:tournamentLimit(g)});
   next.roomStandings=standings;
   Object.assign(g,next);
+  }
  }
  else if(b.action==='advance'){
   if(g.phase!=='play')fail(409,'not_started');

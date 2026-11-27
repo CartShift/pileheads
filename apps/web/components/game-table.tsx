@@ -189,6 +189,8 @@ export default function GameTable() {
   // cards just because an identical HTTP state was polled.
   const lastSyncAt = useRef(0);
   const [copiedInvite, setCopiedInvite] = useState(false);
+  const [nativeShareAvailable,setNativeShareAvailable]=useState(false);
+  useEffect(()=>setNativeShareAvailable(typeof navigator.share==="function"),[]);
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [reactionClock, setReactionClock] = useState(0);
   // Presentation preference is local-only; never part of multiplayer game state.
@@ -820,6 +822,14 @@ export default function GameTable() {
     return () => { dialog?.removeEventListener("keydown", trap); previous?.focus?.(); };
   }, [showRules, showSettings, confirmRestart, pileOpen]);
 
+  async function shareInvite(){
+    if(!room)return;
+    const url=new URL("/play?room="+encodeURIComponent(room.code),window.location.origin).toString();
+    if(typeof navigator.share!=="function"){await copyInvite();return;}
+    try{await navigator.share({title:"Join my PILEHEADS table",text:"One pile. One loser. Come play!",url});}
+    catch(error){if(error instanceof Error&&error.name==="AbortError")return;await copyInvite();}
+  }
+
   async function copyInvite() {
     if (!room) return;
     const invite = new URL("/play?room=" + encodeURIComponent(room.code),
@@ -981,6 +991,7 @@ export default function GameTable() {
             onClick={() => void copyInvite()}
             title="Copy invitation link" aria-label={"Copy invitation for room " + room.code}>
             ROOM {room.code} <span aria-live="polite">{copiedInvite ? "Copied" : "Copy invite"}</span></button>}
+          {room&&nativeShareAvailable&&<button className="exit-button" onClick={()=>void shareInvite()} aria-label="Share room invitation">Share invite</button>}
           {mode === "online" && <span className={`connection-chip ${connected ? "is-online" : "is-offline"}`}
             title={`Last sync: ${lastSyncAt.current ? new Date(lastSyncAt.current).toLocaleTimeString() : "pending"}`}
             role="status">{connected ? "Live" : "Reconnecting"}</span>}
@@ -1087,7 +1098,7 @@ export default function GameTable() {
          </section>
        </div>}
        <ActionDock g={g} mode={mode} room={room} ready={ready} allReady={allReady} joined={joined} busy={busy}
-          undoAvailable={undoAvailable} undo={undo} onRematch={() => setConfirmRestart(true)}
+          undoAvailable={undoAvailable} undo={undo} onRematch={() => setConfirmRestart(true)} onCancelRematch={()=>{if(room)void submit({action:"rematch-ready",ready:false,code:room.code,revision:room.revision});}}
            resultShare={sharePayload ? <ResultShare key={visualGameKey} payload={sharePayload} card={shareCard} onShared={()=>emitFunnel("result_shared")} /> : null} me={me}
           nameForSeat={nameForSeat} playMove={playMove} liveSeats={liveSeats} chooseDumpSeat={chooseDumpSeat}
           needsTarget={needsTarget} playSelected={playSelected} onCancelTarget={() => setNeedsTarget(false)}
@@ -1153,7 +1164,7 @@ export default function GameTable() {
         <section className="game-modal" role="dialog" aria-modal="true" aria-label="Confirm next round"
           onClick={e => e.stopPropagation()}>
           <div className="eyebrow">FRESH SHUFFLE</div><h2>Another round?</h2>
-          <p>{drill ? "Repeat the same isolated practice drill?" : mode === "local" ? "Start a fresh local game against the bots?" : "Keep the same players and room, and deal a new round?"} {!drill && g.finishedOrder.length > 0 ? `${nameForSeat(g.finishedOrder[0])} starts the next round.` : ""}</p>
+          <p>{drill ? "Repeat the same isolated practice drill?" : mode === "local" ? "Start a fresh local game against the bots?" : g.roundLimit ? "Ready for the next round? The cards are dealt only after every human player confirms." : "Keep the same players and room, and deal a new round?"} {!drill && g.finishedOrder.length > 0 ? `${nameForSeat(g.finishedOrder[0])} starts the next round.` : ""}</p>
           <div className="button-group">
             <button className="secondary-button" onClick={() => setConfirmRestart(false)}>Cancel</button>
             <button className="primary-button" onClick={() => {setConfirmRestart(false);newRound();}}>Deal again</button>

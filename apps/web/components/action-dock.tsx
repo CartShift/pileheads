@@ -4,9 +4,9 @@ import type { Card, Move } from "../lib/engine";
 import type { Room, RoomGame, Reaction } from "../lib/room";
 import { ACTION_DESCRIPTIONS, cardLabel } from "./card-view";
 
-export default function ActionDock({g, mode, room, ready, allReady, joined, busy, undoAvailable, undo, onRematch, resultShare, me, nameForSeat, playMove, liveSeats, chooseDumpSeat, needsTarget, playSelected, onCancelTarget, selectedCards, selectedAction, active, reactionsOpen, onToggleReactions, reactionSymbols, sendReaction, canTake, canPlay, onAutoArrange, onStart, onReady}: {
+export default function ActionDock({g, mode, room, ready, allReady, joined, busy, undoAvailable, undo, onRematch, onCancelRematch, resultShare, me, nameForSeat, playMove, liveSeats, chooseDumpSeat, needsTarget, playSelected, onCancelTarget, selectedCards, selectedAction, active, reactionsOpen, onToggleReactions, reactionSymbols, sendReaction, canTake, canPlay, onAutoArrange, onStart, onReady}: {
   g: RoomGame; mode: "home" | "local" | "online"; room: Room | null; ready: boolean; allReady: boolean;
-  joined: boolean; busy: boolean; undoAvailable: boolean; undo: () => void; onRematch: () => void; resultShare?: ReactNode;
+  joined: boolean; busy: boolean; undoAvailable: boolean; undo: () => void; onRematch: () => void; onCancelRematch:()=>void; resultShare?: ReactNode;
   me: number; nameForSeat: (seat: number) => string; playMove: (move: Move) => void;
   liveSeats: number[]; chooseDumpSeat: (seat: number) => void; needsTarget: boolean;
   playSelected: (target?: number) => void; onCancelTarget: () => void; selectedCards: Card[];
@@ -32,13 +32,13 @@ export default function ActionDock({g, mode, room, ready, allReady, joined, busy
               </div>}
           </div>
         ) : g.phase === "over" ? <div className="setup-controls">
-          <div><strong>Game over</strong><p>First out: {nameForSeat(g.finishedOrder[0] ?? -1)}</p></div>
+          <div><strong>Game over</strong><p>First out: {nameForSeat(g.finishedOrder[0] ?? -1)}</p>{g.roundLimit&&g.round<g.roundLimit&&<p role="status">{g.rematchReady?.filter(Boolean).length??0}/{g.humanCount??g.players.length-g.botSeats.length} humans ready for round {g.round+1}</p>}</div>
           <div className="button-group">
             {mode === "local" && undoAvailable &&
               <button className="secondary-button" data-hotkey="undo" onClick={undo}>Undo last move</button>}
             {resultShare}
-            {!(g.roundLimit && g.round>=g.roundLimit) && <button className="primary-button" disabled={busy}
-              onClick={onRematch}>Play another round</button>}
+            {!(g.roundLimit && g.round>=g.roundLimit) && (g.roundLimit&&g.rematchReady?.[me]?<button className="secondary-button" disabled={busy} onClick={onCancelRematch}>Cancel ready</button>:<button className="primary-button" disabled={busy}
+              onClick={onRematch}>Play another round</button>)}
           </div>
 
         </div> : g.pendingCounter ? <div className="setup-controls">
