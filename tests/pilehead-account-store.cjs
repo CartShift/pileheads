@@ -1,0 +1,28 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {createAccountStore,publicAccount,validateIdentity,preferences,digest,SQL}=require('../scripts/account-store.cjs');
+const t1='a'.repeat(43),t2='b'.repeat(43),id='c7fc5012-3ee3-4f2c-8d35-fd9c71ebcfa7';
+const row={id,display_name:'Card Shark',preferred_deck:'original',expires_at:'2026-12-27T00:00:00Z',provider_subject:'not-public'};
+const calls=[];
+const service=createAccountStore(async(sql,args)=>{calls.push({sql,args});return [row]},{uuid:()=>id,token:()=>t2});
+(async()=>{
+ assert.throws(()=>validateIdentity({provider:'other',subject:'1'}),/identity/);
+ assert.throws(()=>validateIdentity({provider:'google',subject:'bad subject'}),/identity/);
+ assert.throws(()=>preferences({name:'<>',deck:'refined'}),/preferences/);
+ assert.throws(()=>preferences({name:'OK',deck:'paid'}),/preferences/);
+ assert.equal(await service.find('invalid'),null);assert.equal(calls.length,0);
+ await assert.rejects(service.loginVerifiedIdentity({provider:'google',subject:'123'},t2),/rotation/);
+ const login=await service.loginVerifiedIdentity({provider:'google',subject:'123'},t1);
+ assert.equal(login.token,t2);assert.equal(login.account.id,id);
+ assert.deepEqual(calls[0].args,[id,'123',digest(t2),digest(t1)]);
+ assert.match(SQL.login,/ON CONFLICT\(provider,provider_subject\)/);
+ assert.match(SQL.login,/DELETE FROM pileheads_account_sessions s USING opened/);
+ assert.deepEqual(publicAccount(login.account),{kind:'account',name:'Card Shark',deck:'original',expiresAt:row.expires_at});
+ await service.find(t2);await service.preferences(t2,{name:'  Player  ',deck:'refined'});await service.importGuestPreferences(t2,t1);await service.logout(t1);assert.equal(await service.remove(t2),true);
+ assert.deepEqual(calls.slice(1).map(x=>x.args),[[digest(t2)],[digest(t2),'Player','refined'],[digest(t2),digest(t1)],[digest(t1)],[digest(t2)]]);
+ assert.ok(calls.every(c=>!c.args.includes(t1)&&!c.args.includes(t2)),'raw session tokens never enter SQL');
+ for(const sql of [SQL.find,SQL.preferences,SQL.importGuest,SQL.remove])assert.match(sql,/s\.expires_at>now\(\)/);
+ assert.match(SQL.importGuest,/g\.expires_at>now\(\)/);
+ assert.equal(await service.remove(null),false);
+ console.log('PASS account storage contract: verified-adapter boundary, rotation, token hashing, safe projections and authenticated operations');
+})().catch(e=>{console.error(e);process.exitCode=1});

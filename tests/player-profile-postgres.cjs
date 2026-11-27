@@ -1,6 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs'),crypto=require('node:crypto'),{spawn}=require('node:child_process');
 const {createStore}=require('../api/player.js');
+const {createAccountStore,publicAccount,digest:sessionDigest}=require('../scripts/account-store.cjs');
 const container=process.env.PG_TEST_CONTAINER;
 assert.match(container||'',/^[a-f0-9]{12,64}$/,'disposable CI PostgreSQL container required');
 const runtime='pileheads_profile_test_runtime';
@@ -12,7 +13,7 @@ function psql(sql,role){
   p.stdin.end((role?'SET ROLE '+role+';\n':'')+sql+'\n');
  });
 }
-const quote=v=>"'"+String(v).replaceAll("'","''")+"'";
+const quote=v=>v===null?'NULL':"'"+String(v).replaceAll("'","''")+"'";
 const digest=()=>crypto.randomBytes(32).toString('hex');
 async function main(){
  await psql(fs.readFileSync('db/player-profiles-v1.sql','utf8'));
@@ -43,6 +44,44 @@ async function main(){
  assert.equal(await store.create(crypto.randomUUID(),digest()),null);
  await assert.rejects(psql('DELETE FROM pileheads_profile_quota;',runtime),/permission denied/i);
  await store.remove(b);assert.equal(await count(),1);
+ await psql(fs.readFileSync('db/player-accounts-v1.sql','utf8'));
+ await psql('GRANT SELECT,INSERT,UPDATE,DELETE ON pileheads_accounts,pileheads_account_sessions TO '+runtime+';');
+ const accountStore=createAccountStore(async(sql,args)=>{
+  const text=await psql('PREPARE account_action AS '+sql+'; EXECUTE account_action('+args.map(quote).join(',')+');',runtime);
+  if(!text)return[];
+  return text.split('\n').map(line=>{const [id,display_name,preferred_deck,expires_at]=line.split('\t');return {id,display_name,preferred_deck,expires_at}});
+ });
+ const identity={provider:'google',subject:'synthetic-subject-1'};
+ const first=await accountStore.loginVerifiedIdentity(identity);
+ assert.equal(first.account.display_name,'Player');
+ const otherDevice=await accountStore.loginVerifiedIdentity(identity);
+ assert.equal(otherDevice.account.id,first.account.id,'verified same subject restores account across devices');
+ await accountStore.preferences(first.token,{name:'Pile King',deck:'original'});
+ assert.equal((await accountStore.find(otherDevice.token)).display_name,'Pile King');
+ const rotated=await accountStore.loginVerifiedIdentity(identity,first.token);
+ assert.notEqual(rotated.token,first.token);
+ assert.equal(await accountStore.find(first.token),null);
+ assert.ok(await accountStore.find(otherDevice.token));
+ const other=await accountStore.loginVerifiedIdentity({provider:'google',subject:'synthetic-subject-2'});
+ assert.notEqual(other.account.id,first.account.id);
+ assert.equal((await accountStore.find(other.token)).display_name,'Player');
+ // Guest import is an explicit preference copy, never a nickname-based link.
+ const guestRaw=crypto.randomBytes(32).toString('base64url'),guestKey=sessionDigest(guestRaw);
+ await psql("INSERT INTO pileheads_guest_profiles(id,token_hash,display_name,preferred_deck) VALUES("+quote(crypto.randomUUID())+","+quote(guestKey)+",'Guest Star','characters');");
+ assert.equal((await accountStore.importGuestPreferences(rotated.token,guestRaw)).display_name,'Guest Star');
+ assert.equal((await accountStore.find(otherDevice.token)).preferred_deck,'characters');
+ assert.equal(await psql("SELECT count(*) FROM pileheads_guest_profiles WHERE token_hash="+quote(guestKey)+";"),'1');
+ const expired=await accountStore.loginVerifiedIdentity(identity);
+ await psql("UPDATE pileheads_account_sessions SET expires_at=now()-interval '1 second' WHERE token_hash="+quote(sessionDigest(expired.token))+";");
+ assert.equal(await accountStore.find(expired.token),null);
+ assert.equal(await accountStore.preferences(expired.token,{name:'Expired',deck:'refined'}),null);
+ assert.equal(await accountStore.remove(expired.token),false);
+ assert.equal(publicAccount(await accountStore.find(rotated.token)).id,undefined);
+ await accountStore.logout(otherDevice.token);assert.equal(await accountStore.find(otherDevice.token),null);
+ assert.equal(await accountStore.remove(rotated.token),true);
+ assert.equal(await psql("SELECT count(*) FROM pileheads_account_sessions WHERE account_id="+quote(first.account.id)+";"),'0');
+ assert.ok(await accountStore.find(other.token));
+ console.log('PASS exact account SQL: verified subject reuse, multi-device restore, session rotation, explicit guest import, expiry, logout and cascading deletion');
  console.log('PASS exact profile SQL: expiry, isolation, escaped nickname, transactional quota rollback, concurrent daily ceiling, least privilege and deletion');
 }
 main().catch(e=>{console.error(e.message);process.exitCode=1});
