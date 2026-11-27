@@ -11,6 +11,7 @@ const growthHandler = require('../api/growth.js');
 const playerHandler = require('../api/player.js');
 const accountHandler = require('../api/account.js');
 const accountCallback = require('../api/account/callback.js');
+const matchmakingHandler = require('../api/matchmaking.js');
 const { attachRealtime } = require('./realtime-hub.cjs');
 let liveHub = null;
 
@@ -87,7 +88,7 @@ async function serveFile(req, res, url) {
   }
   if (pathname === '/play' || pathname === '/play/') pathname = '/play.html';
   else if (pathname === '/stack' || pathname === '/stack/') pathname = '/stack.html';
-  else if (['/growth','/growth/','/deck-updates','/deck-updates/','/how-to-play','/how-to-play/','/deck','/deck/','/profile','/profile/'].includes(pathname)) pathname = pathname.replace(/\/$/,'') + '.html';
+  else if (['/growth','/growth/','/deck-updates','/deck-updates/','/how-to-play','/how-to-play/','/deck','/deck/','/profile','/profile/','/quick-play','/quick-play/'].includes(pathname)) pathname = pathname.replace(/\/$/,'') + '.html';
   if (pathname.includes('\0') || pathname.includes('\\')) return respond(res, 400, 'Bad Request');
 
   const filename = path.resolve(root, '.' + pathname);
@@ -142,6 +143,7 @@ const server = http.createServer(async (req, res) => {
     else if (url.pathname === '/api/player') await serveApi(req, res, url, playerHandler);
     else if (url.pathname === '/api/account') await serveApi(req, res, url, accountHandler);
     else if (url.pathname === '/api/account/callback') await serveApi(req, res, url, accountCallback);
+    else if (url.pathname === '/api/matchmaking') await serveApi(req, res, url, matchmakingHandler);
     else await serveFile(req, res, url);
   } catch (error) {
     console.error('PILEHEADS request failed');
