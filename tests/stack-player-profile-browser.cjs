@@ -5,7 +5,7 @@ const {fork}=require('node:child_process');
 const {chromium}=require('playwright');
 const root=path.resolve(__dirname,'..'),port=44295,base='http://127.0.0.1:'+port;
 async function main(){
- const server=fork(path.join(root,'scripts/render-server.cjs'),[],{cwd:root,env:{...process.env,PORT:String(port),PILEHEAD_DATABASE_URL:'',PILEHEAD_PLAYER_DATABASE_URL:'',PILEHEAD_PLAYER_SCHEMA_READY:'0',PILEHEAD_PLAYER_ENABLED:'0',PILEHEAD_ACCOUNT_SCHEMA_READY:'0',PILEHEAD_ACCOUNT_ENABLED:'0'},stdio:['ignore','pipe','pipe','ipc']});
+ const server=fork(path.join(root,'scripts/render-server.cjs'),[],{cwd:root,execArgv:['--require',path.join(root,'tests/fixtures/mock-neon-room.cjs')],env:{...process.env,PORT:String(port),PILEHEAD_DATABASE_URL:'postgresql://fake:fake@neon.invalid/profile-browser',PILEHEAD_PLAYER_DATABASE_URL:'',PILEHEAD_PLAYER_SCHEMA_READY:'0',PILEHEAD_PLAYER_ENABLED:'0',PILEHEAD_ACCOUNT_SCHEMA_READY:'0',PILEHEAD_ACCOUNT_ENABLED:'0'},stdio:['ignore','pipe','pipe','ipc']});
  let logs='',browser;
  server.stdout.on('data',d=>logs+=d);server.stderr.on('data',d=>logs+=d);
  try{
@@ -70,7 +70,12 @@ async function main(){
     await context.route('**/api/account',async route=>{
      const req=route.request();
      if(req.method()==='POST'){
-      const input=req.postDataJSON();accountActions.push(input.action);
+      const input=req.postDataJSON();
+      if(input.action==='history')return route.fulfill({status:account?200:401,contentType:'application/json',body:JSON.stringify(account?{available:true,rounds:[
+       {playedAt:'2026-11-27T18:00:00Z',round:2,players:3,humans:2,place:1,rulesVersion:'pilehead-1.7.0',endgameRule:'classic',roundLimit:3},
+       {playedAt:'2026-11-26T18:00:00Z',round:1,players:2,humans:2,place:2,rulesVersion:'pilehead-1.7.0',endgameRule:'classic',roundLimit:null}
+      ]}:{ok:false})});
+      accountActions.push(input.action);
       if(input.action==='login')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({url:'https://accounts.google.com/o/oauth2/v2/auth?state=synthetic'})});
       if(input.action==='preferences'){assert.ok(account);account={...account,name:input.name,deck:input.deck}}
       else if(input.action==='import_guest')account={...account,name:'Guest Copy',deck:'characters'};
@@ -92,6 +97,11 @@ async function main(){
     await section.getByText('Account preferences saved.',{exact:true}).waitFor();
     await page.reload();
     await section.getByLabel('Account nickname').waitFor();
+    const savedHistory=section.getByRole('region',{name:'Saved round history'});
+    await savedHistory.getByText('Tournament round 2/3',{exact:false}).waitFor();
+    assert.equal(await savedHistory.locator('ol li').count(),2);
+    assert.ok((await savedHistory.innerText()).includes('2 humans · 1 bot'));
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'history fits profile viewport');
     assert.equal(await section.getByLabel('Account nickname').inputValue(),'Pile Master');
     await section.getByRole('button',{name:'Copy guest preferences to account'}).click();
     await page.waitForFunction(()=>document.querySelector('[aria-label="Persistent account"] input')?.value==='Guest Copy');
@@ -112,6 +122,45 @@ async function main(){
     await section.getByRole('button',{name:'Continue with Google'}).waitFor();
     assert.deepEqual(accountActions,['login','preferences','import_guest','logout','delete']);
     console.log('PASS account browser UI: '+width+'px, simulated provider, reload, import, apply, logout and delete');
+    // Real mocked room server with the opt-in endpoint intercepted as a UI contract.
+    // Server authorization and transaction semantics are covered by PostgreSQL CI.
+    let linked=false,signedIn=true;const consentActions=[];
+    await context.route('**/api/pilehead',async route=>{
+     const req=route.request(),input=req.postDataJSON();
+     if(['history-status','history-link','history-unlink'].includes(input.action)){
+      assert.match(req.headers().authorization||'',/^Bearer [A-Za-z0-9_-]+$/);
+      assert.equal(input.round,1);
+      if(input.action!=='history-status'){
+       assert.equal(input.confirm,true);assert.ok(Number.isInteger(input.revision));
+       consentActions.push(input.action);linked=input.action==='history-link';
+      }
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,signedIn,linked:signedIn&&linked})});
+     }
+     const response=await route.fetch(),value=await response.json();
+     if(value.game)value.historyAvailable=true;
+     await route.fulfill({response,json:value});
+    });
+    await page.goto(base+'/play');
+    await page.getByRole('textbox',{name:'Your name'}).fill('History player');
+    await page.getByRole('button',{name:/Create a room/}).click();
+    await page.waitForURL(/room=[A-HJ-NP-Z2-9]{8}/);
+    await page.getByRole('button',{name:'Settings',exact:true}).click();
+    const modal=page.getByRole('dialog',{name:'Game settings'});
+    const consent=modal.getByRole('region',{name:'Private round history'});
+    await consent.getByRole('button',{name:'Save this round',exact:true}).waitFor();
+    assert.deepEqual(consentActions,[],'opening settings must not opt in');
+    await consent.getByRole('button',{name:'Save this round',exact:true}).click();
+    await consent.getByText('This round is selected for your private history.').waitFor();
+    await modal.getByRole('button',{name:'Back to table'}).click();
+    await page.getByRole('button',{name:'Settings',exact:true}).click();
+    await consent.getByRole('button',{name:'Do not save this round'}).click();
+    await consent.getByText('This round is not selected for your account.').waitFor();
+    signedIn=false;await consent.getByRole('button',{name:'Refresh history status'}).click();
+    await consent.getByText('Sign in on the', {exact:false}).waitFor();
+    assert.equal(await consent.getByRole('button',{name:'Save this round',exact:true}).count(),0);
+    assert.deepEqual(consentActions,['history-link','history-unlink']);
+    console.log('PASS private history UI: '+width+'px, no auto-consent, explicit opt-in/revocation, signed-out state');
+
 
    }finally{await context.close()}
   }
