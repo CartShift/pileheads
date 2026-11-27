@@ -4,6 +4,7 @@ const crypto=require('node:crypto'),E=require('../packages/game-engine');
 const Runtime=require('../scripts/runtime-config.cjs');
 const Standings=require('../scripts/room-standings.cjs');
 const {freshGame}=require('../scripts/online-game.cjs');
+const Deadlines=require('../scripts/public-room-deadlines.cjs');
 const Lifecycle=require('../scripts/room-lifecycle.cjs');
 const RoundHistory=require('../scripts/round-receipts.cjs');
 const PrivateHistory=require('../scripts/private-history.cjs');
@@ -65,7 +66,8 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
  round:g.round||1,humanCount:humanCount(g),botSeats:botSeats(g),
  standings:Standings.publicStandings(g),
  roundLimit:tournamentLimit(g),
- tournamentWithdrawal:g.tournamentWithdrawal?{seat:g.tournamentWithdrawal.seat}:null,
+ tournamentWithdrawal:g.tournamentWithdrawal?{seat:g.tournamentWithdrawal.seat,...(g.tournamentWithdrawal.reason==='deadline'?{reason:'deadline',deadlineKind:g.tournamentWithdrawal.deadlineKind}:{})}:null,
+ ...(g.publicMatch===true?{publicMatch:true,deadline:Deadlines.projection(g)}:{}),
  rematchReady:Array.from({length:humanCount(g)},(_,i)=>g.rematchReady?.[i]===true),
  starterSeat:g.starterSeat??0,starterReason:g.starterReason||'draw',startedAt:g.startedAt||null,
  blindReveal:g.blindReveal?.expiresAt>Date.now()?g.blindReveal:null,
@@ -226,6 +228,7 @@ async function mutation(r,seat,b,env){if(!Number.isInteger(b.revision)||b.revisi
    try{E.move(g,seat,{type:m.type,source,ids,target:m.target})}catch{fail(400,'illegal_move')}}else fail(400,'bad_move');
  }
  else fail(400,'unknown_action');
+ Deadlines.advance(r.state,g);
  E.invariant(g);
  Standings.record(g); // finalized once in the same revision-checked room update
   // Online clients use the recent 24 events; bound persisted history to avoid JSONB growth.
@@ -237,6 +240,19 @@ async function mutation(r,seat,b,env){if(!Number.isInteger(b.revision)||b.revisi
  const rows=receipt?await query(Progression.eligible(g,env)?Progression.SQL.archive:PrivateHistory.available(g,env)?PrivateHistory.SQL.archive:RoundHistory.ARCHIVE_ROUND_SQL,[...args,...RoundHistory.params(receipt)]):
   await query(RoundHistory.UPDATE_ROOM_SQL,args);
  if(!rows.length)fail(409,'stale_revision');return view(rows[0],seat,env)}
+// Resolve overdue public rooms by server clock and revision CAS. A concurrent
+// winning mutation is re-read rather than overwritten. No fabricated results.
+async function settleDeadline(r,req){
+ if(r.state.publicMatch!==true||!Deadlines.expired(r.state))return null;
+ const g=structuredClone(r.state);
+ if(!Deadlines.withdraw(g))return null;
+ E.invariant(g);Standings.record(g);
+ const rows=await query(RoundHistory.UPDATE_ROOM_SQL,[JSON.stringify(g),'finished',r.code,r.revision]);
+ if(rows.length)return rows[0];
+ const current=await loadAuthenticated(r.code,req);
+ if(Deadlines.expired(current.r.state))fail(409,'stale_revision');
+ return current.r;
+}
 // Ephemeral reactions live in bounded room JSON rather than adding a schema
 // migration. SQL appends atomically without changing the gameplay revision.
 async function realtimeReact(room,seat,kind){
@@ -292,7 +308,9 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
   if(Buffer.byteLength(encoded)>4096)fail(413,'too_large');
   db();const env=await Runtime.load();if(b.action==='create')return send(201,await create(req,b,env));if(b.action==='join')return send(201,await join(req,b,env));
   requireSession(req);
-  const {r,seat}=await loadAuthenticated(code(b.code),req);
+  let {r,seat}=await loadAuthenticated(code(b.code),req);
+  const settled=await settleDeadline(r,req);
+  if(settled){r=settled;if(b.action!=='state'&&r.state.tournamentWithdrawal)fail(409,'tournament_withdrawn');}
   if(b.action!=='state'&&b.action!=='react')await seatWriteQuota(r.code,seat);
   if(['history-status','history-link','history-unlink'].includes(b.action)){
    if(!PrivateHistory.available(r.state,env)||!PrivateHistory.sameOrigin(req.headers,env))fail(403,'history_unavailable');

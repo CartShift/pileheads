@@ -1,0 +1,18 @@
+'use strict';
+const assert=require('node:assert/strict'),D=require('../scripts/public-room-deadlines.cjs'),{freshGame}=require('../scripts/online-game.cjs');
+const g=freshGame({players:2,humans:2,bots:0,roundLimit:3});
+D.advance(null,g,1000);assert.equal(g.publicDeadline,undefined);
+g.publicMatch=true;D.advance(null,g,1000);assert.equal(g.publicDeadline.expiresAt,91000);
+const swap=structuredClone(g);swap.setupReady[0]=true;D.advance(g,swap,2000);assert.equal(swap.publicDeadline.expiresAt,91000);
+assert.equal(D.expired(swap,90999),null);assert.equal(D.expired(swap,91000).kind,'setup');
+const play=structuredClone(swap);play.phase='play';play.turn=0;D.advance(swap,play,3000);assert.equal(play.publicDeadline.expiresAt,48000);
+const same=structuredClone(play);D.advance(play,same,4000);assert.equal(same.publicDeadline.expiresAt,48000);
+const move=structuredClone(play);move.moves++;move.turn=1;D.advance(play,move,5000);assert.equal(move.publicDeadline.expiresAt,50000);
+const dump=structuredClone(move);dump.pendingDump={seat:1};D.advance(move,dump,6000);assert.equal(dump.publicDeadline.kind,'dump');assert.equal(dump.publicDeadline.expiresAt,36000);
+const counter=structuredClone(dump);counter.pendingDump=null;counter.pendingCounter={seat:0};counter.turn=0;D.advance(dump,counter,7000);assert.equal(counter.publicDeadline.kind,'counter');assert.equal(counter.publicDeadline.seat,0);assert.equal(counter.publicDeadline.expiresAt,37000);
+assert.deepEqual(D.projection(counter,8000),{kind:'counter',seat:0,expiresAt:37000,remainingMs:29000});
+const ended=structuredClone(counter);assert.equal(D.withdraw(ended,36999),false);assert.equal(D.withdraw(ended,37000),true);assert.deepEqual(ended.tournamentWithdrawal,{seat:0,reason:'deadline',deadlineKind:'counter'});assert.equal(ended.phase,'play');assert.equal(ended.publicDeadline,undefined);assert.equal(D.withdraw(ended,38000),false);
+const over=structuredClone(play);over.phase='over';D.advance(play,over,10000);assert.equal(over.publicDeadline.kind,'intermission');assert.equal(over.publicDeadline.expiresAt,70000);
+const next=structuredClone(g);next.round=2;D.advance(over,next,12000);assert.equal(next.publicDeadline.expiresAt,102000);
+const final=structuredClone(over);final.round=3;D.advance(over,final,13000);assert.equal(final.publicDeadline,undefined);
+console.log('PASS public deadline policy: fixed setup/intermission, turn and DUMP clocks, no client timestamps or synthetic result');

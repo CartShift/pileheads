@@ -2,6 +2,7 @@
 const crypto=require('node:crypto');
 const {digest}=require('./account-store.cjs');
 const {freshGame}=require('./online-game.cjs');
+const Deadlines=require('./public-room-deadlines.cjs');
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const VERSION=/^[A-Za-z0-9_-]{1,32}$/;
 function validKey(key){return typeof key==='string'&&/^[A-Za-z0-9_-]{43}$/.test(key)&&Buffer.from(key,'base64url').length===32}
@@ -55,7 +56,7 @@ function createAssignment(query,{keys,activeVersion,makeCode=code,makeGame=fresh
    const a=hash(seatToken(keys[activeVersion],activeVersion,offer,0)),b=hash(seatToken(keys[activeVersion],activeVersion,offer,1));
    for(let i=0;i<4;i++){
     const game=makeGame({players:2,humans:2,bots:0,endgameRule:'classic',roundLimit:3});
-    game.roomInstanceId=crypto.randomUUID();game.publicMatch=true;
+    game.roomInstanceId=crypto.randomUUID();game.publicMatch=true;Deadlines.advance(null,game);
     try{const rows=await query(SQL.assign,[offer,makeCode(),JSON.stringify(game),a,b,activeVersion]);return rows[0]?.code??null}
     catch(e){if(e.code!=='23505')throw e}
    }
