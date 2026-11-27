@@ -40,6 +40,11 @@
       "source": "/pilehead/gallery.html",
       "destination": "/deck",
       "permanent": true
+    },
+    {
+      "source": "/pilehead/gallery",
+      "destination": "/deck",
+      "permanent": true
     }
   ]
 }

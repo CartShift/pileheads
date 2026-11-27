@@ -47,6 +47,16 @@ async function check(browser,width,height){
     const rect=await cta.boundingBox();assert.ok(rect&&rect.height>=44&&rect.x>=-1&&rect.x+rect.width<=width+1,"primary CTA must fit and be touch-friendly");
     for(const href of ["/play","/deck","/how-to-play"]){assert.ok(await page.locator('a[href="'+href+'"]').count(),href);assert.equal((await page.request.get(BASE+href)).status(),200,href)}
     await page.screenshot({path:path.join(ARTIFACTS,"homepage-"+width+".png"),fullPage:true,animations:"disabled"});
+    const demo=page.getByTestId("move-examples");
+    for(const [move,trigger,result] of [["DUMP","Play DUMP","Your opponent received all three cards"],["BURN","Play BURN","The pile and BURN are gone"],["SLAM","Complete the SLAM","Four sevens"]]){
+      await demo.getByRole("button",{name:new RegExp("^"+move)}).click();
+      await demo.getByRole("button",{name:trigger,exact:true}).click();
+      assert.match(await demo.getByRole("status").innerText(),new RegExp(result));
+      assert.equal(await demo.locator("[data-played]").getAttribute("data-played"),"true");
+      assert.ok(await demo.evaluate(el=>el.scrollWidth<=el.clientWidth+2),"move demo fits");
+      await demo.getByRole("button",{name:"Reset example"}).click();
+      assert.equal(await demo.locator("[data-played]").getAttribute("data-played"),"false");
+    }
     await page.getByRole("navigation",{name:"Main navigation"}).getByRole("link",{name:"The deck"}).click();
     await page.waitForURL("**/deck");
     assert.match(await page.locator("h1").innerText(),/Every card\s*has a role/i);
