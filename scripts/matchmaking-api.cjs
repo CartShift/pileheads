@@ -9,7 +9,7 @@ const TOKEN=/^[A-Za-z0-9_-]{43}$/;
 const VERSION=/^[A-Za-z0-9_-]{1,32}$/;
 const actorSQL='SELECT account_id FROM pileheads_account_sessions WHERE token_hash=$1 AND expires_at>now()';
 const quotaSQL="INSERT INTO pilehead_rate_limits(bucket,hits,expires_at) VALUES($1,1,now()+interval '10 minutes') ON CONFLICT(bucket) DO UPDATE SET hits=pilehead_rate_limits.hits+1 RETURNING hits";
-const terminalSQL=`SELECT r.expires_at<=now() OR r.state->>'tournamentWithdrawal' IS NOT NULL OR (r.status='finished' AND r.state->>'phase'='over' AND r.state->>'round'='3' AND r.state->>'roundLimit'='3') AS terminal
+const terminalSQL=`SELECT r.expires_at<=now() OR r.state->>'tournamentWithdrawal' IS NOT NULL OR (r.status='finished' AND r.state->>'phase'='over' AND r.state->>'round'='3' AND r.state->>'roundLimit'='3') AS terminal,r.expires_at>now() AS recoverable
  FROM pileheads_match_offers o JOIN pilehead_rooms r ON r.code=o.room_code
  JOIN pileheads_account_sessions s ON s.account_id IN(o.account_a,o.account_b)
  WHERE s.token_hash=$1 AND s.expires_at>now() AND o.id=$2::uuid`;
@@ -57,12 +57,12 @@ function createService(query,c){
  return {
   async authorize(raw){const key=digest(raw);if(!key)return null;const [r]=await query(actorSQL,[key]);const id=r?.account_id;if(typeof id!=='string'||!c.allow.includes(id.toLowerCase()))return null;return id;},
   async quota(id){const bucket=crypto.createHash('sha256').update('quick-play-preview|'+id+'|'+Math.floor(Date.now()/60000)).digest('hex');const [r]=await query(quotaSQL,[bucket]);return Number(r?.hits)<=60;},
-  async status(raw){const status=await q.status(raw);if(status.state==='assigned'){const [r]=await query(terminalSQL,[digest(raw),status.offer]);return {...status,canRelease:r?.terminal===true}}return status},
+  async status(raw){const status=await q.status(raw);if(status.state==='assigned'){const [r]=await query(terminalSQL,[digest(raw),status.offer]);return {...status,canRelease:r?.terminal===true,canRecover:r?.recoverable===true}}return status},
   async tick(raw){
    let s=await q.status(raw);
    if(s.state==='waiting'){await q.claim();s=await q.status(raw)}
    if(s.state==='ready'){await a.assign(s.offer);s=await q.status(raw)}
-   if(s.state==='assigned'){const [r]=await query(terminalSQL,[digest(raw),s.offer]);return {...s,canRelease:r?.terminal===true}}
+   if(s.state==='assigned'){const [r]=await query(terminalSQL,[digest(raw),s.offer]);return {...s,canRelease:r?.terminal===true,canRecover:r?.recoverable===true}}
    return s;
   },
   async join(raw){await query(Q.expireOffers,[]);await query(Q.expireWaiting,[]);await q.join(raw);return this.tick(raw)},

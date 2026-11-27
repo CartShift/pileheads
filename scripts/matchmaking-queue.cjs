@@ -64,8 +64,9 @@ function publicStatus(row,now=Date.now()){
  if(!row)return {state:'idle'};
  const expires=Date.parse(row.expires_at);
  if(!Number.isFinite(expires))throw Error('invalid ticket expiry');
- if(expires<=now)return {state:'expired'};
+ // A room assignment can still be released after its lease expires.
  if(row.room_code)return {state:'assigned',offer:row.offer_id};
+ if(expires<=now)return {state:'expired'};
  if(!row.offer_id)return {state:'waiting',ticket:row.ticket_id,expiresAt:row.expires_at};
  const offerExpires=Date.parse(row.offer_expires_at);
  if(!Number.isFinite(offerExpires)||offerExpires<=now)return {state:'expired'};

@@ -41,9 +41,9 @@ const SQL={
  JOIN pilehead_rooms r ON r.code=o.room_code
  JOIN pilehead_members m ON m.code=r.code AND m.seat=CASE WHEN s.account_id=o.account_a THEN 0 ELSE 1 END
  WHERE s.token_hash=$1 AND s.expires_at>now() AND r.expires_at>now() AND o.room_code IS NOT NULL`,
- release:`DELETE FROM pileheads_match_offers o USING pileheads_account_sessions s,pilehead_rooms r
- WHERE s.token_hash=$1 AND s.expires_at>now() AND s.account_id IN(o.account_a,o.account_b)
- AND o.id=$2::uuid AND o.room_code=r.code
+ release:`DELETE FROM pileheads_queue_tickets q USING pileheads_match_offers o,pileheads_account_sessions s,pilehead_rooms r
+ WHERE s.token_hash=$1 AND s.expires_at>now() AND q.account_id=s.account_id AND q.offer_id=o.id
+ AND s.account_id IN(o.account_a,o.account_b) AND o.id=$2::uuid AND o.room_code=r.code
  AND (r.expires_at<=now() OR r.state->>'tournamentWithdrawal' IS NOT NULL OR (r.status='finished' AND r.state->>'phase'='over' AND r.state->>'round'='3' AND r.state->>'roundLimit'='3'))
  RETURNING o.id`
 };

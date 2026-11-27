@@ -7,6 +7,7 @@ assert.deepEqual(Q.publicStatus({expires_at:future,ticket_id:id,account_id:'secr
 assert.deepEqual(Q.publicStatus({expires_at:future,offer_id:id,offer_expires_at:old},now),{state:'expired'});
 assert.deepEqual(Q.publicStatus({expires_at:future,offer_id:id,offer_expires_at:future,own_ready:true,rival_ready:false,account_id:'secret'},now),{state:'offered',offer:id,expiresAt:future,ownReady:true,rivalReady:false});
 assert.equal(Q.publicStatus({expires_at:future,offer_id:id,offer_expires_at:future,own_ready:true,rival_ready:true},now).state,'ready');
+assert.deepEqual(Q.publicStatus({expires_at:old,offer_id:id,room_code:'ABCD2345'},now),{state:'assigned',offer:id});
 assert.match(Q.SQL.claim,/FOR UPDATE OF q SKIP LOCKED/);assert.match(Q.SQL.claim,/first CROSS JOIN second/);
 assert.match(Q.SQL.claim,/pileheads_match_blocks/);assert.match(Q.SQL.accept,/pileheads_match_blocks/);
 assert.match(Q.SQL.join,/ON CONFLICT\(account_id\) DO NOTHING/);
