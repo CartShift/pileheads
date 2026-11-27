@@ -307,6 +307,13 @@ jobs:
             psql("UPDATE pilehead_rooms SET state='{\"phase\":\"over\",\"round\":3,\"roundLimit\":3}' WHERE code='ASSIGN01';",runtime);
             assert.equal(qrun(A.SQL.release,[keys[1],oid(4)]),'','outsider cannot release');
             assert.equal(qrun(A.SQL.release,[keys[0],oid(4)]),oid(4));
+            assert.equal(count('pileheads_queue_tickets'),1);assert.equal(count('pilehead_rooms',"code='ASSIGN01'"),1);
+            assert.equal(qrun(A.SQL.recover,[keys[0]]),'');
+            assert.ok(qrun(A.SQL.recover,[keys[2]]).includes('ASSIGN01'),'opponent keeps own recovery after release');
+            assert.equal(qrun(Q.SQL.join,[keys[0],tid(0)]),tid(0),'released player may enter another search');
+            assert.equal(qrun(Q.SQL.cancelWaiting,[keys[0],tid(0)]),tid(0));
+            assert.equal(qrun(A.SQL.release,[keys[0],oid(4)]),'','repeat release cannot affect opponent');
+            assert.equal(qrun(A.SQL.release,[keys[2],oid(4)]),oid(4));
             assert.equal(count('pileheads_queue_tickets'),0);assert.equal(count('pilehead_rooms',"code='ASSIGN01'"),1);
             console.log('PASS exact matchmaking assignment SQL: ready/block gates, collision/seat rollback, one room, own-seat recovery, cancellation and terminal release');
 
