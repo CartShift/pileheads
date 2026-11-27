@@ -257,7 +257,7 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
   }
   return send(200,await mutation(r,seat,b))
  }catch(e){if(e.status)return send(e.status,{ok:false,error:e.code});if(e.code==='23505')return send(409,{ok:false,error:'room_conflict_retry'});
-  console.error('PILEHEAD backend error:',e.message);return send(503,{ok:false,error:'service_unavailable'})}}
+  console.error('PILEHEAD backend request failed');return send(503,{ok:false,error:'service_unavailable'})}}
 
 module.exports.realtimeAuth=async function realtimeAuth(room,token){
  const r=await load(code(room));
