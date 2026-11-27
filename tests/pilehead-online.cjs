@@ -7,7 +7,8 @@ let chosenStarter=0,shuffleCalls=0;
 // that the authoritative server can pick a nonzero starting seat.
 crypto.randomInt=(...args)=>{if(args.length===1)return Math.min(chosenStarter,args[0]-1);shuffleCalls++;return originalRandomInt(...args)};
 const Engine=require('../dist/pilehead/engine.js');
-const rooms=new Map(),members=new Map(),buckets=new Map();
+const rooms=new Map(),members=new Map(),buckets=new Map(),receipts=new Map();
+let failArchiveOnce=false;
 let joinContentionOnce=false,failHostInsertOnce=false,expireOnJoin=false,withdrawOnJoin=false,authenticatedReads=0,legacyAuthReads=0;
 // Convert synthetic new-room fixtures into true pre-v1.6 52-card games.
 // Preserve all dealt slots by replacing each extra BURN with a stock card.
@@ -91,6 +92,18 @@ async function query(sql,args=[]){
   if(!r)return [];
   r.state.reactionEvents=[...(r.state.reactionEvents||[]),JSON.parse(payload)].slice(-24);
   return [{code}];
+ }
+ if(sql.startsWith('WITH committed AS')){
+  const [state,status,code,rev,roomId,round,rulesVersion,endgameRule,limit,players,humans,placements,moves]=args,r=rooms.get(code);
+  if(!r||r.revision!==rev)return[];
+  const key=roomId+':'+round;
+  if(failArchiveOnce){failArchiveOnce=false;throw Error('synthetic archive failure')}
+  if(receipts.has(key))conflict();
+  const next=JSON.parse(state);
+  assert.equal(next.roomInstanceId,roomId);assert.equal(next.phase,'over');
+  receipts.set(key,{roomId,round,rulesVersion,endgameRule,limit,players,humans,placements,moves});
+  r.state=next;r.status=status;r.revision++;
+  return[structuredClone(r)];
  }
  if(sql.startsWith('UPDATE pilehead_rooms')){const [state,status,code,rev]=args,r=rooms.get(code);
   if(!r||r.revision!==rev)return [];
@@ -491,11 +504,25 @@ async function run(){
  finalGame.ashes.push(...pool);finalGame.people[2].out=true;finalGame.finishedOrder=[2];finalGame.phase='play';finalGame.turn=1;finalGame.limit=null;finalGame.slamOpen=false;finalGame.loser=null;
  rooms.get(hybridCode).status='playing';Engine.invariant(finalGame);
  const terminalCommand={action:'move',code:hybridCode,revision:8,move:{type:'play',source:'hand',ids:[finalGame.people[1].hand[0].id]}};
+ const previousFlags=[process.env.PILEHEAD_ROUND_HISTORY_SCHEMA_READY,process.env.PILEHEAD_ROUND_HISTORY_ENABLED];
+ process.env.PILEHEAD_ROUND_HISTORY_SCHEMA_READY='1';process.env.PILEHEAD_ROUND_HISTORY_ENABLED='1';
+ failArchiveOnce=true;
+ const failedArchive=await request(terminalCommand,hybridFriend);
+ assert.equal(failedArchive.status,503);assert.equal(rooms.get(hybridCode).revision,8);
+ assert.equal(rooms.get(hybridCode).state.phase,'play');assert.equal(receipts.size,0);
  const terminal=await request(terminalCommand,hybridFriend);
  assert.equal(terminal.status,200,JSON.stringify(terminal));assert.equal(terminal.data.game.phase,'over');
  assert.equal(terminal.data.game.standings.completedRounds,2);assert.deepEqual(terminal.data.game.standings.seats.map(x=>x.points),[2,1,3]);
  assert.equal(rooms.get(hybridCode).state.roomStandings.completedRounds,2);
  assert.equal((await request(terminalCommand,hybridFriend)).status,409);
+ assert.equal(receipts.size,1);
+ const archived=[...receipts.values()][0];
+ assert.equal(archived.round,2);assert.equal(archived.players,3);assert.equal(archived.humans,2);
+ assert.equal(archived.placements,'{3,2,1}');assert.equal(archived.rulesVersion,Engine.VERSION);
+ assert.equal(terminal.data.game.roomInstanceId,undefined);assert.equal(terminal.data.roomInstanceId,undefined);
+ for(const [i,key] of ['PILEHEAD_ROUND_HISTORY_SCHEMA_READY','PILEHEAD_ROUND_HISTORY_ENABLED'].entries()){
+  if(previousFlags[i]===undefined)delete process.env[key];else process.env[key]=previousFlags[i];
+ }
  const nextVote=await request({action:'rematch',code:hybridCode,revision:9},hybridHost);
  assert.equal(nextVote.data.game.phase,'over');
  const third=await request({action:'rematch',code:hybridCode,revision:10},hybridFriend);

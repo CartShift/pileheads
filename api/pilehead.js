@@ -2,7 +2,8 @@
 /* PILEHEAD public room API. Server is authoritative and hands are seat-private. */
 const crypto=require('node:crypto'),E=require('../packages/game-engine');
 const Standings=require('../scripts/room-standings.cjs');
-const Lifecycle=require('../scripts/room-lifecycle.cjs');let client;
+const Lifecycle=require('../scripts/room-lifecycle.cjs');
+const RoundHistory=require('../scripts/round-receipts.cjs');let client;
 function db(){if(!process.env.PILEHEAD_DATABASE_URL)throw error(503,'online_not_configured');return client||(client=require('@neondatabase/serverless').neon(process.env.PILEHEAD_DATABASE_URL))}
 function query(s,args=[]){return db().query(s,args)}
 function error(status,code){return Object.assign(Error(code),{status,code})}
@@ -252,7 +253,11 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
   // Online clients use the recent 24 events; bound persisted history to avoid JSONB growth.
   if(g.events.length>96)g.events.splice(0,g.events.length-96);
   const status=g.tournamentWithdrawal||g.phase==='over'?'finished':g.phase==='play'?'playing':'lobby';
- const rows=await query(`UPDATE pilehead_rooms SET state=jsonb_set($1::jsonb,'{reactionEvents}',COALESCE(pilehead_rooms.state->'reactionEvents','[]'::jsonb)),status=$2,revision=revision+1,updated_at=now() WHERE code=$3 AND revision=$4 AND expires_at>now() RETURNING code,capacity,revision,status,state,expires_at`,[JSON.stringify(g),status,r.code,r.revision]);
+ const receipt=RoundHistory.enabled()?RoundHistory.receipt(r.state,g):null;
+ const args=[JSON.stringify(g),status,r.code,r.revision];
+ // The terminal state and its receipt must commit together, or neither does.
+ const rows=receipt?await query(RoundHistory.ARCHIVE_ROUND_SQL,[...args,...RoundHistory.params(receipt)]):
+  await query(RoundHistory.UPDATE_ROOM_SQL,args);
  if(!rows.length)fail(409,'stale_revision');return view(rows[0],seat)}
 // Ephemeral reactions live in bounded room JSON rather than adding a schema
 // migration. SQL appends atomically without changing the gameplay revision.
