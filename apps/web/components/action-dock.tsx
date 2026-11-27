@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { Card, Move } from "../lib/engine";
 import type { Room, RoomGame, Reaction } from "../lib/room";
 import { ACTION_DESCRIPTIONS, cardLabel } from "./card-view";
-import TableStandings from "./table-standings";
+
 export default function ActionDock({g, mode, room, ready, allReady, joined, busy, undoAvailable, undo, onRematch, resultShare, me, nameForSeat, playMove, liveSeats, chooseDumpSeat, needsTarget, playSelected, onCancelTarget, selectedCards, selectedAction, active, reactionsOpen, onToggleReactions, reactionSymbols, sendReaction, canTake, canPlay, onAutoArrange, onStart, onReady}: {
   g: RoomGame; mode: "home" | "local" | "online"; room: Room | null; ready: boolean; allReady: boolean;
   joined: boolean; busy: boolean; undoAvailable: boolean; undo: () => void; onRematch: () => void; resultShare?: ReactNode;
@@ -37,10 +37,10 @@ export default function ActionDock({g, mode, room, ready, allReady, joined, busy
             {mode === "local" && undoAvailable &&
               <button className="secondary-button" data-hotkey="undo" onClick={undo}>Undo last move</button>}
             {resultShare}
-            <button className="primary-button" disabled={busy}
-              onClick={onRematch}>Play another round</button>
+            {!(g.roundLimit && g.round>=g.roundLimit) && <button className="primary-button" disabled={busy}
+              onClick={onRematch}>Play another round</button>}
           </div>
-          {mode === "online" && g.standings && <TableStandings score={g.standings} me={me} nameForSeat={nameForSeat}/>}
+
         </div> : g.pendingCounter ? <div className="setup-controls">
           {g.pendingCounter.seat === me ? <>
             <div><strong>COUNTER DUMP</strong><p>Return {g.pendingCounter.count} cards to {nameForSeat(g.pendingCounter.attacker)} and take the next turn.</p></div>

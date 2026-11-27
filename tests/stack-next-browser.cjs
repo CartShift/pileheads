@@ -1664,6 +1664,43 @@ async function localInterruptParityScenarios(browser) {
   console.log("PASS React parity: off-turn bot SLAM, SNAP burn, Final Duel top-card erosion");
 }
 
+async function privateTournament(browser,server){
+ const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:"reduce"});
+ const page=await context.newPage();
+ try{
+  await page.goto(WEB+"/play");
+  await page.getByRole("textbox",{name:"Your name"}).fill("Tournament host");
+  await page.getByRole("combobox",{name:"Humans"}).selectOption("1");
+  await page.getByRole("combobox",{name:"Table format"}).selectOption("3");
+  await page.getByRole("button",{name:/Create a room/}).click();
+  await page.waitForURL(/room=[A-HJ-NP-Z2-9]{8}/);
+  const code=new URL(page.url()).searchParams.get("room");
+  for(let round=1;round<=3;round++){
+   await page.getByText("Tournament · "+round+"/3",{exact:true}).waitFor();
+   await page.getByRole("button",{name:"I'm ready"}).click();
+   await page.getByRole("button",{name:"Start round"}).click();
+   await page.locator('.game-table-shell[data-phase="play"]').waitFor();
+   server.send({type:"finish",code});
+   const results=page.getByRole("region",{name:"Round results"});
+   await results.waitFor({timeout:16000});
+   const score=results.getByRole("region",{name:"Private table standings"});
+   await score.getByText("You: #1 · "+round+" pts",{exact:true}).waitFor();
+   assert.equal(await score.getByRole("row").count(),3);
+   await page.screenshot({path:path.resolve(ROOT,"artifacts/next/tournament-"+round+".png"),fullPage:true,animations:"disabled"});
+   if(round<3){
+    await page.getByRole("button",{name:"Play another round"}).click();
+    await page.getByRole("button",{name:"Deal again"}).click();
+   }else{
+    await score.getByRole("heading",{name:"Tournament host wins!"}).waitFor();
+    assert.equal(await page.getByRole("button",{name:"Play another round"}).count(),0);
+    await page.getByRole("button",{name:"Back to lobby"}).click();
+    await page.getByRole("combobox",{name:"Table format"}).waitFor();
+   }
+  }
+  console.log("PASS private tournament: three rounds, cumulative result podium, final stop");
+ }finally{await context.close()}
+}
+
 async function publicLaunch(browser){
   const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:"reduce"});
   const page=await context.newPage();
@@ -1738,6 +1775,7 @@ async function main() {
         motion:()=>sharedMoveAnimationScenarios(browser),
         dump:()=>dumpSeatTargetScenario(browser),
         online:()=>onlineScenarios(browser,apiProc),
+        tournament:()=>privateTournament(browser,apiProc),
         onlineSeats:()=>onlineMixedSeatScenarios(browser),
         seats:()=>seatLayoutScenarios(browser),
         viewport:()=>viewportResilienceScenarios(browser),
@@ -1774,6 +1812,7 @@ async function main() {
     await localStarterAndRematchScenario(browser);
     await localInterruptParityScenarios(browser);
     await onlineScenarios(browser, apiProc);
+    await privateTournament(browser, apiProc);
     await onlineMixedSeatScenarios(browser);
     await dumpSeatTargetScenario(browser);
     await sharedMoveAnimationScenarios(browser);

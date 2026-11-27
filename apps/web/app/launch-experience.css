@@ -21,3 +21,10 @@
 @media(max-width:400px){.launch-public .public-deck{grid-template-columns:repeat(2,minmax(0,1fr))}.launch-public .public-deck article{padding:10px}.launch-public .public-deck h3{font-size:21px}}
 
 .launch-entry .quick-start{margin-top:0!important}.launch-entry .custom-table-label{margin:18px 0 0!important;font-weight:750}.launch-entry .mode-card .quick-start:focus-visible{outline:3px solid #f6c32c;outline-offset:3px}
+
+.game-table-shell .table-standings{margin:12px 0 8px;padding:12px;background:#193e37;color:#fff4d7;border:1px solid #d6ba7c;border-radius:10px;text-align:left;width:100%;min-width:0}
+.game-table-shell .standings-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}.game-table-shell .standings-heading h3{font-family:var(--brand-display,Impact,sans-serif);font-style:italic;font-size:clamp(23px,3vw,34px);line-height:1.04;overflow-wrap:anywhere;margin:3px 0}
+.game-table-shell .standings-rounds{border:1px solid #bca26a;border-radius:20px;padding:5px 8px;white-space:nowrap;font-size:11px;font-weight:800}
+.game-table-shell .standings-personal{margin:7px 0;color:#f6c32c;font-size:13px;font-weight:800}
+.game-table-shell .table-standings table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px;font-variant-numeric:tabular-nums}.game-table-shell .table-standings th,.game-table-shell .table-standings td{text-align:left;padding:7px 4px;border-bottom:1px solid #d6ba7c44;overflow-wrap:anywhere}
+.game-table-shell .table-standings th:first-child{width:15%}.game-table-shell .table-standings th:nth-child(3),.game-table-shell .table-standings th:nth-child(4){width:15%}.game-table-shell .table-standings tr[data-self=true]{background:#f6c32c;color:#172421}.game-table-shell .table-standings .standings-note{font-size:11px;line-height:1.4;margin:8px 0 0;color:#d9dfc9}

@@ -14,6 +14,8 @@ export type RoomGame = {
   moves: number;
   round: number;
   standings?: TableStandings;
+  /** Null or omitted means an endless private table. */
+  roundLimit?: 3 | 5 | 10 | null;
   rulesVersion?: string;
   humanCount?: number;
   starterSeat?: number;
