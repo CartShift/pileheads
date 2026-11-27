@@ -89,7 +89,7 @@ function createHandler({enabled,configured=enabled,origin,privacyUrl=null,store,
         const row=await store.create(crypto.randomUUID(),hash(fresh));
         if(!row)return reply(res,429,{ok:false});
         setCookie(res,fresh);
-        return reply(res,201,{enabled:true,profile:publicProfile(row)});
+        return reply(res,201,{enabled:true,privacyUrl,profile:publicProfile(row)});
       }
       if(body.action==='delete'){
         if(digest)await store.remove(digest);
@@ -100,7 +100,7 @@ function createHandler({enabled,configured=enabled,origin,privacyUrl=null,store,
       if(!digest)return reply(res,401,{ok:false});
       const row=await store.preferences(digest,body.deck,normalizeName(body.name));
       if(!row){setCookie(res,'',0);return reply(res,401,{ok:false});}
-      return reply(res,200,{enabled:true,profile:publicProfile(row)});
+      return reply(res,200,{enabled:true,privacyUrl,profile:publicProfile(row)});
     }catch{return reply(res,503,{ok:false});}
   };
 }

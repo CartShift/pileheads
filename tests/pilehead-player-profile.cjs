@@ -21,14 +21,14 @@ async function call(h=handler,{method='GET',body={},cookie,headers={},parsed=fal
 }
 (async()=>{
  const empty=await call();assert.equal(empty.body.profile,null);assert.equal(creates,0);assert.equal(empty.headers['Set-Cookie'],undefined);
- const a=await call(handler,{method:'POST',body:{action:'create'},parsed:true});assert.equal(a.statusCode,201);
+ const a=await call(handler,{method:'POST',body:{action:'create'},parsed:true});assert.equal(a.statusCode,201);assert.equal(a.body.privacyUrl,privacyUrl);
  const header=a.headers['Set-Cookie'];assert.match(header,/HttpOnly; Secure; SameSite=Strict/);assert.doesNotMatch(header,/Domain=/);
  const cookie=header.split(';')[0],token=cookieToken(cookie);assert.ok(token);assert.ok(records.has(hash(token)));assert.equal(records.has(token),false);
  assert.equal(JSON.stringify(a.body).includes(token),false);
  assert.deepEqual((await call(handler,{cookie})).body.profile,{kind:'guest',deck:'refined',name:'Player',expiresAt:expiry});
  assert.equal((await call(handler,{method:'POST',cookie,body:{action:'create'}})).statusCode,200);assert.equal(creates,1);
  const update={action:'preferences',name:'  Alice  ',deck:'original'};
- assert.deepEqual((await call(handler,{method:'POST',cookie,body:update,raw:true})).body.profile,{kind:'guest',deck:'original',name:'Alice',expiresAt:expiry});
+ const changed=await call(handler,{method:'POST',cookie,body:update,raw:true});assert.equal(changed.body.privacyUrl,privacyUrl);assert.deepEqual(changed.body.profile,{kind:'guest',deck:'original',name:'Alice',expiresAt:expiry});
  const b=await call(handler,{method:'POST',body:{action:'create'}});const other=b.headers['Set-Cookie'].split(';')[0];assert.notEqual(other,cookie);assert.equal((await call(handler,{cookie:other})).body.profile.name,'Player');
  assert.equal((await call(handler,{method:'POST',body:update})).statusCode,401);
  assert.equal((await call(handler,{method:'POST',cookie,body:{...update,id:'other'}})).statusCode,400);

@@ -8,7 +8,7 @@ let chosenStarter=0,shuffleCalls=0;
 crypto.randomInt=(...args)=>{if(args.length===1)return Math.min(chosenStarter,args[0]-1);shuffleCalls++;return originalRandomInt(...args)};
 const Engine=require('../dist/pilehead/engine.js');
 const rooms=new Map(),members=new Map(),buckets=new Map();
-let joinContentionOnce=false;
+let joinContentionOnce=false,authenticatedReads=0,legacyAuthReads=0;
 // Convert synthetic new-room fixtures into true pre-v1.6 52-card games.
 // Preserve all dealt slots by replacing each extra BURN with a stock card.
 function restoreLegacySkips(g){
@@ -53,6 +53,12 @@ async function query(sql,args=[]){
  }
  if(sql.startsWith('INSERT INTO pilehead_members')){const [code,name,token]=args,seat=0;const current=members.get(code)||[];
   if(current.some(x=>x.seat===seat))conflict();current.push({seat,display_name:name,token_hash:token,last_seen_at:new Date(),is_away:false});members.set(code,current);return []}
+ if(sql.startsWith('SELECT r.code,r.capacity')){
+  authenticatedReads++;
+  const r=rooms.get(args[0]);if(!r)return[];
+  const member=(members.get(args[0])||[]).find(m=>m.token_hash===args[1]);
+  return[{...structuredClone(r),authenticated_seat:member?.seat??null}];
+ }
  if(sql.startsWith('SELECT code,capacity'))return rooms.has(args[0])?[structuredClone(rooms.get(args[0]))]:[];
  if(sql.startsWith("SELECT code,revision,state->'reactionEvents'")){
    return (args[0]||[]).filter(code=>rooms.has(code)).map(code=>{
@@ -71,7 +77,7 @@ async function query(sql,args=[]){
   assert.ok(member,'presence writes require a joined player');
   member.last_seen_at=new Date();member.is_away=away===true;return [];
  }
- if(sql.startsWith('SELECT seat FROM pilehead_members')&&sql.includes('token_hash'))return (members.get(args[0])||[]).filter(x=>x.token_hash===args[1]).map(m=>({seat:m.seat}));
+ if(sql.startsWith('SELECT seat FROM pilehead_members')&&sql.includes('token_hash')){legacyAuthReads++;return (members.get(args[0])||[]).filter(x=>x.token_hash===args[1]).map(m=>({seat:m.seat}));}
  if(sql.startsWith('SELECT seat FROM pilehead_members'))return (members.get(args[0])||[]).map(m=>({seat:m.seat}));
  if(sql.startsWith('UPDATE pilehead_rooms')&&sql.includes("state=jsonb_set(state,'{reactionEvents}'")){
   const [code,payload]=args,r=rooms.get(code);
@@ -133,7 +139,13 @@ async function run(){
  assert.equal(heart.status,200);
  assert.equal(heart.data.members.find(m=>m.seat===1).presence,'online');
  assert.equal(rooms.get(code).revision,0);checks++;
+ const beforeAuthReads=authenticatedReads;
  const state=await request({action:'state',code},guestToken);
+ assert.equal(authenticatedReads-beforeAuthReads,1,'state loads room and seat in one query');
+ assert.equal(legacyAuthReads,0,'no separate token lookup');
+ const wrongSeat=await request({action:'state',code},'x'.repeat(43));
+ assert.equal(wrongSeat.status,403);
+ assert.equal(wrongSeat.data.game,undefined,'invalid seat receives no state');
  assert.equal(state.status,200);
  assert.equal(state.data.game.players[0].hand,undefined);
  assert.equal(state.data.game.players[0].blindSlots,undefined);

@@ -6,6 +6,7 @@
 // in the local/CI environment. Never pass it in arguments or commit it.
 // Creates one disposable room in the target database; room expires normally.
 const assert = require('node:assert/strict');
+const {performance} = require('node:perf_hooks');
 const { WebSocket } = require('ws');
 const base = new URL(process.argv[2] || '');
 assert.equal(base.protocol, 'https:', 'Use an HTTPS deployment URL');
@@ -35,7 +36,7 @@ function connect(code, token) {
   const messages = [];
   let ended = false;
   ws.on('message', data => {
-    try { messages.push(JSON.parse(data.toString())); } catch { ended = true; }
+    try { messages.push({packet: JSON.parse(data.toString()), receivedAt: performance.now()}); } catch { ended = true; }
   });
   ws.on('error', () => { ended = true; });
   ws.on('close', () => { ended = true; sockets.delete(ws); });
@@ -43,8 +44,8 @@ function connect(code, token) {
   async function wait(predicate) {
     const until = Date.now() + 20000;
     while (Date.now() < until) {
-      const index = messages.findIndex(predicate);
-      if (index >= 0) return messages.splice(index, 1)[0];
+      const index = messages.findIndex(entry => predicate(entry.packet));
+      if (index >= 0) { const entry=messages.splice(index,1)[0]; return {...entry.packet, receivedAt:entry.receivedAt}; }
       assert(!ended, 'WebSocket closed before expected event');
       await new Promise(resolve => setTimeout(resolve, 100));
     }
@@ -88,14 +89,24 @@ async function main() {
   const before = await state(actor);
   const move = before.game.legal.find(m => m.type === 'play') || before.game.legal.find(m => m.type === 'take');
   assert(move, 'No supported opening move');
+  const began = performance.now();
   const after = await mutate(actor, before.revision, 'move', {move});
+  const ackAt = performance.now();
   assert(after.revision > before.revision);
-  await Promise.all([sa.wait(m => m.type === 'invalidate' && m.revision >= after.revision),
+  // Match the browser: a hint asks the authenticated hub to check Neon,
+  // not to trust the client. Record arrival time before the waiter polls.
+  (actor === a ? sa : sb).ws.send(JSON.stringify({type:'sync-hint'}));
+  const signals = await Promise.all([sa.wait(m => m.type === 'invalidate' && m.revision >= after.revision),
     sb.wait(m => m.type === 'invalidate' && m.revision >= after.revision)]);
   const synced = await Promise.all([state(a), state(b)]);
+  const syncedAt = performance.now();
   assert(synced.every(s => s.revision === after.revision));
   synced.forEach(privacy);
   console.log('PASS gameplay move and both clients converge');
+  console.log(JSON.stringify({event:'multiplayer_latency_sample',samples:1,
+    commandAckMs:Math.round(ackAt-began),
+    rivalInvalidationMs:Math.round(signals[actor===a?1:0].receivedAt-began),
+    bothSnapshotsMs:Math.round(syncedAt-began)}));
   sa.ws.send(JSON.stringify({type:'react',kind:'gg'}));
   await sb.wait(m => m.type === 'reaction' && m.reaction?.kind === 'gg' && m.reaction?.seat === 0);
   console.log('PASS realtime reaction');

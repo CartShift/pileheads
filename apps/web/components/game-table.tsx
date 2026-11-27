@@ -224,6 +224,11 @@ export default function GameTable() {
   const wsRef = useRef<WebSocket | null>(null);
   const undoRef = useRef<Game | null>(null);
   const roomEpoch = useRef(0);
+  // One snapshot request per room/session at a time; a new invalidation while
+  // fetching queues one trailing refresh rather than racing older responses.
+  const syncFlight = useRef<{epoch: number; code: string; token: string;
+    queued: {quiet: boolean; heartbeat: boolean} | null} | null>(null);
+  const lastHeartbeat = useRef({epoch: -1, at: 0});
   const freshDealKey = useRef<string | null>(null);
   // A successful blind flip animates only on a *new committed move*, never when
   // resuming an old local game or reconnecting to an existing online room.
@@ -254,17 +259,40 @@ export default function GameTable() {
     history.replaceState(null, "", `/play?room=${encodeURIComponent(next.code)}`);
   }, []);
 
-  const synchronize = useCallback(async (code: string, token: string, quiet = false) => {
+  const synchronize = useCallback(async (code: string, token: string, quiet = false, heartbeat = true) => {
     const epoch = roomEpoch.current;
+    const active = syncFlight.current;
+    if (active && active.epoch === epoch && active.code === code && active.token === token) {
+      active.queued = {quiet: (active.queued?.quiet ?? true) && quiet,
+        heartbeat: (active.queued?.heartbeat ?? false) || heartbeat};
+      return;
+    }
+    const flight: NonNullable<typeof syncFlight.current> = {epoch, code, token, queued: null};
+    syncFlight.current = flight;
+    let options: {quiet: boolean; heartbeat: boolean} | null = {quiet, heartbeat};
     try {
-      const next = await requestRoom({ action: "state", code, heartbeat: true }, token);
-      if (epoch !== roomEpoch.current || (roomRef.current && roomRef.current.code !== code)) return;
-      applyRoom(next);
-      lastSyncAt.current = Date.now();
-      if (!quiet) setNotice("");
-    } catch (err) {
-      if (epoch !== roomEpoch.current) return;
-      if (!quiet) setNotice(messageForError(err instanceof Error ? err.message : "network_unavailable"));
+      while (options && epoch === roomEpoch.current) {
+        const {quiet: silent, heartbeat: wantsHeartbeat} = options;
+        flight.queued = null;
+        // An invalidation is read-only. Periodic recovery reads refresh
+        // presence at most every 8 seconds, comfortably below the 25s TTL.
+        const beat = wantsHeartbeat && (!silent || lastHeartbeat.current.epoch !== epoch ||
+          Date.now() - lastHeartbeat.current.at >= 8000);
+        try {
+          const next = await requestRoom({ action: "state", code, heartbeat: beat }, token);
+          if (epoch !== roomEpoch.current || (roomRef.current && roomRef.current.code !== code)) return;
+          if (beat) lastHeartbeat.current = {epoch, at: Date.now()};
+          applyRoom(next);
+          lastSyncAt.current = Date.now();
+          if (!silent) setNotice("");
+        } catch (err) {
+          if (epoch !== roomEpoch.current) return;
+          if (!silent) setNotice(messageForError(err instanceof Error ? err.message : "network_unavailable"));
+        }
+        options = flight.queued;
+      }
+    } finally {
+      if (syncFlight.current === flight) syncFlight.current = null;
     }
   }, [applyRoom]);
 
@@ -295,6 +323,12 @@ export default function GameTable() {
       if (payload.action === "create" && next.game.phase === "setup")
         freshDealKey.current = "online:" + next.code + ":" + next.game.round;
       applyRoom(next);
+      // The server re-reads the committed revision; this hint carries no
+      // private state or client-asserted revision and is safe on older hubs.
+      const live = wsRef.current;
+      if (!noAuth && payload.code === next.code && live?.readyState === WebSocket.OPEN) {
+        try { live.send(JSON.stringify({type: "sync-hint"})); } catch { /* polling still converges */ }
+      }
       if(payload.action==="join")emitFunnel("room_joined");
       setSelection([]); setSwapHand(null); setNeedsTarget(false);
     } catch (err) {
@@ -391,14 +425,15 @@ export default function GameTable() {
     wsRef.current = ws;
     ws.onopen = () => ws.send(JSON.stringify({ type: "auth", code, token }));
     ws.onmessage = ev => {
+      if (cancelled || wsRef.current !== ws) return;
       try {
         const packet = JSON.parse(ev.data);
-        if (packet.type === "ready") { setConnected(true); void synchronize(code, token, true); }
+        if (packet.type === "ready") { setConnected(true); void synchronize(code, token, true, false); }
         if (packet.type === "reaction" && packet.reaction) applyReaction(packet.reaction as Reaction);
         if (packet.type === "reaction-error") setNotice("Reactions are limited. Try again soon.");
         if (packet.type === "invalidate" &&
             (packet.force || packet.revision > (roomRef.current?.revision ?? -1))) {
-          void synchronize(code, token, true);
+          void synchronize(code, token, true, false);
         }
       } catch { /* transport errors are recovered by polling */ }
     };
@@ -414,7 +449,7 @@ export default function GameTable() {
       retryTimer = setTimeout(() => setConnectionRetry(n => n + 1),
         backoff + Math.floor(Math.random() * 250));
     };
-    ws.onerror = () => setConnected(false);
+    ws.onerror = () => { if (!cancelled && wsRef.current === ws) setConnected(false); };
     return () => {
       cancelled = true;
       if (retryTimer) clearTimeout(retryTimer);

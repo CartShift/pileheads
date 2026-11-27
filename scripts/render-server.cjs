@@ -46,7 +46,7 @@ async function serveApi(req, res, url, handler = roomHandler) {
     if(handler===roomHandler&&value?.ok&&value.code&&liveHub){
       const action=typeof req.body==='string'?(()=>{try{return JSON.parse(req.body)?.action}catch{return null}})():null;
       if(value.reaction)liveHub.pushReaction(value.code,value.reaction);
-      else if(['move','swap','ready','start','rematch','advance','dump-target','decline','join','settings'].includes(action))
+      else if(['move','swap','ready','start','rematch','rematch-ready','withdraw-tournament','advance','dump-target','decline','join','settings'].includes(action))
        liveHub.pushRevision(value.code,Number(value.revision),action==='join');
     }
     this.end(JSON.stringify(value)); return this;

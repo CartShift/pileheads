@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
+import {useRouter} from "next/navigation";
 import Link from "next/link";
 import type {DeckTheme} from "./card-view";
 
@@ -18,6 +19,7 @@ async function request(action?:Action):Promise<Result>{
  return data;
 }
 export default function PlayerProfile(){
+ const router=useRouter();
  const [data,setData]=useState<Result|null>(null);
  const [name,setName]=useState("");
  const [deck,setDeck]=useState<DeckTheme>("refined");
@@ -42,6 +44,7 @@ export default function PlayerProfile(){
   try{
    localStorage.setItem("stack-next-display-name",data.profile.name);
    localStorage.setItem("stack-next-deck-theme-v1",data.profile.deck);
+   router.push("/play");
   }catch{setError("This browser could not save your game settings.");}
  }
  return <div className="mode-card">
@@ -56,6 +59,8 @@ export default function PlayerProfile(){
    <button className="cta" disabled={busy} onClick={()=>void update({action:"create"})}>Create guest profile</button>
   </>}
   {data?.profile&&<>
+   {!data.enabled&&<p role="status">Profile editing is temporarily unavailable. You can still delete your profile.</p>}
+   {data.privacyUrl&&<p><a href={data.privacyUrl}>Privacy notice</a></p>}
    <p>Guest profile · Expires {new Date(data.profile.expiresAt).toLocaleDateString()}</p>
    <form onSubmit={e=>{e.preventDefault();void update({action:"preferences",name,deck});}}>
     <label>Nickname <input maxLength={24} required value={name} disabled={busy||!data.enabled} onChange={e=>{setName(e.target.value);setSaved(false);}}/></label>
@@ -63,7 +68,7 @@ export default function PlayerProfile(){
     <button className="cta" type="submit" disabled={busy||!data.enabled||!name.trim()}>Save profile</button>
    </form>
    {saved&&<p role="status">Profile saved.</p>}
-   <Link className="learn-button" href="/play" onClick={usePreferences}>Play with saved preferences →</Link>
+   <button className="learn-button" type="button" disabled={busy} onClick={usePreferences}>Play with saved preferences →</button>
    {confirm?<div><p>Delete your guest profile? Local game saves and settings are separate.</p>
     <button type="button" className="secondary-button" disabled={busy} onClick={()=>void update({action:"delete"})}>Delete profile permanently</button>
     <button type="button" className="learn-button" disabled={busy} onClick={()=>setConfirm(false)}>Cancel</button></div>:
