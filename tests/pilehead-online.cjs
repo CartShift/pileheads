@@ -2,10 +2,10 @@
 const assert=require('node:assert/strict');
 const Module=require('node:module');
 const crypto=require('node:crypto'),originalRandomInt=crypto.randomInt;
-let chosenStarter=0;
+let chosenStarter=0,shuffleCalls=0;
 // Existing API fixtures stay deterministic; a separate scenario verifies
 // that the authoritative server can pick a nonzero starting seat.
-crypto.randomInt=max=>Math.min(chosenStarter,max-1);
+crypto.randomInt=(...args)=>{if(args.length===1)return Math.min(chosenStarter,args[0]-1);shuffleCalls++;return originalRandomInt(...args)};
 const Engine=require('../dist/pilehead/engine.js');
 const rooms=new Map(),members=new Map(),buckets=new Map();
 let joinContentionOnce=false;
@@ -104,6 +104,15 @@ async function run(){
  const host=await request({action:'create',capacity:2,name:'Host'});
  assert.equal(host.status,201);const {code,session:hostToken}=host.data;assert.match(code,/^[A-HJ-NP-Z2-9]{8}$/);
  assert.equal(host.data.me,0);assert.equal(host.data.game.phase,'setup');checks++;
+ assert.equal(shuffleCalls,51,'online two-player deal uses independent secure draws');
+ Engine.invariant(rooms.get(code).state);
+ assert.equal(rooms.get(code).state.stock.length,34);checks++;
+ const oversized=await request({action:'state',code,padding:'x'.repeat(4096)},hostToken);
+ assert.equal(oversized.status,413);checks++;
+ const oversizedRaw=await request(JSON.stringify({action:'state',code})+' '.repeat(4096),hostToken);
+ assert.equal(oversizedRaw.status,413);checks++;
+ const wrongType=await request({action:'state',code},hostToken,{'content-type':'application/jsonp'});
+ assert.equal(wrongType.status,415);checks++;
  const unauth=await request({action:'state',code});assert.equal(unauth.status,401);checks++;
  const early=await request({action:'start',code,revision:0},hostToken);
  assert.equal(early.status,409,JSON.stringify(early));checks++;
@@ -133,6 +142,11 @@ async function run(){
  assert.equal(state.data.game.seed,undefined);assert.equal(state.data.game.stock,undefined);checks++;
  const cross=await request({action:'state',code:'ABCDEFGH'},guestToken);
  assert.equal(cross.status,404);checks++;
+ const quotaKey=crypto.createHash('sha256').update(['seat-write',code,1,Math.floor(Date.now()/60000)].join(':')).digest('hex');
+ buckets.set(quotaKey,300);
+ const throttled=await request({action:'presence',code,away:true},guestToken);
+ assert.equal(throttled.status,429);assert.equal(rooms.get(code).revision,0);checks++;
+ buckets.delete(quotaKey);
  const startGuest=await request({action:'start',code,revision:0},guestToken);assert.equal(startGuest.status,403);checks++;
  // Both players explicitly finish choosing their three face-up cards.
  const hostReady=await request({action:'ready',code,revision:0,ready:true},hostToken);
