@@ -163,13 +163,13 @@ jobs:
             psql("UPDATE pilehead_rooms SET state='"+state+"' WHERE code='HIST0001';",runtime);
             const consent=(stmt,member,session,rev,round=1)=>psql("PREPARE consent AS "+stmt+"; EXECUTE consent('HIST0001','"+member+"','"+session+"',"+round+","+rev+");",runtime);
             const status=(member,session)=>psql("PREPARE status AS "+H.SQL.status+"; EXECUTE status('HIST0001','"+member+"','"+session+"',1);",runtime);
-            assert.equal(status('history-host',a),'t\\tf');
+            assert.equal(status('history-host',a),'t\tf');
             assert.equal(consent(H.SQL.link,'forged-seat',a,0),'');
             assert.equal(consent(H.SQL.link,'history-host','x'.repeat(64),0),'');
             assert.equal(consent(H.SQL.link,'history-host',a,0,2),'');
             assert.equal(consent(H.SQL.link,'history-host',a,0),'HIST0001');
-            assert.equal(status('history-host',c),'t\\tt','same account on another device');
-            assert.equal(status('history-host',b),'t\\tf','other account cannot see consent');
+            assert.equal(status('history-host',c),'t\tt','same account on another device');
+            assert.equal(status('history-host',b),'t\tf','other account cannot see consent');
             assert.equal(consent(H.SQL.link,'history-friend',a,1),'','one account per round');
             assert.equal(consent(H.SQL.link,'history-host',b,1),'','one account per seat');
             assert.equal(consent(H.SQL.link,'history-friend',b,1),'HIST0001');

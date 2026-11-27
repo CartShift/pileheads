@@ -988,11 +988,6 @@ export default function GameTable() {
             <span><strong>Final Duel</strong><small>Optional: with two players left and no draw cards,
               every pile pickup burns the visible top card. Off by default.</small></span>
           </label>
-          {room?.historyAvailable&&tokenRef.current&&!backendOrigin&&<RoundHistoryConsent key={room.code+":"+g.round} code={room.code} round={g.round} revision={room.revision} phase={g.phase} token={tokenRef.current} busy={busy} onChanged={()=>{
-            if(roomRef.current?.code!==room.code||!tokenRef.current)return;
-            void synchronize(room.code,tokenRef.current,true,false);
-            if(wsRef.current?.readyState===WebSocket.OPEN){try{wsRef.current.send(JSON.stringify({type:"sync-hint"}));}catch{}}
-          }}/>}
           {motionSetting}
           <FeedbackSettings feedback={feedback} />
            <PlaytestInsights insights={insights} />
@@ -1167,6 +1162,11 @@ export default function GameTable() {
               permanently burns its visible top card. Disabled by default. {g.roundLimit ? "Tournament rules are fixed at room creation." : ""}
             </small></span>
           </label>
+          {room?.historyAvailable&&tokenRef.current&&!backendOrigin&&<RoundHistoryConsent key={room.code+":"+g.round} code={room.code} round={g.round} revision={room.revision} phase={g.phase} token={tokenRef.current} busy={busy} onChanged={()=>{
+            if(roomRef.current?.code!==room.code||!tokenRef.current)return;
+            void synchronize(room.code,tokenRef.current,true,false);
+            if(wsRef.current?.readyState===WebSocket.OPEN){try{wsRef.current.send(JSON.stringify({type:"sync-hint"}));}catch{}}
+          }}/>}
           {motionSetting}
           <FeedbackSettings feedback={feedback} />
            <PlaytestInsights insights={insights} />
