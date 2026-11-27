@@ -32,7 +32,8 @@ const scripts=[...kit.matchAll(/<script>([\s\S]*?)<\/script>/g)];
 assert.equal(scripts.length,1);
 assert.doesNotThrow(()=>new vm.Script(scripts[0][1]),'Playtest inline JS must parse');
 
-assert.ok(home.includes('/pilehead/playtest.html'));
+assert.ok(home.includes('/how-to-play'),'Homepage links to the public rules');
+assert.ok(read('apps/web/app/how-to-play/page.tsx').includes('/pilehead/playtest.html'),'Public rules preserve access to the full playtest kit');
 assert.match(print,/href="playtest\.html">Playtest rules/);
 assert.match(vercel,/'playtest\.html'/,'Vercel build must include playtest.html');
 assert.match(readme,/Official playtest kit/);
