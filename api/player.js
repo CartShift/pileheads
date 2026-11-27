@@ -29,7 +29,7 @@ function limiter(max,now=Date.now) {
 function normalizeName(value) {
   if(typeof value!=='string')return null;
   const name=value.normalize('NFC').trim();
-  return name.length>=1&&name.length<=24&&!/[\p{C}\p{Zl}\p{Zp}]/u.test(name)?name:null;
+  return name.length>=1&&name.length<=24&&!/[<>\p{C}\p{Zl}\p{Zp}]/u.test(name)?name:null;
 }
 function validAction(input) {
   if(!input||typeof input!=='object'||Array.isArray(input))return false;

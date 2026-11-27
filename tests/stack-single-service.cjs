@@ -7,7 +7,7 @@ const source = path.resolve(__dirname, "../dist");
 const read = p => fs.readFileSync(path.join(root,p));
 assert.deepEqual(read("index.html"), fs.readFileSync(path.resolve(__dirname,"../apps/web/out/index.html")));
 for (const name of ["index.html","app.js","online.js","classic-clean.css","classic-premium.css"]) assert.ok(!fs.existsSync(path.join(root,"pilehead",name)),name+" must not be published");
-for (const route of ["play","stack","how-to-play","deck"]) {
+for (const route of ["play","stack","how-to-play","deck","profile"]) {
   const html = read(route + ".html").toString("utf8");
   assert.match(html, /_next\/static\//, "exported " + route + " must load client JS");
   assert.match(html, /PILEHEADS/, route + " should be a rendered PILEHEADS page");
