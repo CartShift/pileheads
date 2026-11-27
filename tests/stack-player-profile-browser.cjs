@@ -205,7 +205,7 @@ async function main(){
 
 
 
-   }finally{await context.close()}
+   }finally{await context.unrouteAll({behavior:'wait'});await context.close()}
   }
  }finally{if(browser)await browser.close();server.kill('SIGTERM')}
 }

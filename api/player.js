@@ -1,5 +1,6 @@
 'use strict';
 const crypto=require('node:crypto');
+const Runtime=require('../scripts/runtime-config.cjs');
 const COOKIE='__Host-pileheads_guest';
 const TTL=90*24*60*60;
 const TOKEN=/^[A-Za-z0-9_-]{43}$/;
@@ -117,6 +118,7 @@ function configuration(env){
   const configured=validOrigin&&Boolean(env.PILEHEAD_PLAYER_DATABASE_URL)&&env.PILEHEAD_PLAYER_SCHEMA_READY==='1';
   return{configured,enabled:configured&&Boolean(privacyUrl)&&env.PILEHEAD_PLAYER_ENABLED==='1',origin,privacyUrl};
 }
-const handler=createHandler({...configuration(process.env),store});
+const rates={allowRead:limiter(300),allowWrite:limiter(90),allowCreate:limiter(30)};
+const handler=async(req,res)=>createHandler({...configuration(await Runtime.load()),store,...rates})(req,res);
 module.exports=handler;
 Object.assign(module.exports,{handler,createHandler,createStore,cookieToken,validAction,normalizeName,hash,limiter,COOKIE,TTL,configuration});

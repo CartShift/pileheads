@@ -5,6 +5,12 @@ const e={PILEHEAD_MATCHMAKING_PREVIEW_ENABLED:'1',PILEHEAD_MATCHMAKING_SCHEMA_RE
 assert.equal(M.config({}).enabled,false);assert.equal(M.config(e).enabled,true);assert.equal(M.config({...e,VERCEL_ENV:'production'}).enabled,false);
 assert.equal(M.config({...e,PILEHEAD_MATCHMAKING_PREVIEW_ORIGIN:'https://pileheads.com',PILEHEAD_PLAYER_ORIGIN:'https://pileheads.com'}).enabled,false);
 assert.equal(M.config({...e,PILEHEAD_MATCHMAKING_PREVIEW_ACCOUNTS:''}).enabled,false);
+const live={...e,VERCEL_ENV:'production',PILEHEAD_MATCHMAKING_PREVIEW_ORIGIN:'https://pileheads.com',PILEHEAD_PLAYER_ORIGIN:'https://pileheads.com',PILEHEAD_PLAYER_PRIVACY_URL:'https://pileheads.com/privacy',PILEHEAD_GOOGLE_CLIENT_ID:'test-client',PILEHEAD_GOOGLE_CLIENT_SECRET:'test-only-not-real-secret',PILEHEAD_ACCOUNT_FLOW_SECRET:'x'.repeat(48),PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED:'1',PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES:['a'.repeat(64)],PILEHEAD_MATCHMAKING_LIVE_PILOT_ENABLED:'1'};
+assert.equal(M.config(live).enabled,true);assert.equal(M.config(live).live,true);
+assert.equal(M.config({...live,PILEHEAD_MATCHMAKING_LIVE_PILOT_ENABLED:'0'}).enabled,false);
+assert.equal(M.config({...live,PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES:[]}).enabled,false);
+assert.equal(M.config({...live,PILEHEAD_MATCHMAKING_PREVIEW_ACCOUNTS:''}).enabled,false);
+assert.equal(M.config({...live,PILEHEAD_MATCHMAKING_PREVIEW_ORIGIN:'https://www.pileheads.com',PILEHEAD_PLAYER_ORIGIN:'https://www.pileheads.com'}).enabled,false);
 for(const action of ['claim','assign','set-rating'])assert.equal(M.valid({action}),false);
 assert.equal(M.valid({action:'join',accountId:id}),false);assert.equal(M.valid({action:'cancel',ticket:offer,offer}),false);
 const calls=[];let allowed=true;
@@ -23,5 +29,5 @@ async function call(handler,{method='POST',input={action:'status'},cookie='__Hos
  await call(h,{input:{action:'join'}});await call(h,{input:{action:'accept',offer}});assert.deepEqual(calls,['join',offer]);
  assert.equal((await call(h,{input:{action:'recover'}})).body.seat.seat,0);
  allowed=false;assert.equal((await call(h,{input:{action:'recover'}})).statusCode,401);
- console.log('PASS Quick Play preview API: production hard-off, allowlist, origin, private recovery, no direct worker command');
+ console.log('PASS Quick Play preview API: production opt-in only, double allowlist, origin, private recovery, no direct worker command');
 })().catch(e=>{console.error(e);process.exitCode=1});
