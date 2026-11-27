@@ -35,6 +35,7 @@ const stages = {
   ],
   'browser-test': [
     node('tests/stack-homepage-browser.cjs'),
+    node('tests/stack-launch-performance.cjs'),
     node('tests/stack-next-browser.cjs'),
     node('tests/creative-studio-browser.cjs'),
   ],
