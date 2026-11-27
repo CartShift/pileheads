@@ -943,7 +943,7 @@ export default function GameTable() {
             <button className="secondary-button" onClick={resumeLocal}>Resume game</button>
           </div>}
           <div className="mode-card">
-            <div className="eyebrow">01 · QUICK PLAY</div><h2>Play with bots</h2>
+            <div className="eyebrow">01 · PRACTICE</div><h2>Play with bots</h2>
             <p>Jump in immediately with a guided two-player game.</p>
             <button type="button" className="cta quick-start" onClick={()=>startLocalGame(true,null,2,true)}>Quick play</button>
             <p className="custom-table-label">Or set up your own table:</p>
@@ -975,7 +975,7 @@ export default function GameTable() {
             <div className="lobby-join-label">Already have an invite?</div><div className="join-row"><input aria-label="Room code" maxLength={8} placeholder="8-letter room code"
               value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} />
               <button disabled={busy || joinCode.length !== 8 || !name.trim()} onClick={() => void joinOnlineRoom()}>Join</button></div>
-          </div></>}
+          </div><section className="mode-card public-matchmaking-card" aria-label="Find an online opponent"><div className="eyebrow">03 · QUICK PLAY</div><h2>Find an opponent.</h2><p>Meet another human player for a three-round table. Check availability before joining; a verified account is required.</p><Link className="cta" href="/quick-play">Find opponent <span aria-hidden>→</span></Link><Link className="learn-button" href="/profile">Your account &amp; progress</Link></section></>}
         </div>
       </section>
       <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/how-to-play">Read the rules ↗</a><a href="/pilehead/print.html">Print playtest cards</a><button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button><FunnelConsent/></footer>

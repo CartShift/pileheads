@@ -1,9 +1,10 @@
 import Link from "next/link";
 import CampaignPlayLink from "./campaign-play-link";
 
-export type SiteRoute = "/" | "/play" | "/how-to-play" | "/deck" | "/profile";
+export type SiteRoute = "/" | "/play" | "/quick-play" | "/how-to-play" | "/deck" | "/profile";
 
 const links = [
+  { href: "/quick-play", label: "Quick Play" },
   { href: "/how-to-play", label: "How to play" },
   { href: "/deck", label: "The deck" },
   { href: "/profile", label: "Profile" },

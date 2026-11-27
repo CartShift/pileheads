@@ -30,3 +30,6 @@ No visual approval or runtime verification is implied by a source change.
 - Preserved concurrent progression UI and opt-in XP, aligned achievement and level styling, and updated the static design-system contract to verify the shared BrandLink instead of requiring duplicate logo markup.
 
 - Aligned the restricted Quick Play preview with the shared header and paper control styling without adding public entry links or changing queue eligibility.
+
+## Public discoverability and activation
+The public navigation and play lobby now advertise Quick Play as a real destination, with live availability messaging. Account, history and progression panels explain disabled states instead of disappearing. No public queue operation is enabled by these UI changes. Maintain the production denial until the public launch safeguards are implemented, tested and deployed. Keep verified accounts, per-round consent, independent seat credentials, privacy and rate limits. No fake availability, opponents, XP or history.
