@@ -58,5 +58,8 @@
       "destination": "/deck",
       "permanent": true
     }
+  ],
+  "regions": [
+    "fra1"
   ]
 }

@@ -2,13 +2,14 @@
 // STACK real-time transport. The game API remains authoritative: sockets carry
 // room invalidations and bounded, seat-authenticated ephemeral reactions only.
 const {WebSocketServer,WebSocket}=require('ws');
+const Poll=require('./realtime-poll-policy.cjs');
 
 function attachRealtime(server,api){
  const wss=new WebSocketServer({noServer:true,maxPayload:1024,perMessageDeflate:false});
- const rooms=new Map(),allPeers=new Set();
+ const rooms=new Map(),allPeers=new Set(),polls=new Map();
  const MAX_CONNECTIONS=200,MAX_ROOM_PEERS=20;
  function roomSet(code){
-  if(!rooms.has(code))rooms.set(code,new Set());
+  if(!rooms.has(code)){rooms.set(code,new Set());polls.set(code,Poll.createPoll(Date.now()))}
   return rooms.get(code);
  }
  function send(ws,message){
@@ -18,20 +19,24 @@ function attachRealtime(server,api){
  }
  function pushReaction(code,reaction){
   const peers=rooms.get(code);if(!peers)return;
+  let delivered=false;
   for(const peer of peers){
    if(peer.seen.has(reaction.id))continue;
    peer.seen.add(reaction.id);
    if(peer.seen.size>90)peer.seen=new Set([...peer.seen].slice(-50));
-   send(peer.ws,{type:'reaction',reaction});
+   send(peer.ws,{type:'reaction',reaction});delivered=true;
   }
+  if(delivered&&polls.has(code))Poll.activity(polls.get(code),Date.now());
  }
  function pushRevision(code,revision,force=false){
   const peers=rooms.get(code);if(!peers||!Number.isInteger(revision))return;
+  let delivered=false;
   for(const peer of peers){
    if(!force&&revision<=peer.revision)continue;
    peer.revision=Math.max(peer.revision,revision);
-   send(peer.ws,{type:'invalidate',revision,force});
+   send(peer.ws,{type:'invalidate',revision,force});delivered=true;
   }
+  if(delivered&&polls.has(code))Poll.activity(polls.get(code),Date.now());
  }
  function rejectUpgrade(socket,status){
   if(socket.destroyed)return;
@@ -81,12 +86,17 @@ function attachRealtime(server,api){
      peer={ws,room:auth.code,seat:auth.seat,revision:auth.revision,
       seen:new Set((auth.reactions||[]).map(e=>e.id)),lastReactionAt:0};
      peers.add(peer);clearTimeout(timeout);
+     Poll.activity(polls.get(auth.code),Date.now());
      send(ws,{type:'ready',revision:auth.revision});
     }catch{ws.close(1008,'Invalid room session')}
     finally{pending=false}
     return;
    }
    if(msg.type==='heartbeat'){send(ws,{type:'heartbeat'});return}
+   // A client may hint that a committed HTTP command needs reconciliation.
+   // Never trust a client-supplied revision or publish state from the hint.
+   // A per-room budget applies even with several authenticated connections.
+   if(msg.type==='sync-hint'){const poll=polls.get(peer.room);if(poll)Poll.hint(poll,Date.now());return}
    if(msg.type!=='react')return;
    if(Date.now()-peer.lastReactionAt<800){send(ws,{type:'reaction-error',reason:'slow_down'});return}
    peer.lastReactionAt=Date.now();
@@ -101,7 +111,7 @@ function attachRealtime(server,api){
    clearTimeout(timeout);allPeers.delete(ws);
    if(peer){
     const peers=rooms.get(peer.room);peers?.delete(peer);
-    if(!peers?.size)rooms.delete(peer.room);
+    if(!peers?.size){rooms.delete(peer.room);polls.delete(peer.room)}
    }
   });
   ws.on('error',()=>{});
@@ -112,7 +122,8 @@ function attachRealtime(server,api){
   if(checking||!rooms.size)return;
   checking=true;
   try{
-   const codes=[...rooms.keys()],batches=[];
+   const now=Date.now();
+   const codes=[...polls].filter(([,p])=>Poll.takeDue(p,now)).map(([code])=>code),batches=[];
    for(let i=0;i<codes.length;i+=100)batches.push(codes.slice(i,i+100));
    await Promise.all(batches.map(async batch=>{
     try{
@@ -129,11 +140,12 @@ function attachRealtime(server,api){
      }
     }catch{
      // Keep sockets connected through transient Neon interruptions.
+     for(const code of batch){const poll=polls.get(code);if(poll)Poll.failed(poll,Date.now())}
      console.warn(JSON.stringify({event:'stack_ws_reconcile_failed',rooms:batch.length}));
     }
    }));
   }finally{checking=false}
- },2500);
+ },Poll.TICK_MS);
  reconcile.unref?.();
  // Production pings every 25 seconds. Test-only override makes a real
  // browser exercise three pong cycles in a short deterministic CI run.
