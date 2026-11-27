@@ -29,7 +29,13 @@ assert.match(api,/module\.exports\.realtimeReact/);
 assert.match(api,/Number\.isInteger\(seat\)/);
 assert.match(api,/REACTION_TYPES\.has\(kind\)/);
 assert.match(api,/ON CONFLICT\(bucket\)/);
-assert.match(api,/jsonb_set\(\$1::jsonb/,'normal moves must preserve reactions');
+const {UPDATE_ROOM_SQL,ARCHIVE_ROUND_SQL}=require('../scripts/round-receipts.cjs');
+for(const statement of [UPDATE_ROOM_SQL,ARCHIVE_ROUND_SQL]){
+ assert.match(statement,/jsonb_set\(\$1::jsonb,'\{reactionEvents\}',COALESCE\(pilehead_rooms\.state->'reactionEvents'/,'every committed move must preserve reactions');
+ assert.match(statement,/revision=\$4 AND expires_at>now\(\)/,'every committed move must preserve revision and expiry guards');
+}
+assert.match(api,/RoundHistory\.UPDATE_ROOM_SQL/);
+assert.match(api,/RoundHistory\.ARCHIVE_ROUND_SQL/);
 assert.match(api,/jsonb_agg\(event ORDER BY ord\)/,'reactions must be bounded and ordered');
 assert.match(api,/reactions:recentReactions\(g\)/);
 assert.match(live,/new WebSocket\(/);
