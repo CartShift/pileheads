@@ -1667,17 +1667,29 @@ async function localInterruptParityScenarios(browser) {
 async function privateTournament(browser,server){
  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:"reduce"});
  const page=await context.newPage();
+ const guestContext=await browser.newContext({viewport:{width:360,height:740},isMobile:true,hasTouch:true,reducedMotion:"reduce"});
+ const guest=await guestContext.newPage();
+ await page.addInitScript(()=>{Object.defineProperty(navigator,"share",{configurable:true,value:async payload=>{window.__testInvite=payload;}});});
  try{
   await page.goto(WEB+"/play");
   await page.getByRole("textbox",{name:"Your name"}).fill("Tournament host");
-  await page.getByRole("combobox",{name:"Humans"}).selectOption("1");
+  await page.getByRole("combobox",{name:"Humans"}).selectOption("2");
   await page.getByRole("combobox",{name:"Table format"}).selectOption("3");
   await page.getByRole("button",{name:/Create a room/}).click();
   await page.waitForURL(/room=[A-HJ-NP-Z2-9]{8}/);
   const code=new URL(page.url()).searchParams.get("room");
+  await page.getByRole("button",{name:"Share room invitation"}).click();
+  const invite=await page.evaluate(()=>window.__testInvite);
+  assert.equal(invite.url,WEB+"/play?room="+code);
+  assert.deepEqual(Object.keys(invite).sort(),["text","title","url"]);
+  await guest.goto(invite.url);
+  await guest.getByRole("textbox",{name:"Your name"}).fill("Tournament guest");
+  await guest.getByRole("button",{name:"Join",exact:true}).click();
+  await guest.getByRole("button",{name:"I'm ready"}).waitFor();
   for(let round=1;round<=3;round++){
    await page.getByText("Tournament · "+round+"/3",{exact:true}).waitFor();
    await page.getByRole("button",{name:"I'm ready"}).click();
+   await guest.getByRole("button",{name:"I'm ready"}).click();
    await page.getByRole("button",{name:"Start round"}).click();
    await page.locator('.game-table-shell[data-phase="play"]').waitFor();
    server.send({type:"finish",code});
@@ -1690,6 +1702,18 @@ async function privateTournament(browser,server){
    if(round<3){
     await page.getByRole("button",{name:"Play another round"}).click();
     await page.getByRole("button",{name:"Deal again"}).click();
+    await guest.getByText("1/2 humans ready for round "+(round+1),{exact:true}).waitFor();
+    assert.equal(await page.locator('.game-table-shell').getAttribute("data-phase"),"over");
+    if(round===1){
+      await page.getByRole("button",{name:"Cancel ready"}).click();
+      await guest.getByText("0/2 humans ready for round 2",{exact:true}).waitFor();
+      await page.getByRole("button",{name:"Play another round"}).click();
+      await page.getByRole("button",{name:"Deal again"}).click();
+      await guest.getByText("1/2 humans ready for round 2",{exact:true}).waitFor();
+    }
+    await guest.getByRole("button",{name:"Play another round"}).click();
+    await guest.getByRole("button",{name:"Deal again"}).click();
+    await guest.getByRole("button",{name:"I'm ready"}).waitFor();
    }else{
     await score.getByRole("heading",{name:"Tournament host wins!"}).waitFor();
     assert.equal(await page.getByRole("button",{name:"Play another round"}).count(),0);
@@ -1697,8 +1721,8 @@ async function privateTournament(browser,server){
     await page.getByRole("combobox",{name:"Table format"}).waitFor();
    }
   }
-  console.log("PASS private tournament: three rounds, cumulative result podium, final stop");
- }finally{await context.close()}
+  console.log("PASS private tournament: native invite, two-human readiness and withdrawal, cumulative podium, final stop");
+ }finally{await context.close();await guestContext.close()}
 }
 
 async function publicLaunch(browser){
