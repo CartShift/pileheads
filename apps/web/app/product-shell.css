@@ -88,3 +88,122 @@
   }
   .pileheads-masthead .stack-site-nav .stack-site-links .stack-nav-primary {padding-inline:5px}
 }
+
+/* Brand primitives shared by the lobby, player account, public guides and
+   tabletop. Keep compact control sizes and game-state meanings intact. */
+.game-shell, .launch-public {
+  font-family:var(--brand-body);
+}
+.stack-lobby .mode-card, .launch-public :is(.public-steps,.public-deck) article {
+  border-radius:var(--brand-radius);
+  background-color:var(--brand-paper-surface);
+  border-color:var(--brand-control-border);
+}
+.stack-lobby .mode-card :is(input,select) {
+  border-radius:var(--brand-control-radius);
+  min-height:var(--brand-control-min);
+}
+.stack-lobby .mode-card .cta,
+.launch-public .public-cta {
+  border-radius:var(--brand-pill);
+  box-shadow:var(--brand-shadow);
+}
+.stack-lobby .mode-card .cta:disabled,
+.game-shell .game-modal button:disabled,
+.game-table-shell .control-panel button:disabled {
+  box-shadow:none;
+}
+.game-table-shell.game-shell .game-header {
+  border-bottom-color:var(--brand-dark-edge);
+}
+.game-table-shell.game-shell .control-panel :is(.primary-button,.secondary-button,.snap-button,.slam-button) {
+  border-radius:var(--brand-control-radius);
+  min-height:var(--brand-control-min);
+}
+.game-table-shell.game-shell .control-panel .primary-button,
+.game-shell .game-modal .primary-button,
+.game-table-shell .results-overlay .primary-button {
+  background:var(--brand-yellow);
+  color:var(--brand-ink);
+  border-color:var(--brand-control-border);
+  box-shadow:var(--brand-action-shadow);
+}
+.game-table-shell.game-shell .control-panel .secondary-button,
+.game-shell .game-modal .secondary-button,
+.game-shell .react-pile-panel .secondary-button {
+  background:var(--brand-dark-surface);
+  color:var(--brand-paper);
+  border:1px solid var(--brand-dark-edge);
+  border-radius:var(--brand-control-radius);
+}
+.game-shell .game-modal,
+.game-shell .react-pile-panel {
+  background:var(--brand-grain),linear-gradient(155deg,var(--brand-dark-surface),var(--brand-dark-deep));
+  background-size:180px 180px,auto;
+  color:var(--brand-paper);
+  border:2px solid var(--brand-line);
+  border-radius:var(--brand-radius);
+  color-scheme:dark;
+}
+.game-shell .game-modal h2 {
+  font-family:var(--brand-display);
+  font-style:italic;
+  font-weight:900;
+  text-transform:uppercase;
+  color:var(--brand-paper);
+}
+.game-shell .game-modal .eyebrow {color:var(--brand-yellow)}
+.game-shell .game-modal p,
+.game-shell .game-modal .rule-toggle small {color:var(--brand-muted-light)}
+.game-shell .game-modal :is(.rule-toggle,.quick-rules>div) {
+  border-radius:var(--brand-control-radius);
+  border-color:#bfae8066;
+  background:var(--brand-dark-deep);
+}
+.game-shell .game-modal .rule-toggle input {accent-color:var(--brand-yellow)}
+.game-shell .react-pile-panel header strong {
+  font:italic 900 clamp(20px,3vw,28px)/1.05 var(--brand-display);
+  color:var(--brand-paper);
+  overflow-wrap:anywhere;
+}
+.game-table-shell .results-overlay {
+  border-radius:var(--brand-radius);
+}
+.game-table-shell .results-overlay h2 {
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:-.02em;
+}
+.stack-lobby .mode-card .profile-actions {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+  margin-top:12px;
+}
+.stack-lobby .mode-card .profile-actions > button {min-height:44px}
+.stack-lobby .mode-card .profile-danger {
+  color:var(--brand-danger);
+  background:transparent;
+  border-color:var(--brand-danger);
+  box-shadow:none;
+}
+.stack-lobby .mode-card .profile-danger:hover:not(:disabled) {
+  background:var(--brand-danger);
+  color:var(--brand-paper);
+}
+.stack-lobby .mode-card [role="alert"] {
+  border-left:3px solid var(--brand-danger);
+  padding-left:10px;
+  color:#762a26;
+}
+.stack-lobby .mode-card [role="status"] {overflow-wrap:anywhere}
+.deck-updates-shell .public-main {max-width:760px}
+.deck-updates-shell .public-hero {margin-bottom:20px}
+.deck-updates-shell .public-hero h1 {font-size:clamp(44px,7vw,72px)}
+.deck-updates-shell .public-main > a {text-decoration:underline;text-underline-offset:3px}
+.deck-updates-shell .public-hero .public-cta {margin:8px 0}
+@media (prefers-reduced-motion:reduce) {
+  .pileheads-masthead a, .game-shell .game-modal button,
+  .launch-public .public-cta {transition:none}
+}

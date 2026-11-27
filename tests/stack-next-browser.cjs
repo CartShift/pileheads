@@ -1796,9 +1796,21 @@ async function unifiedNavigationScenario(browser) {
         assert.ok(await nav.evaluate(el=>el.scrollWidth<=el.clientWidth+2),route+" navigation fits "+width);
         assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),route+" page fits "+width);
       }
+      await page.goto(WEB+"/deck-updates");
+      assert.equal(await page.getByRole("navigation",{name:"Main navigation"}).count(),1);
+      assert.equal(await page.getByRole("heading",{name:"Deck updates"}).count(),1);
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),"deck updates fits "+width);
+      await page.goto(WEB+"/play");
+      await page.getByRole("button",{name:"Learn with a bot"}).click();
+      await page.getByRole("button",{name:"Rules",exact:true}).click();
+      const dialog=page.getByRole("dialog",{name:"PILEHEADS quick rules"});
+      assert.equal(await dialog.count(),1);
+      assert.ok(await dialog.evaluate(el=>getComputedStyle(el).fontFamily.includes("system-ui")),"shared body typography");
+      await dialog.getByRole("button",{name:"Back to table"}).click();
+      assert.equal(await dialog.count(),0);
     } finally {await context.close();}
   }
-  console.log("PASS shared navigation: five routes, current-page state and four viewport widths");
+  console.log("PASS shared navigation: six routes, game dialog, current-page state and four viewport widths");
 }
 
 async function main() {

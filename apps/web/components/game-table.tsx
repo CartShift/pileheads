@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import SiteHeader from "./site-header";
+import SiteHeader, {BrandLink} from "./site-header";
 import { motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
@@ -1024,7 +1024,7 @@ export default function GameTable() {
   return (
     <main className="game-shell game-table-shell" data-phase={g.phase} data-drill={drill?.id} data-hand-count={handCount} data-turn={g.phase === "play" ? active ? "self" : "other" : "none"}>
       <header className="game-header">
-        <Link href="/" className="logo stack-site-brand" aria-label="PILEHEADS home"><img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={640} height={356}/></Link>
+        <BrandLink compact/>
         <div className="game-head-actions">
           {room && <button className={"room-code " + (copiedInvite ? "is-copied" : "")}
             onClick={() => void copyInvite()}

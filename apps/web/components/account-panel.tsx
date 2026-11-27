@@ -61,7 +61,7 @@ export default function AccountPanel(){
    <button className="learn-button" disabled={busy||!data.enabled} onClick={()=>void update({action:"import_guest"})}>Copy guest preferences to account</button>
    <button className="learn-button" disabled={busy} onClick={play}>Play with account preferences →</button>
    <button className="secondary-button" disabled={busy} onClick={()=>void update({action:"logout"})}>Sign out</button>
-   {confirm?<div><p>Delete your account and every signed-in session? Your local games and guest profile are separate.</p><button className="secondary-button" disabled={busy} onClick={()=>void update({action:"delete",confirm:true})}>Delete account permanently</button><button className="learn-button" disabled={busy} onClick={()=>setConfirm(false)}>Cancel account deletion</button></div>:<button className="learn-button" disabled={busy} onClick={()=>setConfirm(true)}>Delete account</button>}
+   {confirm?<div><p>Delete your account and every signed-in session? Your local games and guest profile are separate.</p><button className="secondary-button profile-danger" disabled={busy} onClick={()=>void update({action:"delete",confirm:true})}>Delete account permanently</button><button className="learn-button" disabled={busy} onClick={()=>setConfirm(false)}>Cancel account deletion</button></div>:<button className="learn-button profile-danger" disabled={busy} onClick={()=>setConfirm(true)}>Delete account</button>}
   </>}
  </section>;
 }

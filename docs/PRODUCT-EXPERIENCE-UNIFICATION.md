@@ -17,3 +17,10 @@ Use the existing PILEHEADS brand system (cream printed paper, teal, red, yellow,
 4. Verify keyboard interaction, focus, contrast, reduced motion and multiplayer behavior; capture screenshots on desktop and mobile before deployment.
 
 No visual approval or runtime verification is implied by a source change.
+
+## Phase 2 — shared primitives and account surfaces
+- Shared logo component for both the public masthead and compact live-table header.
+- Canonical tokens for control geometry, dark surfaces and destructive actions.
+- Consistent paper cards, public CTA, settings/rules/restart/inspection panels, action dock and results without changing geometry, game actions, status signals or rules.
+- Profile hierarchy and destructive-action styling; email confirmation/unsubscribe route shares public shell. Operator-only growth route intentionally stays separate.
+- Extended browser scenario verifies the deck-update shell and in-game rules dialog. Actual screenshot review still required before visual sign-off.

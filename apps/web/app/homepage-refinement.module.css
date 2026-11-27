@@ -9,17 +9,17 @@
   --print-grain: var(--brand-grain);
   --content: var(--brand-content);
 }
-.refined h1,.refined h2,.refined h3,.refined header nav,.refined a[class*="button"] {
+.refined h1,.refined h2,.refined h3,.refined header:not([class~="pileheads-masthead"]) nav,.refined a[class*="button"] {
   font-family: var(--display);
   font-style: italic;
   font-weight: 900;
   letter-spacing: -.015em;
 }
-.refined header {border-bottom: 3px solid #e3c595; background-color: #111b1e; background-image: var(--print-grain)}
-.refined header>div {max-width: var(--content); min-height:78px; padding-block:5px}
-.refined header nav {font-size:clamp(15px,1.5vw,20px);gap:clamp(13px,3vw,38px)}
-.refined header nav a {min-height:44px;display:inline-flex;align-items:center;justify-content:center}
-.refined header img {max-height:68px}
+.refined header:not([class~="pileheads-masthead"]) {border-bottom: 3px solid #e3c595; background-color: #111b1e; background-image: var(--print-grain)}
+.refined header:not([class~="pileheads-masthead"])>div {max-width: var(--content); min-height:78px; padding-block:5px}
+.refined header:not([class~="pileheads-masthead"]) nav {font-size:clamp(15px,1.5vw,20px);gap:clamp(13px,3vw,38px)}
+.refined header:not([class~="pileheads-masthead"]) nav a {min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+.refined header:not([class~="pileheads-masthead"]) img {max-height:68px}
 .refined a[class*="button"] {font-size:clamp(18px,1.65vw,23px);line-height:1.05;padding:13px 26px;box-shadow:0 4px 0 #172021, inset 0 2px 0 #ffffff35}
 .refined a[class*="button"]:hover {box-shadow:0 7px 0 #172021, inset 0 2px 0 #ffffff35}
 .refined a[class*="button"]:active {box-shadow:0 1px 0 #172021}
@@ -72,14 +72,14 @@
 @media(max-width:850px) {
  .refined h1 {font-size:clamp(50px,8.9vw,90px)}
  .refined section[id="main-content"]>div {min-height:420px}
- .refined header nav {gap:11px}
+ .refined header:not([class~="pileheads-masthead"]) nav {gap:11px}
 }
 @media(max-width:600px) {
- .refined header>div {min-height:0;gap:2px;padding:6px 4% 8px}
- .refined header img {max-height:53px}
- .refined header nav {gap:8px;font-size:14px;flex-wrap:nowrap}
- .refined header nav a {padding:8px 2px;min-height:44px}
- .refined header nav a[class*="navPlay"] {padding:8px 12px}
+ .refined header:not([class~="pileheads-masthead"])>div {min-height:0;gap:2px;padding:6px 4% 8px}
+ .refined header:not([class~="pileheads-masthead"]) img {max-height:53px}
+ .refined header:not([class~="pileheads-masthead"]) nav {gap:8px;font-size:14px;flex-wrap:nowrap}
+ .refined header:not([class~="pileheads-masthead"]) nav a {padding:8px 2px;min-height:44px}
+ .refined header:not([class~="pileheads-masthead"]) nav a[class*="navPlay"] {padding:8px 12px}
  .refined section[id="main-content"]>div {grid-template-columns:minmax(0,1fr);min-height:0;gap:8px;padding:27px 5% 40px}
  .refined h1 {font-size:clamp(63px,16vw,100px);line-height:.86;margin:8px 0 22px;transform:rotate(-5deg);text-shadow:3px 4px #192b2b,6px 8px #132b30}
  .refined h1:after {width:57%;height:10px;margin:10px auto 0}
@@ -96,7 +96,7 @@
  .refined section[id="physical"] div[class*="productArt"] {height:255px}
  .refined section[class*="closing"] h2 {font-size:clamp(44px,11vw,68px);transform:rotate(-4deg)}
 }
-@media(max-width:360px) {.refined h1 {font-size:clamp(54px,15.9vw,64px)}.refined header nav {gap:5px;font-size:12px}.refined header nav a[class*="navPlay"] {padding-inline:9px}.refined section[id="physical"] div[class*="productArt"] {height:220px}}
+@media(max-width:360px) {.refined h1 {font-size:clamp(54px,15.9vw,64px)}.refined header:not([class~="pileheads-masthead"]) nav {gap:5px;font-size:12px}.refined header:not([class~="pileheads-masthead"]) nav a[class*="navPlay"] {padding-inline:9px}.refined section[id="physical"] div[class*="productArt"] {height:220px}}
 @media(prefers-reduced-motion:reduce) {.refined a,.refined .actionFan>span {transition:none}}
 
 /* A short, one-time printed-poster reveal; no scroll-triggered hidden content,
@@ -151,7 +151,7 @@
 }
 
 /* Printed texture needs its own tile size, not the previous 4px dot pattern. */
-.refined section,.refined header,.refined footer {background-size:180px 180px,auto}
+.refined section,.refined header:not([class~="pileheads-masthead"]),.refined footer {background-size:180px 180px,auto}
 .refined section[id="main-content"]::after {background-size:180px 180px}
 .refined section[id="how-to-play"]>.onlineLayout {position:relative;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);padding-right:clamp(16px,11vw,156px);isolation:isolate}
 .refined .onlineCopy {position:relative;z-index:2;min-width:0}
@@ -168,8 +168,8 @@
 .refined .heroComposition .heroDeck {width:29%;left:59%;bottom:0;transform:rotate(66deg) scaleY(.76);z-index:8}
 .refined .heroComposition img[class*="explorer"] {left:3%;width:49%;bottom:5%;z-index:7}
 .refined .heroComposition span[class*="artCaption"] {right:2%;bottom:-1%}
-.refined header a[class*="homeLink"] {align-self:center}
-.refined header img {max-height:75px;width:auto}
+.refined header:not([class~="pileheads-masthead"]) a[class*="homeLink"] {align-self:center}
+.refined header:not([class~="pileheads-masthead"]) img {max-height:75px;width:auto}
 .refined .gameShowcase {min-width:0;min-height:0;align-self:center;padding:10px 8px 13px}
 .refined .gameShowcase .gameDevice {width:min(70%,265px);max-width:100%;transform:rotate(-7deg);margin:0;border-width:7px;box-shadow:0 0 0 2px #ad936b,0 7px 0 #aa9164,0 12px 20px #211e184d}
 .refined .gameDevice picture,.refined .gameDevice img {display:block;width:100%;height:auto}
@@ -178,7 +178,7 @@
 .refined .onlineCopy {padding-right:clamp(0px,1.4vw,20px)}
 @media(min-width:851px) {.refined section[id="how-to-play"]>.onlineLayout {grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);padding-right:clamp(90px,15vw,210px)}}
 @media(max-width:600px){
- .refined header img {max-height:62px}
+ .refined header:not([class~="pileheads-masthead"]) img {max-height:62px}
  .refined .heroComposition .heroDeck {left:57%;width:31%;bottom:0}
  .refined .heroComposition img[class*="explorer"] {left:0;width:47%}
  .refined section[id="how-to-play"]>.onlineLayout {padding:32px 6% 55px}

@@ -1,6 +1,8 @@
 "use client";
 import {useEffect,useState} from "react";
 import {growthPost} from "../../lib/growth-api";
+import Link from "next/link";
+import SiteHeader from "../../components/site-header";
 export default function DeckUpdates(){
   const [request,setRequest]=useState<{action:"waitlist_confirm"|"waitlist_unsubscribe";token:string}|null>(null);
   const [ready,setReady]=useState(false);
@@ -26,9 +28,9 @@ export default function DeckUpdates(){
     }catch{setMessage("This link may be expired or unavailable. You can try requesting a new confirmation.");}
     finally{setBusy(false);}
   }
-  return <main className="game-shell" style={{maxWidth:600,margin:"40px auto",padding:24}}>
-    <a href="/">PILEHEADS</a><h1>Deck updates</h1>
-    {!ready?<p>Checking link…</p>:request?<><p>{request.action==="waitlist_confirm"?"Confirm that you want physical deck updates.":"Remove your email address from the waitlist."}</p><button className="primary-button" disabled={busy} onClick={()=>void submit()}>{request.action==="waitlist_confirm"?"Confirm subscription":"Unsubscribe"}</button></>:!message?<p>Open the link from your confirmation email to manage your request.</p>:null}
-    <p role="status">{message}</p><a href="/">Back to PILEHEADS</a>
-  </main>;
+  return <div className="launch-public deck-updates-shell"><SiteHeader/><main className="public-main"><section className="public-hero">
+    <p>THE PHYSICAL GAME</p><h1>Deck updates</h1>
+    {!ready?<p>Checking link…</p>:request?<><p>{request.action==="waitlist_confirm"?"Confirm that you want physical deck updates.":"Remove your email address from the waitlist."}</p><button className="public-cta" disabled={busy} onClick={()=>void submit()}>{request.action==="waitlist_confirm"?"Confirm subscription":"Unsubscribe"}</button></>:!message?<p>Open the link from your confirmation email to manage your request.</p>:null}
+    <p role="status">{message}</p></section><Link href="/">Back to PILEHEADS</Link>
+  </main></div>;
 }
