@@ -2,6 +2,7 @@
 const {limiter,cookieToken:guestToken}=require('../api/player.js');
 const {createAccountStore,publicAccount,preferences}=require('./account-store.cjs');
 const OIDC=require('./google-oidc.cjs');
+const Runtime=require('./runtime-config.cjs');
 const PrivateHistory=require('./private-history.cjs');
 const Progression=require('./player-progression.cjs');
 const SESSION='__Host-pileheads_account',FLOW='__Host-pileheads_oauth',TTL=30*86400;
@@ -46,8 +47,14 @@ function configuration(env){
  try{const u=new URL(env.PILEHEAD_PLAYER_PRIVACY_URL);if(u.origin===origin&&u.pathname!=='/'&&!u.search&&!u.hash&&!u.username&&!u.password)privacyUrl=u.href}catch{}
  const configured=validOrigin&&Boolean(env.PILEHEAD_PLAYER_DATABASE_URL)&&env.PILEHEAD_PLAYER_SCHEMA_READY==='1'&&env.PILEHEAD_ACCOUNT_SCHEMA_READY==='1';
  const clientId=env.PILEHEAD_GOOGLE_CLIENT_ID,clientSecret=env.PILEHEAD_GOOGLE_CLIENT_SECRET,flowSecret=env.PILEHEAD_ACCOUNT_FLOW_SECRET;
- const enabled=configured&&Boolean(privacyUrl)&&env.PILEHEAD_ACCOUNT_ENABLED==='1'&&Boolean(clientId&&clientSecret&&flowSecret?.length>=32);
- return {configured,enabled,origin,privacyUrl,clientId,clientSecret,flowSecret};
+ const canonical=origin==='https://pileheads.com'||env.VERCEL_ENV==='production';
+ const pilotEmails=[...new Set((env.PILEHEAD_ACCOUNT_PILOT_EMAILS||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean))];
+ const pilotValid=pilotEmails.length>0&&pilotEmails.length<=50&&pilotEmails.every(email=>email.length<=254&&/^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(email));
+ const pilotEmailHashes=Array.isArray(env.PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES)?env.PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES:[];
+ const hashValid=pilotEmailHashes.length>0&&pilotEmailHashes.length<=50&&pilotEmailHashes.every(h=>/^[0-9a-f]{64}$/.test(h));
+ const pilotReady=canonical?origin==='https://pileheads.com'&&env.PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED==='1'&&(env.VERCEL_ENV==='production'?hashValid:pilotValid||hashValid):!pilotEmails.length||pilotValid;
+ const enabled=configured&&pilotReady&&Boolean(privacyUrl)&&env.PILEHEAD_ACCOUNT_ENABLED==='1'&&Boolean(clientId&&clientSecret&&flowSecret?.length>=32);
+ return {configured,enabled,origin,privacyUrl,clientId,clientSecret,flowSecret,pilotEmails:pilotValid?pilotEmails:[],pilotEmailHashes:hashValid?pilotEmailHashes:[]};
 }
 function createHandlers({config,store,history=async()=>[],historyConfigured=false,progression=async()=>null,progressionConfigured=false,exchange=OIDC.exchangeGoogle,allowRead=limiter(300),allowWrite=limiter(90),allowLogin=limiter(30),now=Date.now}){
  const result=row=>({enabled:Boolean(config.enabled),privacyUrl:config.privacyUrl??null,profile:publicAccount(row)});
@@ -138,5 +145,10 @@ const progression=async raw=>{
  db??=require('@neondatabase/serverless').neon(process.env.PILEHEAD_PLAYER_DATABASE_URL);
  return Progression.snapshot((await db.query(Progression.SQL.read,[key]))[0]);
 };
-const handlers=createHandlers({config:configuration(process.env),store,history,historyConfigured:PrivateHistory.configured(),progression,progressionConfigured:Progression.configured()});
+const rates={allowRead:limiter(300),allowWrite:limiter(90),allowLogin:limiter(30)};
+function handlersFor(env){return createHandlers({config:configuration(env),store,history,historyConfigured:PrivateHistory.configured(env),progression,progressionConfigured:Progression.configured(env),...rates})}
+const handlers={
+ api:async(req,res)=>handlersFor(await Runtime.load()).api(req,res),
+ callback:async(req,res)=>handlersFor(await Runtime.load()).callback(req,res)
+};
 module.exports={...handlers,createHandlers,configuration,validAction,SESSION,FLOW};

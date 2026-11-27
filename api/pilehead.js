@@ -1,6 +1,7 @@
 'use strict';
 /* PILEHEAD public room API. Server is authoritative and hands are seat-private. */
 const crypto=require('node:crypto'),E=require('../packages/game-engine');
+const Runtime=require('../scripts/runtime-config.cjs');
 const Standings=require('../scripts/room-standings.cjs');
 const {freshGame}=require('../scripts/online-game.cjs');
 const Deadlines=require('../scripts/public-room-deadlines.cjs');
@@ -82,11 +83,11 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
  slam:!g.tournamentWithdrawal&&g.phase==='play'?E.slamOptions(g,seat):[],
  followup:!g.tournamentWithdrawal&&g.phase==='play'?E.followUpOptions(g,seat):[]
 }}
-async function view(r,seat){const members=await query('SELECT seat,display_name,last_seen_at,is_away FROM pilehead_members WHERE code=$1 ORDER BY seat',[r.code]);
+async function view(r,seat,env){const members=await query('SELECT seat,display_name,last_seen_at,is_away FROM pilehead_members WHERE code=$1 ORDER BY seat',[r.code]);
  return {ok:true,code:r.code,revision:r.revision,capacity:r.capacity,
  humanCount:humanCount(r.state),botCount:botSeats(r.state).length,
  status:r.status,expiresAt:r.expires_at,me:seat,host:seat===0,
- historyAvailable:PrivateHistory.available(r.state),progressionAvailable:Progression.eligible(r.state),
+ historyAvailable:PrivateHistory.available(r.state,env),progressionAvailable:Progression.eligible(r.state,env),
  members:members.map(m=>({seat:m.seat,name:m.display_name,
   presence:Date.now()-new Date(m.last_seen_at).getTime()>25000?'offline':m.is_away?'away':'online'})),
  game:redacted(r.state,seat)}}
@@ -109,7 +110,7 @@ async function loadAuthenticated(id,req){
  if(!Number.isInteger(seat)||seat<0||seat>=humanCount(r.state))fail(403,'not_member');
  return {r,seat};
 }
-async function create(req,b){
+async function create(req,b,env){
  await quota(req,'create',15);
  const nick=name(b.name);
  // Older clients can still send only 'capacity'.
@@ -128,22 +129,22 @@ async function create(req,b){
   try{created=await query(Lifecycle.CREATE_ROOM_SQL,[id,cap,JSON.stringify(game),nick,h(t)])}
   catch(e){if(e.code==='23505')continue;throw e}
   if(created.length!==1)fail(503,'room_create_failed');
-  return {...await view(validateLoaded(created[0]),0),session:t};}
+  return {...await view(validateLoaded(created[0]),0,env),session:t};}
  fail(503,'room_create_failed')}
-async function join(req,b){await quota(req,'join',60);const id=code(b.code),nick=name(b.name),t=secret(),r=await load(id);
+async function join(req,b,env){await quota(req,'join',60);const id=code(b.code),nick=name(b.name),t=secret(),r=await load(id);
  if(r.state.tournamentWithdrawal)fail(409,'tournament_withdrawn');
  if(r.status!=='lobby')fail(409,'already_started');
  // Contended ON CONFLICT DO NOTHING can miss a different free seat; retry.
  for(let attempt=0;attempt<4;attempt++){
   const rows=await query(Lifecycle.JOIN_ROOM_SQL,[id,nick,h(t),humanCount(r.state)]);
-  if(rows.length)return {...await view(validateLoaded(rows[0]),Number(rows[0].joined_seat)),session:t};
+  if(rows.length)return {...await view(validateLoaded(rows[0]),Number(rows[0].joined_seat),env),session:t};
   // A state change (including withdrawal/expiry) is not a full room.
   const current=await load(id);
   if(current.state.tournamentWithdrawal)fail(409,'tournament_withdrawn');
   if(current.status!=='lobby')fail(409,'already_started');
  }
  fail(409,'full')}
-async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!==r.revision)fail(409,'stale_revision');
+async function mutation(r,seat,b,env){if(!Number.isInteger(b.revision)||b.revision!==r.revision)fail(409,'stale_revision');
  const g=structuredClone(r.state);
  g.setupReady??=g.people.map(()=>false);
  if(g.tournamentWithdrawal)fail(409,'tournament_withdrawn');
@@ -233,12 +234,12 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
   // Online clients use the recent 24 events; bound persisted history to avoid JSONB growth.
   if(g.events.length>96)g.events.splice(0,g.events.length-96);
   const status=g.tournamentWithdrawal||g.phase==='over'?'finished':g.phase==='play'?'playing':'lobby';
- const receipt=RoundHistory.enabled()?RoundHistory.receipt(r.state,g):null;
+ const receipt=RoundHistory.enabled(env)?RoundHistory.receipt(r.state,g):null;
  const args=[JSON.stringify(g),status,r.code,r.revision];
  // The terminal state and its receipt must commit together, or neither does.
- const rows=receipt?await query(Progression.eligible(g)?Progression.SQL.archive:PrivateHistory.available(g)?PrivateHistory.SQL.archive:RoundHistory.ARCHIVE_ROUND_SQL,[...args,...RoundHistory.params(receipt)]):
+ const rows=receipt?await query(Progression.eligible(g,env)?Progression.SQL.archive:PrivateHistory.available(g,env)?PrivateHistory.SQL.archive:RoundHistory.ARCHIVE_ROUND_SQL,[...args,...RoundHistory.params(receipt)]):
   await query(RoundHistory.UPDATE_ROOM_SQL,args);
- if(!rows.length)fail(409,'stale_revision');return view(rows[0],seat)}
+ if(!rows.length)fail(409,'stale_revision');return view(rows[0],seat,env)}
 // Resolve overdue public rooms by server clock and revision CAS. A concurrent
 // winning mutation is re-read rather than overwritten. No fabricated results.
 async function settleDeadline(r,req){
@@ -305,20 +306,20 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
   let encoded;try{encoded=JSON.stringify(b)}catch{fail(400,'bad_json')}
   if(typeof encoded!=='string')fail(400,'bad_json');
   if(Buffer.byteLength(encoded)>4096)fail(413,'too_large');
-  db();if(b.action==='create')return send(201,await create(req,b));if(b.action==='join')return send(201,await join(req,b));
+  db();const env=await Runtime.load();if(b.action==='create')return send(201,await create(req,b,env));if(b.action==='join')return send(201,await join(req,b,env));
   requireSession(req);
   let {r,seat}=await loadAuthenticated(code(b.code),req);
   const settled=await settleDeadline(r,req);
   if(settled){r=settled;if(b.action!=='state'&&r.state.tournamentWithdrawal)fail(409,'tournament_withdrawn');}
   if(b.action!=='state'&&b.action!=='react')await seatWriteQuota(r.code,seat);
   if(['history-status','history-link','history-unlink'].includes(b.action)){
-   if(!PrivateHistory.available(r.state)||!PrivateHistory.sameOrigin(req.headers))fail(403,'history_unavailable');
+   if(!PrivateHistory.available(r.state,env)||!PrivateHistory.sameOrigin(req.headers,env))fail(403,'history_unavailable');
    if(!Number.isInteger(b.round)||b.round!==(r.state.round??1))fail(409,'stale_revision');
    const account=PrivateHistory.accountDigest(req.headers.cookie);
    const roomToken=h(requireSession(req)[1]);
    const args=[r.code,roomToken,account,b.round];
    if(b.action==='history-status'){
-    const [status]=await query(Progression.configured()?Progression.SQL.status:PrivateHistory.SQL.status,args);
+    const [status]=await query(Progression.configured(env)?Progression.SQL.status:PrivateHistory.SQL.status,args);
     return send(200,{ok:true,signedIn:status?.signed_in===true,linked:status?.linked===true,progressionSelected:status?.progression_selected===true});
    }
    if(!account)fail(401,'account_required');
@@ -327,7 +328,7 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
    if(b.action==='history-unlink'&&!['setup','play'].includes(r.state.phase))fail(409,'history_round_finished');
    const earn=b.action==='history-link'&&b.progression===true;
    if(b.progression!==undefined&&typeof b.progression!=='boolean')fail(400,'history_confirmation_required');
-   if(earn&&!Progression.eligible(r.state))fail(409,'progression_unavailable');
+   if(earn&&!Progression.eligible(r.state,env))fail(409,'progression_unavailable');
    const rows=await query(b.action==='history-link'?(earn?Progression.SQL.link:PrivateHistory.SQL.link):PrivateHistory.SQL.unlink,[...args,b.revision]);
    if(!rows.length)fail(409,'history_conflict');
    return send(200,{ok:true,signedIn:true,linked:b.action==='history-link',progressionSelected:earn});
@@ -341,9 +342,9 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
   if(b.action==='react')return send(200,{ok:true,code:r.code,reaction:await realtimeReact(r.code,seat,b.kind)});
   if(b.action==='state'){
    if(b.heartbeat===true)await query('UPDATE pilehead_members SET last_seen_at=now(),is_away=false WHERE code=$1 AND seat=$2',[r.code,seat]);
-   return send(200,await view(r,seat));
+   return send(200,await view(r,seat,env));
   }
-  return send(200,await mutation(r,seat,b))
+  return send(200,await mutation(r,seat,b,env))
  }catch(e){if(e.status)return send(e.status,{ok:false,error:e.code});if(e.code==='23505')return send(409,{ok:false,error:'room_conflict_retry'});
   console.error('PILEHEAD backend request failed');return send(503,{ok:false,error:'service_unavailable'})}}
 
