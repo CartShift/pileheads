@@ -4,6 +4,7 @@ on:
     paths:
       - 'db/room-*.sql'
       - 'scripts/room-retention.cjs'
+      - 'scripts/room-lifecycle.cjs'
       - 'tests/pilehead-room-retention.cjs'
       - '.github/workflows/room-retention-postgres.yml'
   workflow_dispatch:
@@ -44,6 +45,7 @@ jobs:
           const fs = require('node:fs');
           const {spawnSync} = require('node:child_process');
           const {runRetention} = require('./scripts/room-retention.cjs');
+          const {CREATE_ROOM_SQL,JOIN_ROOM_SQL}=require('./scripts/room-lifecycle.cjs');
           const id = process.env.PG_TEST_CONTAINER;
           assert.match(id || '', /^[a-f0-9]{12,64}$/);
           function psql(sql, role) {
@@ -103,6 +105,27 @@ jobs:
             assert.equal(count('pilehead_rate_limits'),1);
             await runRetention({query,args:['--apply'],log});
             assert.deepEqual(logs[6],{deletedRooms:'0',deletedBuckets:'0'});
+            // Exercise the exact parameterized statements on a disposable DB,
+            // not approximations of the production SQL or a live database.
+            const create=(code,token)=>psql("PREPARE c AS "+CREATE_ROOM_SQL+"; EXECUTE c('"+code+"',2,'{}','Host','"+token+"');",runtime);
+            const join=(code,token)=>psql("PREPARE j AS "+JOIN_ROOM_SQL+"; EXECUTE j('"+code+"','Friend','"+token+"',2);",runtime);
+            assert.ok(create('LIFE0001','host-one').startsWith('LIFE0001'));
+            assert.equal(count('pilehead_members',"code='LIFE0001' AND seat=0"),1);
+            // Host token conflict must roll back the room insert as well.
+            assert.throws(()=>create('LIFE0002','host-one'),/duplicate key/i);
+            assert.equal(count('pilehead_rooms',"code='LIFE0002'"),0);
+            assert.equal(count('pilehead_members',"code='LIFE0002'"),0);
+            assert.ok(join('LIFE0001','friend-one').startsWith('LIFE0001'));
+            assert.equal(join('LIFE0001','friend-two'),'');
+            assert.equal(count('pilehead_members',"code='LIFE0001'"),2);
+            create('LIFE0003','host-three');
+            psql("UPDATE public.pilehead_rooms SET status='finished' WHERE code='LIFE0003';",runtime);
+            assert.equal(join('LIFE0003','late-friend'),'');
+            create('LIFE0004','host-four');
+            psql("UPDATE public.pilehead_rooms SET expires_at=now()-interval '1 hour' WHERE code='LIFE0004';",runtime);
+            assert.equal(join('LIFE0004','expired-friend'),'');
+            assert.equal(count('pilehead_members',"code IN ('LIFE0003','LIFE0004')"),2);
+            console.log('PASS exact lifecycle SQL: atomic creation, rollback, capacity, terminal and expired join guards');
             console.log('PASS isolated PostgreSQL: role grants, valid expiry index, dry run, 500-row batches, cascades, active records and idempotent cleanup');
           }
           main().catch(e=>{console.error(e.message);process.exitCode=1});

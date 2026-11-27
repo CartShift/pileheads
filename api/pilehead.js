@@ -1,7 +1,8 @@
 'use strict';
 /* PILEHEAD public room API. Server is authoritative and hands are seat-private. */
 const crypto=require('node:crypto'),E=require('../packages/game-engine');
-const Standings=require('../scripts/room-standings.cjs');let client;
+const Standings=require('../scripts/room-standings.cjs');
+const Lifecycle=require('../scripts/room-lifecycle.cjs');let client;
 function db(){if(!process.env.PILEHEAD_DATABASE_URL)throw error(503,'online_not_configured');return client||(client=require('@neondatabase/serverless').neon(process.env.PILEHEAD_DATABASE_URL))}
 function query(s,args=[]){return db().query(s,args)}
 function error(status,code){return Object.assign(Error(code),{status,code})}
@@ -143,18 +144,23 @@ async function create(req,b){
  if(roundLimit!==null&&!tournamentLimits.has(roundLimit))fail(400,'invalid_round_limit');
  const t=secret();
  for(let tries=0;tries<4;tries++){const id=makeCode(),game=freshGame({players:cap,humans,bots,endgameRule,roundLimit});
-  try{await query("INSERT INTO pilehead_rooms(code,capacity,status,state) VALUES($1,$2,'lobby',$3::jsonb)",[id,cap,JSON.stringify(game)]);
-   await query('INSERT INTO pilehead_members(code,seat,display_name,token_hash) VALUES($1,0,$2,$3)',[id,nick,h(t)]);
-   return {...await view(await load(id),0),session:t};
-  }catch(e){if(e.code==='23505')continue;throw e}}
+  let created;
+  try{created=await query(Lifecycle.CREATE_ROOM_SQL,[id,cap,JSON.stringify(game),nick,h(t)])}
+  catch(e){if(e.code==='23505')continue;throw e}
+  if(created.length!==1)fail(503,'room_create_failed');
+  return {...await view(validateLoaded(created[0]),0),session:t};}
  fail(503,'room_create_failed')}
 async function join(req,b){await quota(req,'join',60);const id=code(b.code),nick=name(b.name),t=secret(),r=await load(id);
  if(r.state.tournamentWithdrawal)fail(409,'tournament_withdrawn');
  if(r.status!=='lobby')fail(409,'already_started');
  // Contended ON CONFLICT DO NOTHING can miss a different free seat; retry.
  for(let attempt=0;attempt<4;attempt++){
-  const rows=await query('INSERT INTO pilehead_members(code,seat,display_name,token_hash) SELECT $1::varchar(8),x,$2,$3 FROM generate_series(0,$4::integer-1) x WHERE NOT EXISTS(SELECT 1 FROM pilehead_members m WHERE m.code=$1::varchar(8) AND m.seat=x) ORDER BY x LIMIT 1 ON CONFLICT (code,seat) DO NOTHING RETURNING seat',[id,nick,h(t),humanCount(r.state)]);
-  if(rows.length)return {...await view(r,Number(rows[0].seat)),session:t};
+  const rows=await query(Lifecycle.JOIN_ROOM_SQL,[id,nick,h(t),humanCount(r.state)]);
+  if(rows.length)return {...await view(validateLoaded(rows[0]),Number(rows[0].joined_seat)),session:t};
+  // A state change (including withdrawal/expiry) is not a full room.
+  const current=await load(id);
+  if(current.state.tournamentWithdrawal)fail(409,'tournament_withdrawn');
+  if(current.status!=='lobby')fail(409,'already_started');
  }
  fail(409,'full')}
 async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!==r.revision)fail(409,'stale_revision');
