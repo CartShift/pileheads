@@ -49,9 +49,9 @@ export default function QuickPlayPreview(){
  useEffect(()=>{if(state!=="waiting"&&state!=="offered"&&state!=="ready")return;const t=setInterval(()=>setClock(Date.now()),1000);return()=>clearInterval(t)},[state]);
  const s=result?.status,seconds=s?.expiresAt?Math.max(0,Math.ceil((Date.parse(s.expiresAt)-clock)/1000)):null;
  return <section className="mode-card" aria-label="Quick Play preview">
-  <div className="eyebrow">INVITE-ONLY PREVIEW</div><h2>Find a real opponent.</h2>
+  <div className="eyebrow">INVITE-ONLY PILOT</div><h2>Find a real opponent.</h2>
   <p>Two human players, three rounds. No ranking or substitute bots.</p>
-  {backendOrigin||result?.available===false?<p>Quick Play is not open yet. Private tables and practice are available.</p>:!result?<p role="status">Checking availability…</p>:!result.authorized?<p>This preview is limited to invited accounts. <Link href="/profile">Go to your profile</Link>.</p>:<>
+  {backendOrigin||result?.available===false?<p>Quick Play is not open yet. Private tables and practice are available.</p>:!result?<p role="status">Checking availability…</p>:!result.authorized?<p>This pilot is limited to invited accounts. <Link href="/profile">Go to your profile</Link>.</p>:<>
    {s?.state==="idle"&&<><p>Join only when you are ready to play.</p><button className="cta" disabled={busy} onClick={()=>void request({action:"join"})}>Find opponent</button></>}
    {s?.state==="expired"&&<><p>Your ticket or ready check expired. You can try again.</p><button className="cta" disabled={busy} onClick={()=>void request({action:"join"})}>Find another opponent</button></>}
    {s?.state==="waiting"&&<><p role="status">Looking for another player… {seconds!==null&&`(${seconds}s remaining)`}</p><button className="learn-button" disabled={busy} onClick={()=>void request({action:"cancel",ticket:s.ticket!})}>Cancel search</button></>}

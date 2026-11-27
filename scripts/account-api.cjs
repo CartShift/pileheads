@@ -46,8 +46,12 @@ function configuration(env){
  try{const u=new URL(env.PILEHEAD_PLAYER_PRIVACY_URL);if(u.origin===origin&&u.pathname!=='/'&&!u.search&&!u.hash&&!u.username&&!u.password)privacyUrl=u.href}catch{}
  const configured=validOrigin&&Boolean(env.PILEHEAD_PLAYER_DATABASE_URL)&&env.PILEHEAD_PLAYER_SCHEMA_READY==='1'&&env.PILEHEAD_ACCOUNT_SCHEMA_READY==='1';
  const clientId=env.PILEHEAD_GOOGLE_CLIENT_ID,clientSecret=env.PILEHEAD_GOOGLE_CLIENT_SECRET,flowSecret=env.PILEHEAD_ACCOUNT_FLOW_SECRET;
- const enabled=configured&&Boolean(privacyUrl)&&env.PILEHEAD_ACCOUNT_ENABLED==='1'&&Boolean(clientId&&clientSecret&&flowSecret?.length>=32);
- return {configured,enabled,origin,privacyUrl,clientId,clientSecret,flowSecret};
+ const canonical=origin==='https://pileheads.com'||env.VERCEL_ENV==='production';
+ const pilotEmails=[...new Set((env.PILEHEAD_ACCOUNT_PILOT_EMAILS||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean))];
+ const pilotValid=pilotEmails.length>0&&pilotEmails.length<=50&&pilotEmails.every(email=>email.length<=254&&/^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(email));
+ const pilotReady=canonical?origin==='https://pileheads.com'&&env.PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED==='1'&&pilotValid:!pilotEmails.length||pilotValid;
+ const enabled=configured&&pilotReady&&Boolean(privacyUrl)&&env.PILEHEAD_ACCOUNT_ENABLED==='1'&&Boolean(clientId&&clientSecret&&flowSecret?.length>=32);
+ return {configured,enabled,origin,privacyUrl,clientId,clientSecret,flowSecret,pilotEmails:pilotValid?pilotEmails:[]};
 }
 function createHandlers({config,store,history=async()=>[],historyConfigured=false,progression=async()=>null,progressionConfigured=false,exchange=OIDC.exchangeGoogle,allowRead=limiter(300),allowWrite=limiter(90),allowLogin=limiter(30),now=Date.now}){
  const result=row=>({enabled:Boolean(config.enabled),privacyUrl:config.privacyUrl??null,profile:publicAccount(row)});

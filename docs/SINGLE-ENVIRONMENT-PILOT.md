@@ -1,0 +1,17 @@
+# Single-environment invited pilot
+Owner decision 2026-11-28: use existing pileheads.com deployment and production multiplayer database, no separate staging site or service. All features remain off until explicit configuration. Do not copy real data to a new environment. The account pilot requests Google openid email only for allowlist verification, requires a verified email in the exact configured list and persists only the provider subject (not the email). Google test-user status alone is not the application access-control boundary. Identity confirmation uses the signed token, not a client input. The account and matchmaking features have independent kill switches.
+
+## Account pilot first
+Use the existing project, existing production database, separate least-privilege player LOGIN belonging only to pileheads_player_runtime_access. The additive schemas and group grants were applied to Pilehead Multiplayer / main; all 14 catalog checks passed. Do not use database-owner credentials. Set production variables in Vercel (the connector returned 403 for listing and creation):
+- PILEHEAD_PLAYER_DATABASE_URL: restricted player connection to the same database as PILEHEAD_DATABASE_URL.
+- PILEHEAD_PLAYER_ORIGIN=https://pileheads.com
+- PILEHEAD_PLAYER_SCHEMA_READY=1 and PILEHEAD_ACCOUNT_SCHEMA_READY=1
+- PILEHEAD_PLAYER_PRIVACY_URL: actual published, reviewed same-origin privacy notice (no placeholder route).
+- PILEHEAD_GOOGLE_CLIENT_ID and PILEHEAD_GOOGLE_CLIENT_SECRET: existing Google client configured by owner.
+- PILEHEAD_ACCOUNT_FLOW_SECRET: independent randomly generated at least 32 characters, server-only.
+- PILEHEAD_ACCOUNT_PILOT_EMAILS: comma-separated exact verified email addresses, up to 50. Do not log them or commit them.
+- PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED=1 and PILEHEAD_ACCOUNT_ENABLED=1 only after checking all dependencies.
+Guest profiles, private history and XP have separate flags; do not activate them as a side effect of account login. Test unauthenticated, invited and non-invited Google accounts, logout, preferences and deletion before activating any other feature. Verify actual HTTPS cookie and OAuth behavior.
+
+## Quick Play pilot second
+After the invited accounts have signed in, select their internal account UUIDs via an administrative read-only query; do not publish their IDs. Reuse PILEHEAD_MATCHMAKING_PREVIEW_ORIGIN=https://pileheads.com and PILEHEAD_MATCHMAKING_PREVIEW_ACCOUNTS=comma-separated allowed UUIDs (legacy names retained). Set PILEHEAD_MATCHMAKING_SCHEMA_READY=1 and PILEHEAD_HISTORY_SHARED_DATABASE_READY=1 only after verifying the room and player URLs point to the same DB. Set PILEHEAD_MATCHMAKING_SEAT_KEYS to JSON mapping version to independent 32-byte base64url key, and PILEHEAD_MATCHMAKING_SEAT_KEY_VERSION to active version. Keep keys out of logs, chat and Git. Finally set PILEHEAD_MATCHMAKING_LIVE_PILOT_ENABLED=1. The live flag alone cannot bypass account readiness, email allowlist, UUID allowlist, same-origin and authenticated session checks. The non-production preview flag alone still cannot enable canonical production. No automatic public launch, billing, or background worker. Deadline handling, independent release and live two-device acceptance must be complete before enabling this pilot. Removing an email prevents new sign-ins but does not revoke existing sessions; remove UUID from matchmaking allowlist and revoke affected sessions through an explicit authorized operator procedure if access must be withdrawn. Do not treat this private pilot as release approval.

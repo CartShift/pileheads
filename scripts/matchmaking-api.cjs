@@ -1,7 +1,8 @@
 'use strict';
-// Deliberately restricted preview only. Never enable on canonical production.
+// Invite-only pilot. Canonical production requires a separate explicit live flag.
 const crypto=require('node:crypto');
 const {digest}=require('./account-store.cjs');
+const {configuration:accountConfiguration}=require('./account-api.cjs');
 const {createQueue,SQL:Q}=require('./matchmaking-queue.cjs');
 const {createAssignment,SQL:A}=require('./matchmaking-assignment.cjs');
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -18,8 +19,10 @@ function config(env){
   const origin=env.PILEHEAD_MATCHMAKING_PREVIEW_ORIGIN,u=new URL(origin);
   const allow=(env.PILEHEAD_MATCHMAKING_PREVIEW_ACCOUNTS||'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean);
   const keys=JSON.parse(env.PILEHEAD_MATCHMAKING_SEAT_KEYS||'{}'),activeVersion=env.PILEHEAD_MATCHMAKING_SEAT_KEY_VERSION;
-  if(env.PILEHEAD_MATCHMAKING_PREVIEW_ENABLED!=='1'||env.PILEHEAD_MATCHMAKING_SCHEMA_READY!=='1'||env.PILEHEAD_HISTORY_SHARED_DATABASE_READY!=='1'||env.PILEHEAD_ACCOUNT_SCHEMA_READY!=='1'||env.PILEHEAD_PLAYER_SCHEMA_READY!=='1'||env.PILEHEAD_ACCOUNT_ENABLED!=='1'||!env.PILEHEAD_DATABASE_URL||!env.PILEHEAD_PLAYER_DATABASE_URL||env.VERCEL_ENV==='production'||u.protocol!=='https:'||u.origin!==origin||origin!==env.PILEHEAD_PLAYER_ORIGIN||['pileheads.com','www.pileheads.com'].includes(u.hostname)||!allow.length||allow.length>50||!allow.every(a=>UUID.test(a))||!VERSION.test(activeVersion)||!keys||typeof keys!=='object'||Array.isArray(keys)||!TOKEN.test(keys[activeVersion]||'')||Object.keys(keys).length>5)return {enabled:false};
-  return {enabled:true,origin,allow:[...new Set(allow)],keys,activeVersion};
+  const live=origin==='https://pileheads.com';
+  const allowedEnvironment=live?env.PILEHEAD_MATCHMAKING_LIVE_PILOT_ENABLED==='1'&&accountConfiguration(env).enabled:env.VERCEL_ENV!=='production'&&u.hostname!=='www.pileheads.com'&&env.PILEHEAD_MATCHMAKING_PREVIEW_ENABLED==='1';
+  if(!allowedEnvironment||env.PILEHEAD_MATCHMAKING_SCHEMA_READY!=='1'||env.PILEHEAD_HISTORY_SHARED_DATABASE_READY!=='1'||env.PILEHEAD_ACCOUNT_SCHEMA_READY!=='1'||env.PILEHEAD_PLAYER_SCHEMA_READY!=='1'||env.PILEHEAD_ACCOUNT_ENABLED!=='1'||!env.PILEHEAD_DATABASE_URL||!env.PILEHEAD_PLAYER_DATABASE_URL||u.protocol!=='https:'||u.origin!==origin||origin!==env.PILEHEAD_PLAYER_ORIGIN||!allow.length||allow.length>50||!allow.every(a=>UUID.test(a))||!VERSION.test(activeVersion)||!keys||typeof keys!=='object'||Array.isArray(keys)||!TOKEN.test(keys[activeVersion]||'')||Object.keys(keys).length>5)return {enabled:false};
+  return {enabled:true,origin,allow:[...new Set(allow)],keys,activeVersion,live};
  }catch{return {enabled:false}}
 }
 function rawSession(req){
