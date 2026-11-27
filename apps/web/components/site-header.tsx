@@ -1,0 +1,27 @@
+import Link from "next/link";
+import CampaignPlayLink from "./campaign-play-link";
+
+export type SiteRoute = "/" | "/play" | "/how-to-play" | "/deck" | "/profile";
+
+const links = [
+  { href: "/how-to-play", label: "How to play" },
+  { href: "/deck", label: "The deck" },
+  { href: "/profile", label: "Profile" },
+] as const;
+
+/** Shared public/lobby navigation. Active rounds retain their compact game header. */
+export default function SiteHeader({current}: {current: SiteRoute}) {
+  return (
+    <header className="pileheads-masthead">
+      <nav className="stack-site-nav" aria-label="Main navigation">
+        <Link href="/" prefetch={false} className="stack-site-brand" aria-label="PILEHEADS home" aria-current={current==="/"?"page":undefined}>
+          <img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={640} height={356}/>
+        </Link>
+        <div className="stack-site-links">
+          <CampaignPlayLink href="/play" className="stack-nav-primary" current={current==="/play"}>Play online</CampaignPlayLink>
+          {links.map(({href,label})=><Link key={href} href={href} prefetch={false} aria-current={current===href?"page":undefined}>{label}</Link>)}
+        </div>
+      </nav>
+    </header>
+  );
+}

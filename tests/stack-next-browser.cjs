@@ -1781,6 +1781,26 @@ async function publicLaunch(browser){
   }finally{await context.close()}
 }
 
+async function unifiedNavigationScenario(browser) {
+  for (const width of [320,390,768,1440]) {
+    const context=await browser.newContext({viewport:{width,height:900},reducedMotion:"reduce"});
+    try {
+      const page=await context.newPage();
+      for (const route of ["/","/how-to-play","/deck","/play","/profile"]) {
+        await page.goto(WEB+route);
+        const nav=page.getByRole("navigation",{name:"Main navigation"});
+        assert.equal(await nav.count(),1,route+" has one main navigation");
+        assert.deepEqual(await nav.locator(".stack-site-links a").allTextContents(),["Play online","How to play","The deck","Profile"]);
+        assert.equal(await nav.locator('[aria-current="page"]').count(),1);
+        assert.equal(await nav.locator('[aria-current="page"]').getAttribute("href"),route);
+        assert.ok(await nav.evaluate(el=>el.scrollWidth<=el.clientWidth+2),route+" navigation fits "+width);
+        assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),route+" page fits "+width);
+      }
+    } finally {await context.close();}
+  }
+  console.log("PASS shared navigation: five routes, current-page state and four viewport widths");
+}
+
 async function main() {
   fs.mkdirSync(path.resolve(ROOT, "artifacts/next"), {recursive:true});
   const apiProc = fork(path.resolve(ROOT, "scripts/render-server.cjs"), [], {
@@ -1815,6 +1835,7 @@ async function main() {
     if(selected){
       const scenarios={
         launch:()=>publicLaunch(browser),
+        unifiedNavigation:()=>unifiedNavigationScenario(browser),
         brand:()=>brandCaptureScenarios(browser),
         local:()=>localScenarios(browser),
         motion:()=>sharedMoveAnimationScenarios(browser),
@@ -1841,6 +1862,7 @@ async function main() {
     }
 
     await publicLaunch(browser);
+    await unifiedNavigationScenario(browser);
     await brandCaptureScenarios(browser);
     await sameOriginNavigation(browser);
     await endgameSettingsAndBridge(browser);

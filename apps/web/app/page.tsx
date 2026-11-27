@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import SiteHeader from "../components/site-header";
 import CampaignPlayLink from "../components/campaign-play-link";
 import DeckWaitlist from "../components/deck-waitlist";
 import MoveExamples from "../components/move-examples";
@@ -34,13 +35,7 @@ const actions = ["BURN", "DUMP", "GHOST", "RESET"];
 export default function HomePage() {
   return <main className={styles.home + " " + polish.refined} data-testid="official-home">
     <a href="#main-content" className={styles.skip}>Skip to content</a>
-    <header className={styles.header}><div className={styles.nav}>
-      <Link href="/" className={styles.homeLink}><Brand/></Link>
-      <nav aria-label="Main navigation">
-        <CampaignPlayLink href="/play" className={styles.navPlay}>Play online</CampaignPlayLink>
-        <a href="/how-to-play">How to play</a><a href="/deck">The deck</a><a href="#physical">The game</a>
-      </nav>
-    </div></header>
+    <SiteHeader current="/" />
     <section className={styles.hero} id="main-content" aria-labelledby="home-heading" tabIndex={-1}>
       <div className={styles.heroInner}>
         <div className={styles.heroCopy + " " + polish.heroEditorial}>
@@ -84,6 +79,6 @@ export default function HomePage() {
       <div><p className={styles.kicker}>From screen to table</p><h2>The physical<br/>game<span>.</span></h2><p>Small box. Big fun. Made for game nights, holidays and spontaneous showdowns. The physical deck is currently in playtesting.</p><Button href="/deck" kind="yellow">Meet the physical deck →</Button><p className={styles.releaseNote}>Physical retail launch to be announced.</p><DeckWaitlist/></div><div className={polish.physicalFan} role="group" aria-label="Three illustrated numbered cards">{["2","3","1"].map((name,i)=><Card key={name} name={name} className={polish["physicalCard"+i]}/>)}</div>
     </div></section>
     <section className={styles.closing}><div className={styles.closingArt} aria-hidden="true"><img src="/stack-media/stack-home-sunset.webp" alt="" width={700} height={165} loading="lazy"/></div><div className={styles.closingCopy}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring PILEHEADS<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></div></section>
-    <footer className={styles.footer}><Link href="/" aria-label="PILEHEADS home"><Brand/></Link><nav aria-label="Footer navigation"><CampaignPlayLink href="/play">Play online</CampaignPlayLink><a href="/how-to-play">How to play</a><a href="/deck">The deck</a></nav><small>© PILEHEADS</small><FunnelConsent/></footer>
+    <footer className={styles.footer}><Link href="/" aria-label="PILEHEADS home"><Brand/></Link><nav aria-label="Footer navigation"><CampaignPlayLink href="/play">Play online</CampaignPlayLink><a href="/how-to-play">How to play</a><a href="/deck">The deck</a><a href="/#physical">The physical game</a><Link href="/profile">Profile</Link></nav><small>© PILEHEADS</small><FunnelConsent/></footer>
   </main>;
 }

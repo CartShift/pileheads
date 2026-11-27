@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SiteHeader from "./site-header";
 import { motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
@@ -920,11 +921,11 @@ export default function GameTable() {
     await submit({ action: "join", name, code: joinCode.trim().toUpperCase() }, true);
   }
 
-  if (g?.tournamentWithdrawal && mode==="online") return <main className="game-shell stack-lobby"><section className="entry launch-entry"><div className="entry-intro"><div className="eyebrow">TOURNAMENT ENDED</div><h1>Table<br/><em>closed.</em></h1><p>{nameForSeat(g.tournamentWithdrawal.seat)} withdrew. No points are awarded for an unfinished round, and no tournament winner is declared.</p><div className="lobby-links"><button className="secondary-button entry-settings" onClick={leaveTable}>Back to lobby</button></div></div><div className="entry-options"><section className="mode-card"><h2>Completed rounds</h2>{g.standings?.completedRounds?<TableStandings score={g.standings} me={me} nameForSeat={nameForSeat}/>:<p>No completed rounds.</p>}</section></div></section></main>;
+  if (g?.tournamentWithdrawal && mode==="online") return <main className="game-shell stack-lobby"><SiteHeader current="/play"/><section className="entry launch-entry"><div className="entry-intro"><div className="eyebrow">TOURNAMENT ENDED</div><h1>Table<br/><em>closed.</em></h1><p>{nameForSeat(g.tournamentWithdrawal.seat)} withdrew. No points are awarded for an unfinished round, and no tournament winner is declared.</p><div className="lobby-links"><button className="secondary-button entry-settings" onClick={leaveTable}>Back to lobby</button></div></div><div className="entry-options"><section className="mode-card"><h2>Completed rounds</h2>{g.standings?.completedRounds?<TableStandings score={g.standings} me={me} nameForSeat={nameForSeat}/>:<p>No completed rounds.</p>}</section></div></section></main>;
 
   if (!g || !current) return (
     <main className="game-shell stack-lobby">
-      <header className="lobby-masthead"><nav className="stack-site-nav" aria-label="Main navigation"><Link href="/" className="stack-site-brand" aria-label="PILEHEADS home" prefetch={false}><img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={640} height={356}/></Link><div className="stack-site-links"><a href="/">Home</a><a className="stack-nav-primary" href="/play" aria-current="page">Play online</a><a href="/deck">The deck</a><a href="/how-to-play">How to play</a><a href="/pilehead/print.html">Print</a></div></nav></header>
+      <SiteHeader current="/play"/>
       <section className="entry launch-entry">
         <div className="entry-intro"><div className="eyebrow">WELCOME TO THE TABLE</div>
           <h1>{inviteEntry ? <>You’re<br/><em>invited.</em></> : <>One pile.<br /><em>One loser.</em></>}</h1>
@@ -976,7 +977,7 @@ export default function GameTable() {
           </div></>}
         </div>
       </section>
-      <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/how-to-play">Read the rules ↗</a><button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button><FunnelConsent/></footer>
+      <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/how-to-play">Read the rules ↗</a><a href="/pilehead/print.html">Print playtest cards</a><button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button><FunnelConsent/></footer>
       {notice && <div className="alert" role="status">{notice}</div>}
       {showSettings && <div className="modal-backdrop" onClick={() => setShowSettings(false)}>
         <section className="game-modal" role="dialog" aria-label="Game settings" aria-modal="true"
