@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import CampaignPlayLink from "../components/campaign-play-link";
 import DeckWaitlist from "../components/deck-waitlist";
+import MoveExamples from "../components/move-examples";
 import {FunnelConsent} from "../components/funnel-provider";
 import styles from "./official-home.module.css";
 import polish from "./homepage-refinement.module.css";
@@ -67,11 +68,8 @@ export default function HomePage() {
     </section>
     <section className={polish.moveStrip} aria-labelledby="moves-heading">
       <div className={polish.moveInner}><p className={styles.kicker}>Small cards. Big consequences.</p><h2 id="moves-heading">Turn the tables<span>.</span></h2>
-      <div className={polish.moveGrid}>
-        <article><div className={polish.moveArt}><Card name="DUMP"/></div><div><h3>Make it their problem.</h3><p>Send the pile to any active opponent. Watch out: their own DUMP can send it back.</p></div></article>
-        <article><div className={polish.moveArt}><Card name="BURN"/></div><div><h3>Burn it all.</h3><p>Clear the pile and immediately play again. A fresh start when you need it most.</p></div></article>
-        <article><div className={polish.moveArt}><Card name="7"/><Card name="7"/></div><div><h3>Make a SLAM.</h3><p>Complete four matching numbers to burn the pile, even out of turn.</p></div></article>
-      </div><Button href="/play">Try it yourself →</Button></div>
+      <MoveExamples/>
+<Button href="/play">Try it yourself →</Button></div>
     </section>
     <section className={styles.deck} id="the-deck"><div className={styles.split}>
       <div><p className={styles.kicker}>10 numbers. 6 action cards.</p><h2>Meet<br/>the cards<span>.</span></h2><p>Numbers keep the game moving. Action cards shake things up.</p><Button href="/deck" kind="cream">Explore the full deck →</Button></div>
