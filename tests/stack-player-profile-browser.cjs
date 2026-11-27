@@ -71,6 +71,7 @@ async function main(){
      const req=route.request();
      if(req.method()==='POST'){
       const input=req.postDataJSON();
+      if(input.action==='progression')return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({available:true,progression:{version:1,xp:50,level:1,levelXP:50,nextLevelXP:100,rewardedRounds:5,achievements:[{id:'first-stack',name:'First Stack',rounds:1,unlocked:true},{id:'regular',name:'Table Regular',rounds:5,unlocked:true},{id:'veteran',name:'Table Veteran',rounds:25,unlocked:false},{id:'century',name:'Century Club',rounds:100,unlocked:false}]}})});
       if(input.action==='history')return route.fulfill({status:account?200:401,contentType:'application/json',body:JSON.stringify(account?{available:true,rounds:[
        {playedAt:'2026-11-27T18:00:00Z',round:2,players:3,humans:2,place:1,rulesVersion:'pilehead-1.7.0',endgameRule:'classic',roundLimit:3},
        {playedAt:'2026-11-26T18:00:00Z',round:1,players:2,humans:2,place:2,rulesVersion:'pilehead-1.7.0',endgameRule:'classic',roundLimit:null}
@@ -97,6 +98,9 @@ async function main(){
     await section.getByText('Account preferences saved.',{exact:true}).waitFor();
     await page.reload();
     await section.getByLabel('Account nickname').waitFor();
+    const progress=section.getByRole('region',{name:'Player progression'});
+    await progress.getByText('50 XP',{exact:true}).waitFor();assert.equal(await progress.locator('progress').getAttribute('value'),'50');
+    assert.equal(await progress.getByText('Unlocked',{exact:true}).count(),2);
     const savedHistory=section.getByRole('region',{name:'Saved round history'});
     await savedHistory.getByText('Tournament round 2/3',{exact:false}).waitFor();
     assert.equal(await savedHistory.locator('ol li').count(),2);
@@ -124,7 +128,7 @@ async function main(){
     console.log('PASS account browser UI: '+width+'px, simulated provider, reload, import, apply, logout and delete');
     // Real mocked room server with the opt-in endpoint intercepted as a UI contract.
     // Server authorization and transaction semantics are covered by PostgreSQL CI.
-    let linked=false,signedIn=true;const consentActions=[];
+    let linked=false,signedIn=true,progressionSelected=false;const consentActions=[];
     await context.route('**/api/pilehead',async route=>{
      const req=route.request(),input=req.postDataJSON();
      if(['history-status','history-link','history-unlink'].includes(input.action)){
@@ -132,12 +136,12 @@ async function main(){
       assert.equal(input.round,1);
       if(input.action!=='history-status'){
        assert.equal(input.confirm,true);assert.ok(Number.isInteger(input.revision));
-       consentActions.push(input.action);linked=input.action==='history-link';
+       consentActions.push(input.action);linked=input.action==='history-link';progressionSelected=linked&&input.progression===true;
       }
-      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,signedIn,linked:signedIn&&linked})});
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ok:true,signedIn,linked:signedIn&&linked,progressionSelected:signedIn&&progressionSelected})});
      }
      const response=await route.fetch(),value=await response.json();
-     if(value.game)value.historyAvailable=true;
+     if(value.game){value.historyAvailable=true;value.progressionAvailable=true;}
      await route.fulfill({response,json:value});
     });
     await page.goto(base+'/play');
@@ -155,10 +159,14 @@ async function main(){
     await page.getByRole('button',{name:'Settings',exact:true}).click();
     await consent.getByRole('button',{name:'Do not save this round'}).click();
     await consent.getByText('This round is not selected for your account.').waitFor();
+    await consent.getByRole('button',{name:'Save round and earn XP'}).click();
+    await consent.getByText('Also selected for account XP, if eligible when the round finishes.').waitFor();
+    await consent.getByRole('button',{name:'Do not save this round'}).click();
+    await consent.getByText('This round is not selected for your account.').waitFor();
     signedIn=false;await consent.getByRole('button',{name:'Refresh history status'}).click();
     await consent.getByText('Sign in on the', {exact:false}).waitFor();
     assert.equal(await consent.getByRole('button',{name:'Save this round',exact:true}).count(),0);
-    assert.deepEqual(consentActions,['history-link','history-unlink']);
+    assert.deepEqual(consentActions,['history-link','history-unlink','history-link','history-unlink']);
     console.log('PASS private history UI: '+width+'px, no auto-consent, explicit opt-in/revocation, signed-out state');
 
 

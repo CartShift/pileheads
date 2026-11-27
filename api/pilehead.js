@@ -4,7 +4,8 @@ const crypto=require('node:crypto'),E=require('../packages/game-engine');
 const Standings=require('../scripts/room-standings.cjs');
 const Lifecycle=require('../scripts/room-lifecycle.cjs');
 const RoundHistory=require('../scripts/round-receipts.cjs');
-const PrivateHistory=require('../scripts/private-history.cjs');let client;
+const PrivateHistory=require('../scripts/private-history.cjs');
+const Progression=require('../scripts/player-progression.cjs');let client;
 function db(){if(!process.env.PILEHEAD_DATABASE_URL)throw error(503,'online_not_configured');return client||(client=require('@neondatabase/serverless').neon(process.env.PILEHEAD_DATABASE_URL))}
 function query(s,args=[]){return db().query(s,args)}
 function error(status,code){return Object.assign(Error(code),{status,code})}
@@ -110,7 +111,7 @@ async function view(r,seat){const members=await query('SELECT seat,display_name,
  return {ok:true,code:r.code,revision:r.revision,capacity:r.capacity,
  humanCount:humanCount(r.state),botCount:botSeats(r.state).length,
  status:r.status,expiresAt:r.expires_at,me:seat,host:seat===0,
- historyAvailable:PrivateHistory.available(r.state),
+ historyAvailable:PrivateHistory.available(r.state),progressionAvailable:Progression.eligible(r.state),
  members:members.map(m=>({seat:m.seat,name:m.display_name,
   presence:Date.now()-new Date(m.last_seen_at).getTime()>25000?'offline':m.is_away?'away':'online'})),
  game:redacted(r.state,seat)}}
@@ -259,7 +260,7 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
  const receipt=RoundHistory.enabled()?RoundHistory.receipt(r.state,g):null;
  const args=[JSON.stringify(g),status,r.code,r.revision];
  // The terminal state and its receipt must commit together, or neither does.
- const rows=receipt?await query(PrivateHistory.available(g)?PrivateHistory.SQL.archive:RoundHistory.ARCHIVE_ROUND_SQL,[...args,...RoundHistory.params(receipt)]):
+ const rows=receipt?await query(Progression.eligible(g)?Progression.SQL.archive:PrivateHistory.available(g)?PrivateHistory.SQL.archive:RoundHistory.ARCHIVE_ROUND_SQL,[...args,...RoundHistory.params(receipt)]):
   await query(RoundHistory.UPDATE_ROOM_SQL,args);
  if(!rows.length)fail(409,'stale_revision');return view(rows[0],seat)}
 // Ephemeral reactions live in bounded room JSON rather than adding a schema
@@ -326,16 +327,19 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
    const roomToken=h(requireSession(req)[1]);
    const args=[r.code,roomToken,account,b.round];
    if(b.action==='history-status'){
-    const [status]=await query(PrivateHistory.SQL.status,args);
-    return send(200,{ok:true,signedIn:status?.signed_in===true,linked:status?.linked===true});
+    const [status]=await query(Progression.configured()?Progression.SQL.status:PrivateHistory.SQL.status,args);
+    return send(200,{ok:true,signedIn:status?.signed_in===true,linked:status?.linked===true,progressionSelected:status?.progression_selected===true});
    }
    if(!account)fail(401,'account_required');
    if(b.confirm!==true||!Number.isInteger(b.revision))fail(400,'history_confirmation_required');
    if(b.action==='history-link'&&r.state.phase!=='setup')fail(409,'history_round_started');
    if(b.action==='history-unlink'&&!['setup','play'].includes(r.state.phase))fail(409,'history_round_finished');
-   const rows=await query(b.action==='history-link'?PrivateHistory.SQL.link:PrivateHistory.SQL.unlink,[...args,b.revision]);
+   const earn=b.action==='history-link'&&b.progression===true;
+   if(b.progression!==undefined&&typeof b.progression!=='boolean')fail(400,'history_confirmation_required');
+   if(earn&&!Progression.eligible(r.state))fail(409,'progression_unavailable');
+   const rows=await query(b.action==='history-link'?(earn?Progression.SQL.link:PrivateHistory.SQL.link):PrivateHistory.SQL.unlink,[...args,b.revision]);
    if(!rows.length)fail(409,'history_conflict');
-   return send(200,{ok:true,signedIn:true,linked:b.action==='history-link'});
+   return send(200,{ok:true,signedIn:true,linked:b.action==='history-link',progressionSelected:earn});
   }
   if(b.action==='presence'){
    if(typeof b.away!=='boolean')fail(400,'bad_presence');

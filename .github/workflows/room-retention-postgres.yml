@@ -7,6 +7,8 @@ on:
       - 'scripts/room-lifecycle.cjs'
       - 'scripts/round-receipts.cjs'
       - 'scripts/private-history.cjs'
+      - 'scripts/player-progression.cjs'
+      - 'tests/pilehead-player-progression.cjs'
       - 'tests/pilehead-private-history.cjs'
       - 'db/player-accounts-v1.sql'
       - 'tests/pilehead-round-receipts.cjs'
@@ -53,6 +55,7 @@ jobs:
           const {CREATE_ROOM_SQL,JOIN_ROOM_SQL}=require('./scripts/room-lifecycle.cjs');
           const {ARCHIVE_ROUND_SQL}=require('./scripts/round-receipts.cjs');
           const H=require('./scripts/private-history.cjs');
+          const P=require('./scripts/player-progression.cjs');
           const id = process.env.PG_TEST_CONTAINER;
           assert.match(id || '', /^[a-f0-9]{12,64}$/);
           function psql(sql, role) {
@@ -191,6 +194,34 @@ jobs:
             assert.equal(count('pileheads_player_rounds'),0);assert.equal(count('pileheads_round_receipts',"room_instance_id='"+rid+"'"),1);
             assert.throws(()=>psql("SELECT provider_subject FROM pileheads_accounts;",runtime),/permission denied/i);
             console.log('PASS exact private history SQL: dual credentials, seat/account isolation, consent withdrawal, CAS, durable history and deletion cascades');
+            psql(fs.readFileSync('db/room-player-progression.sql','utf8'));
+            psql("GRANT SELECT,INSERT,UPDATE ON pileheads_player_progression TO "+runtime+"; GRANT SELECT(account_id) ON pileheads_player_rounds TO "+runtime+";");
+            const uid='3c0c6815-e56b-4e6f-a6e3-1b3345c9b986',u='d'.repeat(64);
+            psql("INSERT INTO pileheads_accounts(id,provider,provider_subject) VALUES('"+uid+"','google','synthetic-progression'); INSERT INTO pileheads_account_sessions(token_hash,account_id) VALUES('"+u+"','"+uid+"');");
+            const progressRound=(i,opt=true,humans=2)=>{
+              const code='PROG'+String(i).padStart(4,'0'),uuid='d7fc5012-3ee3-4f2c-8d35-'+String(i).padStart(12,'0');
+              create(code,'progress-host-'+i);join(code,'progress-friend-'+i);
+              psql("UPDATE pilehead_rooms SET state='"+JSON.stringify({phase:'setup',round:1,roomInstanceId:uuid})+"' WHERE code='"+code+"';",runtime);
+              const link=(stmt,member,session,rev)=>psql("PREPARE pl AS "+stmt+"; EXECUTE pl('"+code+"','"+member+"','"+session+"',1,"+rev+");",runtime);
+              assert.equal(link(opt?P.SQL.link:H.SQL.link,'progress-host-'+i,u,0),code);
+              assert.equal(link(H.SQL.link,'progress-friend-'+i,b,1),code);
+              const finish=rev=>psql("PREPARE pa AS "+P.SQL.archive+"; EXECUTE pa('{}','finished','"+code+"',"+rev+",'"+uuid+"',1,'pilehead-1.7.0','classic',3,2,"+humans+",'{1,2}',45);",runtime);
+              assert.equal(finish(1),'');assert.ok(finish(2).startsWith(code));assert.equal(finish(2),'');
+            };
+            const xp=session=>psql("PREPARE progress_read AS "+P.SQL.read+"; EXECUTE progress_read('"+session+"');");
+            assert.equal(xp(u),'0');
+            progressRound(1,false);assert.equal(xp(u),'0');
+            progressRound(2,true,1);assert.equal(xp(u),'0');
+            for(let i=3;i<=8;i++)progressRound(i);
+            assert.equal(xp(u),'50');assert.equal(xp(b),'0');
+            psql("UPDATE pileheads_player_progression SET award_day=award_day-1 WHERE account_id='"+uid+"';");
+            progressRound(9);assert.equal(xp(u),'60');
+            psql("DELETE FROM pileheads_round_receipts WHERE room_instance_id='d7fc5012-3ee3-4f2c-8d35-000000000003';");
+            assert.equal(xp(u),'60','receipt expiry must not erase consented account aggregate');
+            psql("DELETE FROM pileheads_accounts WHERE id='"+uid+"';");
+            assert.equal(xp(u),'');assert.equal(count('pileheads_player_progression'),0);
+            console.log('PASS exact progression SQL: opt-in, bots excluded, CAS replay, daily limit, next day, receipt independence, account deletion');
+
             console.log('PASS isolated PostgreSQL: role grants, valid expiry index, dry run, 500-row batches, cascades, active records and idempotent cleanup');
           }
           main().catch(e=>{console.error(e.message);process.exitCode=1});
