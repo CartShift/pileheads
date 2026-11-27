@@ -36,7 +36,8 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.1",
-    "ws": "8.23.0"
+    "ws": "8.23.0",
+    "jose": "6.2.18"
   },
   "description": "PILEHEADS physical-first card game and online multiplayer",
   "workspaces": [
