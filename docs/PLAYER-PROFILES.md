@@ -10,3 +10,8 @@ This is a scoped successor to the unmerged commercial PR #91. Reuse its guest se
 - /profile uses saved nickname/deck only when user explicitly selects Play with saved preferences; local game settings remain independent and may be changed. Guest profile does not authorize room commands.
 - Acceptance gates: exact-head CI/build and /profile export, actual disposable PostgreSQL transaction/quota/expiry tests, Vercel HTTPS cookie and request-body tests, Render adapter smoke, real browser create/update/reload/delete, privacy notice and abuse/retention review. Do not enable publicly until these pass.
 - Next: verified identity and transactional linking/recovery, durable authoritative tournament finalization and player-owned history, then matchmaking. Preserve room seat tokens as separate authorization. No client-reported competitive stats.
+
+## Automated acceptance follow-up
+- Dedicated disposable PostgreSQL job exercises the exact runtime SQL, 90-day expiration, isolation, nickname/deck persistence, deletion, failed-insert quota rollback and four-way parallel creation at the global limit. Tests use synthetic data, not a production database.
+- Browser CI exercises real disabled API and exported profile route, plus mocked enabled UI create/save/reload/apply/delete at 360px and desktop. Browser mock is not proof of actual HTTPS cookies or live Vercel profile activation.
+- Nicknames containing angle brackets are rejected so a saved nickname is compatible with the room API's existing sanitization.

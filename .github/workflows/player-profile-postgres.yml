@@ -1,0 +1,39 @@
+name: Player profile PostgreSQL acceptance
+on:
+  pull_request:
+    paths:
+      - 'api/player.js'
+      - 'db/player-profiles-v1.sql'
+      - 'tests/player-profile-postgres.cjs'
+      - '.github/workflows/player-profile-postgres.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: player-profile-postgres-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  isolated-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Run exact profile SQL against disposable PostgreSQL
+        env:
+          PG_TEST_CONTAINER: ${{ job.services.postgres.id }}
+        run: node tests/player-profile-postgres.cjs

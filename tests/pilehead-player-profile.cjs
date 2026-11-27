@@ -44,7 +44,7 @@ async function call(h=handler,{method='GET',body={},cookie,headers={},parsed=fal
  assert.match((await call(paused,{method:'POST',cookie,body:{action:'delete'}})).headers['Set-Cookie'],/Max-Age=0/);
  assert.equal((await call(handler,{cookie})).body.profile,null);assert.equal((await call(handler,{cookie:other})).body.profile.name,'Player');
  assert.equal(cookieToken(cookie+'; '+cookie),null);assert.equal(validAction({...update,deck:'premium'}),false);
- assert.equal(normalizeName('  '),null);assert.equal(normalizeName('x'.repeat(25)),null);assert.equal(normalizeName('a\u202Eb'),null);
+ assert.equal(normalizeName('  '),null);assert.equal(normalizeName('<>'),null);assert.equal(normalizeName('Alice<'),null);assert.equal(normalizeName('x'.repeat(25)),null);assert.equal(normalizeName('a\u202Eb'),null);
  assert.equal(normalizeName(' e\u0301 '),'é');
  const cfg={PILEHEAD_PLAYER_ORIGIN:origin,PILEHEAD_PLAYER_DATABASE_URL:'configured',PILEHEAD_PLAYER_SCHEMA_READY:'1',PILEHEAD_PLAYER_ENABLED:'1',PILEHEAD_PLAYER_PRIVACY_URL:privacyUrl};
  assert.equal(configuration(cfg).enabled,true);assert.equal(configuration({...cfg,PILEHEAD_PLAYER_PRIVACY_URL:'https://other.test/privacy'}).enabled,false);
