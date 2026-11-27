@@ -3,7 +3,8 @@
 const crypto=require('node:crypto'),E=require('../packages/game-engine');
 const Standings=require('../scripts/room-standings.cjs');
 const Lifecycle=require('../scripts/room-lifecycle.cjs');
-const RoundHistory=require('../scripts/round-receipts.cjs');let client;
+const RoundHistory=require('../scripts/round-receipts.cjs');
+const PrivateHistory=require('../scripts/private-history.cjs');let client;
 function db(){if(!process.env.PILEHEAD_DATABASE_URL)throw error(503,'online_not_configured');return client||(client=require('@neondatabase/serverless').neon(process.env.PILEHEAD_DATABASE_URL))}
 function query(s,args=[]){return db().query(s,args)}
 function error(status,code){return Object.assign(Error(code),{status,code})}
@@ -109,6 +110,7 @@ async function view(r,seat){const members=await query('SELECT seat,display_name,
  return {ok:true,code:r.code,revision:r.revision,capacity:r.capacity,
  humanCount:humanCount(r.state),botCount:botSeats(r.state).length,
  status:r.status,expiresAt:r.expires_at,me:seat,host:seat===0,
+ historyAvailable:PrivateHistory.available(r.state),
  members:members.map(m=>({seat:m.seat,name:m.display_name,
   presence:Date.now()-new Date(m.last_seen_at).getTime()>25000?'offline':m.is_away?'away':'online'})),
  game:redacted(r.state,seat)}}
@@ -145,6 +147,7 @@ async function create(req,b){
  if(roundLimit!==null&&!tournamentLimits.has(roundLimit))fail(400,'invalid_round_limit');
  const t=secret();
  for(let tries=0;tries<4;tries++){const id=makeCode(),game=freshGame({players:cap,humans,bots,endgameRule,roundLimit});
+  game.roomInstanceId=crypto.randomUUID();
   let created;
   try{created=await query(Lifecycle.CREATE_ROOM_SQL,[id,cap,JSON.stringify(game),nick,h(t)])}
   catch(e){if(e.code==='23505')continue;throw e}
@@ -256,7 +259,7 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
  const receipt=RoundHistory.enabled()?RoundHistory.receipt(r.state,g):null;
  const args=[JSON.stringify(g),status,r.code,r.revision];
  // The terminal state and its receipt must commit together, or neither does.
- const rows=receipt?await query(RoundHistory.ARCHIVE_ROUND_SQL,[...args,...RoundHistory.params(receipt)]):
+ const rows=receipt?await query(PrivateHistory.available(g)?PrivateHistory.SQL.archive:RoundHistory.ARCHIVE_ROUND_SQL,[...args,...RoundHistory.params(receipt)]):
   await query(RoundHistory.UPDATE_ROOM_SQL,args);
  if(!rows.length)fail(409,'stale_revision');return view(rows[0],seat)}
 // Ephemeral reactions live in bounded room JSON rather than adding a schema
@@ -316,6 +319,24 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
   requireSession(req);
   const {r,seat}=await loadAuthenticated(code(b.code),req);
   if(b.action!=='state'&&b.action!=='react')await seatWriteQuota(r.code,seat);
+  if(['history-status','history-link','history-unlink'].includes(b.action)){
+   if(!PrivateHistory.available(r.state)||!PrivateHistory.sameOrigin(req.headers))fail(403,'history_unavailable');
+   if(!Number.isInteger(b.round)||b.round!==(r.state.round??1))fail(409,'stale_revision');
+   const account=PrivateHistory.accountDigest(req.headers.cookie);
+   const roomToken=h(requireSession(req)[1]);
+   const args=[r.code,roomToken,account,b.round];
+   if(b.action==='history-status'){
+    const [status]=await query(PrivateHistory.SQL.status,args);
+    return send(200,{ok:true,signedIn:status?.signed_in===true,linked:status?.linked===true});
+   }
+   if(!account)fail(401,'account_required');
+   if(b.confirm!==true||!Number.isInteger(b.revision))fail(400,'history_confirmation_required');
+   if(b.action==='history-link'&&r.state.phase!=='setup')fail(409,'history_round_started');
+   if(b.action==='history-unlink'&&!['setup','play'].includes(r.state.phase))fail(409,'history_round_finished');
+   const rows=await query(b.action==='history-link'?PrivateHistory.SQL.link:PrivateHistory.SQL.unlink,[...args,b.revision]);
+   if(!rows.length)fail(409,'history_conflict');
+   return send(200,{ok:true,signedIn:true,linked:b.action==='history-link'});
+  }
   if(b.action==='presence'){
    if(typeof b.away!=='boolean')fail(400,'bad_presence');
    await query('UPDATE pilehead_members SET last_seen_at=now(),is_away=$3 WHERE code=$1 AND seat=$2',

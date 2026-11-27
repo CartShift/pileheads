@@ -6,6 +6,9 @@ on:
       - 'scripts/room-retention.cjs'
       - 'scripts/room-lifecycle.cjs'
       - 'scripts/round-receipts.cjs'
+      - 'scripts/private-history.cjs'
+      - 'tests/pilehead-private-history.cjs'
+      - 'db/player-accounts-v1.sql'
       - 'tests/pilehead-round-receipts.cjs'
       - 'tests/pilehead-room-retention.cjs'
       - '.github/workflows/room-retention-postgres.yml'
@@ -49,6 +52,7 @@ jobs:
           const {runRetention} = require('./scripts/room-retention.cjs');
           const {CREATE_ROOM_SQL,JOIN_ROOM_SQL}=require('./scripts/room-lifecycle.cjs');
           const {ARCHIVE_ROUND_SQL}=require('./scripts/round-receipts.cjs');
+          const H=require('./scripts/private-history.cjs');
           const id = process.env.PG_TEST_CONTAINER;
           assert.match(id || '', /^[a-f0-9]{12,64}$/);
           function psql(sql, role) {
@@ -147,6 +151,46 @@ jobs:
             assert.equal(count('pileheads_round_receipts'),1);
             assert.throws(()=>psql("DELETE FROM pileheads_round_receipts;",runtime),/permission denied/i);
             console.log('PASS exact receipt SQL: CAS, constraint/duplicate rollback, least privilege and exactly one receipt');
+            psql(fs.readFileSync('db/player-accounts-v1.sql','utf8'));
+            psql(fs.readFileSync('db/room-private-history.sql','utf8'));
+            psql("GRANT SELECT(token_hash,account_id,expires_at) ON pileheads_account_sessions TO "+runtime+"; GRANT SELECT,INSERT,DELETE ON pileheads_round_consents TO "+runtime+"; GRANT INSERT,SELECT(seat) ON pileheads_player_rounds TO "+runtime+";");
+            const aid='1c0c6815-e56b-4e6f-a6e3-1b3345c9b986',bid='2c0c6815-e56b-4e6f-a6e3-1b3345c9b986';
+            const a='a'.repeat(64),b='b'.repeat(64),c='c'.repeat(64);
+            const rid='b7fc5012-3ee3-4f2c-8d35-fd9c71ebcfa7';
+            psql("INSERT INTO pileheads_accounts(id,provider,provider_subject) VALUES('"+aid+"','google','synthetic-a'),('"+bid+"','google','synthetic-b'); INSERT INTO pileheads_account_sessions(token_hash,account_id) VALUES('"+a+"','"+aid+"'),('"+b+"','"+bid+"'),('"+c+"','"+aid+"');");
+            create('HIST0001','history-host');join('HIST0001','history-friend');
+            const state=JSON.stringify({phase:'setup',round:1,roomInstanceId:rid});
+            psql("UPDATE pilehead_rooms SET state='"+state+"' WHERE code='HIST0001';",runtime);
+            const consent=(stmt,member,session,rev,round=1)=>psql("PREPARE consent AS "+stmt+"; EXECUTE consent('HIST0001','"+member+"','"+session+"',"+round+","+rev+");",runtime);
+            const status=(member,session)=>psql("PREPARE status AS "+H.SQL.status+"; EXECUTE status('HIST0001','"+member+"','"+session+"',1);",runtime);
+            assert.equal(status('history-host',a),'t\\tf');
+            assert.equal(consent(H.SQL.link,'forged-seat',a,0),'');
+            assert.equal(consent(H.SQL.link,'history-host','x'.repeat(64),0),'');
+            assert.equal(consent(H.SQL.link,'history-host',a,0,2),'');
+            assert.equal(consent(H.SQL.link,'history-host',a,0),'HIST0001');
+            assert.equal(status('history-host',c),'t\\tt','same account on another device');
+            assert.equal(status('history-host',b),'t\\tf','other account cannot see consent');
+            assert.equal(consent(H.SQL.link,'history-friend',a,1),'','one account per round');
+            assert.equal(consent(H.SQL.link,'history-host',b,1),'','one account per seat');
+            assert.equal(consent(H.SQL.link,'history-friend',b,1),'HIST0001');
+            assert.equal(consent(H.SQL.unlink,'history-host',b,2),'');
+            psql("UPDATE pilehead_rooms SET state=jsonb_set(state,'{phase}','\"play\"'),status='playing' WHERE code='HIST0001';",runtime);
+            assert.equal(consent(H.SQL.link,'history-host',a,2),'');
+            assert.equal(consent(H.SQL.unlink,'history-friend',b,2),'HIST0001');
+            assert.equal(count('pileheads_round_consents'),1);
+            const archivePersonal=rev=>psql("PREPARE pa AS "+H.SQL.archive+"; EXECUTE pa('{}','finished','HIST0001',"+rev+",'"+rid+"',1,'pilehead-1.7.0','classic',3,2,2,'{1,2}',45);",runtime);
+            assert.equal(archivePersonal(2),'');assert.equal(count('pileheads_player_rounds'),0);
+            assert.ok(archivePersonal(3).startsWith('HIST0001'));
+            assert.equal(count('pileheads_player_rounds'),1);
+            assert.equal(archivePersonal(3),'');assert.equal(count('pileheads_player_rounds'),1);
+            const list=session=>psql("PREPARE history AS "+H.SQL.list+"; EXECUTE history('"+session+"');");
+            assert.ok(list(c).includes('pilehead-1.7.0'));assert.equal(list(b),'');
+            psql("DELETE FROM pilehead_rooms WHERE code='HIST0001';",maintenance);
+            assert.equal(count('pileheads_round_consents'),0);assert.equal(count('pileheads_player_rounds'),1);
+            psql("DELETE FROM pileheads_accounts WHERE id='"+aid+"';");
+            assert.equal(count('pileheads_player_rounds'),0);assert.equal(count('pileheads_round_receipts',"room_instance_id='"+rid+"'"),1);
+            assert.throws(()=>psql("SELECT provider_subject FROM pileheads_accounts;",runtime),/permission denied/i);
+            console.log('PASS exact private history SQL: dual credentials, seat/account isolation, consent withdrawal, CAS, durable history and deletion cascades');
             console.log('PASS isolated PostgreSQL: role grants, valid expiry index, dry run, 500-row batches, cascades, active records and idempotent cleanup');
           }
           main().catch(e=>{console.error(e.message);process.exitCode=1});

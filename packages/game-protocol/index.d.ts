@@ -58,6 +58,7 @@ export type Room = {
   humanCount?: number;
   botCount?: number;
   expiresAt?: string;
+  historyAvailable?: boolean;
   members: { seat: number; name: string; presence: string }[];
   game: RoomGame;
 };
