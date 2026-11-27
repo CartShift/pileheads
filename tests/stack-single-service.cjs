@@ -61,3 +61,5 @@ assert.match(read("robots.txt").toString("utf8"),/Sitemap: https:\/\/pileheads\.
 assert.match(read("sitemap.xml").toString("utf8"),/https:\/\/pileheads\.com\/how-to-play/);
 const social=read("stack-media/pileheads-social.png");
 assert.equal(social.toString("hex",0,8),"89504e470d0a1a0a");assert.equal(social.readUInt32BE(16),1200);assert.equal(social.readUInt32BE(20),630);
+
+for(let i=-1;i<16;i++)for(const width of [140,280]){const image=read("stack-media/cards/"+(i<0?"back":"face-"+i)+"-"+width+".webp");assert.equal(image.subarray(8,12).toString(),"WEBP");assert.ok(image.length<50000,"individual web face delivery budget");}
