@@ -10,6 +10,7 @@ import CenterBoard from "./center-board";
 import PlayerHandArea, { type HandSort } from "./player-hand-area";
 import ActionDock from "./action-dock";
 import ResultShare from "./result-share";
+import {resultCardData} from "../lib/result-card";
 const ResultShareCore = require("../lib/result-share-core.cjs") as { resultShare: (input: { phase:string; kind:string; players:number; drill:boolean }) => {title:string;text:string;url:string} | null };
 import { useGameFeedback } from "../lib/use-game-feedback";
 import FeedbackSettings from "./feedback-settings";
@@ -956,6 +957,7 @@ export default function GameTable() {
   const coach = Coach.coachTip(g,{me,active,stage,selection,canPlay,needsTarget,selectedAction});
   const outcome = Coach.roundOutcome(g,me);
   const sharePayload = ResultShareCore.resultShare({phase:g.phase,kind:outcome?.kind ?? "",players:g.players.length,drill:!!drill});
+  const shareCard=resultCardData({phase:g.phase,kind:outcome?.kind??"",players:g.players.length,moves:g.moves,drill:!!drill});
   const ready = !!g.setupReady[me];
   const allReady = g.setupReady.every(Boolean);
   const joined = mode === "local" ? true : room?.members.length === g.players.length - g.botSeats.length;
@@ -1074,7 +1076,7 @@ export default function GameTable() {
        </div>}
        <ActionDock g={g} mode={mode} room={room} ready={ready} allReady={allReady} joined={joined} busy={busy}
           undoAvailable={undoAvailable} undo={undo} onRematch={() => setConfirmRestart(true)}
-           resultShare={sharePayload ? <ResultShare key={visualGameKey} payload={sharePayload} onShared={()=>emitFunnel("result_shared")} /> : null} me={me}
+           resultShare={sharePayload ? <ResultShare key={visualGameKey} payload={sharePayload} card={shareCard} onShared={()=>emitFunnel("result_shared")} /> : null} me={me}
           nameForSeat={nameForSeat} playMove={playMove} liveSeats={liveSeats} chooseDumpSeat={chooseDumpSeat}
           needsTarget={needsTarget} playSelected={playSelected} onCancelTarget={() => setNeedsTarget(false)}
           selectedCards={selectedCards} selectedAction={selectedAction} active={active} reactionsOpen={reactionsOpen}
