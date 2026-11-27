@@ -1,0 +1,33 @@
+name: Creative video acceptance
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/creative-video*.cjs'
+      - 'scripts/creative-studio-core.cjs'
+      - 'tests/creative-video-integration.cjs'
+      - 'tests/pilehead-creative-video.cjs'
+      - 'examples/creative/gameplay-video.json'
+      - 'apps/web/public/stack-media/stack-home-logo-web.webp'
+      - 'apps/web/public/stack-media/barlow-condensed-black-italic.ttf'
+      - '.github/workflows/creative-video.yml'
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Install system FFmpeg only for video changes
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version
+      - name: Render technical fixture (not campaign footage)
+        env:
+          PILEHEAD_REQUIRE_VIDEO_TEST: '1'
+        run: node tests/creative-video-integration.cjs
