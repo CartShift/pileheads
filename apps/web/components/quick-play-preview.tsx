@@ -16,9 +16,9 @@ function validStatus(s:Status|undefined):s is Status{
 export default function QuickPlayPreview(){
  const [result,setResult]=useState<Result|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(""),[clock,setClock]=useState(0);
  const lock=useRef(false),mounted=useRef(false),controller=useRef<AbortController|null>(null);
- async function request(action?:Action,quiet=false){
+ async function request(action?:Action){
   if(lock.current||backendOrigin)return;
-  lock.current=true;if(!quiet)setBusy(true);
+  lock.current=true;setBusy(true);
   const c=new AbortController();controller.current=c;
   try{
    const res=await fetch("/api/matchmaking",{method:action?"POST":"GET",credentials:"same-origin",cache:"no-store",headers:action?{"Content-Type":"application/json"}:{},body:action?JSON.stringify(action):undefined,signal:AbortSignal.any([c.signal,AbortSignal.timeout(10000)])});
@@ -41,8 +41,8 @@ export default function QuickPlayPreview(){
  const state=result?.status?.state;
  useEffect(()=>{
   if(!result?.authorized||!["waiting","offered","ready"].includes(state||""))return;
-  const t=setInterval(()=>{if(document.visibilityState==="visible")void request({action:"status"},true)},3000);
-  const onVisible=()=>{if(document.visibilityState==="visible")void request({action:"status"},true)};
+  const t=setInterval(()=>{if(document.visibilityState==="visible")void request({action:"status"})},3000);
+  const onVisible=()=>{if(document.visibilityState==="visible")void request({action:"status"})};
   document.addEventListener("visibilitychange",onVisible);
   return()=>{clearInterval(t);document.removeEventListener("visibilitychange",onVisible)}
  },[state,result?.authorized]);

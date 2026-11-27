@@ -197,6 +197,10 @@ async function main(){
     await page.reload();await page.getByRole('button',{name:'Enter table'}).waitFor();
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1),'queue fits viewport');
     assert.ok(queueActions.includes('cancel')&&queueActions.includes('accept'));
+    await page.getByRole('button',{name:'Enter table'}).click();
+    await page.waitForURL('**/play?room=ABCD2345');
+    assert.equal(await page.evaluate(()=>localStorage.getItem('stack-next-room-ABCD2345')),'a'.repeat(43));
+    assert.ok(!page.url().includes('a'.repeat(43)),'seat bearer must never enter URL');
     console.log('PASS Quick Play preview UI: '+width+'px, disabled route, explicit join, cancel, ready check, recovery after reload');
 
 
