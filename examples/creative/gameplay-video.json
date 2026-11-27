@@ -1,0 +1,17 @@
+{
+  "id": "gameplay-example",
+  "headline": "ONE MORE ROUND.",
+  "caption": "Draft example only; replace the clip and caption with approved real footage.",
+  "sourceRelease": "RC3",
+  "sourceApprovedForReview": true,
+  "segments": [
+    {
+      "file": "approved-real-capture.mp4",
+      "start": 0,
+      "duration": 6,
+      "caption": "One pile. One loser.",
+      "kind": "gameplay",
+      "audio": "mute"
+    }
+  ]
+}

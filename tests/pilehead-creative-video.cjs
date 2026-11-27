@@ -1,0 +1,10 @@
+"use strict";
+const assert=require("node:assert/strict");
+const {validateVideoBrief,wrapCaption,composeFilter}=require("../scripts/creative-video-core.cjs");
+const brief=require("../examples/creative/gameplay-video.json");
+assert.equal(validateVideoBrief(brief).duration,6);
+assert.equal(wrapCaption("One pile. One loser."),"One pile. One loser.");
+assert.ok(composeFilter().includes("1080:1920"));
+assert.ok(composeFilter().includes("force_original_aspect_ratio=decrease"));
+for(const b of [{...brief,sourceApprovedForReview:false},{...brief,segments:[{...brief.segments[0],file:"../secret.mp4"}]},{...brief,segments:[{...brief.segments[0],duration:1}]},{...brief,segments:[{...brief.segments[0],audio:"generated"}]},{...brief,headline:"x".repeat(21)}])assert.throws(()=>validateVideoBrief(b));
+console.log("Creative video brief validation passed");
