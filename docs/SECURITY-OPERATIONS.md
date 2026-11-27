@@ -9,9 +9,13 @@ Room expiration is enforced by the API, independent of physical cleanup. The ope
 3. Provision a separate maintenance role with SELECT on rooms and rate limits and DELETE on those two tables. Room members are removed through the existing cascading foreign key. Do not grant the maintenance role to the public API.
 4. Inject PILEHEAD_MAINTENANCE_DATABASE_URL locally using the secrets manager. Run node scripts/room-retention.cjs to inspect aggregate counts.
 5. After explicit operator approval, run node scripts/room-retention.cjs --apply. Each invocation deletes at most 500 expired rooms and 500 expired rate buckets. Active records are never selected. Verify counts after execution.
-6. Only schedule after isolated testing and approval; choose a low-frequency job and account for database wakeups.
+6. Run only one maintenance invocation at a time. Only schedule after isolated testing and approval; choose a low-frequency job and account for database wakeups.
 
 ## Runtime credentials
+
+Use `db/room-access-roles.sql` to provision separate NOLOGIN privilege groups in a fresh environment. Login roles must be provisioned securely, granted only the corresponding group, and verified before replacing environment variables. The groups alone do not change existing application connections.
+
+For preview/development, create a separate empty database project and apply `db/room-schema-development.sql` and the role manifest. Never clone real room states into public PR environments. Growth and waitlist are disabled unless explicitly configured against separate test data.
 
 Provision a separate non-owner, non-superuser application role with CONNECT, schema USAGE, SELECT/INSERT/UPDATE on the three game tables only. Check actual privileges and test all API operations in an isolated branch before switching. Remove unnecessary inherited grants. Do not give the app schema creation, role administration, deletion or maintenance access. Keep growth credentials separate. Verify Preview does not use Production credentials; do not copy production data into untrusted previews.
 
