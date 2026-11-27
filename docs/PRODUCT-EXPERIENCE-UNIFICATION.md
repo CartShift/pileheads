@@ -24,3 +24,5 @@ No visual approval or runtime verification is implied by a source change.
 - Consistent paper cards, public CTA, settings/rules/restart/inspection panels, action dock and results without changing geometry, game actions, status signals or rules.
 - Profile hierarchy and destructive-action styling; email confirmation/unsubscribe route shares public shell. Operator-only growth route intentionally stays separate.
 - Extended browser scenario verifies the deck-update shell and in-game rules dialog. Actual screenshot review still required before visual sign-off.
+
+- Integrated concurrent private-history features from main without changing opt-in, authorization, retention or round logic; styled the history summaries and consent section using existing brand tokens.

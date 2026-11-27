@@ -995,3 +995,15 @@ button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{
 .move-story-overlay.theme-refined .move-story-stack-back {
  background-image:url("/pilehead/assets/stack-back-v2.webp?v=production-rc3");background-size:cover;background-position:center;
 }
+
+/* Private history is scoped to the account and existing settings dialog. */
+.round-history-consent,.saved-round-history{min-width:0;border-top:1px solid currentColor;padding-top:1rem;margin-top:1rem;}
+.round-history-consent p,.saved-round-history p{font-size:.875rem;line-height:1.45;overflow-wrap:anywhere;}
+.history-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.5rem;margin:.75rem 0;text-align:center;}
+.history-summary>div{display:grid;gap:.2rem;border:1px solid currentColor;border-radius:.5rem;padding:.65rem .25rem;}
+.history-summary strong{font-size:1.35rem;line-height:1;}
+.history-summary small,.history-round-list small{display:block;font-size:.75rem;line-height:1.35;}
+.history-round-list{list-style:none;padding:0;margin:.5rem 0;max-height:24rem;overflow:auto;}
+.history-round-list li{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;padding:.65rem 0;border-bottom:1px solid currentColor;}
+.history-round-list li>div{min-width:0;overflow-wrap:anywhere;}
+.history-round-list li>div:last-child{text-align:right;}

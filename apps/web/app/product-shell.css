@@ -207,3 +207,14 @@
   .pileheads-masthead a, .game-shell .game-modal button,
   .launch-public .public-cta {transition:none}
 }
+
+/* Private history is opt-in. Match profile and settings without changing consent. */
+.stack-lobby .saved-round-history {border-top-color:var(--brand-line)}
+.stack-lobby .saved-round-history h3 {font:italic 900 26px/1.1 var(--brand-display);text-transform:uppercase;margin:6px 0 12px;color:var(--brand-ink)}
+.stack-lobby .history-summary>div {border-color:var(--brand-line);border-radius:var(--brand-control-radius);background:var(--brand-paper);color:var(--brand-ink)}
+.stack-lobby .history-summary strong {font:italic 900 30px/1 var(--brand-display);color:var(--brand-teal)}
+.stack-lobby .history-round-list li {border-color:var(--brand-line)}
+.stack-lobby .history-round-list small {color:var(--brand-muted)}
+.game-shell .game-modal .round-history-consent {border-top-color:var(--brand-line)}
+.game-shell .game-modal .round-history-consent a {text-decoration:underline;text-underline-offset:3px;color:var(--brand-yellow)}
+.game-shell .game-modal .round-history-consent .learn-button {color:var(--brand-paper);background:transparent;border:1px solid var(--brand-line);border-radius:var(--brand-control-radius);min-height:44px;margin:6px 0 0;padding:8px 12px}

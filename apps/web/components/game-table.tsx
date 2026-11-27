@@ -11,6 +11,7 @@ import CenterBoard from "./center-board";
 import PlayerHandArea, { type HandSort } from "./player-hand-area";
 import ActionDock from "./action-dock";
 import TableStandings from "./table-standings";
+import RoundHistoryConsent from "./round-history-consent";
 import ResultShare from "./result-share";
 import {resultCardData} from "../lib/result-card";
 const ResultShareCore = require("../lib/result-share-core.cjs") as { resultShare: (input: { phase:string; kind:string; players:number; drill:boolean }) => {title:string;text:string;url:string} | null };
@@ -1162,6 +1163,11 @@ export default function GameTable() {
               permanently burns its visible top card. Disabled by default. {g.roundLimit ? "Tournament rules are fixed at room creation." : ""}
             </small></span>
           </label>
+          {room?.historyAvailable&&tokenRef.current&&!backendOrigin&&<RoundHistoryConsent key={room.code+":"+g.round} code={room.code} round={g.round} revision={room.revision} phase={g.phase} token={tokenRef.current} busy={busy} onChanged={()=>{
+            if(roomRef.current?.code!==room.code||!tokenRef.current)return;
+            void synchronize(room.code,tokenRef.current,true,false);
+            if(wsRef.current?.readyState===WebSocket.OPEN){try{wsRef.current.send(JSON.stringify({type:"sync-hint"}));}catch{}}
+          }}/>}
           {motionSetting}
           <FeedbackSettings feedback={feedback} />
            <PlaytestInsights insights={insights} />
