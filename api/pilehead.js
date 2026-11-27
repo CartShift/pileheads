@@ -65,6 +65,7 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
  round:g.round||1,humanCount:humanCount(g),botSeats:botSeats(g),
  standings:Standings.publicStandings(g),
  roundLimit:tournamentLimit(g),
+ tournamentWithdrawal:g.tournamentWithdrawal?{seat:g.tournamentWithdrawal.seat}:null,
  rematchReady:Array.from({length:humanCount(g)},(_,i)=>g.rematchReady?.[i]===true),
  starterSeat:g.starterSeat??0,starterReason:g.starterReason||'draw',startedAt:g.startedAt||null,
  blindReveal:g.blindReveal?.expiresAt>Date.now()?g.blindReveal:null,
@@ -76,9 +77,9 @@ function redacted(g,seat){return{phase:g.phase,turn:g.turn,moves:g.moves,stockCo
  players:g.people.map((p,i)=>({seat:i,out:p.out,up:p.up,handCount:p.hand.length,downCount:p.down.length,pickups:p.pickups,
  ...(i===seat?{hand:p.hand,blindSlots:p.down.map((_,j)=>j)}:{})})),
  events:g.events.slice(-24).map(({type,seat,source,reason,count,burned,burnedCount,rank,action,target,takenCount,erodedCount,drawnCount,bridgeCount,move})=>({type,seat,source,reason,count,burned,burnedCount,rank,action,target,takenCount,erodedCount,drawnCount,bridgeCount,move})),
- legal:g.phase==='play'&&g.turn===seat?E.options(g,seat).map(m=>m.source==='down'?{type:'play',source:'down',index:g.people[seat].down.findIndex(c=>c.id===m.ids[0])}:m):[],
- slam:g.phase==='play'?E.slamOptions(g,seat):[],
- followup:g.phase==='play'?E.followUpOptions(g,seat):[]
+ legal:!g.tournamentWithdrawal&&g.phase==='play'&&g.turn===seat?E.options(g,seat).map(m=>m.source==='down'?{type:'play',source:'down',index:g.people[seat].down.findIndex(c=>c.id===m.ids[0])}:m):[],
+ slam:!g.tournamentWithdrawal&&g.phase==='play'?E.slamOptions(g,seat):[],
+ followup:!g.tournamentWithdrawal&&g.phase==='play'?E.followUpOptions(g,seat):[]
 }}
 async function view(r,seat){const members=await query('SELECT seat,display_name,last_seen_at,is_away FROM pilehead_members WHERE code=$1 ORDER BY seat',[r.code]);
  return {ok:true,code:r.code,revision:r.revision,capacity:r.capacity,
@@ -109,6 +110,7 @@ async function create(req,b){
   }catch(e){if(e.code==='23505')continue;throw e}}
  fail(503,'room_create_failed')}
 async function join(req,b){await quota(req,'join',60);const id=code(b.code),nick=name(b.name),t=secret(),r=await load(id);
+ if(r.state.tournamentWithdrawal)fail(409,'tournament_withdrawn');
  if(r.status!=='lobby')fail(409,'already_started');
  // Contended ON CONFLICT DO NOTHING can miss a different free seat; retry.
  for(let attempt=0;attempt<4;attempt++){
@@ -119,7 +121,16 @@ async function join(req,b){await quota(req,'join',60);const id=code(b.code),nick
 async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!==r.revision)fail(409,'stale_revision');
  const g=structuredClone(r.state);
  g.setupReady??=g.people.map(()=>false);
- if(b.action==='swap'){if(g.phase!=='setup')fail(409,'already_started');if(g.setupReady[seat])fail(409,'unready_to_swap');
+ if(g.tournamentWithdrawal)fail(409,'tournament_withdrawn');
+ if(b.action==='withdraw-tournament'){
+  if(!tournamentLimit(g))fail(400,'not_tournament');
+  if(g.phase==='over'&&(g.round||1)>=tournamentLimit(g))fail(409,'tournament_complete');
+  if(b.confirm!==true)fail(400,'withdraw_confirmation_required');
+  g.tournamentWithdrawal={seat};
+  g.rematchReady=Array.from({length:humanCount(g)},()=>false);
+  // Freeze the unfinished engine state; never synthesize placements or points.
+ }
+ else if(b.action==='swap'){if(g.phase!=='setup')fail(409,'already_started');if(g.setupReady[seat])fail(409,'unready_to_swap');
   if(!Number.isInteger(b.handId)||!Number.isInteger(b.upId))fail(400,'bad_swap');try{E.swap(g,seat,b.handId,b.upId)}catch{fail(400,'illegal_swap')}}
  else if(b.action==='settings'){
   if(seat!==0)fail(403,'host_only');
@@ -195,7 +206,7 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
  Standings.record(g); // finalized once in the same revision-checked room update
   // Online clients use the recent 24 events; bound persisted history to avoid JSONB growth.
   if(g.events.length>96)g.events.splice(0,g.events.length-96);
-  const status=g.phase==='over'?'finished':g.phase==='play'?'playing':'lobby';
+  const status=g.tournamentWithdrawal||g.phase==='over'?'finished':g.phase==='play'?'playing':'lobby';
  const rows=await query(`UPDATE pilehead_rooms SET state=jsonb_set($1::jsonb,'{reactionEvents}',COALESCE(pilehead_rooms.state->'reactionEvents','[]'::jsonb)),status=$2,revision=revision+1,updated_at=now() WHERE code=$3 AND revision=$4 AND expires_at>now() RETURNING code,capacity,revision,status,state,expires_at`,[JSON.stringify(g),status,r.code,r.revision]);
  if(!rows.length)fail(409,'stale_revision');return view(rows[0],seat)}
 // Ephemeral reactions live in bounded room JSON rather than adding a schema
@@ -203,6 +214,7 @@ async function mutation(r,seat,b){if(!Number.isInteger(b.revision)||b.revision!=
 async function realtimeReact(room,seat,kind){
  if(!REACTION_TYPES.has(kind))fail(400,'invalid_reaction');
  const id=code(room),r=await load(id);
+ if(r.state.tournamentWithdrawal)fail(409,'tournament_withdrawn');
  if(r.state.phase==='setup')fail(409,'not_started');
  if(!Number.isInteger(seat)||seat<0||seat>=humanCount(r.state))fail(403,'not_member');
  const bucket=h(['react',id,seat,Math.floor(Date.now()/10000)].join(':'));

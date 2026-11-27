@@ -69,6 +69,7 @@ const ROOM_ERRORS: Record<string,string> = {
   room_rules_changed: "This room uses old rules and can no longer be opened.",
   already_started: "The round has already started.",
   waiting_for_players: "Everyone must join and be ready before starting.",
+  tournament_withdrawn:"This tournament has ended because a player withdrew.",
   rate_limited: "Too many attempts. Try again shortly.",
   bad_origin: "This game frontend is not authorized by the multiplayer server."
 };
@@ -498,12 +499,12 @@ export default function GameTable() {
 
   // Human-triggered bot advance remains server-authoritative in online rooms.
   useEffect(() => {
-    if (mode !== "online" || !room || room.game.phase !== "play" || busy) return;
+    if (mode !== "online" || !room || room.game.tournamentWithdrawal || room.game.phase !== "play" || busy) return;
     const g = room.game;
     if (!(g.botSeats.includes(g.pendingDump?.seat ?? g.turn) || g.botFollowupReady || g.botSlamReady)) return;
     const timer = setTimeout(() => {
       const latest = roomRef.current;
-      if (latest && !inFlight.current) void submit({
+      if (latest && !latest.game.tournamentWithdrawal && !inFlight.current) void submit({
         action: "advance", code: latest.code, revision: latest.revision
       });
     }, 750);
@@ -884,6 +885,8 @@ export default function GameTable() {
     await submit({ action: "join", name, code: joinCode.trim().toUpperCase() }, true);
   }
 
+  if (g?.tournamentWithdrawal && mode==="online") return <main className="game-shell stack-lobby"><section className="entry launch-entry"><div className="entry-intro"><div className="eyebrow">TOURNAMENT ENDED</div><h1>Table<br/><em>closed.</em></h1><p>{nameForSeat(g.tournamentWithdrawal.seat)} withdrew. No points are awarded for an unfinished round, and no tournament winner is declared.</p><div className="lobby-links"><button className="secondary-button entry-settings" onClick={leaveTable}>Back to lobby</button></div></div><div className="entry-options"><section className="mode-card"><h2>Completed rounds</h2>{g.standings?.completedRounds?<TableStandings score={g.standings} me={me} nameForSeat={nameForSeat}/>:<p>No completed rounds.</p>}</section></div></section></main>;
+
   if (!g || !current) return (
     <main className="game-shell stack-lobby">
       <header className="lobby-masthead"><nav className="stack-site-nav" aria-label="Main navigation"><Link href="/" className="stack-site-brand" aria-label="PILEHEADS home" prefetch={false}><img src="/stack-media/stack-home-logo-web.webp" alt="PILEHEADS" width={640} height={356}/></Link><div className="stack-site-links"><a href="/">Home</a><a className="stack-nav-primary" href="/play" aria-current="page">Play online</a><a href="/deck">The deck</a><a href="/how-to-play">How to play</a><a href="/pilehead/print.html">Print</a></div></nav></header>
@@ -1136,6 +1139,7 @@ export default function GameTable() {
             : mode === "online" && !room?.host
               ? "Only the room host can change the rules before the round begins."
               : "Change this before the round starts. Everyone at the table will see the choice."}</p>
+          {room&&g.roundLimit&&!(g.phase==="over"&&g.round>=g.roundLimit)&&<details className="withdraw-tournament"><summary>Withdraw from tournament</summary><p>This permanently ends the tournament for everyone. Completed scores remain; an unfinished round awards no points. For a temporary break, close the game and use your existing invite to reconnect.</p><button className="secondary-button" disabled={busy} onClick={()=>{void submit({action:"withdraw-tournament",confirm:true,code:room.code,revision:room.revision});}}>Confirm withdrawal</button></details>}
           <button className="primary-button" onClick={() => setShowSettings(false)}>Back to table</button>
         </section>
       </div>}

@@ -649,6 +649,25 @@ async function run(){
  assert.equal(podium.status,200);assert.equal(podium.data.game.standings.completedRounds,3);
  const noExtraRound=await request({action:'rematch',code:hybridCode,revision:11},hybridHost);
  assert.equal(noExtraRound.status,409);assert.equal(noExtraRound.data.error,'tournament_complete');checks++;
+ // Explicit withdrawal never produces a fake completed round, even when the room had scores.
+ const finishedWithdrawal=await request({action:'withdraw-tournament',confirm:true,code:hybridCode,revision:11},hybridHost);
+ assert.equal(finishedWithdrawal.status,409);assert.equal(finishedWithdrawal.data.error,'tournament_complete');
+ buckets.clear();
+ const abandoned=await request({action:'create',humans:1,bots:1,name:'Withdraw test',roundLimit:3});
+ assert.equal(abandoned.status,201);
+ const ac=abandoned.data.code,at=abandoned.data.session;
+ const missingConfirm=await request({action:'withdraw-tournament',code:ac,revision:0},at);
+ assert.equal(missingConfirm.status,400);
+ assert.equal((await request({action:'ready',code:ac,revision:0,ready:true},at)).status,200);
+ assert.equal((await request({action:'start',code:ac,revision:1},at)).status,200);
+ const withdrawal=await request({action:'withdraw-tournament',confirm:true,code:ac,revision:2},at);
+ assert.equal(withdrawal.status,200);assert.deepEqual(withdrawal.data.game.tournamentWithdrawal,{seat:0});
+ assert.equal(withdrawal.data.game.phase,'play');assert.equal(withdrawal.data.game.standings.completedRounds,0);
+ assert.deepEqual(withdrawal.data.game.legal,[]);assert.deepEqual(withdrawal.data.game.slam,[]);
+ assert.equal((await request({action:'advance',code:ac,revision:3},at)).data.error,'tournament_withdrawn');
+ assert.equal((await request({action:'join',code:ac,name:'New player'})).data.error,'tournament_withdrawn');
+ assert.deepEqual((await request({action:'state',code:ac},at)).data.game.tournamentWithdrawal,{seat:0});
+ checks++;
  console.log('PASS PILEHEAD online authoritative API: '+checks+' assertions (privacy, DUMP replay, auth, turns, CAS, room isolation)');
 }
 run().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>{
