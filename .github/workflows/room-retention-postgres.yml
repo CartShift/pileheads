@@ -1,0 +1,109 @@
+name: Room retention PostgreSQL acceptance
+on:
+  pull_request:
+    paths:
+      - 'db/room-*.sql'
+      - 'scripts/room-retention.cjs'
+      - 'tests/pilehead-room-retention.cjs'
+      - '.github/workflows/room-retention-postgres.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: room-retention-postgres-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  isolated-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          # Disposable service only; no host ports, deployment secrets or production data.
+          POSTGRES_HOST_AUTH_METHOD: trust
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+      - name: Verify actual SQL, least privilege and bounded expiry-only deletion
+        env:
+          PG_TEST_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          node <<'NODE'
+          'use strict';
+          const assert = require('node:assert/strict');
+          const fs = require('node:fs');
+          const {spawnSync} = require('node:child_process');
+          const {runRetention} = require('./scripts/room-retention.cjs');
+          const id = process.env.PG_TEST_CONTAINER;
+          assert.match(id || '', /^[a-f0-9]{12,64}$/);
+          function psql(sql, role) {
+            const input = (role ? 'SET ROLE ' + role + ';\n' : '') + sql + '\n';
+            const p = spawnSync('docker', ['exec','-i',id,'psql','-X','-qAt','-F','\t','-v','ON_ERROR_STOP=1','-U','postgres','-d','postgres'], {
+              input, encoding:'utf8', timeout:30000
+            });
+            if (p.error) throw p.error;
+            if (p.status !== 0) throw new Error(p.stderr || 'isolated PostgreSQL failure');
+            return p.stdout.trim();
+          }
+          function count(table, where='true') {
+            return Number(psql('SELECT count(*) FROM public.' + table + ' WHERE ' + where + ';'));
+          }
+          async function main() {
+            psql(fs.readFileSync('db/room-schema-development.sql','utf8'));
+            psql('DROP INDEX public.pilehead_rate_limits_expire;');
+            psql(fs.readFileSync('db/room-retention-index.sql','utf8'));
+            assert.equal(psql("SELECT indisvalid FROM pg_index WHERE indexrelid='public.pilehead_rate_limits_expire'::regclass;"), 't');
+            psql(fs.readFileSync('db/room-access-roles.sql','utf8'));
+            const runtime = 'pileheads_runtime_access';
+            const maintenance = 'pileheads_maintenance_access';
+            psql("INSERT INTO public.pilehead_rooms(code,capacity,status,state,expires_at) SELECT 'E'||lpad(n::text,7,'0'),2,'finished','{}'::jsonb,now()-interval '1 day' FROM generate_series(1,501) n;");
+            psql("INSERT INTO public.pilehead_members(code,seat,display_name,token_hash) SELECT code,0,'Synthetic','token-'||code FROM public.pilehead_rooms;");
+            psql("INSERT INTO public.pilehead_rate_limits(bucket,expires_at) SELECT 'expired-'||n,now()-interval '1 day' FROM generate_series(1,501) n;");
+            psql("INSERT INTO public.pilehead_rooms(code,capacity,status,state,expires_at) VALUES('ACTIVE01',2,'lobby','{}',now()+interval '1 day'); INSERT INTO public.pilehead_members(code,seat,display_name,token_hash) VALUES('ACTIVE01',0,'Synthetic','active-token'); INSERT INTO public.pilehead_rate_limits(bucket,expires_at) VALUES('active',now()+interval '1 day');", runtime);
+            psql("UPDATE public.pilehead_rooms SET revision=revision+1 WHERE code='ACTIVE01'; UPDATE public.pilehead_members SET is_away=true WHERE code='ACTIVE01'; UPDATE public.pilehead_rate_limits SET hits=hits+1 WHERE bucket='active';", runtime);
+            assert.equal(psql("SELECT revision FROM public.pilehead_rooms WHERE code='ACTIVE01';",runtime),'1');
+            assert.throws(()=>psql("DELETE FROM public.pilehead_rooms WHERE code='ACTIVE01';",runtime),/permission denied/i);
+            assert.throws(()=>psql("UPDATE public.pilehead_rooms SET revision=99 WHERE code='ACTIVE01';",maintenance),/permission denied/i);
+            assert.throws(()=>psql("INSERT INTO public.pilehead_rate_limits(bucket,expires_at) VALUES('forbidden',now());",maintenance),/permission denied/i);
+            const logs=[];
+            const log=s=>logs.push(JSON.parse(s));
+            const query=async (sql, params)=>{
+              assert.deepEqual(params,[]);
+              const values=psql(sql+';',maintenance).split('\t');
+              if(sql.startsWith('SELECT')) return [{expired_rooms:values[0],expired_buckets:values[1]}];
+              return [{deleted:values[0]}];
+            };
+            await runRetention({query,log});
+            assert.deepEqual(logs[0],{mode:'dry-run',expired_rooms:'501',expired_buckets:'501'});
+            assert.equal(count('pilehead_rooms'),502);
+            assert.equal(count('pilehead_members'),502);
+            assert.equal(count('pilehead_rate_limits'),502);
+            await runRetention({query,args:['--apply'],log});
+            assert.deepEqual(logs[2],{deletedRooms:'500',deletedBuckets:'500'});
+            assert.equal(count('pilehead_rooms'),2);
+            assert.equal(count('pilehead_members'),2);
+            assert.equal(count('pilehead_rate_limits'),2);
+            await runRetention({query,args:['--apply'],log});
+            assert.deepEqual(logs[4],{deletedRooms:'1',deletedBuckets:'1'});
+            assert.equal(count('pilehead_rooms',"code='ACTIVE01'"),1);
+            assert.equal(count('pilehead_members',"code='ACTIVE01'"),1);
+            assert.equal(count('pilehead_rate_limits',"bucket='active'"),1);
+            assert.equal(count('pilehead_rooms'),1);
+            assert.equal(count('pilehead_members'),1);
+            assert.equal(count('pilehead_rate_limits'),1);
+            await runRetention({query,args:['--apply'],log});
+            assert.deepEqual(logs[6],{deletedRooms:'0',deletedBuckets:'0'});
+            console.log('PASS isolated PostgreSQL: role grants, valid expiry index, dry run, 500-row batches, cascades, active records and idempotent cleanup');
+          }
+          main().catch(e=>{console.error(e.message);process.exitCode=1});
+          NODE
