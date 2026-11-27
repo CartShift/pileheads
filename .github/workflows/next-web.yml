@@ -60,7 +60,7 @@ jobs:
         run: npm run ci:full-core
       - name: Cache pinned Chromium headless shell
         if: steps.scope.outputs.run_full == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: stack-playwright-1.56.1-headless-${{ runner.os }}
