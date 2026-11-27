@@ -2,7 +2,7 @@
 import {useEffect,useRef,useState} from "react";
 import Link from "next/link";
 import {sessionKey,backendOrigin} from "../lib/room";
-type Status={state:"idle"|"waiting"|"offered"|"ready"|"assigned"|"expired";ticket?:string;offer?:string;expiresAt?:string;ownReady?:boolean;rivalReady?:boolean;canRelease?:boolean};
+type Status={state:"idle"|"waiting"|"offered"|"ready"|"assigned"|"expired";ticket?:string;offer?:string;expiresAt?:string;ownReady?:boolean;rivalReady?:boolean;canRelease?:boolean;canRecover?:boolean};
 type Action={action:"status"|"join"|"recover"}|{action:"accept"|"release";offer:string}|{action:"cancel";ticket:string}|{action:"cancel";offer:string};
 type Result={available:boolean;authorized?:boolean;status?:Status;seat?:{code:string;seat:number;session:string}};
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -56,7 +56,7 @@ export default function QuickPlayPreview(){
    {s?.state==="expired"&&<><p>Your ticket or ready check expired. You can try again.</p><button className="cta" disabled={busy} onClick={()=>void request({action:"join"})}>Find another opponent</button></>}
    {s?.state==="waiting"&&<><p role="status">Looking for another player… {seconds!==null&&`(${seconds}s remaining)`}</p><button className="learn-button" disabled={busy} onClick={()=>void request({action:"cancel",ticket:s.ticket!})}>Cancel search</button></>}
    {(s?.state==="offered"||s?.state==="ready")&&<><h3>Match found</h3><p role="status">{s.ownReady?"You are ready":"Confirm that you are ready"} · {s.rivalReady?"Opponent ready":"Waiting for opponent"}</p><p>{seconds!==null&&`${seconds}s remaining`}</p>{!s.ownReady&&<button className="cta" disabled={busy||seconds===0} onClick={()=>void request({action:"accept",offer:s.offer!})}>Accept match</button>}<button className="learn-button" disabled={busy} onClick={()=>void request({action:"cancel",offer:s.offer!})}>Decline match</button></>}
-   {s?.state==="assigned"&&<><h3>Your table is ready</h3><p>Your account can recover the same seat on another device.</p><button className="cta" disabled={busy} onClick={()=>void request({action:"recover"})}>Enter table</button>{s.canRelease&&<button className="learn-button" disabled={busy} onClick={()=>void request({action:"release",offer:s.offer!})}>Leave completed match</button>}</>}
+   {s?.state==="assigned"&&<><h3>Your table is ready</h3><p>Your account can recover the same seat on another device.</p>{s.canRecover!==false&&<button className="cta" disabled={busy} onClick={()=>void request({action:"recover"})}>Enter table</button>}{s.canRecover===false&&<p>This room has expired. Leave the assignment to search again.</p>}{s.canRelease&&<button className="learn-button" disabled={busy} onClick={()=>void request({action:"release",offer:s.offer!})}>Leave completed match</button>}</>}
    <button className="learn-button" disabled={busy} onClick={()=>void request({action:"status"})}>Refresh queue status</button>
   </>}
   {error&&<p role="alert">{error} <button className="learn-button" disabled={busy} onClick={()=>void request()}>Retry connection</button></p>}
