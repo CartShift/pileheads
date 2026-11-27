@@ -15,8 +15,8 @@
 .launch-public .public-steps article,.launch-public .public-deck article{background:#fffaf0;border:2px solid #172421;border-radius:10px;padding:16px;box-shadow:3px 3px 0 #172421}
 .launch-public .public-deck{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:16px}
 .launch-public .public-deck article{text-align:center}.launch-public .public-deck p{font-size:14px;margin:0}
-.launch-public .public-card{display:block;width:min(100%,140px);aspect-ratio:252/355;margin:0 auto 12px;background-image:url("/pilehead/assets/stack-characters-v2.webp?v=production-rc3");background-size:400% 400%;border-radius:6%;box-shadow:0 3px 0 #b89a6b}
-.launch-public .public-back{background-image:url("/pilehead/assets/stack-back-v2.webp?v=production-rc3");background-size:cover;background-position:center}
+.launch-public .public-card{display:block;width:min(100%,140px);aspect-ratio:252/355;margin:0 auto 12px;background-image:url("/stack-media/stack-home-faces-web-desktop.webp?v=production-rc3");background-size:400% 400%;border-radius:6%;box-shadow:0 3px 0 #b89a6b}
+.launch-public .public-back{background-image:url("/stack-media/stack-home-back-web.webp?v=production-rc3");background-size:cover;background-position:center}
 .launch-public .public-footer{padding:24px 5%;background:#111b1e;color:#fff4d7;display:flex;gap:20px;flex-wrap:wrap}
 @media(max-width:400px){.launch-public .public-deck{grid-template-columns:repeat(2,minmax(0,1fr))}.launch-public .public-deck article{padding:10px}.launch-public .public-deck h3{font-size:21px}}
 
@@ -28,3 +28,9 @@
 .game-table-shell .standings-personal{margin:7px 0;color:#f6c32c;font-size:13px;font-weight:800}
 .game-table-shell .table-standings table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:12px;font-variant-numeric:tabular-nums}.game-table-shell .table-standings th,.game-table-shell .table-standings td{text-align:left;padding:7px 4px;border-bottom:1px solid #d6ba7c44;overflow-wrap:anywhere}
 .game-table-shell .table-standings th:first-child{width:15%}.game-table-shell .table-standings th:nth-child(3),.game-table-shell .table-standings th:nth-child(4){width:15%}.game-table-shell .table-standings tr[data-self=true]{background:#f6c32c;color:#172421}.game-table-shell .table-standings .standings-note{font-size:11px;line-height:1.4;margin:8px 0 0;color:#d9dfc9}
+
+@media(max-width:600px) and (max-resolution:2dppx){.launch-public .public-card:not(.public-back){background-image:url("/stack-media/stack-home-faces-web-mobile.webp?v=production-rc3")}}
+.stack-lobby .entry h1{min-height:1.68em;white-space:nowrap}
+.game-table-shell .results-overlay .table-standings .eyebrow{color:#f6c32c}
+.game-table-shell .results-overlay .table-standings p{color:#fff4d7}
+.game-table-shell .results-overlay .table-standings .standings-personal{color:#f6c32c}
