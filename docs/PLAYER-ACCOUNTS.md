@@ -1,3 +1,7 @@
+# Production configuration update
+
+For Vercel Production use [PRODUCT-RUNTIME-SETTINGS.md](PRODUCT-RUNTIME-SETTINGS.md); historical environment flags below apply only to legacy/non-production configuration.
+
 # Persistent account storage foundation
 Internal service only. No account endpoint or public login is exposed by this increment. Builds on guest profile schema; independent of game rules, room tokens, receipts, Stripe and entitlements.
 - One UUID per verified Google provider subject (never match by display name or email). Atomic upsert, new session and previous-session revocation. Multiple devices retain their own sessions. SHA-256 token digests only; fixed 30-day server expiry. No email, Google access/refresh token or credentials stored.

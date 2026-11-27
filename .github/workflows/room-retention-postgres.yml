@@ -3,6 +3,9 @@ on:
   pull_request:
     paths:
       - 'db/room-*.sql'
+      - 'db/product-runtime-settings.sql'
+      - 'scripts/runtime-config.cjs'
+      - 'tests/pilehead-runtime-config.cjs'
       - 'scripts/room-retention.cjs'
       - 'scripts/room-lifecycle.cjs'
       - 'scripts/round-receipts.cjs'
@@ -63,6 +66,7 @@ jobs:
           const Q=require('./scripts/matchmaking-queue.cjs');
           const A=require('./scripts/matchmaking-assignment.cjs');
           const P=require('./scripts/player-progression.cjs');
+          const C=require('./scripts/runtime-config.cjs');
           const id = process.env.PG_TEST_CONTAINER;
           assert.match(id || '', /^[a-f0-9]{12,64}$/);
           function psql(sql, role) {
@@ -319,6 +323,31 @@ jobs:
 
 
 
+            psql(fs.readFileSync('db/player-profiles-v1.sql','utf8'));
+            psql("CREATE ROLE pileheads_player_runtime_access NOLOGIN; GRANT USAGE ON SCHEMA public TO pileheads_player_runtime_access;");
+            psql(fs.readFileSync('db/product-runtime-settings.sql','utf8'));
+            const playerRole='pileheads_player_runtime_access';
+            const readConfig=role=>JSON.parse(psql("SELECT row_to_json(t) FROM ("+C.SQL+") t;",role));
+            let roomConfig=readConfig(runtime),playerConfig=readConfig(playerRole);
+            assert.equal(roomConfig.database_id,playerConfig.database_id);
+            for(const flag of ['privacy_reviewed','guest_profiles','accounts','round_history','private_history','progression','quick_play'])assert.equal(roomConfig[flag],false);
+            for(const ready of ['player_ready','account_ready','receipts_ready','history_ready','progression_ready','matchmaking_ready'])assert.equal(roomConfig[ready],true);
+            assert.throws(()=>psql("UPDATE pileheads_product_settings SET accounts=true;",runtime),/permission denied/i);
+            assert.throws(()=>psql("UPDATE pileheads_product_settings SET accounts=true;",playerRole),/permission denied/i);
+            assert.throws(()=>psql("UPDATE pileheads_product_settings SET accounts=true;"),/check constraint/i);
+            assert.throws(()=>psql("UPDATE pileheads_product_settings SET quick_play=true;"),/check constraint/i);
+            const invite=C.emailHash('synthetic@example.test');
+            psql("INSERT INTO pileheads_pilot_invites(email_hash) VALUES('"+invite+"');");
+            assert.equal(psql(C.INVITES_SQL+';',playerRole),invite);
+            assert.throws(()=>psql(C.INVITES_SQL+';',runtime),/permission denied/i);
+            assert.throws(()=>psql("INSERT INTO pileheads_pilot_invites(email_hash) VALUES('"+'a'.repeat(64)+"');",playerRole),/permission denied/i);
+            psql("UPDATE pileheads_product_settings SET privacy_reviewed=true,accounts=true,quick_play=true,pilot_accounts=ARRAY['"+ids[0]+"']::uuid[];");
+            roomConfig=readConfig(runtime);playerConfig=readConfig(playerRole);
+            const managed={VERCEL_ENV:'production',PILEHEAD_DATABASE_URL:'room',PILEHEAD_PLAYER_DATABASE_URL:'player',PILEHEAD_GOOGLE_CLIENT_ID:'test',PILEHEAD_GOOGLE_CLIENT_SECRET:'test',PILEHEAD_ACCOUNT_FLOW_SECRET:'x'.repeat(43)};
+            assert.equal(C.effective(managed,roomConfig,playerConfig,[invite]).PILEHEAD_MATCHMAKING_LIVE_PILOT_ENABLED,'1');
+            psql("UPDATE pileheads_product_settings SET quick_play=false;");
+            assert.equal(C.effective(managed,readConfig(runtime),readConfig(playerRole),[invite]).PILEHEAD_MATCHMAKING_LIVE_PILOT_ENABLED,undefined);
+            console.log('PASS exact product settings SQL: default-off, schema readiness, shared DB marker, dependency constraints, operator-only writes, invitation isolation and feature kill switch');
             console.log('PASS isolated PostgreSQL: role grants, valid expiry index, dry run, 500-row batches, cascades, active records and idempotent cleanup');
           }
           main().catch(e=>{console.error(e.message);process.exitCode=1});
