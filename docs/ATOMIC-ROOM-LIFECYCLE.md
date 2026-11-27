@@ -1,0 +1,7 @@
+# Atomic room lifecycle
+P0 multiplayer safety increment. No migration or paid service.
+- Room and host membership are written by one data-modifying CTE. A unique-token failure or other membership error rolls back the room insert. A retryable room-code collision never leaves a hostless room.
+- Join locks the room row within the insert statement and rechecks lobby status and expiration. All lifecycle changes that update the room row are serialized against that join. A unique seat conflict can still occur under PostgreSQL statement snapshots; the existing bounded retry opens a new statement snapshot. After an unsuccessful insert, reload status to distinguish withdrawal/expiry/started from full.
+- The room response uses the row returned by the atomic statement; the room code/session still use the existing server-authoritative privacy rules. No hidden game state is included in new DTO fields. No rule or UI changes.
+- A lost network response after a successful creation/join is not solved by atomicity. A room or seat can exist even if the client did not receive its session. Future command idempotency/recovery is separate.
+- Regression tests cover synthetic host failures and join races; the existing isolated PostgreSQL CI workflow executes the exact production SQL for rollback, capacity and terminal/expired guards under the runtime role. Parallel real PostgreSQL join/withdrawal and live device acceptance remain release verification items.

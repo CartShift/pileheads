@@ -32,23 +32,20 @@ async function query(sql,args=[]){
  if(sql.startsWith('INSERT INTO pilehead_rate_limits')){
   const hits=(buckets.get(args[0])||0)+1;buckets.set(args[0],hits);return[{hits}];
  }
- if(sql.startsWith('INSERT INTO pilehead_rooms')){
-  const [code,capacity,raw]=args;if(rooms.has(code))duplicate();
+ if(sql.startsWith('WITH created AS')){
+  const [code,capacity,raw,name,token]=args;if(rooms.has(code))duplicate();
   const state=JSON.parse(raw);rigSnap(state);
-  rooms.set(code,{code,capacity,revision:0,status:'lobby',state,expires_at:new Date(Date.now()+86400000)});
-  return[];
+  const r={code,capacity,revision:0,status:'lobby',state,expires_at:new Date(Date.now()+86400000)};
+  rooms.set(code,r);members.set(code,[{seat:0,display_name:name,token_hash:token,last_seen_at:new Date(),is_away:false}]);
+  return[structuredClone(r)];
  }
- if(sql.startsWith('INSERT INTO pilehead_members')&&sql.includes('SELECT')){
-  const [code,name,token,capacity]=args,list=members.get(code)||[];
+ if(sql.startsWith('WITH joinable AS')){
+  const [code,name,token,capacity]=args,list=members.get(code)||[],r=rooms.get(code);
+  if(!r||r.status!=='lobby'||r.expires_at<=new Date())return[];
   const seat=Array.from({length:capacity},(_,i)=>i).find(i=>!list.some(m=>m.seat===i));
   if(seat===undefined)return[];
   list.push({seat,display_name:name,token_hash:token,last_seen_at:new Date(),is_away:false});
-  members.set(code,list);return[{seat}];
- }
- if(sql.startsWith('INSERT INTO pilehead_members')){
-  const [code,name,token]=args;
-  members.set(code,[{seat:0,display_name:name,token_hash:token,last_seen_at:new Date(),is_away:false}]);
-  return[];
+  members.set(code,list);return[{...structuredClone(r),joined_seat:seat}];
  }
  if(sql.startsWith('SELECT r.code,r.capacity')){
   const r=rooms.get(args[0]);if(!r)return[];

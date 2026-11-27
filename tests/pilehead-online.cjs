@@ -8,7 +8,7 @@ let chosenStarter=0,shuffleCalls=0;
 crypto.randomInt=(...args)=>{if(args.length===1)return Math.min(chosenStarter,args[0]-1);shuffleCalls++;return originalRandomInt(...args)};
 const Engine=require('../dist/pilehead/engine.js');
 const rooms=new Map(),members=new Map(),buckets=new Map();
-let joinContentionOnce=false,authenticatedReads=0,legacyAuthReads=0;
+let joinContentionOnce=false,failHostInsertOnce=false,expireOnJoin=false,withdrawOnJoin=false,authenticatedReads=0,legacyAuthReads=0;
 // Convert synthetic new-room fixtures into true pre-v1.6 52-card games.
 // Preserve all dealt slots by replacing each extra BURN with a stock card.
 function restoreLegacySkips(g){
@@ -38,21 +38,28 @@ function conflict(){const e=Error('unique key');e.code='23505';throw e}
 async function query(sql,args=[]){
  if(sql==='SELECT 1 AS ready')return [{ready:1}];
  if(sql.startsWith('INSERT INTO pilehead_rate_limits')){const n=(buckets.get(args[0])||0)+1;buckets.set(args[0],n);return [{hits:n}]}
- if(sql.startsWith('INSERT INTO pilehead_rooms')){if(rooms.has(args[0]))conflict();
-  const r={code:args[0],capacity:args[1],status:'lobby',state:JSON.parse(args[2]),revision:0,expires_at:new Date(Date.now()+86400000)};
-  rooms.set(r.code,r);return []}
- if(sql.startsWith('INSERT INTO pilehead_members')&&sql.includes('SELECT')){
+ if(sql.startsWith('WITH created AS')){
+  assert.match(sql,/INSERT INTO pilehead_members/);assert.match(sql,/FROM created RETURNING code/);
+  const [code,capacity,raw,name,token]=args;
+  if(rooms.has(code))conflict();
+  if(failHostInsertOnce){failHostInsertOnce=false;throw Error('synthetic host insert failure')}
+  const r={code,capacity,status:'lobby',state:JSON.parse(raw),revision:0,expires_at:new Date(Date.now()+86400000)};
+  rooms.set(code,r);members.set(code,[{seat:0,display_name:name,token_hash:token,last_seen_at:new Date(),is_away:false}]);
+  return [structuredClone(r)];
+ }
+ if(sql.startsWith('WITH joinable AS')){
+  assert.match(sql,/FOR UPDATE/);assert.match(sql,/status='lobby' AND expires_at>now/);
+  assert.match(sql,/ON CONFLICT \(code,seat\) DO NOTHING/);
   if(joinContentionOnce){joinContentionOnce=false;return []}
-  // Regression: Neon/Postgres must resolve both references to room-code parameter $1 as the same type.
-  assert.equal((sql.match(/\$1::varchar\(8\)/g)||[]).length,2,'join SQL must cast both room-code references');
-  assert.match(sql,/ON CONFLICT \(code,seat\) DO NOTHING/,'simultaneous join should be conflict-safe');
-  const [code,name,token,capacity]=args;const current=members.get(code)||[];
+  const [code,name,token,capacity]=args,r=rooms.get(code);const current=members.get(code)||[];
+  if(!r)return[];
+  if(expireOnJoin){expireOnJoin=false;r.expires_at=new Date(0)}
+  if(withdrawOnJoin){withdrawOnJoin=false;r.status='finished';r.state.tournamentWithdrawal={seat:0};r.revision++}
+  if(r.status!=='lobby'||r.expires_at<=new Date())return[];
   const seat=Array.from({length:capacity},(_,i)=>i).find(i=>!current.some(m=>m.seat===i));
   if(seat===undefined)return [];current.push({seat,display_name:name,token_hash:token,last_seen_at:new Date(),is_away:false});members.set(code,current);
-  return [{seat}]
+  return [{...structuredClone(r),joined_seat:seat}];
  }
- if(sql.startsWith('INSERT INTO pilehead_members')){const [code,name,token]=args,seat=0;const current=members.get(code)||[];
-  if(current.some(x=>x.seat===seat))conflict();current.push({seat,display_name:name,token_hash:token,last_seen_at:new Date(),is_away:false});members.set(code,current);return []}
  if(sql.startsWith('SELECT r.code,r.capacity')){
   authenticatedReads++;
   const r=rooms.get(args[0]);if(!r)return[];
@@ -694,6 +701,23 @@ async function run(){
  assert.equal((await request({action:'join',code:ac,name:'New player'})).data.error,'tournament_withdrawn');
  assert.deepEqual((await request({action:'state',code:ac},at)).data.game.tournamentWithdrawal,{seat:0});
  checks++;
+ // Lifecycle regression: host failure leaves neither room nor seat; joins
+ // racing withdrawal or expiry must not create inaccessible memberships.
+ buckets.clear();
+ const priorRoomCount=rooms.size,priorMemberCount=members.size;
+ failHostInsertOnce=true;
+ const failedCreate=await request({action:'create',humans:2,bots:0,name:'Failed host'});
+ assert.equal(failedCreate.status,503);assert.equal(rooms.size,priorRoomCount);assert.equal(members.size,priorMemberCount);
+ for(const expired of [true,false]){
+  const fresh=await request({action:'create',humans:2,bots:0,name:'Lifecycle host',roundLimit:3});
+  assert.equal(fresh.status,201);const c=fresh.data.code;
+  expireOnJoin=expired;withdrawOnJoin=!expired;
+  const rejected=await request({action:'join',code:c,name:'Late guest'});
+  assert.equal(rejected.status,expired?410:409);
+  assert.equal(rejected.data.error,expired?'room_expired':'tournament_withdrawn');
+  assert.equal(members.get(c).length,1);
+ }
+ checks+=3;
  console.log('PASS PILEHEAD online authoritative API: '+checks+' assertions (privacy, DUMP replay, auth, turns, CAS, room isolation)');
 }
 run().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>{
