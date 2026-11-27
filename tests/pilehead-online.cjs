@@ -361,11 +361,12 @@ async function run(){
  const game=rooms.get(code).state;assert.equal(Engine.invariant(game),true);checks++;
 
  // Hybrid room: two people and one bot share the table; bots never receive a session.
- const hybrid=await request({action:'create',humans:2,bots:1,name:'Hybrid Host'});
+ const hybrid=await request({action:'create',humans:2,bots:1,name:'Hybrid Host',roundLimit:3});
  assert.equal(hybrid.status,201,JSON.stringify(hybrid));
  const hybridCode=hybrid.data.code,hybridHost=hybrid.data.session;
  assert.deepEqual(hybrid.data.game.botSeats,[2]);
  assert.equal(hybrid.data.game.round,1);
+ assert.equal(hybrid.data.game.roundLimit,3);
  assert.equal(hybrid.data.humanCount,2);assert.equal(hybrid.data.botCount,1);
  assert.deepEqual(hybrid.data.game.setupReady,[false,false,true]);checks++;
  joinContentionOnce=true; // Simulate another join claiming the previously free seat.
@@ -425,6 +426,7 @@ async function run(){
  assert.equal(replay.data.revision,5);
  assert.equal(replay.data.game.phase,'setup');
  assert.equal(replay.data.game.round,2);
+ assert.equal(replay.data.game.roundLimit,3);
  assert.equal(replay.data.game.standings.completedRounds,1);
  assert.deepEqual(replay.data.game.standings.seats.map(x=>x.points),[2,0,1]);
  assert.deepEqual(replay.data.game.botSeats,[2]);
@@ -457,6 +459,7 @@ async function run(){
  assert.equal((await request(terminalCommand,hybridFriend)).status,409);
  const third=await request({action:'rematch',code:hybridCode,revision:6},hybridHost);
  assert.equal(third.status,200);assert.equal(third.data.game.round,3);
+ assert.equal(third.data.game.roundLimit,3);
  assert.deepEqual(third.data.game.standings,terminal.data.game.standings);checks++;
  const soloHybrid=await request({action:'create',humans:1,bots:2,name:'Solo vs bots'});
  assert.equal(soloHybrid.status,201);assert.deepEqual(soloHybrid.data.game.botSeats,[1,2]);checks++;
@@ -624,8 +627,8 @@ async function run(){
  // Fixed-round tournaments are opt-in and retain the same roster, settings and score.
  const invalidTournament=await request({action:'create',humans:1,bots:1,name:'Invalid format',roundLimit:4});
  assert.equal(invalidTournament.status,400);assert.equal(invalidTournament.data.error,'invalid_round_limit');
- // Reuse a dedicated fixture to avoid exhausting the room creation quota.
- const tour=rooms.get(hybridCode);tour.state.roundLimit=3;
+ // Continue the real three-round hybrid tournament created above.
+ const tour=rooms.get(hybridCode);
  const tournamentView=await request({action:'state',code:hybridCode},hybridHost);
  assert.equal(tournamentView.data.game.roundLimit,3);
  const locked=await request({action:'settings',code:hybridCode,revision:7,endgameRule:'final-duel'},hybridHost);
