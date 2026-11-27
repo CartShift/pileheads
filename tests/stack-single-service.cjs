@@ -7,7 +7,7 @@ const source = path.resolve(__dirname, "../dist");
 const read = p => fs.readFileSync(path.join(root,p));
 assert.deepEqual(read("index.html"), fs.readFileSync(path.resolve(__dirname,"../apps/web/out/index.html")));
 for (const name of ["index.html","app.js","online.js","classic-clean.css","classic-premium.css"]) assert.ok(!fs.existsSync(path.join(root,"pilehead",name)),name+" must not be published");
-for (const route of ["play","stack"]) {
+for (const route of ["play","stack","how-to-play","deck"]) {
   const html = read(route + ".html").toString("utf8");
   assert.match(html, /_next\/static\//, "exported " + route + " must load client JS");
   assert.match(html, /PILEHEADS/, route + " should be a rendered PILEHEADS page");
@@ -20,10 +20,10 @@ for(const asset of ["stack-characters.webp","stack-sheet.webp","stack-back.webp"
 console.log("PASS single Render service: Classic retired, /play + /stack published, Next assets available");
 
 const officialHome = read("stack.html").toString("utf8");
-for (const label of ["PILEHEADS", "THE ODDS", "Why PILEHEADS?", "Meet", "Play online", "The physical", "Physical retail launch to be announced."]) {
+for (const label of ["PILEHEADS", "ONE LOSER", "Why PILEHEADS?", "Meet", "Play online", "The physical", "Physical retail launch to be announced."]) {
   assert.ok(officialHome.includes(label), "Official homepage missing: " + label);
 }
-for (const href of ["/play", "/pilehead/gallery.html", "/pilehead/playtest.html"]) {
+for (const href of ["/play", "/deck", "/how-to-play"]) {
   assert.ok(officialHome.includes('href="' + href + '"'), "Official homepage missing navigation: " + href);
 }
 assert.ok(!officialHome.includes("Our new go-to game night game"), "Concept testimonials must not be published");
@@ -56,3 +56,8 @@ for (const [asset,digest] of [["stack-home-gameplay-rc3.webp","060ba98725c812bd6
  assert.equal(require("node:crypto").createHash("sha256").update(bytes).digest("hex"),digest,asset+" capture hash");
  assert.ok(bytes.length<50000,asset+" delivery budget");
 }
+
+assert.match(read("robots.txt").toString("utf8"),/Sitemap: https:\/\/pileheads\.com\/sitemap\.xml/);
+assert.match(read("sitemap.xml").toString("utf8"),/https:\/\/pileheads\.com\/how-to-play/);
+const social=read("stack-media/pileheads-social.png");
+assert.equal(social.toString("hex",0,8),"89504e470d0a1a0a");assert.equal(social.readUInt32BE(16),1200);assert.equal(social.readUInt32BE(20),630);

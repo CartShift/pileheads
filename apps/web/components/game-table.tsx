@@ -713,12 +713,13 @@ export default function GameTable() {
   }
 
   function startLocalGame(withCoach = practiceMode, previousWinner: number | null = null,
-    seatCount: number | null = null) {
+    seatCount: number | null = null, autoStart = false) {
     roomEpoch.current++;
     setDrill(null);
     setPracticeMode(withCoach);
     setCoachDismissed(false);
     const game = createGame(seatCount ?? (withCoach ? 2 : players), endgameRule, previousWinner, withCoach);
+    if(autoStart){Engine.autoSetup(game,0);Engine.start(game);}
     freshDealKey.current = "local:" + game.seed;
     localRef.current = game;
     undoRef.current = null; setUndoAvailable(false);
@@ -890,7 +891,9 @@ export default function GameTable() {
           </div>}
           <div className="mode-card">
             <div className="eyebrow">01 · QUICK PLAY</div><h2>Play with bots</h2>
-            <p>Jump in immediately or learn with a guided two-player game.</p>
+            <p>Jump in immediately with a guided two-player game.</p>
+            <button type="button" className="cta quick-start" onClick={()=>startLocalGame(true,null,2,true)}>Quick play</button>
+            <p className="custom-table-label">Or set up your own table:</p>
             <label>Players <select value={players} onChange={e => setPlayers(Number(e.target.value))}>
               {[2, 3, 4, 5].map(n => <option key={n} value={n}>{n} players</option>)}
             </select></label>

@@ -19,3 +19,5 @@
 .launch-public .public-back{background-image:url("/pilehead/assets/stack-back-v2.webp?v=production-rc3");background-size:cover;background-position:center}
 .launch-public .public-footer{padding:24px 5%;background:#111b1e;color:#fff4d7;display:flex;gap:20px;flex-wrap:wrap}
 @media(max-width:400px){.launch-public .public-deck{grid-template-columns:repeat(2,minmax(0,1fr))}.launch-public .public-deck article{padding:10px}.launch-public .public-deck h3{font-size:21px}}
+
+.launch-entry .quick-start{margin-top:0!important}.launch-entry .custom-table-label{margin:18px 0 0!important;font-weight:750}.launch-entry .mode-card .quick-start:focus-visible{outline:3px solid #f6c32c;outline-offset:3px}

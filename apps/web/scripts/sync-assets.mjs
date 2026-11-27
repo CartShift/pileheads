@@ -18,3 +18,5 @@ console.log("PILEHEADS engine and card artwork synchronized from canonical sourc
 const sounds = ["play", "burn", "snap", "dump", "reset", "ghost", "under", "skip", "victory"];
 await mkdir(path.join(target, "sound-v2"), { recursive: true });
 for (const name of sounds) await copyFile(path.join(repo, "dist/pilehead/assets/sound-v2", name + ".mp3"), path.join(target, "sound-v2", name + ".mp3"));
+
+await import("./social-card.mjs");
