@@ -50,6 +50,11 @@ async function query(sql,args=[]){
   members.set(code,[{seat:0,display_name:name,token_hash:token,last_seen_at:new Date(),is_away:false}]);
   return[];
  }
+ if(sql.startsWith('SELECT r.code,r.capacity')){
+  const r=rooms.get(args[0]);if(!r)return[];
+  const member=(members.get(args[0])||[]).find(m=>m.token_hash===args[1]);
+  return[{...structuredClone(r),authenticated_seat:member?.seat??null}];
+ }
  if(sql.startsWith('SELECT code,capacity'))return rooms.has(args[0])?[structuredClone(rooms.get(args[0]))]:[];
  if(sql.startsWith("SELECT code,revision,state->'reactionEvents'")){
    return (args[0]||[]).filter(code=>rooms.has(code)).map(code=>{
