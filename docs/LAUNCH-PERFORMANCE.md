@@ -11,3 +11,6 @@ Mobile LCP ms: home 2236, play 2176, rules 2032, deck 9688. CLS: .0385, .1395, .
 
 ## Second baseline (#157)
 Mobile LCP ms: home 2340, play 2296, rules 2288, deck 5292. Deck improved 45%; lobby CLS unchanged .1395, shift sources indicate wrapping navigation. Third iteration: individual lazy-loaded WebP cards generated from the official master with fixed dimensions and responsive srcset; fixed mobile navigation grid. Verify again; no quality change to canonical assets.
+
+## Third baseline (#159)
+[CI evidence](https://github.com/CartShift/pileheads/actions/runs/45916949496), head 8aefbaca27addf2091e748556e8a5def8284f7df. Mobile LCP ms: home 2352, play 2308, rules 2284, deck 2280. CLS: .0385, .0068, 0, 0. Deck LCP improved from 9688ms to 2280ms (76.5%); lobby CLS fell from .1395 to .0068. No page errors, horizontal overflow, or third-party requests in this run. Four routes met lab targets in this run. Do not infer field performance from it; INP is unmeasured. Use these measurements to investigate future regressions; retain existing hard safety checks and asset budgets. Production #159 uses the new individual art URLs.
