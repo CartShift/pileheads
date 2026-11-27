@@ -52,7 +52,7 @@ function attachRealtime(server,api){
   wss.handleUpgrade(req,socket,head,ws=>wss.emit('connection',ws,req));
  });
  wss.on('connection',ws=>{
-  let peer=null,pending=false;
+  let peer=null,pending=false,messageWindow=Date.now(),messageCount=0;
   // Health belongs to the socket. The pong listener must reset the exact
   // flag the keepalive scheduler checks, otherwise every socket dies in 50s.
   ws.isAlive=true;
@@ -61,6 +61,9 @@ function attachRealtime(server,api){
   allPeers.add(ws);
   ws.on('pong',()=>{ws.isAlive=true});
   ws.on('message',async bytes=>{
+   const now=Date.now();
+   if(now-messageWindow>=10000){messageWindow=now;messageCount=0}
+   if(++messageCount>120){ws.close(1008,'Message rate exceeded');return}
    if(pending)return;
    let msg;
    try{msg=JSON.parse(bytes.toString('utf8'))}catch{ws.close(1003,'Invalid message');return}
@@ -74,7 +77,7 @@ function attachRealtime(server,api){
      const auth=await api.realtimeAuth(msg.code,msg.token);
      if(ws.readyState!==WebSocket.OPEN)return;
      const peers=roomSet(auth.code);
-     if(peers.size>=MAX_ROOM_PEERS){ws.close(1013,'Room connection limit');return}
+     if(peers.size>=MAX_ROOM_PEERS||[...peers].filter(p=>p.seat===auth.seat).length>=4){ws.close(1013,'Room connection limit');return}
      peer={ws,room:auth.code,seat:auth.seat,revision:auth.revision,
       seen:new Set((auth.reactions||[]).map(e=>e.id)),lastReactionAt:0};
      peers.add(peer);clearTimeout(timeout);

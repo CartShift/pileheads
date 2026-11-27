@@ -36,6 +36,11 @@ async function quota(req,action,max){const ip=String(req.headers['x-forwarded-fo
  const key=h([action,Math.floor(Date.now()/3600000),ip,process.env.PILEHEAD_DATABASE_URL].join('|'));
  const rows=await query("INSERT INTO pilehead_rate_limits(bucket,hits,expires_at) VALUES ($1,1,now()+interval '2 hours') ON CONFLICT(bucket) DO UPDATE SET hits=pilehead_rate_limits.hits+1 RETURNING hits",[key]);
  if(rows[0].hits>max)fail(429,'rate_limited')}
+async function seatWriteQuota(room,seat){
+ const bucket=h(['seat-write',room,seat,Math.floor(Date.now()/60000)].join(':'));
+ const rows=await query("INSERT INTO pilehead_rate_limits(bucket,hits,expires_at) VALUES ($1,1,now()+interval '10 minutes') ON CONFLICT(bucket) DO UPDATE SET hits=pilehead_rate_limits.hits+1 RETURNING hits",[bucket]);
+ if(Number(rows[0]?.hits)>300)fail(429,'rate_limited');
+}
 function humanCount(g){return Number.isInteger(g.humanCount)?g.humanCount:g.people.length}
 function botSeats(g){return Array.isArray(g.botSeats)?g.botSeats:[]}
 const tournamentLimits=new Set([3,5,10]);
@@ -43,6 +48,16 @@ function tournamentLimit(g){return tournamentLimits.has(g.roundLimit)?g.roundLim
 function freshGame({players,humans,bots,round=1,starterSeat=null,endgameRule='classic',roundLimit=null}){
  const seed=crypto.randomBytes(4).readUInt32BE(0);
  const game=E.create({players,seed,endgameRule});
+ // Keep deterministic RNG for bot policy and offline simulations, but use an
+ // independent cryptographic shuffle for every newly dealt online round.
+ const deck=E.deck(game.version).filter(c=>!(game.omitSkip&&c.action==='skip'));
+ for(let i=deck.length-1;i>0;i--){
+  const j=crypto.randomInt(0,i+1);
+  [deck[i],deck[j]]=[deck[j],deck[i]];
+ }
+ game.stock=deck;
+ for(const p of game.people)for(const area of ['down','up','hand'])p[area]=[];
+ for(const area of ['down','up','hand'])for(let k=0;k<3;k++)for(const p of game.people)p[area].push(game.stock.pop());
  game.humanCount=humans;
  game.botSeats=Array.from({length:bots},(_,i)=>humans+i);
  game.round=round;
@@ -87,7 +102,13 @@ async function view(r,seat){const members=await query('SELECT seat,display_name,
  members:members.map(m=>({seat:m.seat,name:m.display_name,
   presence:Date.now()-new Date(m.last_seen_at).getTime()>25000?'offline':m.is_away?'away':'online'})),
  game:redacted(r.state,seat)}}
-async function auth(r,req){const match=/^Bearer ([A-Za-z0-9_-]{32,128})$/.exec(req.headers.authorization||'');if(!match)fail(401,'session_required');
+function requireSession(req){
+ const header=req.headers.authorization;
+ const match=typeof header==='string'?/^Bearer ([A-Za-z0-9_-]{32,128})$/.exec(header):null;
+ if(!match)fail(401,'session_required');
+ return match;
+}
+async function auth(r,req){const match=requireSession(req);
  const rows=await query('SELECT seat FROM pilehead_members WHERE code=$1 AND token_hash=$2',[r.code,h(match[1])]);if(!rows.length)fail(403,'not_member');return Number(rows[0].seat)}
 async function create(req,b){
  await quota(req,'create',15);
@@ -218,7 +239,7 @@ async function realtimeReact(room,seat,kind){
  if(!rows.length)fail(410,'room_expired');
  return reaction;
 }
-module.exports=async function handler(req,res){const send=(status,data)=>{res.status(status);res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');return res.json(data)};
+module.exports=async function handler(req,res){const send=(status,data)=>{res.status(status);res.setHeader('Content-Type','application/json; charset=utf-8');res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');return res.json(data)};
  try{if(req.method==='GET'&&req.query?.health==='1'){
   const rows=await query('SELECT 1 AS ready');return send(200,{ok:rows[0]?.ready===1,service:'pilehead-rooms'});
  }
@@ -240,10 +261,20 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
   if(req.method==='OPTIONS'){res.status(204);return res.end()}
   if(req.method!=='POST')return send(405,{ok:false,error:'method_not_allowed'});
   if(Number(req.headers['content-length']||0)>4096)fail(413,'too_large');
-  if(!String(req.headers['content-type']||'').startsWith('application/json'))fail(415,'json_required');
-  let b=req.body;if(typeof b==='string'){try{b=JSON.parse(b)}catch{fail(400,'bad_json')}}if(!b||typeof b!=='object'||Array.isArray(b))fail(400,'bad_json');
+  if(!/^application\/json(?:\s*;|\s*$)/i.test(String(req.headers['content-type']||'')))fail(415,'json_required');
+  let b=req.body;
+  if(typeof b==='string'){
+   if(Buffer.byteLength(b)>4096)fail(413,'too_large');
+   try{b=JSON.parse(b)}catch{fail(400,'bad_json')}
+  }
+  if(!b||typeof b!=='object'||Array.isArray(b))fail(400,'bad_json');
+  let encoded;try{encoded=JSON.stringify(b)}catch{fail(400,'bad_json')}
+  if(typeof encoded!=='string')fail(400,'bad_json');
+  if(Buffer.byteLength(encoded)>4096)fail(413,'too_large');
   db();if(b.action==='create')return send(201,await create(req,b));if(b.action==='join')return send(201,await join(req,b));
+  requireSession(req);
   const r=await load(code(b.code)),seat=await auth(r,req);
+  if(b.action!=='state'&&b.action!=='react')await seatWriteQuota(r.code,seat);
   if(b.action==='presence'){
    if(typeof b.away!=='boolean')fail(400,'bad_presence');
    await query('UPDATE pilehead_members SET last_seen_at=now(),is_away=$3 WHERE code=$1 AND seat=$2',
@@ -260,8 +291,10 @@ module.exports=async function handler(req,res){const send=(status,data)=>{res.st
   console.error('PILEHEAD backend request failed');return send(503,{ok:false,error:'service_unavailable'})}}
 
 module.exports.realtimeAuth=async function realtimeAuth(room,token){
+ const req={headers:{authorization:typeof token==='string'?'Bearer '+token:''}};
+ requireSession(req);
  const r=await load(code(room));
- const seat=await auth(r,{headers:{authorization:'Bearer '+token}});
+ const seat=await auth(r,req);
  await query('UPDATE pilehead_members SET last_seen_at=now(),is_away=false WHERE code=$1 AND seat=$2',[r.code,seat]);
  return{code:r.code,seat,revision:Number(r.revision),reactions:recentReactions(r.state)};
 };

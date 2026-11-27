@@ -5,7 +5,8 @@
 const Module=require('node:module'),crypto=require('node:crypto');
 const E=require('../../dist/pilehead/engine.js');
 const rooms=new Map(),members=new Map(),buckets=new Map();
-crypto.randomInt=()=>0; // deterministic opening seat for two-browser race tests
+const originalRandomInt=crypto.randomInt;
+crypto.randomInt=(...args)=>args.length===1?0:originalRandomInt(...args); // deterministic opening seat only
 function duplicate(){const error=Error('unique constraint');error.code='23505';throw error}
 function rigSnap(g){
  // Put a number in host's first hand position and one copy atop draw stock.
