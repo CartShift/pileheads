@@ -8,6 +8,9 @@ on:
       - 'scripts/round-receipts.cjs'
       - 'scripts/private-history.cjs'
       - 'scripts/matchmaking-queue.cjs'
+      - 'scripts/matchmaking-assignment.cjs'
+      - 'scripts/online-game.cjs'
+      - 'tests/pilehead-matchmaking-assignment.cjs'
       - 'tests/pilehead-matchmaking-queue.cjs'
       - 'scripts/player-progression.cjs'
       - 'tests/pilehead-player-progression.cjs'
@@ -58,6 +61,7 @@ jobs:
           const {ARCHIVE_ROUND_SQL}=require('./scripts/round-receipts.cjs');
           const H=require('./scripts/private-history.cjs');
           const Q=require('./scripts/matchmaking-queue.cjs');
+          const A=require('./scripts/matchmaking-assignment.cjs');
           const P=require('./scripts/player-progression.cjs');
           const id = process.env.PG_TEST_CONTAINER;
           assert.match(id || '', /^[a-f0-9]{12,64}$/);
@@ -227,6 +231,7 @@ jobs:
 
 
             psql(fs.readFileSync('db/room-matchmaking-queue.sql','utf8'));
+            psql(fs.readFileSync('db/room-matchmaking-assignment.sql','utf8'));
             psql("GRANT SELECT,INSERT,UPDATE,DELETE ON pileheads_queue_tickets,pileheads_match_offers TO "+runtime+"; GRANT SELECT ON pileheads_match_blocks TO "+runtime+";");
             const ids=Array.from({length:6},(_,i)=>'4c0c6815-e56b-4e6f-a6e3-'+String(i+1).padStart(12,'0'));
             const keys=ids.map((_,i)=>String(i+1).repeat(64));
@@ -276,6 +281,35 @@ jobs:
             assert.equal(psql(Q.SQL.expireWaiting+';',runtime),'1');
             assert.equal(count('pileheads_queue_tickets'),0);
             console.log('PASS exact matchmaking queue SQL: authentication, blocks, concurrent claims, ready check, cancellation and expiry');
+            assert.equal(qrun(Q.SQL.join,[keys[0],tid(0)]),tid(0));
+            assert.equal(qrun(Q.SQL.join,[keys[2],tid(2)]),tid(2));
+            assert.equal(qrun(Q.SQL.claim,[oid(4)]),'2');
+            const assign=(room,seatA='seat-a-hash',seatB='seat-b-hash')=>qrun(A.SQL.assign,[oid(4),room,'{"phase":"setup","round":1,"roundLimit":3}',seatA,seatB,'v1']);
+            assert.equal(assign('ASSIGN01'),'','unaccepted offer cannot assign');
+            assert.equal(qrun(Q.SQL.accept,[keys[0],oid(4)]),'f');assert.equal(qrun(Q.SQL.accept,[keys[2],oid(4)]),'t');
+            psql("INSERT INTO pileheads_match_blocks(account_id,blocked_account_id) VALUES('"+ids[0]+"','"+ids[2]+"');");
+            assert.equal(assign('ASSIGN01'),'','block after acceptance stops assignment');
+            psql("DELETE FROM pileheads_match_blocks WHERE account_id='"+ids[0]+"' AND blocked_account_id='"+ids[2]+"';");
+            assert.throws(()=>assign('ACTIVE01'),/duplicate key/i);
+            assert.equal(psql("SELECT coalesce(room_code,'none') FROM pileheads_match_offers WHERE id='"+oid(4)+"';"),'none');
+            assert.throws(()=>assign('ASSIGN01','active-token'),/duplicate key/i);
+            assert.equal(count('pilehead_rooms',"code='ASSIGN01'"),0,'seat insert failure rolls room back');
+            assert.equal(assign('ASSIGN01'),'ASSIGN01');assert.equal(assign('ASSIGN02'),'');
+            assert.equal(count('pilehead_rooms',"code='ASSIGN01'"),1);assert.equal(count('pilehead_members',"code='ASSIGN01'"),2);
+            assert.ok(qrun(A.SQL.recover,[keys[0]]).includes('ASSIGN01'));
+            assert.ok(qrun(A.SQL.recover,[keys[2]]).includes('ASSIGN01'));
+            assert.equal(qrun(A.SQL.recover,[keys[1]]),'');
+            assert.equal(qrun(Q.SQL.cancelOffer,[keys[0],oid(4)]),'','assigned offers cannot cancel');
+            assert.equal(qrun(Q.SQL.accept,[keys[0],oid(4)]),'');
+            assert.equal(qrun(A.SQL.release,[keys[0],oid(4)]),'','active room cannot release');
+            psql("UPDATE pilehead_rooms SET status='finished',state='{\"phase\":\"over\",\"round\":1,\"roundLimit\":3}' WHERE code='ASSIGN01';",runtime);
+            assert.equal(qrun(A.SQL.release,[keys[0],oid(4)]),'','intermediate round cannot release');
+            psql("UPDATE pilehead_rooms SET state='{\"phase\":\"over\",\"round\":3,\"roundLimit\":3}' WHERE code='ASSIGN01';",runtime);
+            assert.equal(qrun(A.SQL.release,[keys[1],oid(4)]),'','outsider cannot release');
+            assert.equal(qrun(A.SQL.release,[keys[0],oid(4)]),oid(4));
+            assert.equal(count('pileheads_queue_tickets'),0);assert.equal(count('pilehead_rooms',"code='ASSIGN01'"),1);
+            console.log('PASS exact matchmaking assignment SQL: ready/block gates, collision/seat rollback, one room, own-seat recovery, cancellation and terminal release');
+
 
 
             console.log('PASS isolated PostgreSQL: role grants, valid expiry index, dry run, 500-row batches, cascades, active records and idempotent cleanup');
