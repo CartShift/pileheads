@@ -2,6 +2,7 @@
 const {limiter,cookieToken:guestToken}=require('../api/player.js');
 const {createAccountStore,publicAccount,preferences}=require('./account-store.cjs');
 const OIDC=require('./google-oidc.cjs');
+const PrivateHistory=require('./private-history.cjs');
 const SESSION='__Host-pileheads_account',FLOW='__Host-pileheads_oauth',TTL=30*86400;
 const TOKEN=/^[A-Za-z0-9_-]{43}$/;
 function cookie(header,name){
@@ -20,7 +21,7 @@ function redirect(res,path){headers(res);res.statusCode=303;res.setHeader('Locat
 function validAction(input){
  if(!input||typeof input!=='object'||Array.isArray(input))return false;
  const n=Object.keys(input).length;
- if(['login','logout','import_guest'].includes(input.action))return n===1;
+ if(['login','logout','import_guest','history'].includes(input.action))return n===1;
  if(input.action==='delete')return n===2&&input.confirm===true;
  if(input.action==='preferences'&&n===3){try{preferences(input);return true}catch{return false}}
  return false;
@@ -47,7 +48,7 @@ function configuration(env){
  const enabled=configured&&Boolean(privacyUrl)&&env.PILEHEAD_ACCOUNT_ENABLED==='1'&&Boolean(clientId&&clientSecret&&flowSecret?.length>=32);
  return {configured,enabled,origin,privacyUrl,clientId,clientSecret,flowSecret};
 }
-function createHandlers({config,store,exchange=OIDC.exchangeGoogle,allowRead=limiter(300),allowWrite=limiter(90),allowLogin=limiter(30),now=Date.now}){
+function createHandlers({config,store,history=async()=>[],historyConfigured=false,exchange=OIDC.exchangeGoogle,allowRead=limiter(300),allowWrite=limiter(90),allowLogin=limiter(30),now=Date.now}){
  const result=row=>({enabled:Boolean(config.enabled),privacyUrl:config.privacyUrl??null,profile:publicAccount(row)});
  const session=req=>{const value=cookie(req.headers.cookie,SESSION);return TOKEN.test(value||'')?value:null};
  async function api(req,res){
@@ -71,6 +72,11 @@ function createHandlers({config,store,exchange=OIDC.exchangeGoogle,allowRead=lim
     const {flow,cookie:encoded}=OIDC.createFlow(config.flowSecret,now());
     setCookie(res,FLOW,encoded,600);
     return reply(res,200,{url:OIDC.authorizationUrl(config,flow)});
+   }
+   if(b.action==='history'){
+    if(!historyConfigured)return reply(res,200,{available:false,rounds:[]});
+    if(!raw||!await store.find(raw))return reply(res,401,{ok:false});
+    return reply(res,200,{available:true,rounds:await history(raw)});
    }
    if(!raw)return reply(res,401,{ok:false});
    if(b.action==='logout'){
@@ -112,5 +118,11 @@ function createHandlers({config,store,exchange=OIDC.exchangeGoogle,allowRead=lim
 }
 let db;
 const store=createAccountStore((sql,args)=>{db??=require('@neondatabase/serverless').neon(process.env.PILEHEAD_PLAYER_DATABASE_URL);return db.query(sql,args)});
-const handlers=createHandlers({config:configuration(process.env),store});
+const history=async raw=>{
+ const key=require('./account-store.cjs').digest(raw);
+ if(!key)return[];
+ db??=require('@neondatabase/serverless').neon(process.env.PILEHEAD_PLAYER_DATABASE_URL);
+ return PrivateHistory.publicHistory(await db.query(PrivateHistory.SQL.list,[key]));
+};
+const handlers=createHandlers({config:configuration(process.env),store,history,historyConfigured:PrivateHistory.configured()});
 module.exports={...handlers,createHandlers,configuration,validAction,SESSION,FLOW};
