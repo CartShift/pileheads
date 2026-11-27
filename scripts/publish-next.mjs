@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const root = path.resolve('vercel-static');
 const source = path.resolve('apps/web/out');
-for (const route of ['index','play','stack']) {
+for (const route of ['index','play','stack','how-to-play','deck']) {
   if (!fs.statSync(path.join(source, route + '.html')).isFile()) throw new Error('Next export missing required route: ' + route);
 }
 if (!fs.existsSync(path.join(source, '_next'))) throw new Error('Next export missing fingerprinted assets');

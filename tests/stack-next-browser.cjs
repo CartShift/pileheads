@@ -150,7 +150,7 @@ async function sameOriginNavigation(browser) {
     await page.getByRole("button",{name:/Start game/}).waitFor();
     assert.equal(new URL(page.url()).pathname,"/play","Next landing should lead to the real playable table");
     await page.getByRole("link", {name:"PILEHEADS home", exact:true}).click();
-    await page.getByRole("heading",{name:/PLAY\s*THE ODDS/}).waitFor();
+    await page.getByRole("heading",{name:/ONE PILE\.\s*ONE LOSER\./}).waitFor();
     assert.equal(new URL(page.url()).pathname,"/","logo returns to Next landing, not Classic redirect");
     assert.equal(await page.locator('a[href="/pilehead/index.html"]').count(),0);
     console.log("PASS one-server Next route transitions: /stack → /play → /");
@@ -939,6 +939,7 @@ async function specialMoveDrillsScenario(browser) {
     const original=await page.evaluate(()=>localStorage.getItem("stack-next-local-save-v1"));
     await page.getByRole("button",{name:"Leave table"}).click();
     for(const [id,action] of [["snap","SNAP"],["slam","SLAM"],["counter","Counter DUMP"]]){
+      await page.getByText("Practice a special move",{exact:true}).click();
       await page.getByRole("combobox",{name:"Special move drill"}).selectOption(id);
       await page.getByRole("button",{name:"Practice special move"}).click();
       assert.equal(await page.locator(".game-table-shell").getAttribute("data-drill"),id);
@@ -1663,6 +1664,41 @@ async function localInterruptParityScenarios(browser) {
   console.log("PASS React parity: off-turn bot SLAM, SNAP burn, Final Duel top-card erosion");
 }
 
+async function publicLaunch(browser){
+  const context=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:"reduce"});
+  const page=await context.newPage();
+  try{
+    await page.goto(WEB+"/");
+    assert.match(await page.locator("h1").innerText(),/ONE PILE\.[\s\S]*ONE LOSER\./i);
+    for(const route of ["/how-to-play","/deck"]){
+      const response=await page.goto(WEB+route);
+      assert.equal(response.status(),200);
+      assert.equal(await page.locator('link[rel="canonical"]').getAttribute("href"),"https://pileheads.com"+route);
+      assert.equal(await page.locator("h1").count(),1);
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),"public page has no horizontal overflow");
+      await page.screenshot({path:path.resolve(ROOT,"artifacts/next/public-"+route.slice(1)+".png"),fullPage:true,animations:"disabled"});
+    }
+    await page.goto(WEB+"/play?room=ABCD1234");
+    await page.getByRole("heading",{name:"Room ABCD1234"}).waitFor();
+    assert.equal(await page.getByRole("button",{name:"Join",exact:true}).count(),1);
+    assert.equal(await page.getByRole("button",{name:/Create a room/}).count(),0);
+    await page.getByRole("button",{name:"Back to all tables"}).click();
+    assert.equal(new URL(page.url()).search,"");
+    const humans=page.getByRole("combobox",{name:"Humans"});
+    const bots=page.getByRole("combobox",{name:"Bots"});
+    await humans.selectOption("5");
+    assert.deepEqual(await bots.locator("option").allTextContents(),["0"]);
+    await humans.selectOption("1");
+    assert.deepEqual(await bots.locator("option").allTextContents(),["1","2","3","4"]);
+    assert.equal(await bots.inputValue(),"1");
+    await page.getByRole("button",{name:"Quick play",exact:true}).click();
+    await page.waitForFunction(()=>JSON.parse(localStorage.getItem("stack-next-local-save-v1")||"null")?.game?.phase==="play");
+    assert.equal(await page.locator(".game-table-shell").getAttribute("data-turn"),"self");
+    assert.equal((await readGame(page)).people.length,2);
+    console.log("PASS public launch: public routes, invite, constrained seats and one-click guided play");
+  }finally{await context.close()}
+}
+
 async function main() {
   fs.mkdirSync(path.resolve(ROOT, "artifacts/next"), {recursive:true});
   const apiProc = fork(path.resolve(ROOT, "scripts/render-server.cjs"), [], {
@@ -1696,6 +1732,7 @@ async function main() {
     const selected=process.env.STACK_ACCEPTANCE_SCENARIO;
     if(selected){
       const scenarios={
+        launch:()=>publicLaunch(browser),
         brand:()=>brandCaptureScenarios(browser),
         local:()=>localScenarios(browser),
         motion:()=>sharedMoveAnimationScenarios(browser),
@@ -1720,6 +1757,7 @@ async function main() {
       return;
     }
 
+    await publicLaunch(browser);
     await brandCaptureScenarios(browser);
     await sameOriginNavigation(browser);
     await endgameSettingsAndBridge(browser);

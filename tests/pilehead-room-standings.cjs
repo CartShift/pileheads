@@ -1,0 +1,30 @@
+'use strict';
+const assert=require('node:assert/strict'),S=require('../scripts/room-standings.cjs');
+const state=(n,round=1)=>({people:Array.from({length:n},(_,seat)=>({seat})),round,phase:'setup',finishedOrder:[],loser:null});
+for(let n=2;n<=5;n++){
+ const g=state(n);S.record(g);
+ assert.equal(g.roomStandings.completedRounds,0);
+ g.phase='over';g.finishedOrder=Array.from({length:n-1},(_,i)=>i);g.loser=n-1;
+ const expected=Array.from({length:n},(_,i)=>n-i-1);
+ assert.deepEqual(S.publicStandings(g).seats.map(x=>x.points),expected);
+ assert.equal(g.roomStandings.completedRounds,0,'reading cannot mutate');
+ S.record(g);S.record(g);
+ assert.equal(g.roomStandings.completedRounds,1,'idempotent finalization');
+ assert.deepEqual(g.roomStandings.seats.map(x=>x.points),expected);
+ const next=state(n,2);next.roomStandings=structuredClone(g.roomStandings);
+ S.record(next);next.phase='over';next.finishedOrder=Array.from({length:n-1},(_,i)=>n-i-1);next.loser=0;
+ S.record(next);
+ assert.deepEqual(next.roomStandings.seats.map(x=>x.points),Array(n).fill(n-1));
+ assert.equal(next.roomStandings.completedRounds,2);
+ assert.equal(next.roomStandings.seats.reduce((a,x)=>a+x.wins,0),2);
+}
+const legacy=state(3,9);legacy.phase='over';legacy.finishedOrder=[1,2];legacy.loser=0;
+assert.equal(S.publicStandings(legacy).trackedFrom,9);S.record(legacy);
+assert.deepEqual(legacy.roomStandings.seats.map(x=>x.points),[0,2,1]);
+const invalid=state(2);invalid.phase='over';invalid.finishedOrder=[0];invalid.loser=0;
+assert.throws(()=>S.record(invalid),/placements/);
+const corrupt=state(2);S.record(corrupt);corrupt.roomStandings.seats[0].points=99;
+assert.throws(()=>S.record(corrupt),/standings/);
+const allOut=state(2);allOut.phase='over';allOut.finishedOrder=[0,1];
+assert.equal(S.publicStandings(allOut).completedRounds,1);
+console.log('PASS private table standings: all seat counts, exact totals, replay, ties, legacy baseline and malformed input');

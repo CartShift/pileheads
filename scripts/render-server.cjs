@@ -84,7 +84,7 @@ async function serveFile(req, res, url) {
   }
   if (pathname === '/play' || pathname === '/play/') pathname = '/play.html';
   else if (pathname === '/stack' || pathname === '/stack/') pathname = '/stack.html';
-  else if (['/growth','/growth/','/deck-updates','/deck-updates/'].includes(pathname)) pathname = pathname.replace(/\/$/,'') + '.html';
+  else if (['/growth','/growth/','/deck-updates','/deck-updates/','/how-to-play','/how-to-play/','/deck','/deck/'].includes(pathname)) pathname = pathname.replace(/\/$/,'') + '.html';
   if (pathname.includes('\0') || pathname.includes('\\')) return respond(res, 400, 'Bad Request');
 
   const filename = path.resolve(root, '.' + pathname);
@@ -102,6 +102,9 @@ async function serveFile(req, res, url) {
   res.setHeader('Content-Type', contentTypes[path.extname(filename).toLowerCase()] || 'application/octet-stream');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'none'; object-src 'none'; base-uri 'self'");
   const nextFingerprint = pathname.startsWith('/_next/static/');
   const routePayload = path.extname(filename) === '.txt';
   res.setHeader('Cache-Control', nextFingerprint ? 'public, max-age=31536000, immutable'
@@ -135,7 +138,7 @@ const server = http.createServer(async (req, res) => {
     else if (url.pathname === '/api/growth') await serveApi(req, res, url, growthHandler);
     else await serveFile(req, res, url);
   } catch (error) {
-    console.error('PILEHEADS request error:', error.message);
+    console.error('PILEHEADS request failed');
     if (!res.headersSent) respond(res, 500, 'Internal Server Error');
     else res.destroy();
   }

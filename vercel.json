@@ -42,6 +42,16 @@
       "source": "/pilehead/index.html",
       "destination": "/play",
       "permanent": true
+    },
+    {
+      "source": "/stack",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/pilehead/gallery.html",
+      "destination": "/deck",
+      "permanent": true
     }
   ]
 }

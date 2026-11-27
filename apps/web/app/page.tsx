@@ -7,8 +7,9 @@ import styles from "./official-home.module.css";
 import polish from "./homepage-refinement.module.css";
 
 export const metadata: Metadata = {
-  title: "PILEHEADS | Play with character",
-  description: "A social card game for 2–5 players. Make clever moves, surprise your friends and play PILEHEADS free online."
+  title: "PILEHEADS | One pile. One loser.",
+  alternates: { canonical: "/" },
+  description: "Get rid of your cards, surprise your friends and avoid being the Pilehead. Play free online with bots or 2–5 players. No account needed."
 };
 
 const faces = ["1","2","3","4","5","6","7","8","9","10","RESET","GHOST","UNDER","SKIP","BURN","DUMP"];
@@ -36,17 +37,17 @@ export default function HomePage() {
       <Link href="/" className={styles.homeLink}><Brand/></Link>
       <nav aria-label="Main navigation">
         <CampaignPlayLink href="/play" className={styles.navPlay}>Play online</CampaignPlayLink>
-        <a href="/pilehead/playtest.html">How to play</a><a href="/pilehead/gallery.html">The deck</a><a href="#physical">The game</a>
+        <a href="/how-to-play">How to play</a><a href="/deck">The deck</a><a href="#physical">The game</a>
       </nav>
     </div></header>
     <section className={styles.hero} id="main-content" aria-labelledby="home-heading" tabIndex={-1}>
       <div className={styles.heroInner}>
         <div className={styles.heroCopy + " " + polish.heroEditorial}>
           <p className={styles.kicker}>The card game with character</p>
-          <h1 id="home-heading">PLAY<br/><span className={polish.headlineLine}>THE ODDS<span>.</span></span></h1>
-          <p className={styles.lead}>A fast, chaotic and delightfully tactical card game for friends, family and friendly revenge.</p>
+          <h1 id="home-heading">ONE PILE.<br/><span className={polish.headlineLine}>ONE LOSER<span>.</span></span></h1>
+          <p className={styles.lead}>Get rid of your cards. Turn the tables on your friends. Whatever you do, don’t be the Pilehead.</p>
           <div className={styles.buttons + " " + polish.heroActions}><Button href="/play"><span aria-hidden="true">▶</span> Play free online</Button><Button href="#physical" kind="cream">Discover the deck <span aria-hidden="true">↘</span></Button></div>
-          <div className={styles.facts + " " + polish.heroFacts}><span>2–5 players</span><span>54 cards</span><span>Play with friends</span></div>
+          <div className={styles.facts + " " + polish.heroFacts}><span>2–5 players</span><span>No download</span><span>No account</span></div>
         </div>
         <div className={styles.heroArt + " " + polish.heroComposition} aria-label="Illustrated PILEHEADS cards and deck" role="group">
           <span className={styles.burst} aria-hidden="true"/><span className={polish.sunRays} aria-hidden="true"/><span className={polish.cloudLeft} aria-hidden="true"/><span className={polish.cloudRight} aria-hidden="true"/>
@@ -59,24 +60,32 @@ export default function HomePage() {
     </section>
     <section className={styles.benefits + " " + polish.paperEdge} aria-labelledby="why-stack">
       <h2 id="why-stack">Why PILEHEADS?</h2><div className={styles.benefitGrid}>
-        <article><span aria-hidden="true"><BenefitIcon kind="bolt"/></span><div><h3>Easy to learn</h3><p>Play a card. Change the game.</p></div></article>
-        <article><span aria-hidden="true"><BenefitIcon kind="friends"/></span><div><h3>Better together</h3><p>Surprise your friends at every turn.</p></div></article>
-        <article><span aria-hidden="true"><BenefitIcon kind="repeat"/></span><div><h3>One more round</h3><p>Every hand brings new decisions.</p></div></article>
+        <article><span aria-hidden="true"><BenefitIcon kind="bolt"/></span><div><h3>Easy to learn</h3><p>Match or beat the pile. Empty your hand.</p></div></article>
+        <article><span aria-hidden="true"><BenefitIcon kind="friends"/></span><div><h3>Better together</h3><p>Send the pile to a friend with DUMP.</p></div></article>
+        <article><span aria-hidden="true"><BenefitIcon kind="repeat"/></span><div><h3>One more round</h3><p>One last card can change everything.</p></div></article>
       </div>
     </section>
+    <section className={polish.moveStrip} aria-labelledby="moves-heading">
+      <div className={polish.moveInner}><p className={styles.kicker}>Small cards. Big consequences.</p><h2 id="moves-heading">Turn the tables<span>.</span></h2>
+      <div className={polish.moveGrid}>
+        <article><div className={polish.moveArt}><Card name="DUMP"/></div><div><h3>Make it their problem.</h3><p>Send the pile to any active opponent. Watch out: their own DUMP can send it back.</p></div></article>
+        <article><div className={polish.moveArt}><Card name="BURN"/></div><div><h3>Burn it all.</h3><p>Clear the pile and immediately play again. A fresh start when you need it most.</p></div></article>
+        <article><div className={polish.moveArt}><Card name="7"/><Card name="7"/></div><div><h3>Make a SLAM.</h3><p>Complete four matching numbers to burn the pile, even out of turn.</p></div></article>
+      </div><Button href="/play">Try it yourself →</Button></div>
+    </section>
     <section className={styles.deck} id="the-deck"><div className={styles.split}>
-      <div><p className={styles.kicker}>10 numbers. 6 action cards.</p><h2>Meet<br/>the cards<span>.</span></h2><p>Numbers keep the game moving. Action cards shake things up.</p><Button href="/pilehead/gallery.html" kind="cream">Explore the full deck →</Button></div>
+      <div><p className={styles.kicker}>10 numbers. 6 action cards.</p><h2>Meet<br/>the cards<span>.</span></h2><p>Numbers keep the game moving. Action cards shake things up.</p><Button href="/deck" kind="cream">Explore the full deck →</Button></div>
       <div className={styles.actionFan + " " + polish.actionFan}>{actions.map((name,i)=><Card key={name} name={name} className={styles["fan"+i]}/>)}</div>
     </div></section>
     <section className={styles.online} id="how-to-play"><div className={styles.split + " " + polish.onlineLayout}>
       <div className={styles.gamePreview + " " + polish.gameShowcase}><div className={styles.previewBurst} aria-hidden="true"/><figure className={styles.phone + " " + polish.gameDevice}><picture><source media="(min-width: 851px)" srcSet="/stack-media/stack-home-gameplay-desktop-rc3.webp" width={731} height={491}/><source media="(min-width: 601px)" srcSet="/stack-media/stack-home-gameplay-wide-rc3.webp" width={507} height={605}/><img src="/stack-media/stack-home-gameplay-rc3.webp" alt="Actual PILEHEADS browser game with the current illustrated deck, showing cards in hand, draw deck and turn controls" width={321} height={695} loading="lazy" decoding="async"/></picture></figure><div className={styles.previewLabel}>Actual gameplay<br/><small>Illustrated deck</small></div></div>
-      <div className={polish.onlineCopy}><p className={styles.kicker}>No download needed</p><h2>Play online.<br/>Anytime, anywhere<span>.</span></h2><p>Try PILEHEADS in your browser. Challenge the bots or invite your friends to a private table.</p><div className={styles.buttons}><Button href="/play">Play now →</Button><a className={styles.textLink} href="/pilehead/playtest.html">Learn the rules</a></div></div><img className={polish.beachMascot} src="/stack-media/stack-home-burn-beach.webp" alt="" width={277} height={235} loading="lazy"/>
+      <div className={polish.onlineCopy}><p className={styles.kicker}>No download needed</p><h2>Play online.<br/>Anytime, anywhere<span>.</span></h2><p>Try PILEHEADS in your browser. Challenge the bots or invite your friends to a private table.</p><div className={styles.buttons}><Button href="/play">Play now →</Button><a className={styles.textLink} href="/how-to-play">Learn the rules</a></div></div><img className={polish.beachMascot} src="/stack-media/stack-home-burn-beach.webp" alt="" width={277} height={235} loading="lazy"/>
     </div></section>
     <section className={styles.physical} id="physical"><div className={styles.split + " " + polish.physicalLayout}>
       <div className={styles.productArt} aria-label="PILEHEADS card deck illustration" role="group"><div className={styles.productBox + " " + polish.box}><img src="/stack-media/stack-home-box-web.webp?v=production-rc3" alt="PILEHEADS packaging concept, 54 cards for 2–5 players" width={440} height={607} loading="lazy"/><img className={polish.boxSide} src="/stack-media/stack-home-box-side-v2.webp?v=production-rc3" alt="" width={242} height={1000} loading="lazy"/><img className={polish.boxTop} src="/stack-media/stack-home-box-top-v2.webp?v=production-rc3" alt="" width={720} height={240} loading="lazy"/></div><div className={styles.productBack}/></div>
-      <div><p className={styles.kicker}>From screen to table</p><h2>The physical<br/>game<span>.</span></h2><p>Small box. Big fun. Made for game nights, holidays and spontaneous showdowns. The physical deck is currently in playtesting.</p><Button href="/pilehead/playtest.html" kind="yellow">Explore the playtest edition →</Button><p className={styles.releaseNote}>Physical retail launch to be announced.</p><DeckWaitlist/></div><div className={polish.physicalFan} role="group" aria-label="Three illustrated numbered cards">{["2","3","1"].map((name,i)=><Card key={name} name={name} className={polish["physicalCard"+i]}/>)}</div>
+      <div><p className={styles.kicker}>From screen to table</p><h2>The physical<br/>game<span>.</span></h2><p>Small box. Big fun. Made for game nights, holidays and spontaneous showdowns. The physical deck is currently in playtesting.</p><Button href="/deck" kind="yellow">Meet the physical deck →</Button><p className={styles.releaseNote}>Physical retail launch to be announced.</p><DeckWaitlist/></div><div className={polish.physicalFan} role="group" aria-label="Three illustrated numbered cards">{["2","3","1"].map((name,i)=><Card key={name} name={name} className={polish["physicalCard"+i]}/>)}</div>
     </div></section>
     <section className={styles.closing}><div className={styles.closingArt} aria-hidden="true"><img src="/stack-media/stack-home-sunset.webp" alt="" width={700} height={165} loading="lazy"/></div><div className={styles.closingCopy}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring PILEHEADS<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></div></section>
-    <footer className={styles.footer}><Link href="/" aria-label="PILEHEADS home"><Brand/></Link><nav aria-label="Footer navigation"><CampaignPlayLink href="/play">Play online</CampaignPlayLink><a href="/pilehead/playtest.html">Rules & playtest</a><a href="/pilehead/gallery.html">The deck</a></nav><small>© PILEHEADS</small><FunnelConsent/></footer>
+    <footer className={styles.footer}><Link href="/" aria-label="PILEHEADS home"><Brand/></Link><nav aria-label="Footer navigation"><CampaignPlayLink href="/play">Play online</CampaignPlayLink><a href="/how-to-play">How to play</a><a href="/deck">The deck</a></nav><small>© PILEHEADS</small><FunnelConsent/></footer>
   </main>;
 }

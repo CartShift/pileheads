@@ -425,6 +425,8 @@ async function run(){
  assert.equal(replay.data.revision,5);
  assert.equal(replay.data.game.phase,'setup');
  assert.equal(replay.data.game.round,2);
+ assert.equal(replay.data.game.standings.completedRounds,1);
+ assert.deepEqual(replay.data.game.standings.seats.map(x=>x.points),[2,0,1]);
  assert.deepEqual(replay.data.game.botSeats,[2]);
  assert.deepEqual(replay.data.game.setupReady,[false,false,true]);
  assert.equal(replay.data.game.starterSeat,0,'first player out gets the next start');
@@ -433,12 +435,29 @@ async function run(){
  const oldTokenStillValid=await request({action:'state',code:hybridCode},hybridHost);
  assert.equal(oldTokenStillValid.status,200);
  assert.equal(oldTokenStillValid.data.game.round,2);
+ assert.deepEqual(oldTokenStillValid.data.game.standings,replay.data.game.standings);
  assert.equal(oldTokenStillValid.data.members.length,2);checks++;
  const staleReplay=await request({action:'rematch',code:hybridCode,revision:4},hybridHost);
  assert.equal(staleReplay.status,409);checks++;
  const tooEarlyReplay=await request({action:'rematch',code:hybridCode,revision:5},hybridFriend);
  assert.equal(tooEarlyReplay.status,409);
  assert.equal(tooEarlyReplay.data.error,'game_not_finished');checks++;
+ // Finish the next round through a real authenticated move and verify CAS persists the score before rematch.
+ const finalGame=rooms.get(hybridCode).state;
+ const pool=[...finalGame.stock.splice(0),...finalGame.pile.splice(0),...finalGame.ashes.splice(0),...finalGame.people.flatMap(p=>[...p.hand.splice(0),...p.up.splice(0),...p.down.splice(0)])];
+ const takeNumber=()=>pool.splice(pool.findIndex(c=>c.kind==='number'),1)[0];
+ finalGame.people[0].hand.push(takeNumber());finalGame.people[1].hand.push(takeNumber());
+ finalGame.ashes.push(...pool);finalGame.people[2].out=true;finalGame.finishedOrder=[2];finalGame.phase='play';finalGame.turn=1;finalGame.limit=null;finalGame.slamOpen=false;finalGame.loser=null;
+ rooms.get(hybridCode).status='playing';Engine.invariant(finalGame);
+ const terminalCommand={action:'move',code:hybridCode,revision:5,move:{type:'play',source:'hand',ids:[finalGame.people[1].hand[0].id]}};
+ const terminal=await request(terminalCommand,hybridFriend);
+ assert.equal(terminal.status,200,JSON.stringify(terminal));assert.equal(terminal.data.game.phase,'over');
+ assert.equal(terminal.data.game.standings.completedRounds,2);assert.deepEqual(terminal.data.game.standings.seats.map(x=>x.points),[2,1,3]);
+ assert.equal(rooms.get(hybridCode).state.roomStandings.completedRounds,2);
+ assert.equal((await request(terminalCommand,hybridFriend)).status,409);
+ const third=await request({action:'rematch',code:hybridCode,revision:6},hybridHost);
+ assert.equal(third.status,200);assert.equal(third.data.game.round,3);
+ assert.deepEqual(third.data.game.standings,terminal.data.game.standings);checks++;
  const soloHybrid=await request({action:'create',humans:1,bots:2,name:'Solo vs bots'});
  assert.equal(soloHybrid.status,201);assert.deepEqual(soloHybrid.data.game.botSeats,[1,2]);checks++;
  const soloReady=await request({action:'ready',code:soloHybrid.data.code,revision:0,ready:true},soloHybrid.data.session);
@@ -560,6 +579,8 @@ async function run(){
  assert.equal(newRound.status,200,JSON.stringify(newRound));
  assert.equal(newRound.data.game.rulesVersion,Engine.VERSION);
  assert.equal(newRound.data.game.round,2);
+ assert.equal(newRound.data.game.standings.completedRounds,1);
+ assert.deepEqual(newRound.data.game.standings.seats.map(x=>x.points),[2,0,1]);
  assert.equal(newRound.data.game.starterSeat,0);
  assert.equal(newRound.data.game.starterReason,'winner');checks++;
  assert.equal((await request({action:'state',code:legacyCode},legacyGuest.data.session)).status,200);checks++;

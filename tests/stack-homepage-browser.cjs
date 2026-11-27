@@ -10,7 +10,7 @@ const ROOT = path.resolve(__dirname, "..");
 const PORT = 44292;
 const BASE = "http://127.0.0.1:" + PORT;
 const ARTIFACTS = path.resolve(process.env.STACK_HOMEPAGE_ARTIFACTS || path.join(ROOT,"artifacts","website"));
-const assets = ["faces-v2","box-v2","back-v2","logo-v2","explorer-v2","gameplay-v7","gameplay-wide-v7","gameplay-desktop-v7","sunset","box-side-v2","box-top-v2","burn-beach","faces-web-desktop","faces-web-mobile","logo-web","box-web","explorer-web-desktop","explorer-web-mobile","back-web"].map(x=>"/stack-media/stack-home-"+x+".webp");
+const assets = ["faces-v2","box-v2","back-v2","logo-v2","explorer-v2","gameplay-rc3","gameplay-wide-rc3","gameplay-desktop-rc3","sunset","box-side-v2","box-top-v2","burn-beach","faces-web-desktop","faces-web-mobile","logo-web","box-web","explorer-web-desktop","explorer-web-mobile","back-web"].map(x=>"/stack-media/stack-home-"+x+".webp");
 async function waitReady(){
   for(let i=0;i<100;i++){try{if((await fetch(BASE+"/livez")).ok)return}catch{} await new Promise(r=>setTimeout(r,200))}
   throw Error("Integrated server did not become ready");
@@ -22,7 +22,7 @@ async function check(browser,width,height){
     const response=await page.goto(BASE+"/stack",{waitUntil:"networkidle"});assert.equal(response.status(),200);
     await page.getByTestId("official-home").waitFor();
     assert.equal(await page.locator("h1").count(),1);
-    assert.match(await page.locator("h1").innerText(),/PLAY\s*THE ODDS\./);
+    assert.match(await page.locator("h1").innerText(),/ONE PILE\.\s*ONE LOSER\./);
     for(const selector of ["#main-content","#the-deck","#how-to-play","#physical","footer"]) assert.equal(await page.locator(selector).count(),1,selector);
     for(const asset of assets){const r=await page.request.get(BASE+asset);assert.equal(r.status(),200,asset);assert.equal((await r.body()).subarray(8,12).toString(),"WEBP",asset)}
     await page.evaluate(async()=>{await document.fonts.ready;for(const im of document.images){im.loading="eager";await im.decode()}});
@@ -33,7 +33,7 @@ async function check(browser,width,height){
     const sprite=await page.locator("#main-content [role=img]").first().evaluate(el=>getComputedStyle(el).backgroundImage);
     assert.ok(sprite.includes(width<=600?"faces-web-mobile.webp":"faces-web-desktop.webp"),"responsive card sprite");
     const gamePreview=page.locator('img[alt^="Actual PILEHEADS browser game"]');
-    assert.ok((await gamePreview.evaluate(el=>el.currentSrc)).endsWith(width>850?"stack-home-gameplay-desktop-v7.webp":width>600?"stack-home-gameplay-wide-v7.webp":"stack-home-gameplay-v7.webp"),"the device uses its genuine responsive V7 capture");
+    assert.ok((await gamePreview.evaluate(el=>el.currentSrc)).endsWith(width>850?"stack-home-gameplay-desktop-rc3.webp":width>600?"stack-home-gameplay-wide-rc3.webp":"stack-home-gameplay-rc3.webp"),"the device uses its genuine responsive V7 capture");
     const layout=await page.evaluate(()=>({
       documentWidth:document.documentElement.scrollWidth, viewport:innerWidth,
       broken:[...document.images].filter(x=>!x.complete||x.naturalWidth===0).map(x=>x.src),
@@ -45,12 +45,12 @@ async function check(browser,width,height){
     const cta=page.getByRole("link",{name:"Play free online",exact:true});
     assert.equal(await cta.getAttribute("href"),"/play");
     const rect=await cta.boundingBox();assert.ok(rect&&rect.height>=44&&rect.x>=-1&&rect.x+rect.width<=width+1,"primary CTA must fit and be touch-friendly");
-    for(const href of ["/play","/pilehead/gallery.html","/pilehead/playtest.html"]){assert.ok(await page.locator('a[href="'+href+'"]').count(),href);assert.equal((await page.request.get(BASE+href)).status(),200,href)}
+    for(const href of ["/play","/deck","/how-to-play"]){assert.ok(await page.locator('a[href="'+href+'"]').count(),href);assert.equal((await page.request.get(BASE+href)).status(),200,href)}
     await page.screenshot({path:path.join(ARTIFACTS,"homepage-"+width+".png"),fullPage:true,animations:"disabled"});
     await page.getByRole("navigation",{name:"Main navigation"}).getByRole("link",{name:"The deck"}).click();
-    assert.equal(new URL(page.url()).hash,"#the-deck");
-    await page.getByRole("link",{name:"Explore the full deck"}).click();
-    await page.waitForURL("**/pilehead/gallery.html");
+    await page.waitForURL("**/deck");
+    assert.match(await page.locator("h1").innerText(),/Every card\s*has a role/i);
+    assert.equal(await page.locator(".public-card").count(),17);
     await page.goto(BASE+"/stack");
     await page.getByRole("link",{name:"Play free online",exact:true}).click();
     await page.waitForURL("**/play");
