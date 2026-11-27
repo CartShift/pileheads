@@ -5,6 +5,8 @@ on:
       - 'db/room-*.sql'
       - 'scripts/room-retention.cjs'
       - 'scripts/room-lifecycle.cjs'
+      - 'scripts/round-receipts.cjs'
+      - 'tests/pilehead-round-receipts.cjs'
       - 'tests/pilehead-room-retention.cjs'
       - '.github/workflows/room-retention-postgres.yml'
   workflow_dispatch:
@@ -46,6 +48,7 @@ jobs:
           const {spawnSync} = require('node:child_process');
           const {runRetention} = require('./scripts/room-retention.cjs');
           const {CREATE_ROOM_SQL,JOIN_ROOM_SQL}=require('./scripts/room-lifecycle.cjs');
+          const {ARCHIVE_ROUND_SQL}=require('./scripts/round-receipts.cjs');
           const id = process.env.PG_TEST_CONTAINER;
           assert.match(id || '', /^[a-f0-9]{12,64}$/);
           function psql(sql, role) {
@@ -126,6 +129,24 @@ jobs:
             assert.equal(join('LIFE0004','expired-friend'),'');
             assert.equal(count('pilehead_members',"code IN ('LIFE0003','LIFE0004')"),2);
             console.log('PASS exact lifecycle SQL: atomic creation, rollback, capacity, terminal and expired join guards');
+            psql(fs.readFileSync('db/room-round-receipts.sql','utf8'));
+            psql("GRANT INSERT ON public.pileheads_round_receipts TO "+runtime+"; GRANT SELECT(room_instance_id) ON public.pileheads_round_receipts TO "+runtime+";");
+            const roomId='c7fc5012-3ee3-4f2c-8d35-fd9c71ebcfa7';
+            const archive=(code,rev,placements)=>psql("PREPARE a AS "+ARCHIVE_ROUND_SQL+"; EXECUTE a('{}','finished','"+code+"',"+rev+",'"+roomId+"',1,'pilehead-1.7.0','classic',3,2,2,'"+placements+"',45);",runtime);
+            create('LIFE0005','host-five');
+            assert.equal(archive('LIFE0005',99,'{1,2}'),'');
+            assert.equal(count('pileheads_round_receipts'),0);
+            assert.throws(()=>archive('LIFE0005',0,'{1,1}'),/check constraint/i);
+            assert.equal(psql("SELECT revision FROM pilehead_rooms WHERE code='LIFE0005';"),'0');
+            assert.ok(archive('LIFE0005',0,'{1,2}').startsWith('LIFE0005'));
+            assert.equal(count('pileheads_round_receipts'),1);
+            assert.equal(archive('LIFE0005',0,'{1,2}'),'');
+            create('LIFE0006','host-six');
+            assert.throws(()=>archive('LIFE0006',0,'{1,2}'),/duplicate key/i);
+            assert.equal(psql("SELECT revision FROM pilehead_rooms WHERE code='LIFE0006';"),'0');
+            assert.equal(count('pileheads_round_receipts'),1);
+            assert.throws(()=>psql("DELETE FROM pileheads_round_receipts;",runtime),/permission denied/i);
+            console.log('PASS exact receipt SQL: CAS, constraint/duplicate rollback, least privilege and exactly one receipt');
             console.log('PASS isolated PostgreSQL: role grants, valid expiry index, dry run, 500-row batches, cascades, active records and idempotent cleanup');
           }
           main().catch(e=>{console.error(e.message);process.exitCode=1});
