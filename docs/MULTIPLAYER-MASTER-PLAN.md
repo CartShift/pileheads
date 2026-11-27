@@ -1,10 +1,28 @@
 # Pileheads Multiplayer — Implementation Master Plan
 
-Status: planned, not implemented. Owner-approved product direction; numerical defaults and technical choices below are proposals until verified. Updated: 2026-11-26. Repository: CartShift/pileheads (existing STACK/PILEHEAD internal identifiers remain for compatibility). This is the living multiplayer roadmap. Check off a task only with commit/PR and verification evidence; record changes to decisions here. 
+Status: phased implementation in progress; the release gates remain open. Owner-approved product direction; numerical defaults and technical choices below are proposals until verified. Updated: 2026-11-26. Repository: CartShift/pileheads (existing STACK/PILEHEAD internal identifiers remain for compatibility). This is the living multiplayer roadmap. Check off a task only with commit/PR and verification evidence; record changes to decisions here. 
 
 ## Sequencing with web experience
 
 [Game Experience 4.0](GAME-EXPERIENCE-MASTER-PLAN.md) is the active product milestone. Stabilize and polish the web tabletop and private-room experience through GE-09 before broad tournament/competitive implementation or public rollout. Non-disruptive shared contract and safety work may proceed in parallel; this document owns tournament, scoring, identity, matchmaking and progression semantics. Do not duplicate Game Experience presentation work or treat its completion as multiplayer launch acceptance.
+
+## Implementation evidence — 2026-11-28
+
+The original roadmap below records the target architecture. This evidence section supersedes stale descriptions of the current baseline; it does not mark entire phases complete.
+
+| Increment | Evidence | Release status |
+| --- | --- | --- |
+| Faster room synchronization / Frankfurt | [#174](https://github.com/CartShift/pileheads/pull/174) | Merged; actual live latency sample still required |
+| Atomic room creation / join | [#179](https://github.com/CartShift/pileheads/pull/179) | Merged; disposable PostgreSQL and browser acceptance |
+| Guest profiles and acceptance | [#178](https://github.com/CartShift/pileheads/pull/178), [#181](https://github.com/CartShift/pileheads/pull/181) | Merged; activation gated |
+| Authoritative round receipts | [#180](https://github.com/CartShift/pileheads/pull/180) | Merged; 90-day retention, activation gated |
+| Verified accounts and Google sign-in | [#182](https://github.com/CartShift/pileheads/pull/182), [#183](https://github.com/CartShift/pileheads/pull/183) | Merged; actual provider and HTTPS staging pending |
+| Private account history and consent | [#184](https://github.com/CartShift/pileheads/pull/184), [#185](https://github.com/CartShift/pileheads/pull/185) | Merged; shared database grants and activation gated |
+| Player data maintenance | [#186](https://github.com/CartShift/pileheads/pull/186) | Merged; approved operator cadence required |
+| Private XP and achievement pilot | [#188](https://github.com/CartShift/pileheads/pull/188) | Implementation PR; see current checks and merge status |
+| Public casual queue foundation | [#189](https://github.com/CartShift/pileheads/pull/189) | Implementation PR; no public endpoint or room assignment |
+
+See [PLAYER-PROGRESSION.md](PLAYER-PROGRESSION.md) for private pilot tuning (10 XP per opted-in all-human round, 50 per UTC day, level increments of 100 XP). This is not the eventual ranked or public XP economy. See [PUBLIC-MATCHMAKING-QUEUE.md](PUBLIC-MATCHMAKING-QUEUE.md) for the initial two-human format and ready-check design. Do not equate queue acceptance with a playable public match. Next implementation slice: atomically consume a ready offer into one room, recover seat access across authenticated devices, then deadlines, moderation and Play Hub integration. Coordinate [#187](https://github.com/CartShift/pileheads/pull/187) for the shell. No paid dependency or public activation from these changes.
 
 ## Product vision
 
