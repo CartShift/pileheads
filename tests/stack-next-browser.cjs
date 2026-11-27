@@ -940,6 +940,7 @@ async function specialMoveDrillsScenario(browser) {
     await page.getByRole("button",{name:"Leave table"}).click();
     for(const [id,action] of [["snap","SNAP"],["slam","SLAM"],["counter","Counter DUMP"]]){
       await page.getByRole("combobox",{name:"Special move drill"}).selectOption(id);
+      await page.getByText("Practice a special move",{exact:true}).click();
       await page.getByRole("button",{name:"Practice special move"}).click();
       assert.equal(await page.locator(".game-table-shell").getAttribute("data-drill"),id);
       const button=page.getByRole("button",{name:action,exact:true});

@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /pilehead/endgame-lab.html
+Sitemap: https://pileheads.com/sitemap.xml

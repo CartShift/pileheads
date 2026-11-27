@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./tabletop-layout.css";
 import "./tabletop-skin.css";
+import "./launch-experience.css";
 import FunnelProvider from "../components/funnel-provider";
 
 export const metadata: Metadata = {
