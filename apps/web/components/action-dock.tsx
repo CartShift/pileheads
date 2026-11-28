@@ -14,7 +14,14 @@ export default function ActionDock({g, mode, room, ready, allReady, joined, busy
   reactionSymbols: Record<Reaction["kind"], string>; sendReaction: (kind: Reaction["kind"]) => void | Promise<void>;
   canTake: boolean; canPlay: boolean; onAutoArrange: () => void; onStart: () => void; onReady: () => void;
 }) {
+  const announcement = g.phase === "setup" ? (ready ? "Ready. Waiting for the round to start." : "Choose three face-up cards.") :
+    g.phase === "over" ? `Round complete. ${nameForSeat(g.finishedOrder[0] ?? -1)} finished first.` :
+    g.pendingCounter ? (g.pendingCounter.seat === me ? `Counter DUMP available. Return ${g.pendingCounter.count} cards or keep them.` : `Waiting for ${nameForSeat(g.pendingCounter.seat)} to resolve DUMP.`) :
+    g.pendingDump ? (g.pendingDump.seat === me ? "Choose who takes the pile." : `Waiting for ${nameForSeat(g.pendingDump.seat)} to choose a DUMP target.`) :
+    needsTarget ? "Choose an opponent to receive the pile." :
+    `${active ? "Your turn." : `${nameForSeat(g.turn)} is playing.`}${g.followup.length ? " SNAP available." : ""}${g.slam.length ? " SLAM available." : ""}${active ? (g.limit?.type === "under" ? " Next number 1 to 4." : g.limit?.type === "min" ? ` Next number ${g.limit.value} or higher.` : " Any number can follow.") : ""}`;
   return <div className="control-panel" aria-label="Game actions">
+        <span className="tabletop-announcement" role="status" aria-live="polite" aria-atomic="true">{announcement}</span>
         {g.phase === "setup" ? (
           <div className="setup-controls">
             <div><strong>{mode === "online" ? `${room?.members.length || 0} joined · ${g.players.length - g.botSeats.length} humans required` : "Set up your cards"}</strong>

@@ -261,6 +261,7 @@ async function localScenarios(browser) {
       await page.getByRole("button", { name: "Start round" }).click();
       await page.getByRole("heading", { name: "Your move." }).waitFor({ timeout: 10000 });
       await assertOrdinaryViewport(page, "practice play "+device.width+"x"+device.height);
+      assert.match(await page.locator(".tabletop-announcement").textContent(),/Your turn.*Any number can follow/,"persistent live region announces the current turn and rule");
       const hand = page.locator(".player-hand .card-hit");
       assert.equal(await hand.count(), 3, "opening hand holds three cards");
       assert.equal(await page.locator('.player-hand .playing-card[data-availability="playable"]').count(), 3,
@@ -1421,7 +1422,10 @@ async function sharedMoveAnimationScenarios(browser) {
       node.getAnimations().some(animation=>animation.effect?.getKeyframes().some(frame=>
         frame.transform!==undefined))));
   assert.equal(movingExisting,false,"existing hand cards never spring/shake during refill");
-  console.log("PASS Next stable normal play: one card, zero ghost flights");
+  await quietPage.emulateMedia({reducedMotion:"reduce"});
+  await quietPage.waitForFunction(()=>[...document.querySelectorAll("[data-arrival-motion],[data-draw-motion]")].every(node=>
+    !node.getAnimations().some(animation=>animation.effect?.getKeyframes().some(frame=>frame.transform!==undefined))));
+  console.log("PASS Next stable normal play: one card, zero ghost flights, dynamic reduced motion");
  }finally{await quiet.close()}
  // Force an illegal blind card without leaking its identity before the flip.
  const fail=E.create({players:2,seed:33497});
@@ -1446,7 +1450,7 @@ async function sharedMoveAnimationScenarios(browser) {
  try{
   await blindPage.goto(WEB+"/play");
   await blindPage.getByRole("button",{name:"Resume game"}).click();
-  await blindPage.locator(".faceup-row .blind-under .card-hit").first().click();
+  await blindPage.getByRole("button",{name:"Flip face-down card 1 of 1",exact:true}).click();
   const scene=blindPage.locator('.move-story-overlay[data-kind="reject"]');
   await scene.waitFor({timeout:6000});
   assert.equal(await scene.locator(".move-story-flight").count(),0);
