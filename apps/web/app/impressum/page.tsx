@@ -20,7 +20,8 @@ export default function ImpressumPage(){
    <h2>Angaben zum Anbieter</h2>
    <p>PILEHEADS wird von einer natürlichen Person betrieben.</p>
    <OperatorContact/>
-   <p><strong>Vor Veröffentlichung:</strong> weitere gesetzlich erforderliche Angaben und eine schnelle unmittelbare Kontaktmöglichkeit prüfen und gegebenenfalls ergänzen.</p>
+   <p>Kontakt für Fragen zum Spiel, rechtliche Anliegen und Datenschutz: über die oben genannte E-Mail-Adresse oder postalisch.</p>
+   <p><strong>Vor Veröffentlichung:</strong> prüfen, ob weitere gesetzlich erforderliche Angaben, Kennnummern oder eine zusätzliche unmittelbare Kontaktmöglichkeit erforderlich sind.</p>
    <p><Link href="/privacy">Datenschutz / Privacy notice</Link> · <Link href="/terms">Terms of use</Link></p>
   </article>
  </main>;

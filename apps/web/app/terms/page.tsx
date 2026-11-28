@@ -30,7 +30,8 @@ export default function TermsPage(){
       <h2>4. Changes and availability</h2>
       <p>The game is under active development. Features may change or be temporarily unavailable. This does not limit mandatory rights or remedies under applicable law. If paid features are introduced, their separate terms and pricing must be presented before purchase.</p>
       <h2>5. Privacy and contact</h2>
-      <p>See the <Link href="/privacy">privacy notice</Link> for information about data and account choices. <strong>Before publication: complete the support and complaints process, and review the terms against applicable consumer law.</strong></p>
+      <p>See the <Link href="/privacy">privacy notice</Link> for information about data and account choices. For support, complaints and requests, use the contact details above. These terms do not restrict access to applicable statutory remedies.</p>
+      <p><strong>Operator review before release:</strong> confirm the support process and applicable consumer-law requirements.</p>
       <h2>6. Your legal rights</h2>
       <p>Nothing in these draft terms is intended to waive rights that cannot lawfully be waived. <strong>Before publication: obtain appropriate review of contract formation, age eligibility, suspension and liability provisions.</strong></p>
     </article>

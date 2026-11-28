@@ -16,6 +16,15 @@ Status: BLOCKED pending operator privacy review and live OAuth acceptance. No pr
 - Google Auth Platform > Clients: exact authorized redirect URI https://pileheads.com/api/account/callback. Match the OAuth client deployed in Vercel without disclosing secrets.
 - Official references: https://developers.google.com/identity/protocols/oauth2/policies ; https://developers.google.com/identity/protocols/oauth2/production-readiness/overview ; https://support.google.com/cloud/answer/15549049 ; https://support.google.com/cloud/answer/15549945 . Google basic identity scopes are an exception to the usual test-user allowlist restriction. The public homepage must describe the app and link to privacy and terms on a verified domain. Follow the actual branding verification prompts; never assume approval.
 
+## Provider and legal review evidence
+- GDPR Articles 5, 6, 12–14, 17, 21, 28 and 44–49: https://eur-lex.europa.eu/eli/reg/2016/679/oj
+- German provider identification: https://www.gesetze-im-internet.de/ddg/__5.html
+- Berlin supervisory authority complaint route: https://www.datenschutz-berlin.de/buergerinnen-und-buerger/beschwerde/
+- Vercel DPA: https://vercel.com/legal/dpa (published terms specify Pro and Enterprise coverage; actual team plan was not available via the connector). Confirm actual coverage rather than assuming it. Log drains could not be enumerated through the connector. Do not purchase or change a plan automatically.
+- Neon security and privacy: https://neon.com/security ; verify the actual accepted agreement and configured restore window in the account. EU database location alone does not establish transfer compliance.
+- Google user-data policy: https://developers.google.com/terms/api-services-user-data-policy ; branding verification: https://developers.google.com/identity/protocols/oauth2/production-readiness/brand-verification .
+- The legal drafts now include proposed Article 6 bases, optional/required data distinctions, objection, complaint and Google data-use limitations. Owner-supplied contact details are centralized. Remaining approval items: provider DPA/transfer and retention settings, age/contract policy, actual contact/rights workflow and final legal copy review. Do not mark the database privacy gate as reviewed simply because the UI builds.
+
 ## Retention readiness
 Read-only production inspection on 2026-11-28: 47 expired room rows; zero expired account sessions, guest profiles or round receipts. No deletion performed. Verify the dedicated maintenance credentials, bounded expiry-only cleanup, backup/log retention, and an operator-approved maintenance cadence before enabling persistent account collection. Do not treat this point-in-time count as ongoing monitoring.
 
