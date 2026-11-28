@@ -1,0 +1,14 @@
+'use strict';
+const assert=require('node:assert/strict');
+const {catalog,merchandiseQuote}=require('../scripts/commerce-core.cjs');
+const sku=catalog[0].sku;
+const offer={sku,active:true,unitMinor:1500,currency:'EUR',available:5};
+const cart=[{sku,quantity:2}];
+assert.equal(catalog.length,1);
+assert.equal(catalog[0].availability,'coming_soon');
+assert.equal(catalog[0].cardCount,54);
+assert.equal(merchandiseQuote(cart,[offer]).subtotalMinor,3000);
+assert.deepEqual(merchandiseQuote(cart,[offer]).lines,[{sku,quantity:2,unitMinor:1500,lineMinor:3000}]);
+for(const items of [[],[{sku,quantity:0}],[{sku,quantity:1.5}],[{sku,quantity:11}],[{sku,quantity:1,unitMinor:1}],[{sku:'UNKNOWN',quantity:1}],[...cart,...cart]])assert.throws(()=>merchandiseQuote(items,[offer]));
+for(const offers of [[],[offer,offer],[{...offer,active:false}],[{...offer,available:1}],[{...offer,unitMinor:-1}],[{...offer,currency:'USD'}]])assert.throws(()=>merchandiseQuote(cart,offers));
+console.log('Commerce catalog and pricing safeguards passed');
