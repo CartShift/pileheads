@@ -29,14 +29,14 @@ Exit: known candidate, full evidence and actionable reproducible defects.
 
 ### S02 — Engine & rules (P0) — #103
 - [ ] Verify number groups and all specials including Counter DUMP/pass, SNAP/SLAM precedence, hand/face-up bridge, blind reveal/pickup, winner-start, rematch and 2-player SKIP omission. Reuse shared-core, engine, matching-actions and online tests.
-- [ ] Run deterministic canonical-engine benchmark with >=10,000 seeds per player count, classic and optional Final Duel, rotating starter and bot policy assignments; include interrupts and all decision types. Report p50/p95/p99, capped seeds, per-seat/starter wins and longest no-progress streaks; retain version/seed/cap. Compare historical benchmark without treating different cohorts as equivalent.
+- [x] Run deterministic canonical-engine benchmark with >=10,000 seeds per player count, classic and optional Final Duel, rotating starter and bot policy assignments; include interrupts and all decision types. Report p50/p95/p99, capped seeds, per-seat/starter wins and longest no-progress streaks; retain version/seed/cap. Compare historical benchmark without treating different cohorts as equivalent.
 - [ ] Add targeted property/invariant and deterministic regression cases for findings. Do not silently change rules or force game termination.
 Exit: zero invariant violations, published current distributions and explicit long-game decision.
 
 ### S03 — Multiplayer reliability (P0) — #69, #71
 - [ ] Measure EU warm/cold command acknowledgement and opponent convergence; cross-instance and fallback; inspect read/compute usage.
 - [ ] Reproduce simultaneous SNAP/SLAM, bot/human timing, duplicate requests, stale revisions, unknown-result timeouts, two tabs and out-of-order snapshots.
-- [ ] Preserve still-legal card selection during unrelated revisions; never preserve invalid or cross-round selection. Keep intentional DUMP target state only when valid.
+- [x] Preserve still-legal card selection during unrelated revisions; never preserve invalid or cross-round selection. Keep intentional DUMP target state only when valid.
 - [ ] Improve offline/reconnecting and recovery feedback, check room epochs, reconnect/backoff, token expiry, bot scheduling and read quota/cost. No new transport until measurements warrant it.
 - [ ] Check redaction on every seat including blind IDs, logs and realtime packets.
 Exit: no divergence, duplicate moves or private-card leaks; reliable recovery. No change to interrupt rules.
@@ -92,11 +92,14 @@ Warm EU p95 input <=100ms, server acknowledgement <=300ms, rival state <=1,000ms
 
 ## Execution evidence
 
+Live production verification (2026-11-28): [single move](https://github.com/CartShift/pileheads/actions/runs/46089052791) and [20 moves](https://github.com/CartShift/pileheads/actions/runs/46089143540), exact alias metadata e14b12a before/after, database/WS/privacy/public parity/reconnect passed. See [latency report](MULTIPLAYER-LATENCY.md). This is not human or physical-device acceptance. No paid upgrade. Current release candidate must be verified again after other runtime changes merge.
+
+
 | Slice | Status | Evidence / next action |
 | --- | --- | --- |
-| S01 | partial | Baseline SHA, Vercel metadata and fast/security runs above; full/live/manual gates open |
+| S01 | partial | [Canonical live smoke and 20 sequential actions passed](MULTIPLAYER-LATENCY.md) on e14b12a; exact final release, cold/weak/hardware baseline remain open |
 | S02 | partial | [80,000 distinct matches](SIMULATOR-BALANCE-20261128.md) executed, zero invariant exceptions; all 16 capped cases extended and analyzed; human preference remains open |
-| S03 / S04 / S10 | partial | #203, #206, #208, #209 merged after automated acceptance; live latency, controller modularity and physical recovery open |
+| S03 / S04 / S10 | partial | #203, #206, #208, #209 merged after automated acceptance; live 20-action baseline passed; #220 local projection extraction and #222 accessibility/motion candidate under acceptance at capture; real EU/device latency, controller modularity and physical recovery open |
 | S05–S10 | partial | [Actual CI visual and lab performance review](SIMULATOR-VISUAL-PERFORMANCE-20261128.md); #210 action clarity and #212 narrow header merged; after-screenshots inspected; #215 input timing and #216 hand geometry merged; mobile lab p95 paint proxy 31.7ms; real device/field timing open |
 | S11–S12 | open | [Acceptance matrix](SIMULATOR-QA-MATRIX.md); exact final live release and human pilot still required |
 | Human/device gates | blocked in current chat | GE09, #71 and #139 require physical participants; static CI screenshots reviewed, real-device and dynamic visual acceptance remain open |
