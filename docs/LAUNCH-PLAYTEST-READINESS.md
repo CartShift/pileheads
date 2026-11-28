@@ -68,3 +68,43 @@ Use #138 for implementation and privacy acceptance. Proposed reporting cohorts:
 ## Go/no-go
 
 Record exact build, live smoke results, manual device matrix, outstanding defects, measurement validation, approvals and rollback owner. Owner makes explicit decision before public promotion. Verify links on the promoted deployment. Public content must accurately describe an online playtest; no physical availability claim. Keep fallback intact until acceptance. Review results before increasing promotion.
+
+## Ready-to-run pilot session packet (2026-11-28)
+
+Technical production baseline: [live smoke and 20 sequential actions](MULTIPLAYER-LATENCY.md), alias metadata e14b12a, passed. This is a prerequisite, not completion of A1/A2. Verify the deployed release again after current runtime PRs merge.
+
+Invitation text (send manually to 10–20 consenting adults; do not imply a purchase):
+"Would you like to try our new card game PILEHEADS online? Open https://pileheads.com/play on your phone or computer. You can play against bots without an account or join a private room. I'd love honest feedback after one round. Participation and feedback are entirely optional."
+
+Facilitator:
+1. Ask permission to observe before collecting anything. Do not record names, contacts, room codes, IPs, account IDs, raw gameplay data or screenshots in a public repo. No recording by default.
+2. Run the first five unfamiliar-player sessions one at a time, with no coaching until the participant asks or is stuck; record assistance separately. Ask the participant to start, make the first legal move, reach the face-up and face-down stages and finish. If they stop, note that outcome without pressure.
+3. Invite the remaining volunteers to normal bot/private games. Include physical iOS Safari and Android Chrome, desktop, at least two independent human clients, short viewport/landscape, reconnection, sound off/on and actual voluntary rematch. Use GE09 for the technical device checklist.
+4. Ask the post-round questions in Run C and check whether the player can explain DUMP, Counter DUMP and SNAP/SLAM after playing or using drills. Do not label an unobserved skill as failed.
+5. Record only non-sensitive aggregate counts in the shared evidence; use private notes for consent/individual observations. Keep existing product analytics and growth flags off unless separately authorized.
+
+### Aggregate outcome sheet (empty template, not observed results)
+
+| Measure | Observed numerator | Eligible observed denominator | Unknown / not observed |
+| --- | ---: | ---: | ---: |
+| Invited / arrived | | | |
+| Started first game unassisted | | | |
+| Made first legal move unassisted | | | |
+| Completed first round unassisted | | | |
+| Completed with assistance | | | |
+| Explained the observed special mechanics | | | |
+| Voluntarily started another round | | | |
+| Said they would play again | | | |
+| Invited a friend | | | |
+
+Distinguish stated intent from actual behavior. Do not convert blank cells to zeros. Split unfamiliar vs familiar players and local vs private online only when group counts support useful interpretation. First five formative sessions: target >=4/5 complete unassisted and want a rematch, >=80% explain observed special mechanics. These thresholds guide iteration, not statistical proof. No public promotion until critical defects, physical acceptance, legal/operator and owner review gates are resolved.
+
+### Physical acceptance matrix (not run)
+
+| Device class | Setup / 1st move | 24–36-card hand / rotate | Full private round | Background / reconnect | Audio / reduced motion | Keyboard / screen reader |
+| --- | --- | --- | --- | --- | --- | --- |
+| Android Chrome, physical phone | not run | not run | not run | not run | not run | not run |
+| iOS Safari, physical phone | not run | not run | not run | not run | not run | not run |
+| Desktop browser | not run | not run | not run | not run | not run | not run |
+
+Use the [GE09 physical acceptance checklist](GE09-PHYSICAL-ACCEPTANCE.md) for detailed scenarios. Record the exact release, device class, scenario and outcome privately; publish only anonymous technical defects and aggregates. No participants have been contacted or recruited by this preparation.

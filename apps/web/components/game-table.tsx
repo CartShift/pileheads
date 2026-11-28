@@ -30,6 +30,10 @@ import { useRoundChoreography } from "../lib/use-round-choreography";
 import { Engine, type Card, type Event, type Game, type Move } from "../lib/engine";
 import { backendOrigin, requestRoom, roomMove, sessionKey, type Room, type RoomGame, type Reaction } from "../lib/room";
 
+const LocalTable = require("../lib/local-table-core.cjs") as {
+  localBotOpportunity:(engine:typeof Engine,game:Game)=>{seat:number;kind:"dump"|"snap"|"slam"|"turn";ids:string}|null;
+  asLocalRoom:(engine:typeof Engine,game:Game)=>RoomGame;
+};
 const HandLayout = require("../lib/hand-layout-core.cjs") as {
   computeHandLayout:(count:number,area:{width:number;cardWidth:number})=>{
     handColumns:number;handRows:number;lastRowShift:number;handLayout:CSSProperties;
@@ -98,20 +102,6 @@ const sameFace = (a?: Card, b?: Card) => !!a && !!b &&
 const identicalIds = (left: number[], right: number[]) =>
   left.length === right.length && left.every(id => right.includes(id));
 
-function localBotOpportunity(game: Game): { seat: number; kind: "dump" | "snap" | "slam" | "turn"; ids: string } | null {
-  if (game.phase !== "play") return null;
-  if (game.pendingDump) return game.pendingDump.seat === 0 ? null :
-    { seat: game.pendingDump.seat, kind: "dump", ids: "" };
-  const bots = game.people.slice(1).filter(p => !p.out).map(p => p.seat);
-  const snap = bots.find(seat => Engine.followUpOptions(game, seat).length > 0);
-  if (snap !== undefined) return { seat: snap, kind: "snap",
-    ids: Engine.followUpOptions(game, snap)[0].ids?.join(",") || "" };
-  const slam = bots.find(seat => Engine.slamOptions(game, seat).length > 0);
-  if (slam !== undefined) return { seat: slam, kind: "slam",
-    ids: Engine.slamOptions(game, slam)[0].ids?.join(",") || "" };
-  return game.turn === 0 || game.people[game.turn]?.out ? null :
-    { seat: game.turn, kind: "turn", ids: "" };
-}
 
 function createGame(players: number, endgameRule: EndgameRule,
   starterSeat: number | null = null, practice = false): Game {
@@ -123,30 +113,6 @@ function createGame(players: number, endgameRule: EndgameRule,
   return g;
 }
 
-function asLocalRoom(game: Game): RoomGame {
-  return {
-    phase: game.phase, turn: game.turn, moves: game.moves, round: 1,
-    botSeats: game.people.slice(1).map(p => p.seat),
-    endgameRule: game.endgameRule === "final-duel" ? "final-duel" : "classic",
-    stockCount: game.stock.length, pile: game.pile, ashesCount: game.ashes.length,
-    limit: game.limit, pendingDump: game.pendingDump || null,
-    pendingCounter: game.pendingCounter ? { seat: game.pendingCounter.seat, attacker: game.pendingCounter.attacker, count: game.pendingCounter.ids.length } : null,
-    finishedOrder: game.finishedOrder, loser: game.loser,
-    players: game.people.map(p => ({
-      seat: p.seat, out: p.out, up: p.up, handCount: p.hand.length, hand: p.hand,
-      downCount: p.down.length, blindSlots: p.down.map((_, i) => i),
-      pickups: p.pickups
-    })),
-    events: game.events,
-    reactions: [],
-    blindReveal: game.blindReveal || null,
-    omitSkip: game.omitSkip === true,
-    legal: game.phase === "play" && game.turn === 0 ? Engine.options(game, 0) : [],
-    slam: game.phase === "play" ? Engine.slamOptions(game, 0) : [],
-    followup: game.phase === "play" ? Engine.followUpOptions(game, 0) : [],
-    setupReady: game.setupReady || []
-  };
-}
 
 export default function GameTable() {
   const {emit:emitFunnel}=useFunnel();
@@ -598,7 +564,7 @@ export default function GameTable() {
     if (mode !== "local" || !local || local.phase !== "play") return null;
     // A labelled teaching fixture holds only the initial bot action until the learner acts.
     if (drill && local.moves === drill.startMove) return null;
-    const opportunity = localBotOpportunity(local);
+    const opportunity = LocalTable.localBotOpportunity(Engine,local);
     if (!opportunity) return null;
     // Human SNAP must not restart an already scheduled rival turn.
     const lastOrdinary = [...local.events].reverse().find(e => e.type !== "followup");
@@ -609,7 +575,7 @@ export default function GameTable() {
     if (!localBotKey) return;
     const timer = window.setTimeout(() => {
       commitLocal(game => {
-        const opportunity = localBotOpportunity(game);
+        const opportunity = LocalTable.localBotOpportunity(Engine,game);
         if (!opportunity) return;
         const { seat, kind } = opportunity;
         if (kind === "dump") Engine.resolveDump(game, seat, Engine.botDumpTarget(game, seat));
@@ -636,7 +602,7 @@ export default function GameTable() {
   }, [mode, room?.revision, room?.game.turn, room?.game.phase, room?.game.botFollowupReady,
     room?.game.botSlamReady, room?.game.pendingDump?.seat, busy, submit]);
 
-  const g = useMemo(() => mode === "local" && local ? asLocalRoom(local) : mode === "online" ? room?.game : null,
+  const g = useMemo(() => mode === "local" && local ? LocalTable.asLocalRoom(Engine,local) : mode === "online" ? room?.game : null,
     [mode, local, room]);
   const visualGameKey = mode === "local" ? "local:" + local?.seed :
     mode === "online" ? "online:" + room?.code + ":" + room?.game.round : "home";
