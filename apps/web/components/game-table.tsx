@@ -44,6 +44,13 @@ const THEME_KEY = "stack-next-deck-theme-v1";
 const PRACTICE_KEY = "stack-next-practice-mode-v1";
 const FINAL_DUEL_KEY = "stack-final-duel-default-v1";
 type EndgameRule = "classic" | "final-duel";
+// Persistence is best-effort: a blocked/quota-limited browser must still play.
+function readPreference(key: string): string | null {
+  try { return window.localStorage.getItem(key); } catch { return null; }
+}
+function writePreference(key: string, value: string): boolean {
+  try { window.localStorage.setItem(key, value); return true; } catch { return false; }
+}
 function orderedHand(cards: Card[], mode: HandSort) {
   if (mode === "dealt") return cards;
   const weight = (card: Card) => card.kind === "number" ? card.rank || 0 :
@@ -53,7 +60,7 @@ function orderedHand(cards: Card[], mode: HandSort) {
 }
 function loadSavedGame(): Game | null {
   try {
-    const data = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+    const data = JSON.parse(readPreference(SAVE_KEY) || "null");
     if (data?.version !== 1 || data.game?.version !== Engine.VERSION) return null;
     Engine.invariant(data.game);
     if (!["setup", "play", "over"].includes(data.game.phase)) return null;
@@ -200,7 +207,7 @@ export default function GameTable() {
   // Presentation preference is local-only; never part of multiplayer game state.
   useEffect(() => {
     try {
-      const value = localStorage.getItem("stack-motion-level-v1");
+      const value = readPreference("stack-motion-level-v1");
       if (value === "full" || value === "balanced" || value === "reduced")
         setMotionLevel(value);
     } catch {}
@@ -253,7 +260,9 @@ export default function GameTable() {
     }
     if (next.session) {
       tokenRef.current = next.session;
-      localStorage.setItem(sessionKey(next.code), next.session);
+      if (!writePreference(sessionKey(next.code), next.session)) {
+        setNotice("This browser cannot save your room session. Keep this tab open to retain your seat.");
+      }
     }
     roomRef.current = next;
     setRoom(next);
@@ -302,17 +311,17 @@ export default function GameTable() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("room")?.trim().toUpperCase();
-    const savedName = localStorage.getItem("stack-next-display-name");
+    const savedName = readPreference("stack-next-display-name");
     if (savedName) setName(savedName);
-    const savedTheme = localStorage.getItem(THEME_KEY);
+    const savedTheme = readPreference(THEME_KEY);
     if (savedTheme === "refined" || savedTheme === "characters" || savedTheme === "original") setDeckTheme(savedTheme);
     setResumeGame(loadSavedGame());
-    setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
-    setEndgameRule(localStorage.getItem(FINAL_DUEL_KEY) === "final-duel" ? "final-duel" : "classic");
+    setPracticeMode(readPreference(PRACTICE_KEY) === "true");
+    setEndgameRule(readPreference(FINAL_DUEL_KEY) === "final-duel" ? "final-duel" : "classic");
     if (!code || !/^[A-Z0-9]{8}$/.test(code)) return;
     setInviteEntry(true);
     setJoinCode(code);
-    const token = localStorage.getItem(sessionKey(code));
+    const token = readPreference(sessionKey(code));
     if (token) { tokenRef.current = token; void synchronize(code, token); }
   }, [synchronize]);
 
@@ -785,7 +794,7 @@ export default function GameTable() {
     setDrill(null);
     freshDealKey.current = null;
     localRef.current = saved; undoRef.current = null; setUndoAvailable(false);
-    setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
+    setPracticeMode(readPreference(PRACTICE_KEY) === "true");
     setEndgameRule(saved.endgameRule === "final-duel" ? "final-duel" : "classic");
     setCoachDismissed(false);
     setLocal(saved); setRoom(null); setMode("local"); setSelection([]); setNotice("");
@@ -913,13 +922,13 @@ export default function GameTable() {
     if (onlineHumans + onlineBots < 2 || onlineHumans + onlineBots > 5) {
       setNotice("Choose 2–5 seats in total."); return;
     }
-    localStorage.setItem("stack-next-display-name", name);
+    writePreference("stack-next-display-name", name);
     await submit({ action: "create", name, humans: onlineHumans, bots: onlineBots,
       endgameRule, roundLimit }, true);
   }
 
   async function joinOnlineRoom() {
-    localStorage.setItem("stack-next-display-name", name);
+    writePreference("stack-next-display-name", name);
     await submit({ action: "join", name, code: joinCode.trim().toUpperCase() }, true);
   }
 
