@@ -1,6 +1,6 @@
 # PILEHEADS — SEO Foundation & Organic Growth implementation plan
 
-**Status:** implementation plan; all new execution and acceptance gates are open unless explicitly evidenced below.  
+**Status:** candidate implementation in progress; production acceptance remains open.  
 **Created:** 2026-11-28. **Owner:** product/engineering; commercial, editorial and privacy decisions require operator review.  
 **Canonical domain:** https://pileheads.com. **Scope:** organic search discovery, crawl/index control, public content, performance, conversion measurement and physical-deck discovery.
 
@@ -33,7 +33,7 @@ The initial audit inspected GitHub main source, not a successful live crawl. Sou
 | apps/web/app/deck/page.tsx | 54 cards / 16 illustrated faces; canonicals and prototype status | Future product conversion and real product facts |
 | apps/web/app/profile/page.tsx | noindex, follow | Actual deployed directive |
 | apps/web/app/quick-play/page.tsx | noindex, nofollow | Keep utility route out of index until explicitly promoted |
-| apps/web/app/deck-updates/page.tsx | Client confirmation/unsubscribe flow; no page-level metadata observed in page file | Inspect ancestor layout and headers; ensure noindex and remove from GA4 allowlist if utility-only |
+| apps/web/app/deck-updates/page.tsx | Client confirmation/unsubscribe flow; no page-level metadata observed in page file | Existing layout already supplies noindex; candidate centralizes it and removes the utility route from GA4 allowlist |
 | vercel.json | cleanUrls, legacy redirects, shared security headers | www/apex, HTTP, previews, Render fallback, .html and slash variants |
 | scripts/build-vercel.mjs / publish-next.mjs | Publishes legacy print, playtest, gallery and lab alongside static Next export | Legacy route policy, final artifacts and PWA caching behavior |
 | apps/web/components/google-analytics.tsx / lib/ga4-core.cjs | Consent, host/path allowlist, safe referrers, campaign sanitization, play CTA event; /play excluded from GA4 page allowlist | Actual production config and consent-safe attribution; no private data |
@@ -261,14 +261,14 @@ Rollback: revert specific PR, keep existing canonical URLs and functional invite
 | Slice | Status | PR / evidence | Next action |
 | --- | --- | --- | --- |
 | SEO-01 | Open; production/GSC not verified | Source baseline above | Pin deployment, run live crawl, request DNS verification only if needed |
-| SEO-02 | Open | Existing sitemap/robots and redirects | Inventory routes, implement policy |
-| SEO-03 | Open | Existing metadata/page source | Implement unique metadata and visible copy |
-| SEO-04 | Open | No inspected JSON-LD or SEO test | Schema and build-artifact regression test |
+| SEO-02 | Candidate | [PR #237](https://github.com/CartShift/pileheads/pull/237): registry, sitemap generator, utility and legacy noindex, fallback header | Verify exported HTML, redirect/host behavior and live indexing |
+| SEO-03 | Candidate | #237: unique metadata, OG/Twitter, visible copy and descriptive rules/deck headings | Verify exact-SHA and browser checks |
+| SEO-04 | Candidate | #237: WebSite/VideoGame schema, static regression suite and read-only production smoke | Validate exact export; run live smoke after release |
 | SEO-05 | Open | Responsive images already present | Collect baseline before optimization |
-| SEO-06 | Open; existing consented code | #138 | Inspect event contract, verify config and privacy |
-| SEO-07–08 | Open | Candidate map, unmeasured | Validate intent, release useful guides |
-| SEO-09 | Dependent on #172 | Prototype/waitlist | Prelaunch product SEO only |
-| SEO-10–12 | Open | No verified placements or growth baseline | Prepare, measure, iterate |
+| SEO-06 | Candidate privacy narrowing; existing funnel reused | #138, #237, [SEO operations](SEO-OPERATIONS.md) | Verify consent/browser checks, organic attribution and operator configuration |
+| SEO-07–08 | Initial candidate | #237: strategy and comparison; [research and content decisions](SEO-OPERATIONS.md) | Browser/editorial acceptance; measure demand before expansion |
+| SEO-09 | Prelaunch candidate; commercial activation blocked by #172 | #237: existing waitlist reused on /deck, truthful prototype status | Verify waitlist behavior; actual product data and merchant approval |
+| SEO-10–12 | Operations playbook prepared; external gates open | [SEO operations](SEO-OPERATIONS.md) | Obtain verified placements, localized demand and search/analytics baseline |
 
 Update ledger when work actually occurs. Do not mark a task verified based on this plan, historical CI, a mock, a search snippet or provider READY status.
 

@@ -1,6 +1,6 @@
 "use strict";
 const {attributionFromSearch}=require("./growth-attribution.cjs");
-const PAGES=Object.freeze({"/":"Home","/deck":"Deck","/deck-updates":"Deck updates","/how-to-play":"How to play"});
+const PAGES=Object.freeze({"/":"Home","/deck":"Deck","/how-to-play":"How to play"});
 function pageFor(pathname,search=""){
   const path=pathname.replace(/\/+$/,"")||"/";
   if(!Object.prototype.hasOwnProperty.call(PAGES,path))return null;

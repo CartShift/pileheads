@@ -27,6 +27,7 @@ const contentTypes = {
   '.png': 'image/png',
   '.ico': 'image/x-icon',
   '.txt': 'text/plain; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
   '.ttf': 'font/ttf',
@@ -88,7 +89,7 @@ async function serveFile(req, res, url) {
   }
   if (pathname === '/play' || pathname === '/play/') pathname = '/play.html';
   else if (pathname === '/stack' || pathname === '/stack/') pathname = '/stack.html';
-  else if (['/growth','/growth/','/deck-updates','/deck-updates/','/how-to-play','/how-to-play/','/deck','/deck/','/profile','/profile/','/quick-play','/quick-play/'].includes(pathname)) pathname = pathname.replace(/\/$/,'') + '.html';
+  else if (['/growth','/growth/','/deck-updates','/deck-updates/','/how-to-play','/how-to-play/','/deck','/deck/','/profile','/profile/','/quick-play','/quick-play/','/strategy','/strategy/','/guides/shithead-vs-pileheads','/guides/shithead-vs-pileheads/','/pilehead/print','/pilehead/print/','/pilehead/playtest','/pilehead/playtest/','/pilehead/endgame-lab','/pilehead/endgame-lab/','/pilehead/gallery','/pilehead/gallery/'].includes(pathname)) pathname = pathname.replace(/\/$/,'') + '.html';
   if (pathname.includes('\0') || pathname.includes('\\')) return respond(res, 400, 'Bad Request');
 
   const filename = path.resolve(root, '.' + pathname);
@@ -103,6 +104,7 @@ async function serveFile(req, res, url) {
   if (!info.isFile()) return respond(res, 404, 'Not Found');
 
   res.statusCode = 200;
+  if (path.extname(filename) === '.html' && /(?:^|\.)onrender\.com(?::\d+)?$/i.test(req.headers.host || '')) res.setHeader('X-Robots-Tag', 'noindex');
   res.setHeader('Content-Type', contentTypes[path.extname(filename).toLowerCase()] || 'application/octet-stream');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');

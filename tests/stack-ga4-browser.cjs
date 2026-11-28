@@ -72,6 +72,10 @@ const ID="G-CITEST0001";
     await button("Analytics preferences").waitFor();
     assert.equal(await page.evaluate(()=>!!window.gtag),false,"private page must not initialize GA");
     assert.equal(requests.length,before,"private route must not request the tag");
+    await page.goto(ORIGIN+"/deck-updates#confirm=synthetic-private");
+    await button("Analytics preferences").waitFor();
+    assert.equal(await page.evaluate(()=>!!window.gtag),false,"confirmation page must not initialize GA");
+    assert.equal(requests.length,before,"confirmation page must not request the tag");
     console.log("PASS GA4 isolated browser: opt-in, reject, reload, URL sanitization, play CTA, withdrawal, private-route exclusion");
   }finally{await context.close();await browser.close();}
 })().catch(err=>{console.error(err);process.exitCode=1;});

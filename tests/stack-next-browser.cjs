@@ -1814,14 +1814,14 @@ async function publicLaunch(browser){
   try{
     await page.goto(WEB+"/");
     assert.match(await page.locator("h1").innerText(),/ONE PILE\.[\s\S]*ONE LOSER\./i);
-    for(const route of ["/how-to-play","/deck"]){
+    for(const route of ["/how-to-play","/deck","/strategy","/guides/shithead-vs-pileheads"]){
       const response=await page.goto(WEB+route);
       assert.equal(response.status(),200);
       assert.equal(await page.locator('link[rel="canonical"]').getAttribute("href"),"https://pileheads.com"+route);
       assert.equal(await page.locator("h1").count(),1);
       assert.ok(await page.locator(".public-card:not(.public-back)").first().evaluate(el=>el.getAttribute("src").startsWith("/stack-media/cards/")),"individual optimized card art");
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),"public page has no horizontal overflow");
-      await page.screenshot({path:path.resolve(ROOT,"artifacts/next/public-"+route.slice(1)+".png"),fullPage:true,animations:"disabled"});
+      await page.screenshot({path:path.resolve(ROOT,"artifacts/next/public-"+route.slice(1).replaceAll("/","-")+".png"),fullPage:true,animations:"disabled"});
     }
     await page.goto(WEB+"/play?room=ABCD1234");
     await page.getByRole("heading",{name:"Room ABCD1234"}).waitFor();

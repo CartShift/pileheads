@@ -1,7 +1,7 @@
 import Link from "next/link";
 import CampaignPlayLink from "./campaign-play-link";
 
-export type SiteRoute = "/" | "/play" | "/quick-play" | "/how-to-play" | "/deck" | "/profile";
+export type SiteRoute = "/" | "/play" | "/quick-play" | "/how-to-play" | "/deck" | "/profile" | "/strategy" | "/guides/shithead-vs-pileheads";
 
 const links = [
   { href: "/quick-play", label: "Quick Play" },
