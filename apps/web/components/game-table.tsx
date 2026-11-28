@@ -369,7 +369,25 @@ export default function GameTable() {
       if (epoch !== roomEpoch.current) return;
       const message = err instanceof Error ? err.message : "network_unavailable";
       setNotice(messageForError(message));
-      if (message === "stale_revision" && roomRef.current && tokenRef.current) {
+      // A transport failure can occur AFTER the database committed a move.
+      // Keep the command locked during one bounded, read-only reconciliation;
+      // never replay an unknown-result mutation, including SNAP or SLAM.
+      if ((message === "request_timeout" || message === "network_unavailable") &&
+          !noAuth && roomRef.current && tokenRef.current) {
+        const code = roomRef.current.code, token = tokenRef.current;
+        const controller = new AbortController();
+        const recoveryTimer = setTimeout(() => controller.abort(), 4000);
+        setNotice("Connection interrupted. Checking the latest table state…");
+        try {
+          const fresh = await requestRoom({action:"state",code,heartbeat:true},token,controller.signal);
+          if (epoch !== roomEpoch.current) return;
+          applyRoom(fresh);
+          setNotice("Table synchronized. Check the latest state before playing again.");
+        } catch {
+          if (epoch === roomEpoch.current)
+            setNotice("Could not confirm the action. Reconnect or refresh to check the table; the action was not sent again.");
+        } finally { clearTimeout(recoveryTimer); }
+      } else if (message === "stale_revision" && roomRef.current && tokenRef.current) {
         const code = roomRef.current.code, token = tokenRef.current;
         try {
           const fresh = await requestRoom({ action: "state", code, heartbeat: true }, token);

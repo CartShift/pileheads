@@ -1860,6 +1860,59 @@ async function deniedTabletopStorageScenario(browser) {
   } finally { await context.close(); }
 }
 
+async function unknownResultRecoveryScenario(browser) {
+  const hostCtx=await browser.newContext({viewport:{width:390,height:844},reducedMotion:"reduce"});
+  const guestCtx=await browser.newContext({viewport:{width:360,height:740},reducedMotion:"reduce"});
+  try {
+    await hostCtx.addInitScript(()=>{
+      Object.defineProperty(AbortSignal,"any",{configurable:true,value:undefined});
+    });
+    const host=await hostCtx.newPage(),guest=await guestCtx.newPage();
+    await host.goto(WEB+"/play");
+    await host.getByRole("textbox",{name:"Your name"}).fill("Recovery host");
+    await host.getByRole("button",{name:/Create a room/}).click();
+    await host.waitForURL(/room=[A-HJ-NP-Z2-9]{8}/);
+    const code=new URL(host.url()).searchParams.get("room");
+    await guest.goto(WEB+"/play?room="+code);
+    await guest.getByRole("textbox",{name:"Your name"}).fill("Recovery guest");
+    await guest.getByRole("button",{name:"Join",exact:true}).click();
+    await guest.getByRole("button",{name:"I'm ready"}).waitFor();
+    await host.getByRole("button",{name:"I'm ready"}).click();
+    await guest.getByRole("button",{name:"I'm ready"}).click();
+    await host.getByRole("button",{name:"Start round"}).click();
+    await host.getByRole("heading",{name:"Your move."}).waitFor();
+    let moves=0,readsAfterDrop=0,dropped=false;
+    await host.route("**/api/pilehead",async route=>{
+      const body=route.request().postDataJSON();
+      if(body?.action==="move"){
+        moves++;
+        const response=await route.fetch();
+        assert.ok(response.ok(),"server must commit the move before its response is lost");
+        dropped=true;
+        await route.abort("failed");
+        return;
+      }
+      if(dropped&&body?.action==="state")readsAfterDrop++;
+      await route.continue();
+    });
+    await host.locator(".player-hand .card-hit").first().click();
+    await host.getByRole("button",{name:/Play cards/}).click();
+    await host.getByText("Table synchronized. Check the latest state before playing again.",{exact:true}).waitFor();
+    assert.ok(readsAfterDrop>0,"unknown-result recovery must request authoritative state");
+    await Promise.all([host,guest].map(page=>page.locator(".pile-slot.played .pile-layer").first().waitFor()));
+    const view=await host.evaluate(async code=>{
+      const token=localStorage.getItem("stack-next-room-"+code);
+      const response=await fetch("/api/pilehead",{method:"POST",
+        headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+        body:JSON.stringify({action:"state",code})});
+      return response.json();
+    },code);
+    assert.equal(view.game.moves,1,"committed card must appear exactly once");
+    assert.equal(moves,1,"an unknown-result command must never be replayed");
+    console.log("PASS unknown-result move reconciles via read-only state without AbortSignal.any or duplicate action");
+  } finally {await hostCtx.close();await guestCtx.close();}
+}
+
 async function main() {
   fs.mkdirSync(path.resolve(ROOT, "artifacts/next"), {recursive:true});
   const apiProc = fork(path.resolve(ROOT, "scripts/render-server.cjs"), [], {
@@ -1914,6 +1967,7 @@ async function main() {
         interrupts:()=>localInterruptParityScenarios(browser),
         mixed:()=>mixedBotScenarios(browser),
         storage:()=>deniedTabletopStorageScenario(browser),
+        unknownResult:()=>unknownResultRecoveryScenario(browser),
         recovery:()=>abandonedRoomScenario(browser)
       };
       if(!Object.hasOwn(scenarios,selected)) throw Error("Unknown PILEHEADS browser scenario: "+selected);
@@ -1946,6 +2000,7 @@ async function main() {
     await mixedBotScenarios(browser);
     await abandonedRoomScenario(browser);
     await deniedTabletopStorageScenario(browser);
+    await unknownResultRecoveryScenario(browser);
   } catch (e) {
     console.error("Next browser acceptance failed:", e);
     console.error("INTEGRATED SERVER LOGS", apiLog.slice(-6000));
