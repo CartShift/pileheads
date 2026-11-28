@@ -525,6 +525,30 @@ async function adaptiveHandFitScenarios(browser) {
   }
 }
 
+async function assertHeaderControlsDoNotOverlap(page,label) {
+  await page.evaluate(async()=>{await document.fonts.ready;});
+  const geometry=await page.evaluate(()=>{
+    const header=document.querySelector(".game-header");
+    const box=el=>{const r=el.getBoundingClientRect();return {
+      label:el.getAttribute("aria-label")||el.textContent?.trim()||el.className,
+      left:r.left,right:r.right,top:r.top,bottom:r.bottom};};
+    const controls=[header.querySelector(".stack-site-brand"),
+      ...header.querySelectorAll(".game-head-actions > *")].filter(el=>el&&el.getClientRects().length);
+    return {header:box(header),controls:controls.map(box)};
+  });
+  const {header,controls}=geometry;
+  assert.ok(controls.length>=4,label+" expected game-header controls");
+  for(const a of controls){
+    assert.ok(a.left>=header.left-1&&a.right<=header.right+1,
+      label+" header control exceeds available width: "+JSON.stringify(geometry));
+  }
+  for(let i=0;i<controls.length;i++)for(let j=i+1;j<controls.length;j++){
+    const a=controls[i],b=controls[j];
+    const overlapX=Math.min(a.right,b.right)-Math.max(a.left,b.left);
+    const overlapY=Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top);
+    assert.ok(overlapX<=1||overlapY<=1,label+" header controls overlap: "+JSON.stringify({a,b}));
+  }
+}
 async function viewportResilienceScenarios(browser) {
   // These are emulated browser sizes, not physical device performance data.
   for(const device of [
@@ -544,6 +568,7 @@ async function viewportResilienceScenarios(browser) {
       await page.getByRole("button",{name:"Start round"}).click();
       await page.getByRole("heading",{name:"Your move."}).waitFor();
       if(device.fit) await assertOrdinaryViewport(page,"extended play "+device.width+"x"+device.height);
+      await assertHeaderControlsDoNotOverlap(page,"extended play "+device.width+"x"+device.height);
       const card=page.locator(".player-hand .card-hit").first();
       await card.scrollIntoViewIfNeeded();
       const rect=await card.boundingBox();
