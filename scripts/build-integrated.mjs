@@ -1,10 +1,12 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import {spawnSync} from 'node:child_process';
+import {pwaBuildEnv} from './pwa-build-config.mjs';
 
 const root = path.resolve(import.meta.dirname, '..');
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-function run(label, command, args, env = process.env) {
+const buildEnv = pwaBuildEnv(process.env,process.argv.includes('--pwa-release'));
+function run(label, command, args, env = buildEnv) {
   console.log('[PILEHEADS build] ' + label);
   const result = spawnSync(command, args, {cwd: root, stdio: 'inherit', env});
   if (result.error) throw result.error;
@@ -19,6 +21,6 @@ run('Publish shared deck, rules and lab assets', process.execPath, ['scripts/bui
 // Guarantee same-origin HTTP/WebSocket even if an obsolete env var is
 // present in the existing Render service configuration.
 run('Export Next.js React tabletop', npm, ['run', 'build', '--prefix', 'apps/web'],
-  {...process.env, NEXT_PUBLIC_STACK_API_ORIGIN: ''});
+  {...buildEnv, NEXT_PUBLIC_STACK_API_ORIGIN: ''});
 run('Publish the sole Next static export', process.execPath, ['scripts/publish-next.mjs']);
 console.log('[PILEHEADS build] Integrated single-Render build completed');

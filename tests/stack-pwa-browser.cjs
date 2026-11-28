@@ -55,7 +55,7 @@ async function waitReady(){
       const install=page.getByRole("button",{name:"Install PILEHEADS",exact:true});
       await install.click();
       assert.equal(await page.evaluate(()=>window.__pwaPromptCalls),1);
-      await page.getByText("Internet is required to open the game.",{exact:false}).waitFor();
+      await page.getByText("Internet is required",{exact:false}).waitFor();
       await page.getByRole("button",{name:"Add to home screen",exact:true}).click();
       await page.evaluate(()=>window.dispatchEvent(new Event("appinstalled")));
       await page.getByRole("region",{name:"Install PILEHEADS"}).waitFor({state:"detached"});

@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import {publishPwaWorker} from './build-pwa-offline.mjs';
 
 const root = path.resolve('vercel-static');
 const source = path.resolve('apps/web/out');
@@ -14,4 +15,10 @@ for (const name of fs.readdirSync(source)) {
 for (const name of ['index.html','app.js','online.js','classic-clean.css','classic-premium.css']) {
   if (fs.existsSync(path.join(root,'pilehead',name))) throw new Error('Retired Classic asset published: '+name);
 }
+const index=publishPwaWorker(root,{
+  pwaEnabled:process.env.NEXT_PUBLIC_PILEHEADS_PWA==='1',
+  offlineEnabled:process.env.NEXT_PUBLIC_PILEHEADS_OFFLINE==='1',
+  template:path.resolve('scripts/pwa-offline-worker.js')
+});
+if(index)console.log('Published opt-in offline snapshot '+index.version+' ('+index.totalBytes+' bytes)');
 console.log('Published Next.js as the only tabletop and homepage');
