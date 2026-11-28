@@ -2,6 +2,7 @@ import type {Metadata} from "next";
 import Link from "next/link";
 import {PublicShell,PublicCard} from "../../components/public-guide";
 import DeckWaitlist from "../../components/deck-waitlist";
+import TestCheckout from "../../components/test-checkout";
 import catalog from "../../lib/commerce-catalog.json";
 import styles from "./shop.module.css";
 
@@ -17,7 +18,7 @@ export default function Shop(){
     <PublicCard index={2} label="Number three card" eager/>
     <PublicCard index={14} label="Burn action card" eager/>
    </div>
-   <div><p className={styles.status}>IN DEVELOPMENT · NOT YET FOR SALE</p><h2>{product.name}</h2><p>{product.description}</p><p>{product.cardCount} cards · Original illustrated edition</p><p>Pricing, shipping and the release date will be announced before orders open. No payment or reservation is required.</p><DeckWaitlist/><Link href="/deck" className="public-cta">Explore the cards</Link><Link href="/play" className="public-cta">Play online</Link></div>
+   <div><p className={styles.status}>IN DEVELOPMENT · NOT YET FOR SALE</p><h2>{product.name}</h2><p>{product.description}</p><p>{product.cardCount} cards · Original illustrated edition</p><p>Pricing, shipping and the release date will be announced before orders open. No payment or reservation is required.</p><TestCheckout/><DeckWaitlist/><Link href="/deck" className="public-cta">Explore the cards</Link><Link href="/play" className="public-cta">Play online</Link></div>
   </article>
  </PublicShell>;
 }

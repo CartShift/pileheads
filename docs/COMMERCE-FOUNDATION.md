@@ -21,3 +21,14 @@ The shop is a branded, static-export-compatible product preview. It reuses the e
 
 ## Acceptance and rollout
 Unit tests: node tests/pilehead-commerce.cjs. Run npm test, frontend typecheck/build and responsive browser tests. Test shop links, mobile nav, enabled/disabled waitlist, and PWA network-only checkout. Validate migration against isolated Postgres; no production DB changes before approval. Checkout launch gate defaults OFF until test-mode purchases, failure/retry/refunds, stock concurrency, privacy/legal review and fulfillment rehearsal pass. Monitor operational failures without logging secrets or buyer PII.
+
+## Sandbox checkout implementation
+The preview-only /api/commerce-test and /api/commerce-test-webhook endpoints use a fixed fictional EUR 15.00 offer, card-only Stripe-hosted checkout, DE test addresses and a separate disposable database. No real stock, commercial tax, shipping, refunds, fulfillment or buyer PII storage. Never use real customer details. The visible shop remains a coming-soon preview on production.
+Configuration (Vercel Preview only):
+- PILEHEAD_COMMERCE_TEST_ENABLED=1
+- PILEHEAD_COMMERCE_TEST_ORIGIN: exact HTTPS VERCEL_URL origin for the deployment
+- PILEHEAD_COMMERCE_TEST_STRIPE_KEY: sandbox sk_test_ secret, never live
+- PILEHEAD_COMMERCE_TEST_WEBHOOK_SECRET: sandbox endpoint signing secret
+- PILEHEAD_COMMERCE_TEST_DATABASE_URL: separate Neon endpoint and database named pileheads_commerce_test, scoped user
+Apply db/commerce-test-v1.sql manually to that disposable database; grant the isolated test role schema USAGE, table SELECT/INSERT/UPDATE as needed and EXECUTE on start_order, no access to production. Keep preview deployment access restricted. Stripe webhook delivery must be separately tested with deployment protection (use an approved narrowly scoped bypass mechanism or isolated test endpoint; never disable protection globally).
+Use a dedicated sandbox account, create a webhook endpoint for checkout.session.completed and checkout.session.expired, then test Stripe card 4242 4242 4242 4242, decline, cancel, expiry, retry, duplicate event and invalid signature. Use fake addresses. The return URL is not a payment assertion; only signed, provider-retrieved events reconcile test orders. The test checkout is deliberately nonportable to production: live checkout requires a separate integration with real offers, transactional inventory, tax, shipping, refunds, PII handling, customer consent and legal gates.
