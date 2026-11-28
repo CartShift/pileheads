@@ -15,3 +15,6 @@ Add independently consent-gated, allowlisted product events after browser valida
 
 ## Isolated browser acceptance
 The full CI build uses a synthetic G-CITEST0001 measurement ID only. The GA4 Playwright test fulfills the production-looking origin from the local static export, blocks external requests and substitutes a no-op Google script. This checks our client-side integration without sending traffic to Google. It does not replace testing actual Google tag network behavior on the approved production configuration. Do not deploy the CI-only synthetic build to production.
+
+## Security scan evidence
+On 2026-11-28, the workflow's checksum-pinned Gitleaks version independently scanned the public repository history in a temporary sandbox. Both flagged generic-api-key matches were verified to equal the public localStorage consent preference key, not credentials. The two exact historical fingerprints are in `.gitleaksignore`; a full history scan passed with those exceptions. No rule, path, branch or class of secrets is excluded. No scanner report or raw credential was published.
