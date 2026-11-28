@@ -95,7 +95,11 @@ Warm EU p95 input <=100ms, server acknowledgement <=300ms, rival state <=1,000ms
 | Slice | Status | Evidence / next action |
 | --- | --- | --- |
 | S01 | partial | Baseline SHA, Vercel metadata and fast/security runs above; full/live/manual gates open |
-| S02–S12 | open | Reuse existing tests and feature implementations, validate and repair only observed gaps |
+| S02 | partial | #204 merged; [26,000 distinct simulated matches](SIMULATOR-BALANCE-20261128.md); full 3–5 player cohorts and human preference open |
+| S03 / S04 / S10 | partial | #203 merged with full automated acceptance; #206 selection reconciliation pending full acceptance at capture |
+| S05–S09 / S11–S12 | open | [Acceptance matrix](SIMULATOR-QA-MATRIX.md); real visual/physical/pilot evidence still required |
 | Human/device gates | blocked in current chat | GE09, #71 and #139 require physical participants and visual review |
+
+See the [acceptance matrix and iteration evidence](SIMULATOR-QA-MATRIX.md) for precise CI URLs and remaining manual gates.
 
 For each PR record scope, source SHA, tests actually run and result, artifact URLs, remaining gaps, and rollback. Never mark a checkbox based solely on code presence. Update this ledger incrementally; link detailed existing documents rather than duplicating their evidence.
