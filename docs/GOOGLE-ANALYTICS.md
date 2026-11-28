@@ -12,3 +12,6 @@ Known limitations: initial pageview is collected only after opt-in; known fixed 
 
 ## Future event contract
 Add independently consent-gated, allowlisted product events after browser validation: tutorial_complete, game_start, game_complete, rematch_start, invite_share (copy/share is not successful delivery), sign_up, login. Keep room codes, player names, account IDs, tokens, raw URLs and free text out. Use GA4 recommended ecommerce events view_item, add_to_cart, begin_checkout, purchase with non-personal item IDs, currency and confirmed unique transaction IDs. Never send payment credentials; avoid duplicate purchase events. No ecommerce or gameplay events are implemented in this phase. The existing first-party session funnel remains unchanged.
+
+## Isolated browser acceptance
+The full CI build uses a synthetic G-CITEST0001 measurement ID only. The GA4 Playwright test fulfills the production-looking origin from the local static export, blocks external requests and substitutes a no-op Google script. This checks our client-side integration without sending traffic to Google. It does not replace testing actual Google tag network behavior on the approved production configuration. Do not deploy the CI-only synthetic build to production.
