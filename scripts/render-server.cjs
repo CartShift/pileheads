@@ -111,7 +111,7 @@ async function serveFile(req, res, url) {
   res.setHeader('Content-Security-Policy', "frame-ancestors 'none'; object-src 'none'; base-uri 'self'");
   const nextFingerprint = pathname.startsWith('/_next/static/');
   const routePayload = path.extname(filename) === '.txt';
-  res.setHeader('Cache-Control', nextFingerprint ? 'public, max-age=31536000, immutable'
+  res.setHeader('Cache-Control', ['/pwa-sw.js','/manifest.webmanifest'].includes(pathname) ? 'no-cache' : nextFingerprint ? 'public, max-age=31536000, immutable'
     : path.extname(filename) === '.html' || routePayload ? 'no-cache'
     : 'public, max-age=3600');
   if (req.method === 'HEAD') return res.end();
