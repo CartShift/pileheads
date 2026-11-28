@@ -1,0 +1,40 @@
+name: Simulator large balance benchmark
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/simulator-benchmark.yml'
+permissions:
+  contents: read
+concurrency:
+  group: simulator-benchmark-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  benchmark:
+    name: 10,000 seeds per rule (${{ matrix.players }} seats)
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        players: [3, 4, 5]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+      - name: Execute canonical deterministic engine
+        env:
+          PLAYERS: ${{ matrix.players }}
+        run: |
+          mkdir -p artifacts/simulator
+          node scripts/bench-simulator.cjs 10000 1800 20261128 "$PLAYERS" > "artifacts/simulator/${PLAYERS}-players.json"
+          cat "artifacts/simulator/${PLAYERS}-players.json"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: simulator-balance-${{ matrix.players }}-players
+          path: artifacts/simulator/
+          retention-days: 30
