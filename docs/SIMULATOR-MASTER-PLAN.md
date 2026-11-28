@@ -95,9 +95,9 @@ Warm EU p95 input <=100ms, server acknowledgement <=300ms, rival state <=1,000ms
 | Slice | Status | Evidence / next action |
 | --- | --- | --- |
 | S01 | partial | Baseline SHA, Vercel metadata and fast/security runs above; full/live/manual gates open |
-| S02 | partial | [80,000 distinct matches](SIMULATOR-BALANCE-20261128.md) executed, zero invariant exceptions; capped-state analysis and human preference remain open |
+| S02 | partial | [80,000 distinct matches](SIMULATOR-BALANCE-20261128.md) executed, zero invariant exceptions; all 16 capped cases extended and analyzed; human preference remains open |
 | S03 / S04 / S10 | partial | #203, #206, #208, #209 merged after automated acceptance; live latency, controller modularity and physical recovery open |
-| S05–S10 | partial | [Actual CI visual and lab performance review](SIMULATOR-VISUAL-PERFORMANCE-20261128.md); #210 action clarity and #212 header fix under acceptance at capture |
+| S05–S10 | partial | [Actual CI visual and lab performance review](SIMULATOR-VISUAL-PERFORMANCE-20261128.md); #210 action clarity and #212 narrow header merged; after-screenshots inspected; #215 input timing and #216 hand geometry under acceptance at capture |
 | S11–S12 | open | [Acceptance matrix](SIMULATOR-QA-MATRIX.md); exact final live release and human pilot still required |
 | Human/device gates | blocked in current chat | GE09, #71 and #139 require physical participants; static CI screenshots reviewed, real-device and dynamic visual acceptance remain open |
 
