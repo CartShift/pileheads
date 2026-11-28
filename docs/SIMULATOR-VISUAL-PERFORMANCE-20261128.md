@@ -43,3 +43,22 @@ No visual redesign, rules, pricing, tracking or paid infrastructure changes. Sti
 - #215 merged 3b66d80 after [full acceptance](https://github.com/CartShift/pileheads/actions/runs/46088494441); added 20 trusted selection gestures per desktop/mobile lab profile. [Raw artifact 15239674811](https://github.com/CartShift/pileheads/actions/runs/46088494441/artifacts/15239674811). Desktop click-to-aria-pressed commit p50/p95/max = 1.2/1.6/1.8ms; two-RAF paint proxy 31.7/32.1/32.1ms. Emulated mobile (1.6 Mbps, 100ms, 4x CPU) commit 5.2/5.9/7.6ms; paint proxy 29.7/31.7/32.3ms. This is a local reduced-motion browser proxy, not hardware input-to-photon, field INP or real network p95. /play mobile LCP 2600ms; CLS .0068; JS encoded 747183 bytes. No performance threshold claim beyond this lab sample.
 - #216 merged 3c82682 after [full acceptance](https://github.com/CartShift/pileheads/actions/runs/46088546848); isolated pure adaptive hand geometry and verified 2,750 card-count/viewport/card-width fixtures plus existing Chromium large-hand coverage. No intentional layout or engine behavior change.
 - Browser connector reported no originating browser context. Direct container GET could not resolve pileheads.com; public web open was also inaccessible. Production metadata verified independently, but current live API/multiplayer not confirmed.
+
+## Subsequent production, accessibility and performance slices
+
+- #219 merged bc5a5ca: live sample count is explicitly selectable (1 or 20) in manual workflow. [Two canonical live runs and exact metadata](MULTIPLAYER-LATENCY.md) verified on e14b12a, not every later deployment.
+- #220 merged 78ccb71: extracted local table projection and bot-opportunity selectors with injected canonical engine. [Full acceptance](https://github.com/CartShift/pileheads/actions/runs/46089236308).
+- #222 merged 2e1c20f: persistent turn/limit/interrupt live announcement; blind slot accessible index without hidden face; dynamic system reduced-motion cancellation and unavailable WAAPI fallback. [Full acceptance](https://github.com/CartShift/pileheads/actions/runs/46089337447). Physical screen reader/audio validation still open.
+- #223 merged 4c21b1f: live measurements and [pilot facilitator packet](LAUNCH-PLAYTEST-READINESS.md); no recruitment, analytics or physical sign-off.
+- #225 merged 0637724: test-only two-arrival CAS barrier for bot SLAM vs normal move, SNAP vs next move, duplicate SNAP. [Initial full acceptance](https://github.com/CartShift/pileheads/actions/runs/46089704734) passed. Subsequent integrated fast CI in #226 found a randomized fixture failure (one arrival), so this is not yet a stable regression. #228 uses guaranteed legal TAKE contenders and improved redacted failure diagnostics; full retest pending at capture. No production CAS changes.
+- #224 candidate 76c0e69: [full acceptance](https://github.com/CartShift/pileheads/actions/runs/46089560675), [actual screenshot and performance artifact](https://github.com/CartShift/pileheads/actions/runs/46089560675/artifacts/15240269791). Inspected online-results.png: legible centered mobile result, standings and rematch control, no apparent clipping. Native CSS entrance replaces Motion only on /play. Superseded by #226 after parallel PWA changes conflicted; integrated candidate must pass again. Not yet merged at capture.
+
+| /play lab metric | #215 baseline | #224 candidate |
+| --- | ---: | ---: |
+| Encoded JS bytes | 747183 | 627215 |
+| Mobile LCP ms | 2600 | 2608 |
+| Mobile CLS | .0068 | .0068 |
+| Mobile selection commit p95 ms | 5.9 | 9.1 |
+| Mobile selection paint proxy p95 ms | 31.7 | 29.8 |
+
+119,968 fewer encoded JS bytes (~16.1%). Different candidate runs, not a paired controlled benchmark; LCP improvement is not demonstrated. Do not equate this with physical browser startup speed. Maintain all prior device/pilot gates. #227 independently extracts room reconciliation with new stale/equal/session/seat/round selection tests; acceptance pending at capture.
