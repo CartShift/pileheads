@@ -863,7 +863,7 @@ export default function GameTable() {
         }
         return;
       }
-      if (showRules || showSettings || confirmRestart || pileOpen || event.altKey || event.metaKey || event.ctrlKey) return;
+      if (showRules || showSettings || confirmRestart || pileOpen || inspectSeat !== null || event.repeat || event.altKey || event.metaKey || event.ctrlKey) return;
       const target = event.target;
       if (target instanceof HTMLElement &&
           target.closest("input,textarea,select,[contenteditable=true]")) return;
@@ -877,7 +877,7 @@ export default function GameTable() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showRules, showSettings, confirmRestart, pileOpen, needsTarget, selection.length]);
+  }, [showRules, showSettings, confirmRestart, pileOpen, inspectSeat, needsTarget, selection.length]);
 
   useEffect(() => {
     if (!showRules && !showSettings && !confirmRestart && !pileOpen) return;
@@ -1025,7 +1025,7 @@ export default function GameTable() {
             <div className="lobby-join-label">Already have an invite?</div><div className="join-row"><input aria-label="Room code" maxLength={8} placeholder="8-letter room code"
               value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} />
               <button disabled={busy || joinCode.length !== 8 || !name.trim()} onClick={() => void joinOnlineRoom()}>Join</button></div>
-          </div><section className="mode-card public-matchmaking-card" aria-label="Find an online opponent"><div className="eyebrow">03 · QUICK PLAY</div><h2>Find an opponent.</h2><p>Meet another human player for a three-round table. Check availability before joining; a verified account is required.</p><Link className="cta" href="/quick-play">Find opponent <span aria-hidden>→</span></Link><Link className="learn-button" href="/profile">Your account &amp; progress</Link></section></>}
+          </div><section className="mode-card public-matchmaking-card" aria-label="Find an online opponent"><div className="eyebrow">03 · ONLINE MATCH</div><h2>Find an opponent.</h2><p>Meet another human player for a three-round table. Check availability before joining; a verified account is required.</p><Link className="cta" href="/quick-play">Find opponent <span aria-hidden>→</span></Link><Link className="learn-button" href="/profile">Your account &amp; progress</Link></section></>}
         </div>
       </section>
       <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/how-to-play">Read the rules ↗</a><a href="/pilehead/print.html">Print playtest cards</a><button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button><FunnelConsent/></footer>
