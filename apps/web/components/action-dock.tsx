@@ -54,12 +54,12 @@ export default function ActionDock({g, mode, room, ready, allReady, joined, busy
           <div className="button-group">{liveSeats.map(seat =>
             <button className="primary-button" key={seat} disabled={busy} onClick={() => chooseDumpSeat(seat)
             }>{nameForSeat(seat)}</button>)}</div>
-        </div> : needsTarget ? <div className="setup-controls">
+        </div> : g.pendingDump ? <div className="setup-controls"><div role="status"><strong>Waiting for {nameForSeat(g.pendingDump.seat)}</strong><p>Choosing who takes the pile.</p></div></div> : needsTarget ? <div className="setup-controls">
           <div><strong>Choose a DUMP target</strong><p>Who should pick up the pile?</p></div>
           <div className="button-group">
-            {liveSeats.map(seat => <button key={seat} className="primary-button"
+            {liveSeats.map(seat => <button key={seat} className="primary-button" disabled={busy}
               onClick={() => playSelected(seat)}>{nameForSeat(seat)}</button>)}
-            <button className="secondary-button" onClick={onCancelTarget}>Cancel</button>
+            <button className="secondary-button" disabled={busy} onClick={onCancelTarget}>Cancel</button>
           </div>
         </div> : (
           <div className="play-controls">
@@ -86,7 +86,7 @@ export default function ActionDock({g, mode, room, ready, allReady, joined, busy
               <button className="secondary-button" data-hotkey="take" disabled={busy || !canTake}
                 onClick={() => playMove({ type: "take" })}>Take pile</button>
               <button className="primary-button" data-hotkey="play" disabled={busy || !active || !canPlay}
-                onClick={() => playSelected()}>Play cards <span aria-hidden>→</span></button>
+                onClick={() => playSelected()}>Play cards{selectedCards.length ? ` (${selectedCards.length})` : ""} <span aria-hidden>→</span></button>
             </div>
           </div>
         )}

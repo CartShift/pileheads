@@ -168,10 +168,10 @@
 .game-table-shell .hand-utilities { flex-wrap:wrap; gap:4px; }
 .game-table-shell .playing-card[data-extends-selection="true"] .card-availability-mark { background:#d7e9ab; }
 
-/* The wider Pileheads wordmark must not consume an extra header row on small phones. */
+/* Keep the compact wordmark, but allow controls to wrap before they overlap it. */
 @media (max-width:380px) {
   .game-table-shell.game-shell .game-header .stack-site-brand img { width:50px; height:auto; max-height:30px; }
-  .game-table-shell .game-header:not(:has(.room-code)) .game-head-actions { gap:3px; flex-wrap:nowrap; }
+  .game-table-shell .game-header:not(:has(.room-code)) .game-head-actions { gap:3px; flex-wrap:wrap; }
   .game-table-shell .game-header:not(:has(.room-code)) .game-head-actions .exit-button { padding-inline:5px; }
   .game-table-shell .game-header:not(:has(.room-code)) .theme-control select { max-width:76px; }
 }

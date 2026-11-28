@@ -279,12 +279,15 @@ async function localScenarios(browser) {
       // Mobile can inspect real public face-ups without touching private hand
       // identities or the authoritative room state.
       const inspect=page.getByRole("button",{name:/Bot 1 face-up cards/});
+      await page.locator('.player-hand .card-hit:not([aria-label^="DUMP"])').first().click();
       await inspect.click();
       const publicCards=page.getByRole("dialog",{name:"Bot 1 face-up cards"});
       await publicCards.waitFor();
       assert.equal(await publicCards.locator(".playing-card:not(.is-back)").count(),3,
         "inspector shows exactly the publicly visible cards");
       assert.match(await publicCards.textContent(),/Hands and face-down cards stay private/);
+      await page.keyboard.press("p");
+      assert.equal((await readGame(page)).moves,0,"table shortcuts must not play behind the opponent inspector");
       await page.keyboard.press("Escape");
       assert.equal(await publicCards.count(),0,"Escape closes public-card inspection");
       // DUMP intentionally asks for a target in 3+ player matches. Avoid
@@ -293,6 +296,7 @@ async function localScenarios(browser) {
       await safeFirst.click();
       const play = page.getByRole("button", { name: /Play cards/ });
       assert.equal(await play.isEnabled(), true, "first opening card is legal");
+      assert.ok((await play.textContent()).includes("Play cards (1)"), "selected count is explicit in the primary action");
       await play.click();
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves >= 1
@@ -525,6 +529,30 @@ async function adaptiveHandFitScenarios(browser) {
   }
 }
 
+async function assertHeaderControlsDoNotOverlap(page,label) {
+  await page.evaluate(async()=>{await document.fonts.ready;});
+  const geometry=await page.evaluate(()=>{
+    const header=document.querySelector(".game-header");
+    const box=el=>{const r=el.getBoundingClientRect();return {
+      label:el.getAttribute("aria-label")||el.textContent?.trim()||el.className,
+      left:r.left,right:r.right,top:r.top,bottom:r.bottom};};
+    const controls=[header.querySelector(".stack-site-brand"),
+      ...header.querySelectorAll(".game-head-actions > *")].filter(el=>el&&el.getClientRects().length);
+    return {header:box(header),controls:controls.map(box)};
+  });
+  const {header,controls}=geometry;
+  assert.ok(controls.length>=4,label+" expected game-header controls");
+  for(const a of controls){
+    assert.ok(a.left>=header.left-1&&a.right<=header.right+1,
+      label+" header control exceeds available width: "+JSON.stringify(geometry));
+  }
+  for(let i=0;i<controls.length;i++)for(let j=i+1;j<controls.length;j++){
+    const a=controls[i],b=controls[j];
+    const overlapX=Math.min(a.right,b.right)-Math.max(a.left,b.left);
+    const overlapY=Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top);
+    assert.ok(overlapX<=1||overlapY<=1,label+" header controls overlap: "+JSON.stringify({a,b}));
+  }
+}
 async function viewportResilienceScenarios(browser) {
   // These are emulated browser sizes, not physical device performance data.
   for(const device of [
@@ -544,6 +572,7 @@ async function viewportResilienceScenarios(browser) {
       await page.getByRole("button",{name:"Start round"}).click();
       await page.getByRole("heading",{name:"Your move."}).waitFor();
       if(device.fit) await assertOrdinaryViewport(page,"extended play "+device.width+"x"+device.height);
+      await assertHeaderControlsDoNotOverlap(page,"extended play "+device.width+"x"+device.height);
       const card=page.locator(".player-hand .card-hit").first();
       await card.scrollIntoViewIfNeeded();
       const rect=await card.boundingBox();
@@ -714,6 +743,21 @@ async function onlineScenarios(browser, server) {
     await host.locator(".connection-chip.is-online").waitFor({ timeout: 10000 });
     assert.ok(await host.evaluate(() => window.__stackTestSockets.length) >= 2,
       "live room should establish a replacement WebSocket without reload");
+    // Foreground/network restoration should request a fresh snapshot
+    // immediately rather than wait for the connected 9.5s polling interval.
+    for(const event of ["visibilitychange","online","pageshow"]){
+      await Promise.all([
+        host.waitForRequest(req=>req.url().endsWith("/api/pilehead")&&
+          req.method()==="POST"&&req.postDataJSON()?.action==="state",{timeout:3500}),
+        host.evaluate(kind=>{
+          if(kind==="visibilitychange")document.dispatchEvent(new Event(kind));
+          else if(kind==="pageshow")window.dispatchEvent(new PageTransitionEvent(kind,{persisted:true}));
+          else window.dispatchEvent(new Event(kind));
+        },event)
+      ]);
+    }
+    assert.ok(await host.getByRole("heading",{name:"Your move."}).isVisible(),
+      "foreground refresh preserves the current seat and turn");
     await host.screenshot({path:path.resolve(ROOT,"artifacts/next/online-host.png"),fullPage:true});
     await guest.locator(".player-hand .playing-card").first().waitFor();
 
@@ -737,6 +781,11 @@ async function onlineScenarios(browser, server) {
     await host.locator(".opponent-seat .seat-reaction").first().waitFor({ timeout: 12000 });
 
     await host.locator(".player-hand .card-hit").first().click();
+    const selectedBefore=host.locator(".player-hand .playing-card.is-selected");
+    await selectedBefore.waitFor();
+    server.send({type:"selection-revision",code});
+    await host.locator(".opponent-seat").getByText("Guest synced",{exact:true}).waitFor({timeout:14000});
+    assert.equal(await selectedBefore.count(),1,"a legal selection survives unrelated authoritative revisions");
     await host.getByRole("button", { name: /Play cards/ }).click();
     // The authoritative pile is visible immediately on both displays.
     // A duplicate flying card would imply the actor played twice.
@@ -776,8 +825,14 @@ async function onlineScenarios(browser, server) {
       "reconnect restores seat");
     // A real server-side finish should render the same results to both seats,
     // and the existing room/session must survive a rematch.
+    const legalCard=host.locator('.player-hand .playing-card[data-availability="playable"] .card-hit').first();
+    // The prior pickup gave the host a turn; an empty pile makes its hand legal.
+    await legalCard.click();
+    await host.locator(".player-hand .playing-card.is-selected").waitFor();
     server.send({ type: "finish", code });
     await host.getByRole("button", { name: "Play another round" }).waitFor({ timeout: 16000 });
+    assert.equal(await host.locator(".player-hand .playing-card.is-selected").count(),0,
+      "a phase change discards any selection from the previous playable state");
     await host.getByRole("region", { name: "Round results" }).waitFor();
     assert.equal(await host.locator(".results-standings li[data-self=\"true\"]").count(),1);
     assert.equal(await host.locator(".results-overlay h2").evaluate(el=>document.activeElement===el),true,
@@ -1818,6 +1873,90 @@ async function unifiedNavigationScenario(browser) {
   console.log("PASS shared navigation: seven routes, game dialog, current-page state and four viewport widths");
 }
 
+async function deniedTabletopStorageScenario(browser) {
+  const context = await browser.newContext({viewport:{width:390,height:844},reducedMotion:"reduce"});
+  try {
+    await context.addInitScript(() => {
+      const read=Storage.prototype.getItem, write=Storage.prototype.setItem;
+      const denied=key=>String(key).startsWith("stack-next-")||key==="stack-final-duel-default-v1";
+      Storage.prototype.getItem=function(key){
+        if(denied(key))throw new DOMException("Storage denied","SecurityError");
+        return read.call(this,key);
+      };
+      Storage.prototype.setItem=function(key,value){
+        if(denied(key))throw new DOMException("Storage denied","QuotaExceededError");
+        return write.call(this,key,value);
+      };
+    });
+    const page=await context.newPage();
+    await page.goto(WEB+"/play");
+    await page.getByRole("button",{name:"Quick play",exact:true}).click();
+    await page.locator('.game-table-shell[data-phase="play"]').waitFor();
+    await page.goto(WEB+"/play");
+    await page.getByRole("textbox",{name:"Your name"}).fill("Storage-limited host");
+    await page.getByRole("button",{name:/Create a room/}).click();
+    await page.waitForURL(/room=[A-HJ-NP-Z2-9]{8}/);
+    await page.getByRole("button",{name:"I'm ready"}).waitFor();
+    await page.getByText("This browser cannot save your room session. Keep this tab open to retain your seat.",{exact:true}).waitFor();
+    await page.getByRole("button",{name:"I'm ready"}).click();
+    await page.getByRole("button",{name:"Change cards",exact:true}).waitFor();
+    console.log("PASS tabletop local play and authenticated online actions with denied preference/session storage");
+  } finally { await context.close(); }
+}
+
+async function unknownResultRecoveryScenario(browser) {
+  const hostCtx=await browser.newContext({viewport:{width:390,height:844},reducedMotion:"reduce"});
+  const guestCtx=await browser.newContext({viewport:{width:360,height:740},reducedMotion:"reduce"});
+  try {
+    await hostCtx.addInitScript(()=>{
+      Object.defineProperty(AbortSignal,"any",{configurable:true,value:undefined});
+    });
+    const host=await hostCtx.newPage(),guest=await guestCtx.newPage();
+    await host.goto(WEB+"/play");
+    await host.getByRole("textbox",{name:"Your name"}).fill("Recovery host");
+    await host.getByRole("button",{name:/Create a room/}).click();
+    await host.waitForURL(/room=[A-HJ-NP-Z2-9]{8}/);
+    const code=new URL(host.url()).searchParams.get("room");
+    await guest.goto(WEB+"/play?room="+code);
+    await guest.getByRole("textbox",{name:"Your name"}).fill("Recovery guest");
+    await guest.getByRole("button",{name:"Join",exact:true}).click();
+    await guest.getByRole("button",{name:"I'm ready"}).waitFor();
+    await host.getByRole("button",{name:"I'm ready"}).click();
+    await guest.getByRole("button",{name:"I'm ready"}).click();
+    await host.getByRole("button",{name:"Start round"}).click();
+    await host.getByRole("heading",{name:"Your move."}).waitFor();
+    let moves=0,readsAfterDrop=0,dropped=false;
+    await host.route("**/api/pilehead",async route=>{
+      const body=route.request().postDataJSON();
+      if(body?.action==="move"){
+        moves++;
+        const response=await route.fetch();
+        assert.ok(response.ok(),"server must commit the move before its response is lost");
+        dropped=true;
+        await route.abort("failed");
+        return;
+      }
+      if(dropped&&body?.action==="state")readsAfterDrop++;
+      await route.continue();
+    });
+    await host.locator(".player-hand .card-hit").first().click();
+    await host.getByRole("button",{name:/Play cards/}).click();
+    await host.getByText("Table synchronized. Check the latest state before playing again.",{exact:true}).waitFor();
+    assert.ok(readsAfterDrop>0,"unknown-result recovery must request authoritative state");
+    await Promise.all([host,guest].map(page=>page.locator(".pile-slot.played .pile-layer").first().waitFor()));
+    const view=await host.evaluate(async code=>{
+      const token=localStorage.getItem("stack-next-room-"+code);
+      const response=await fetch("/api/pilehead",{method:"POST",
+        headers:{"Content-Type":"application/json",Authorization:"Bearer "+token},
+        body:JSON.stringify({action:"state",code})});
+      return response.json();
+    },code);
+    assert.equal(view.game.moves,1,"committed card must appear exactly once");
+    assert.equal(moves,1,"an unknown-result command must never be replayed");
+    console.log("PASS unknown-result move reconciles via read-only state without AbortSignal.any or duplicate action");
+  } finally {await hostCtx.close();await guestCtx.close();}
+}
+
 async function main() {
   fs.mkdirSync(path.resolve(ROOT, "artifacts/next"), {recursive:true});
   const apiProc = fork(path.resolve(ROOT, "scripts/render-server.cjs"), [], {
@@ -1871,6 +2010,8 @@ async function main() {
         drills:()=>specialMoveDrillsScenario(browser),
         interrupts:()=>localInterruptParityScenarios(browser),
         mixed:()=>mixedBotScenarios(browser),
+        storage:()=>deniedTabletopStorageScenario(browser),
+        unknownResult:()=>unknownResultRecoveryScenario(browser),
         recovery:()=>abandonedRoomScenario(browser)
       };
       if(!Object.hasOwn(scenarios,selected)) throw Error("Unknown PILEHEADS browser scenario: "+selected);
@@ -1902,6 +2043,8 @@ async function main() {
     await sharedMoveAnimationScenarios(browser);
     await mixedBotScenarios(browser);
     await abandonedRoomScenario(browser);
+    await deniedTabletopStorageScenario(browser);
+    await unknownResultRecoveryScenario(browser);
   } catch (e) {
     console.error("Next browser acceptance failed:", e);
     console.error("INTEGRATED SERVER LOGS", apiLog.slice(-6000));

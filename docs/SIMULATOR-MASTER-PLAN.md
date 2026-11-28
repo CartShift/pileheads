@@ -95,7 +95,12 @@ Warm EU p95 input <=100ms, server acknowledgement <=300ms, rival state <=1,000ms
 | Slice | Status | Evidence / next action |
 | --- | --- | --- |
 | S01 | partial | Baseline SHA, Vercel metadata and fast/security runs above; full/live/manual gates open |
-| S02–S12 | open | Reuse existing tests and feature implementations, validate and repair only observed gaps |
-| Human/device gates | blocked in current chat | GE09, #71 and #139 require physical participants and visual review |
+| S02 | partial | [80,000 distinct matches](SIMULATOR-BALANCE-20261128.md) executed, zero invariant exceptions; capped-state analysis and human preference remain open |
+| S03 / S04 / S10 | partial | #203, #206, #208, #209 merged after automated acceptance; live latency, controller modularity and physical recovery open |
+| S05–S10 | partial | [Actual CI visual and lab performance review](SIMULATOR-VISUAL-PERFORMANCE-20261128.md); #210 action clarity and #212 header fix under acceptance at capture |
+| S11–S12 | open | [Acceptance matrix](SIMULATOR-QA-MATRIX.md); exact final live release and human pilot still required |
+| Human/device gates | blocked in current chat | GE09, #71 and #139 require physical participants; static CI screenshots reviewed, real-device and dynamic visual acceptance remain open |
+
+See the [acceptance matrix and iteration evidence](SIMULATOR-QA-MATRIX.md) for precise CI URLs and remaining manual gates.
 
 For each PR record scope, source SHA, tests actually run and result, artifact URLs, remaining gaps, and rollback. Never mark a checkbox based solely on code presence. Update this ledger incrementally; link detailed existing documents rather than duplicating their evidence.

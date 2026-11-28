@@ -93,6 +93,13 @@ Module._load=function(spec,...args){
  return original.call(this,spec,...args);
 };
 process.on('message',message=>{
+ // Test-only external revision with unchanged legal moves; the changed
+ // nickname lets the browser prove that the new snapshot was rendered.
+ if(message?.type==='selection-revision'){
+  const r=rooms.get(message.code),m=(members.get(message.code)||[]).find(x=>x.seat===1);
+  if(r&&m){m.display_name='Guest synced';r.revision++;}
+  return;
+ }
  if(message?.type!=='finish')return;
  const r=rooms.get(message.code);
  if(r){
