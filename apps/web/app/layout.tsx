@@ -25,7 +25,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <head><link rel="preload" href="/stack-media/barlow-condensed-black-italic.ttf" as="font" type="font/ttf" crossOrigin="anonymous"/><link rel="stylesheet" href="/stack-media/stack-design-system.css" /></head>
-      <body><FunnelProvider>{children}</FunnelProvider></body>
+      <body data-pwa-enabled={pwaEnabled ? "true" : undefined}><FunnelProvider>{children}</FunnelProvider></body>
     </html>
   );
 }
