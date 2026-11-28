@@ -40,7 +40,8 @@ const Drills = require("../lib/practice-drills.cjs") as {
 };
 type Mode = "home" | "local" | "online";
 const SAVE_KEY = "stack-next-local-save-v1";
-const THEME_KEY = "stack-next-deck-theme-v1";
+// Only the approved illustrated deck is available in the game for now.
+const deckTheme: DeckTheme = "refined";
 const PRACTICE_KEY = "stack-next-practice-mode-v1";
 const FINAL_DUEL_KEY = "stack-final-duel-default-v1";
 type EndgameRule = "classic" | "final-duel";
@@ -159,7 +160,6 @@ export default function GameTable() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [resumeGame, setResumeGame] = useState<Game | null>(null);
-  const [deckTheme, setDeckTheme] = useState<DeckTheme>("refined");
   const [handSort, setHandSort] = useState<HandSort>("dealt");
   const handStageRef = useRef<HTMLDivElement | null>(null);
   const [handArea, setHandArea] = useState({ width: 0, cardWidth: 0 });
@@ -333,8 +333,6 @@ export default function GameTable() {
     const code = params.get("room")?.trim().toUpperCase();
     const savedName = readPreference("stack-next-display-name");
     if (savedName) setName(savedName);
-    const savedTheme = readPreference(THEME_KEY);
-    if (savedTheme === "refined" || savedTheme === "characters" || savedTheme === "original") setDeckTheme(savedTheme);
     setResumeGame(loadSavedGame());
     setPracticeMode(readPreference(PRACTICE_KEY) === "true");
     setEndgameRule(readPreference(FINAL_DUEL_KEY) === "final-duel" ? "final-duel" : "classic");
@@ -428,9 +426,6 @@ export default function GameTable() {
       setResumeGame(local);
     } catch { /* private browsing/quota: current match remains playable */ }
   }, [mode, local, drill]);
-  useEffect(() => {
-    try { localStorage.setItem(THEME_KEY, deckTheme); } catch {}
-  }, [deckTheme]);
   useEffect(() => {
     if (mode !== "local" || !local || drill) return;
     try { localStorage.setItem(PRACTICE_KEY, String(practiceMode)); } catch {}
@@ -1110,12 +1105,6 @@ export default function GameTable() {
             role="status">{connected ? "Live" : "Reconnecting"}</span>}
           <button className="exit-button" onClick={() => setShowRules(true)}>Rules</button>
           <button className="exit-button" onClick={() => setShowSettings(true)}>Settings</button>
-          <label className="theme-control">Deck
-            <select aria-label="Deck style" value={deckTheme}
-              onChange={e => setDeckTheme(e.target.value as DeckTheme)}>
-              <option value="refined">Official illustrated deck</option><option value="characters">Classic illustrated deck</option><option value="original">Original prototype</option>
-            </select>
-          </label>
           <button className="exit-button" onClick={leaveTable}>Leave table</button>
         </div>
       </header>
