@@ -19,7 +19,7 @@ export default function Strategy() {
       <article><PublicCard index={4} label="Number 5"/><h3>Use SNAP when it is offered</h3><p>Play a five from your hand and draw another five during that move: the freshly drawn match can SNAP before another action resolves. Old matching hand cards are not eligible. There is no guaranteed waiting window.</p></article>
     </div>
     <h2>When taking the pile makes sense</h2>
-    <p>Taking a nonempty pile is an option on your turn, even if a legal card is available. You might recover useful matches or save an action for later, but you also increase the number of cards you must shed and give up your turn. When the optional Final Duel rule applies, the top card is burned first.</p>
+    <p>Taking a nonempty pile is an option on your turn, even if a legal card is available. You might recover useful matches or save an action for later, but you also increase the number of cards you must shed and give up your turn. If Final Duel is enabled, once the stock is empty and exactly two active players remain, the top card burns before the rest is collected.</p>
     <h2>Practice the endgame</h2>
     <p>When the stock is empty, look for a complete matching final hand that can be played together with matching face-up cards, up to four total. Otherwise finish your hand before using face-up cards. Blind cards are played one at a time; an illegal reveal sends you back to hand play.</p>
     <p>In a two-player game, SKIP is not used, so plan around the remaining actions. Final Duel is optional and off by default. These are tactical considerations, not guarantees of winning.</p>
