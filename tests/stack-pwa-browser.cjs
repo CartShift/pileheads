@@ -4,6 +4,7 @@ const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const path=require("node:path");
 const {spawn}=require("node:child_process");
+const {once}=require("node:events");
 const {chromium}=require("playwright");
 const ROOT=path.resolve(__dirname,"..");
 const PORT=44307,BASE="http://127.0.0.1:"+PORT;
@@ -13,7 +14,9 @@ async function waitReady(){
 }
 (async()=>{
   assert.match(fs.readFileSync(path.join(ROOT,"vercel-static/play.html"),"utf8"),/data-pwa-enabled="true"/,"PWA browser acceptance requires a flagged integrated export");
-  const server=spawn(process.execPath,["scripts/render-server.cjs"],{cwd:ROOT,env:{...process.env,PORT:String(PORT)},stdio:"ignore"});
+  const startServer=()=>spawn(process.execPath,["scripts/render-server.cjs"],{cwd:ROOT,env:{...process.env,PORT:String(PORT)},stdio:"ignore"});
+  let server=startServer();
+  async function stopServer(){if(server.exitCode!==null||server.signalCode!==null)return;const exited=once(server,"exit");server.kill("SIGKILL");await exited;}
   let browser;
   try{
     await waitReady();
@@ -61,11 +64,15 @@ async function waitReady(){
       await page.reload();
       await page.waitForFunction(()=>!!navigator.serviceWorker.controller);
       assert.deepEqual(await page.evaluate(()=>caches.keys()),[],"foundation must not populate Cache Storage");
+      // Playwright offline emulation does not reliably disconnect the service
+      // worker process. Stop the test HTTP origin as well.
       await context.setOffline(true);
-      await page.reload({waitUntil:"domcontentloaded"});
+      await stopServer();
+      await page.goto(BASE+"/play",{waitUntil:"domcontentloaded"});
       await page.getByRole("heading",{name:"You’re offline."}).waitFor();
       await page.getByRole("link",{name:"Try again"}).waitFor();
       assert.equal(await page.evaluate(()=>document.querySelector("main").textContent.includes("Offline matches are not available yet")),true);
+      server=startServer();await waitReady();
       await context.setOffline(false);
       await page.getByRole("link",{name:"Try again"}).click();
       await page.getByRole("heading",{name:/One pile.*One loser/i}).waitFor();
@@ -80,9 +87,9 @@ async function waitReady(){
       });
       const page=await installed.newPage();
       await page.goto(BASE+"/play");
-      await page.waitForFunction(()=>document.querySelector(".stack-lobby"));
+      await page.waitForFunction(()=>navigator.serviceWorker.getRegistration("/").then(r=>!!r?.active));
       assert.equal(await page.getByRole("region",{name:"Install PILEHEADS"}).count(),0);
     }finally{await installed.close();}
     console.log("PASS PWA export, icon dimensions, install event lifetime, worker scope, offline notice and simulated standalone");
-  }finally{if(browser)await browser.close();server.kill("SIGTERM");}
+  }finally{if(browser)await browser.close();await stopServer();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
