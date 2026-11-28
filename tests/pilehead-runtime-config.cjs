@@ -23,6 +23,16 @@ assert.equal(Buffer.from(C.deriveSeatKey(env.PILEHEAD_ACCOUNT_FLOW_SECRET),'base
  assert.equal((await load()).PILEHEAD_ACCOUNT_ENABLED,'1');assert.equal(reads,3);
  active=false;clock=4;assert.equal((await load()).PILEHEAD_ACCOUNT_ENABLED,undefined);
  broken=true;clock=8;assert.equal((await load()).PILEHEAD_ROUND_HISTORY_ENABLED,undefined);
+ const reports=[];
+ const missing=C.createLoader({env:{...env,PILEHEAD_PLAYER_DATABASE_URL:undefined},report:s=>reports.push(s)});
+ await missing();await missing();assert.deepEqual(reports,['player_url_missing']);
+ const fail=C.createLoader({env,roomQuery:async()=>[row],playerQuery:async()=>{throw Object.assign(Error('DO NOT LOG postgres://secret'),{code:'28P01'})},report:s=>reports.push(s)});
+ await fail();assert.equal(reports.at(-1),'player_authentication');assert.ok(!reports.some(s=>s.includes('secret')));
+ const mismatch=C.createLoader({env,roomQuery:async()=>[row],playerQuery:async()=>[{...row,database_id:account}],report:s=>reports.push(s)});
+ await mismatch();assert.equal(reports.at(-1),'database_mismatch');
+ const ready=C.createLoader({env,roomQuery:query,playerQuery:query,report:s=>reports.push(s)});
+ active=true;broken=false;await ready();assert.equal(reports.at(-1),'ready');
+ const noSystem=C.createLoader({env:{NODE_ENV:'production'},report:s=>reports.push(s)});await noSystem();assert.equal(reports.at(-1),'deployment_environment_missing');
  const legacy={VERCEL_ENV:'preview',PILEHEAD_ACCOUNT_ENABLED:'1'};
  assert.equal(await C.createLoader({env:legacy})(),legacy);
  console.log('PASS database runtime config: default-off, stale env ignored, cross-database identity, independent keys, schema gates, cache and fail-closed');
