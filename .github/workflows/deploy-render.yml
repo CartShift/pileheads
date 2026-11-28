@@ -35,7 +35,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout release manifest and smoke script
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
       - name: Fast-forward Render deployment branch
         env:
           GH_TOKEN: ${{ github.token }}
