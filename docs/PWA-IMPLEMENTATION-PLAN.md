@@ -5,7 +5,7 @@ Status: implementation in progress; issue #173; not released. Canonical React /p
 ## 1. Install foundation (this PR)
 - Build official logo-based 192/512 PNG, maskable 512, Apple touch 180; manifest stable ID, /play start URL, standalone, brand colors.
 - Contextual install control in the non-active lobby; no automatic prompt, no account, iOS Safari instructions; hide in standalone. Feature flag NEXT_PUBLIC_PILEHEADS_PWA=1 is build-time opt-in for preview only until acceptance.
-- Worker registration only after an explicit install interaction. Network-first public root/play navigation, no query strings, no Cache Storage, no API or private data interception. Offline notice only; no offline play promise.
+- Root-lifetime install prompt listener and network-only worker registration on eligible public routes in flagged builds, before prompting. Offline downloads still require explicit user consent. Network-first public root/play navigation, no query strings, no Cache Storage, no API or private data interception. Offline notice only; no offline play promise.
 - No forced activation or reload; existing games continue. Worker updates follow browser lifecycle. No notification permissions.
 
 ## 2. Device acceptance
