@@ -10,6 +10,11 @@ export async function requestRoom<T extends object>(payload: T, token?: string |
   // a new authoritative snapshot when a request is interrupted.
   const timeout = new AbortController();
   const timer = setTimeout(() => timeout.abort(), 20000);
+  // Compose cancellation without AbortSignal.any, which is not available on
+  // some older mobile Safari/embedded WebViews.
+  const cancel = () => timeout.abort();
+  if (signal?.aborted) cancel();
+  else signal?.addEventListener("abort", cancel, {once:true});
   try {
     const response = await fetch(`${backendOrigin}/api/pilehead`, {
       method: "POST",
@@ -19,7 +24,7 @@ export async function requestRoom<T extends object>(payload: T, token?: string |
       },
       body: JSON.stringify(payload),
       cache: "no-store",
-      signal: signal ? AbortSignal.any([signal, timeout.signal]) : timeout.signal
+      signal: timeout.signal
     });
     const result = await response.json().catch(() => null);
     if (!response.ok || !result?.ok)
@@ -30,7 +35,7 @@ export async function requestRoom<T extends object>(payload: T, token?: string |
     if (error instanceof Error && error.name === "AbortError")
       throw new RoomError("request_timeout");
     throw new RoomError("network_unavailable");
-  } finally { clearTimeout(timer); }
+  } finally { clearTimeout(timer); signal?.removeEventListener("abort", cancel); }
 }
 export function sessionKey(code: string) { return `stack-next-room-${code.toUpperCase()}`; }
 export function roomMove(choice: Move, code: string, revision: number): RoomMoveCommand {

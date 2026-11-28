@@ -46,6 +46,13 @@ const THEME_KEY = "stack-next-deck-theme-v1";
 const PRACTICE_KEY = "stack-next-practice-mode-v1";
 const FINAL_DUEL_KEY = "stack-final-duel-default-v1";
 type EndgameRule = "classic" | "final-duel";
+// Persistence is best-effort: a blocked/quota-limited browser must still play.
+function readPreference(key: string): string | null {
+  try { return window.localStorage.getItem(key); } catch { return null; }
+}
+function writePreference(key: string, value: string): boolean {
+  try { window.localStorage.setItem(key, value); return true; } catch { return false; }
+}
 function orderedHand(cards: Card[], mode: HandSort) {
   if (mode === "dealt") return cards;
   const weight = (card: Card) => card.kind === "number" ? card.rank || 0 :
@@ -55,7 +62,7 @@ function orderedHand(cards: Card[], mode: HandSort) {
 }
 function loadSavedGame(): Game | null {
   try {
-    const data = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+    const data = JSON.parse(readPreference(SAVE_KEY) || "null");
     if (data?.version !== 1 || data.game?.version !== Engine.VERSION) return null;
     Engine.invariant(data.game);
     if (!["setup", "play", "over"].includes(data.game.phase)) return null;
@@ -199,6 +206,8 @@ export default function GameTable() {
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [connected, setConnected] = useState(false);
   const [connectionRetry, setConnectionRetry] = useState(0);
+  // Retry generation triggers a new socket; failure count is reset on auth.
+  const reconnectAttempts = useRef(0);
   // Heartbeat timestamps are diagnostic only: never rerender all animated
   // cards just because an identical HTTP state was polled.
   const lastSyncAt = useRef(0);
@@ -210,7 +219,7 @@ export default function GameTable() {
   // Presentation preference is local-only; never part of multiplayer game state.
   useEffect(() => {
     try {
-      const value = localStorage.getItem("stack-motion-level-v1");
+      const value = readPreference("stack-motion-level-v1");
       if (value === "full" || value === "balanced" || value === "reduced")
         setMotionLevel(value);
     } catch {}
@@ -256,14 +265,34 @@ export default function GameTable() {
         roomRef.current.revision === next.revision &&
         JSON.stringify(roomRef.current.game) === JSON.stringify(next.game) &&
         JSON.stringify(roomRef.current.members) === JSON.stringify(next.members)) return;
-    // An authoritative move supersedes any locally selected cards.
-    if (roomRef.current?.code === next.code && next.revision !== roomRef.current.revision) {
-      setSelection([]);
+    // Keep an ordinary selection only when the new authoritative legal
+    // groups still contain every selected card. Never carry IDs into a new
+    // round/seat, a pending decision, or an opponent's turn.
+    const previous = roomRef.current;
+    if (previous?.code === next.code && previous.revision !== next.revision) {
+      const sameRound = previous.me === next.me && previous.game.round === next.game.round;
+      const game = next.game;
+      const canRetain = sameRound && previous.game.phase === "play" &&
+        game.phase === "play" && game.turn === next.me && !game.pendingDump &&
+        !game.pendingCounter && !game.tournamentWithdrawal;
+      setSelection(selected => {
+        if (!selected.length) return selected;
+        return canRetain && game.legal.some(move => move.type === "play" &&
+          move.source !== "down" && selected.every(id => move.ids?.includes(id)))
+          ? selected : [];
+      });
+      setSwapHand(id => sameRound && previous.game.phase === "setup" &&
+        game.phase === "setup" && !game.setupReady[next.me] &&
+        game.players[next.me]?.hand?.some(card => card.id === id) ? id : null);
+      // A target confirmation is bound to the displayed revision. Keep a
+      // still-legal DUMP selection, but require a new explicit target choice.
       setNeedsTarget(false);
     }
     if (next.session) {
       tokenRef.current = next.session;
-      localStorage.setItem(sessionKey(next.code), next.session);
+      if (!writePreference(sessionKey(next.code), next.session)) {
+        setNotice("This browser cannot save your room session. Keep this tab open to retain your seat.");
+      }
     }
     roomRef.current = next;
     setRoom(next);
@@ -312,17 +341,17 @@ export default function GameTable() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("room")?.trim().toUpperCase();
-    const savedName = localStorage.getItem("stack-next-display-name");
+    const savedName = readPreference("stack-next-display-name");
     if (savedName) setName(savedName);
-    const savedTheme = localStorage.getItem(THEME_KEY);
+    const savedTheme = readPreference(THEME_KEY);
     if (savedTheme === "refined" || savedTheme === "characters" || savedTheme === "original") setDeckTheme(savedTheme);
     setResumeGame(loadSavedGame());
-    setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
-    setEndgameRule(localStorage.getItem(FINAL_DUEL_KEY) === "final-duel" ? "final-duel" : "classic");
+    setPracticeMode(readPreference(PRACTICE_KEY) === "true");
+    setEndgameRule(readPreference(FINAL_DUEL_KEY) === "final-duel" ? "final-duel" : "classic");
     if (!code || !/^[A-Z0-9]{8}$/.test(code)) return;
     setInviteEntry(true);
     setJoinCode(code);
-    const token = localStorage.getItem(sessionKey(code));
+    const token = readPreference(sessionKey(code));
     if (token) { tokenRef.current = token; void synchronize(code, token); }
   }, [synchronize]);
 
@@ -343,12 +372,34 @@ export default function GameTable() {
         try { live.send(JSON.stringify({type: "sync-hint"})); } catch { /* polling still converges */ }
       }
       if(payload.action==="join")emitFunnel("room_joined");
-      setSelection([]); setSwapHand(null); setNeedsTarget(false);
+      // Background bot progress is not a user gesture. applyRoom already
+      // reconciles selection against its authoritative snapshot.
+      if (payload.action !== "advance") {
+        setSelection([]); setSwapHand(null); setNeedsTarget(false);
+      }
     } catch (err) {
       if (epoch !== roomEpoch.current) return;
       const message = err instanceof Error ? err.message : "network_unavailable";
       setNotice(messageForError(message));
-      if (message === "stale_revision" && roomRef.current && tokenRef.current) {
+      // A transport failure can occur AFTER the database committed a move.
+      // Keep the command locked during one bounded, read-only reconciliation;
+      // never replay an unknown-result mutation, including SNAP or SLAM.
+      if ((message === "request_timeout" || message === "network_unavailable") &&
+          !noAuth && roomRef.current && tokenRef.current) {
+        const code = roomRef.current.code, token = tokenRef.current;
+        const controller = new AbortController();
+        const recoveryTimer = setTimeout(() => controller.abort(), 4000);
+        setNotice("Connection interrupted. Checking the latest table state…");
+        try {
+          const fresh = await requestRoom({action:"state",code,heartbeat:true},token,controller.signal);
+          if (epoch !== roomEpoch.current) return;
+          applyRoom(fresh);
+          setNotice("Table synchronized. Check the latest state before playing again.");
+        } catch {
+          if (epoch === roomEpoch.current)
+            setNotice("Could not confirm the action. Reconnect or refresh to check the table; the action was not sent again.");
+        } finally { clearTimeout(recoveryTimer); }
+      } else if (message === "stale_revision" && roomRef.current && tokenRef.current) {
         const code = roomRef.current.code, token = tokenRef.current;
         try {
           const fresh = await requestRoom({ action: "state", code, heartbeat: true }, token);
@@ -432,7 +483,8 @@ export default function GameTable() {
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let ws: WebSocket;
     try { ws = new WebSocket(wsUrl.toString()); } catch {
-      retryTimer = setTimeout(() => setConnectionRetry(n => n + 1), 3500);
+      const backoff = Math.min(20000, 1000 * 2 ** Math.min(reconnectAttempts.current++, 5));
+      retryTimer = setTimeout(() => setConnectionRetry(n => n + 1), backoff);
       return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
     }
     wsRef.current = ws;
@@ -441,7 +493,11 @@ export default function GameTable() {
       if (cancelled || wsRef.current !== ws) return;
       try {
         const packet = JSON.parse(ev.data);
-        if (packet.type === "ready") { setConnected(true); void synchronize(code, token, true, false); }
+        if (packet.type === "ready") {
+          reconnectAttempts.current = 0;
+          setConnected(true);
+          void synchronize(code, token, true, false);
+        }
         if (packet.type === "reaction" && packet.reaction) applyReaction(packet.reaction as Reaction);
         if (packet.type === "reaction-error") setNotice("Reactions are limited. Try again soon.");
         if (packet.type === "invalidate" &&
@@ -458,7 +514,7 @@ export default function GameTable() {
         setNotice("Room session rejected. Rejoin this room or create a new one.");
         return;
       }
-      const backoff = Math.min(20000, 1000 * 2 ** Math.min(connectionRetry, 5));
+      const backoff = Math.min(20000, 1000 * 2 ** Math.min(reconnectAttempts.current++, 5));
       retryTimer = setTimeout(() => setConnectionRetry(n => n + 1),
         backoff + Math.floor(Math.random() * 250));
     };
@@ -478,7 +534,22 @@ export default function GameTable() {
     const interval = window.setInterval(
       () => void synchronize(code, token, true), connected ? 9500 : 1700
     );
-    return () => clearInterval(interval);
+    // Mobile browsers suspend background timers and sockets. Refresh as soon
+    // as the page becomes usable again, not at the next periodic tick.
+    const resume = () => {
+      if (document.visibilityState !== "visible") return;
+      void synchronize(code, token, true);
+    };
+    const restorePage = (event: PageTransitionEvent) => { if (event.persisted) resume(); };
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("online", resume);
+    window.addEventListener("pageshow", restorePage);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("online", resume);
+      window.removeEventListener("pageshow", restorePage);
+    };
   }, [mode, room?.code, connected, synchronize]);
 
   const commitLocal = useCallback((change: (g: Game) => void, recordUndo = false) => {
@@ -795,7 +866,7 @@ export default function GameTable() {
     setDrill(null);
     freshDealKey.current = null;
     localRef.current = saved; undoRef.current = null; setUndoAvailable(false);
-    setPracticeMode(localStorage.getItem(PRACTICE_KEY) === "true");
+    setPracticeMode(readPreference(PRACTICE_KEY) === "true");
     setEndgameRule(saved.endgameRule === "final-duel" ? "final-duel" : "classic");
     setCoachDismissed(false);
     setLocal(saved); setRoom(null); setMode("local"); setSelection([]); setNotice("");
@@ -804,6 +875,7 @@ export default function GameTable() {
 
   function leaveTable() {
     roomEpoch.current++;
+    reconnectAttempts.current = 0;
     if (wsRef.current) wsRef.current.close();
     setDrill(null);
     freshDealKey.current = null;
@@ -824,7 +896,7 @@ export default function GameTable() {
         }
         return;
       }
-      if (showRules || showSettings || confirmRestart || pileOpen || event.altKey || event.metaKey || event.ctrlKey) return;
+      if (showRules || showSettings || confirmRestart || pileOpen || inspectSeat !== null || event.repeat || event.altKey || event.metaKey || event.ctrlKey) return;
       const target = event.target;
       if (target instanceof HTMLElement &&
           target.closest("input,textarea,select,[contenteditable=true]")) return;
@@ -838,7 +910,7 @@ export default function GameTable() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [showRules, showSettings, confirmRestart, pileOpen, needsTarget, selection.length]);
+  }, [showRules, showSettings, confirmRestart, pileOpen, inspectSeat, needsTarget, selection.length]);
 
   useEffect(() => {
     if (!showRules && !showSettings && !confirmRestart && !pileOpen) return;
@@ -924,14 +996,14 @@ export default function GameTable() {
     if (onlineHumans + onlineBots < 2 || onlineHumans + onlineBots > 5) {
       setNotice("Choose 2–5 seats in total."); return;
     }
-    localStorage.setItem("stack-next-display-name", name);
+    writePreference("stack-next-display-name", name);
     await submit({ action: "create", name, humans: onlineHumans, bots: onlineBots,
       endgameRule, roundLimit }, true);
   }
 
   async function joinOnlineRoom() {
     if(offlineNetwork){setNotice("Reconnect to join an online room.");return;}
-    localStorage.setItem("stack-next-display-name", name);
+    writePreference("stack-next-display-name", name);
     await submit({ action: "join", name, code: joinCode.trim().toUpperCase() }, true);
   }
 
@@ -973,7 +1045,7 @@ export default function GameTable() {
               <button className="learn-button" onClick={()=>startDrill(drillChoice)}>Practice special move</button>
             </details>
           </div>
-          {offlineNetwork?<section className="mode-card" role="status"><h2>You’re offline.</h2><p>Bot games are available. Reconnect for private rooms and Quick Play.</p></section>:<><div className="mode-card">
+          {offlineNetwork?<section className="mode-card" role="status"><h2>You’re offline.</h2><p>Bot games are available. Reconnect for private rooms and online matchmaking.</p></section>:<><div className="mode-card">
             <div className="eyebrow">02 · WITH FRIENDS</div><h2>Private room</h2>
             <p>Invite real players, fill empty seats with bots.</p>
             <label>Your name <input maxLength={24} value={name} onChange={e => setName(e.target.value)} /></label>
@@ -988,7 +1060,7 @@ export default function GameTable() {
             <div className="lobby-join-label">Already have an invite?</div><div className="join-row"><input aria-label="Room code" maxLength={8} placeholder="8-letter room code"
               value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} />
               <button disabled={busy || joinCode.length !== 8 || !name.trim()} onClick={() => void joinOnlineRoom()}>Join</button></div>
-          </div><section className="mode-card public-matchmaking-card" aria-label="Find an online opponent"><div className="eyebrow">03 · QUICK PLAY</div><h2>Find an opponent.</h2><p>Meet another human player for a three-round table. Check availability before joining; a verified account is required.</p><Link className="cta" href="/quick-play">Find opponent <span aria-hidden>→</span></Link><Link className="learn-button" href="/profile">Your account &amp; progress</Link></section></>}</>}
+          </div><section className="mode-card public-matchmaking-card" aria-label="Find an online opponent"><div className="eyebrow">03 · ONLINE MATCH</div><h2>Find an opponent.</h2><p>Meet another human player for a three-round table. Check availability before joining; a verified account is required.</p><Link className="cta" href="/quick-play">Find opponent <span aria-hidden>→</span></Link><Link className="learn-button" href="/profile">Your account &amp; progress</Link></section></>}</>}
         </div>
       </section>
       <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span>{!offlineNetwork&&<><a href="/how-to-play">Read the rules ↗</a><a href="/pilehead/print.html">Print playtest cards</a></>}<button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button><FunnelConsent/></footer>
@@ -1081,7 +1153,7 @@ export default function GameTable() {
         <OpponentsStrip g={g} me={me} theme={deckTheme} room={room} nameForSeat={nameForSeat}
           choosingDumpTarget={choosingDumpTarget} chooseDumpSeat={chooseDumpSeat} onInspect={setInspectSeat}
           newestReactions={newestReactions} reactionSymbols={reactionSymbols} />
-        <CenterBoard g={g} theme={deckTheme} selection={selection} canPlay={canPlay} busy={busy}
+        <CenterBoard g={g} theme={deckTheme} canPlay={canPlay} busy={busy}
           playSelected={playSelected} freshBlindMove={freshBlindMove} rule={rule} onInspect={() => setPileOpen(true)} />
         {finalDuel && <div className="duel-banner" role="status">
           <strong>FINAL DUEL</strong><span>Every pickup burns the visible top card first.</span>
