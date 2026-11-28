@@ -1,0 +1,29 @@
+# PILEHEADS simulator acceptance matrix
+
+Companion to [SIMULATOR-MASTER-PLAN](SIMULATOR-MASTER-PLAN.md), [GE09 physical acceptance](GE09-PHYSICAL-ACCEPTANCE.md), [public launch gates](PUBLIC-LAUNCH-ACCEPTANCE.md) and [multiplayer latency](MULTIPLAYER-LATENCY.md). This matrix is a cross-reference, not a duplicate manual checklist or sign-off.
+
+Evidence statuses: existing = source/test inventory; automated = exact candidate test passed; manual open = physical/human verification still needed. Record SHA, test/run URL, device, outcome and defects for each manual session. Never use mock Neon results as live production evidence.
+
+| Flow / risk | Automated coverage to reuse | Manual acceptance still required |
+| --- | --- | --- |
+| Lobby, quick play, invites, setup and local save | tests/stack-next-browser.cjs (launch/local/recovery), pilehead-shared-core.cjs | first-time task success; messaging-app links; storage denial/reload expectations |
+| Engine number groups, layers, card conservation | pilehead-engine.cjs, pilehead-shared-core.cjs, pilehead-matching-actions.cjs | compare canonical rules and actual physical deck; explain face-up/blind transition |
+| Special cards and interrupts | pilehead-turn-flow.cjs, pilehead-physics.cjs, pilehead-online.cjs, stack-next-browser.cjs (interrupts/dump/motion) | verify each committed cue and target; competing SNAP/SLAM on two devices |
+| Long games and optional Final Duel | bench-simulator.cjs, pilehead-simulator-benchmark.cjs, [measured cohorts](SIMULATOR-BALANCE-20261128.md) | human game duration and enjoyment; do not change defaults without approval |
+| Private rooms, 2–5 seats, mixed bots | pilehead-online.cjs, pilehead-realtime-latency.cjs, stack-next-browser.cjs (online/onlineSeats/mixed) | two or more physical clients; weak network; actual browser reconnect and game completion |
+| Selection and turn consistency | stack-next-browser.cjs, canonical move legality tests | still-legal group across remote revision; invalid selection cleared; no target misdirection |
+| Reconnect and privacy | pilehead-online.cjs, pilehead-realtime-contract.cjs, stack-next-browser.cjs | refresh, background, timeout after commit, session loss, multiple tabs; inspect redacted wire payload |
+| Card table and mobile layout | stack-next-browser.cjs (viewport/hand/seats), stack-next-simulator-stress.cjs | 320–430px, rotation, tablet, large hands, thumbs, tap/drag, zoom; real Safari and Android |
+| Sound, motion and accessibility | pilehead-feedback.cjs, pilehead-motion-director.cjs, stack-next-browser.cjs (motion/feedback) | hardware audio/haptic, frame pacing, keyboard, screen reader, contrast, focus |
+| Results, rematch and tournament | pilehead-room-standings.cjs, pilehead-online.cjs, stack-next-browser.cjs (rematch/tournament) | real multi-client rematch, withdrawal, voluntary continuation, share sheet |
+| Performance and cost | stack-launch-performance.cjs, pilehead-realtime-latency.cjs, existing smoke | real EU p50/p95 input/ack/convergence, weak network, repeated-round memory, Neon reads |
+| Production and release | fast/security/full acceptance, vercel-live-smoke.yml | exact live smoke, visual artifacts, rollback target, operator approval and 10–20 consenting participants |
+
+## Evidence from this iteration
+
+- #202 documentation merged d636e2e; [fast checks](https://github.com/CartShift/pileheads/actions/runs/46086604962), [docs-only full workflow](https://github.com/CartShift/pileheads/actions/runs/46086604964). Heavy browser steps intentionally skipped on docs-only changes.
+- #203 browser-storage resilience merged 7540dc8; [fast checks](https://github.com/CartShift/pileheads/actions/runs/46086661974), [full acceptance](https://github.com/CartShift/pileheads/actions/runs/46086661985), [security](https://github.com/CartShift/pileheads/actions/runs/46086661924) all successful. New regression denies tabletop preference/session storage, starts local quick play, creates a room and performs authenticated Ready. Session can remain in memory; reload persistence is intentionally unavailable when storage fails.
+- #204 benchmark merged a02af4a; [fast](https://github.com/CartShift/pileheads/actions/runs/46086719187), [full](https://github.com/CartShift/pileheads/actions/runs/46086719152), [security](https://github.com/CartShift/pileheads/actions/runs/46086719120) successful. Actual benchmark results linked above. Full 3–5 player large cohorts open.
+- #206 selection reconciliation: candidate 82f57fc, [fast](https://github.com/CartShift/pileheads/actions/runs/46087377836) passed, [full](https://github.com/CartShift/pileheads/actions/runs/46087377730) in progress at capture. Do not mark accepted until completed and merged.
+- Canonical Vercel alias matched main a02af4ad782c5da4a63aba33c9b9abc0d10f63ff, READY, fra1 ([deployment](https://vercel.com/cart-shift/pileheads/dpl_CfnxpDrM2NGnM74fxkC8v6yE1xDt)). This establishes provider metadata, not actual live gameplay.
+- Screenshot artifacts generated by CI have not been independently visually reviewed in this session. Browser control unavailable, local checkout blocked by DNS, physical devices/human playtest not performed. All remaining GE09 and public-launch gates stay open.
