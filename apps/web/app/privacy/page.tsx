@@ -34,14 +34,17 @@ export default function PrivacyPage() {
       <h2>6. Hosting and service providers</h2>
       <p>Vercel hosts the website and application endpoints; Neon provides database services; Google provides sign-in. These services may process technical request information such as IP addresses and browser details in delivering and securing their services. If deck-update email delivery is activated, the relevant email provider must also be disclosed.</p>
       <p><strong>Before publication: verify processor arrangements, hosting-log retention, recipients, international transfers and safeguards for the actual production configuration.</strong></p>
-      <h2>7. How long data is kept</h2>
+      <h2>7. Why information is processed</h2>
+      <p><strong>Proposed bases, subject to operator review:</strong> providing a requested game or account service where contract necessity applies; protecting the service and preventing abuse where a documented legitimate interest applies; consent for genuinely optional measurement and deck-update emails; compliance with applicable legal obligations where required. Consent can be withdrawn for processing based on consent, without affecting prior lawful processing.</p>
+      <h2>8. How long data is kept</h2>
       <p>Account sessions expire after 30 days; guest profiles expire after 90 days. Persistent accounts are not automatically deleted by the existing cleanup tool. When personal round history is enabled, linked records are subject to the 90-day receipt expiry. Expired records are excluded from relevant reads; expiry does not guarantee immediate physical deletion. Account deletion removes the account and linked sessions and personal history from the active account database; local saves and separate guest profiles are not the same account.</p>
       <p><strong>Before publication: confirm room and provider-log retention, backup retention, actual cleanup cadence and any exceptions required by law.</strong></p>
-      <h2>8. Your choices and rights</h2>
+      <h2>9. Your choices and rights</h2>
       <p>When account features are enabled, you can change your nickname, sign out, or delete your account in <Link href="/profile">your profile</Link>. Under applicable data protection law you may have rights of access, correction, erasure, restriction, portability, objection, withdrawal of consent and complaint to a supervisory authority.</p>
       <p><strong>Before publication: confirm processing purposes and lawful bases, rights-request contact and handling, applicable supervisory authority, and account eligibility for younger players.</strong></p>
-      <h2>9. Changes</h2>
+      <h2>10. Changes</h2>
       <p>This notice must be updated when processing practices change. <strong>Publication date and approved version: pending review.</strong></p>
+      <p><Link href="/terms">Terms of use</Link></p>
     </article>
   </main>;
 }
