@@ -52,9 +52,10 @@ function configuration(env){
  const pilotValid=pilotEmails.length>0&&pilotEmails.length<=50&&pilotEmails.every(email=>email.length<=254&&/^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(email));
  const pilotEmailHashes=Array.isArray(env.PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES)?env.PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES:[];
  const hashValid=pilotEmailHashes.length>0&&pilotEmailHashes.length<=50&&pilotEmailHashes.every(h=>/^[0-9a-f]{64}$/.test(h));
+ const openRegistration=env.VERCEL_ENV==='production'&&origin==='https://pileheads.com'&&env.PILEHEAD_ACCOUNT_OPEN_REGISTRATION==='1';
  const pilotReady=canonical?origin==='https://pileheads.com'&&env.PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED==='1'&&(env.VERCEL_ENV==='production'?hashValid:pilotValid||hashValid):!pilotEmails.length||pilotValid;
- const enabled=configured&&pilotReady&&Boolean(privacyUrl)&&env.PILEHEAD_ACCOUNT_ENABLED==='1'&&Boolean(clientId&&clientSecret&&flowSecret?.length>=32);
- return {configured,enabled,origin,privacyUrl,clientId,clientSecret,flowSecret,pilotEmails:pilotValid?pilotEmails:[],pilotEmailHashes:hashValid?pilotEmailHashes:[]};
+ const enabled=configured&&(openRegistration||pilotReady)&&Boolean(privacyUrl)&&env.PILEHEAD_ACCOUNT_ENABLED==='1'&&Boolean(clientId&&clientSecret&&flowSecret?.length>=32);
+ return {configured,enabled,origin,privacyUrl,clientId,clientSecret,flowSecret,openRegistration,pilotEmails:!openRegistration&&pilotValid?pilotEmails:[],pilotEmailHashes:!openRegistration&&hashValid?pilotEmailHashes:[]};
 }
 function createHandlers({config,store,history=async()=>[],historyConfigured=false,progression=async()=>null,progressionConfigured=false,exchange=OIDC.exchangeGoogle,allowRead=limiter(300),allowWrite=limiter(90),allowLogin=limiter(30),now=Date.now}){
  const result=row=>({enabled:Boolean(config.enabled),privacyUrl:config.privacyUrl??null,profile:publicAccount(row)});

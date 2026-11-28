@@ -366,15 +366,18 @@ jobs:
             assert.throws(()=>psql("UPDATE pileheads_product_settings SET quick_play=true;"),/check constraint/i);
             const invite=C.emailHash('synthetic@example.test');
             psql("INSERT INTO pileheads_pilot_invites(email_hash) VALUES('"+invite+"');");
-            assert.equal(psql(C.INVITES_SQL+';',playerRole),invite);
-            assert.throws(()=>psql(C.INVITES_SQL+';',runtime),/permission denied/i);
+            const legacyInviteQuery='SELECT email_hash FROM public.pileheads_pilot_invites ORDER BY email_hash LIMIT 51;';
+            assert.equal(psql(legacyInviteQuery,playerRole),invite);
+            assert.throws(()=>psql(legacyInviteQuery,runtime),/permission denied/i);
             assert.throws(()=>psql("INSERT INTO pileheads_pilot_invites(email_hash) VALUES('"+'a'.repeat(64)+"');",playerRole),/permission denied/i);
             psql("UPDATE pileheads_product_settings SET privacy_reviewed=true,accounts=true,quick_play=true,pilot_accounts=ARRAY['"+ids[0]+"']::uuid[];");
             roomConfig=readConfig(runtime);playerConfig=readConfig(playerRole);
             const managed={VERCEL_ENV:'production',PILEHEAD_DATABASE_URL:'room',PILEHEAD_PLAYER_DATABASE_URL:'player',PILEHEAD_GOOGLE_CLIENT_ID:'test',PILEHEAD_GOOGLE_CLIENT_SECRET:'test',PILEHEAD_ACCOUNT_FLOW_SECRET:'x'.repeat(43)};
-            assert.equal(C.effective(managed,roomConfig,playerConfig,[invite]).PILEHEAD_MATCHMAKING_LIVE_PILOT_ENABLED,'1');
+            assert.equal(C.effective(managed,roomConfig,playerConfig).PILEHEAD_MATCHMAKING_LIVE_PILOT_ENABLED,'1');
+            psql('DELETE FROM pileheads_pilot_invites;');
+            assert.equal(C.effective(managed,readConfig(runtime),readConfig(playerRole)).PILEHEAD_ACCOUNT_OPEN_REGISTRATION,'1');
             psql("UPDATE pileheads_product_settings SET quick_play=false;");
-            assert.equal(C.effective(managed,readConfig(runtime),readConfig(playerRole),[invite]).PILEHEAD_MATCHMAKING_LIVE_PILOT_ENABLED,undefined);
+            assert.equal(C.effective(managed,readConfig(runtime),readConfig(playerRole)).PILEHEAD_MATCHMAKING_LIVE_PILOT_ENABLED,undefined);
             console.log('PASS exact product settings SQL: default-off, schema readiness, shared DB marker, dependency constraints, operator-only writes, invitation isolation and feature kill switch');
             console.log('PASS isolated PostgreSQL: role grants, valid expiry index, dry run, 500-row batches, cascades, active records and idempotent cleanup');
           }

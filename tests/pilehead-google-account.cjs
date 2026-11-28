@@ -20,6 +20,11 @@ async function call(handler,{method='GET',url='/api/account',input={},cookie,hea
  const mint=(overrides={})=>new jose.SignJWT({...claims,...overrides}).setProtectedHeader({alg:'RS256'}).setIssuer('https://accounts.google.com').setAudience(config.clientId).setSubject('123').setIssuedAt(Math.floor(now/1000)).setExpirationTime(Math.floor(now/1000)+300).sign(privateKey);
  const opts={clientId:config.clientId,nonce:signed.flow.nonce,keys:publicKey,now};
  assert.deepEqual(await O.verifyIdToken(await mint(),opts),{provider:'google',subject:'123'});
+ const publicRegistration={...opts,openRegistration:true};
+ await assert.rejects(O.verifyIdToken(await mint(),publicRegistration),/verified email required/);
+ await assert.rejects(O.verifyIdToken(await mint({email:'new@example.test',email_verified:false}),publicRegistration),/verified email required/);
+ assert.deepEqual(await O.verifyIdToken(await mint({email:'new@example.test',email_verified:true}),publicRegistration),{provider:'google',subject:'123'});
+ assert.equal(new URL(O.authorizationUrl({...config,openRegistration:true},signed.flow)).searchParams.get('scope'),'openid email');
  const pilot={...opts,pilotEmailHashes:[require('../scripts/runtime-config.cjs').emailHash('pilot@example.test')]};
  await assert.rejects(O.verifyIdToken(await mint(),pilot),/not invited/);
  await assert.rejects(O.verifyIdToken(await mint({email:'pilot@example.test',email_verified:false}),pilot),/not invited/);
@@ -59,5 +64,10 @@ async function call(handler,{method='GET',url='/api/account',input={},cookie,hea
  assert.equal(configuration({...live,PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED:'1',PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES:['invalid']}).enabled,false);
  const allowedLive=configuration({...live,PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED:'1',PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES:['a'.repeat(64)]});
  assert.equal(allowedLive.enabled,true);assert.deepEqual(allowedLive.pilotEmailHashes,['a'.repeat(64)]);
+ const openLive=configuration({...live,PILEHEAD_ACCOUNT_OPEN_REGISTRATION:'1'});
+ assert.equal(openLive.enabled,true);assert.equal(openLive.openRegistration,true);assert.deepEqual(openLive.pilotEmailHashes,[]);
+ assert.equal(configuration({...live,PILEHEAD_ACCOUNT_OPEN_REGISTRATION:'1',PILEHEAD_ACCOUNT_ENABLED:'0'}).enabled,false);
+ assert.equal(configuration({...live,PILEHEAD_ACCOUNT_OPEN_REGISTRATION:'1',PILEHEAD_PLAYER_PRIVACY_URL:undefined}).enabled,false);
+ assert.equal(configuration({...live,PILEHEAD_ACCOUNT_OPEN_REGISTRATION:'1',PILEHEAD_ACCOUNT_SCHEMA_READY:'0'}).enabled,false);
  console.log('PASS Google OIDC and account API contracts: signed flow, real JWT verification, claim/signature rejection, session rotation, CSRF and deletion');
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -4,10 +4,14 @@ const id='3c0c6815-e56b-4e6f-a6e3-1b3345c9b986',account='4c0c6815-e56b-4e6f-a6e3
 const env={VERCEL_ENV:'production',PILEHEAD_DATABASE_URL:'room',PILEHEAD_PLAYER_DATABASE_URL:'player',PILEHEAD_GOOGLE_CLIENT_ID:'test-client',PILEHEAD_GOOGLE_CLIENT_SECRET:'test-secret',PILEHEAD_ACCOUNT_FLOW_SECRET:'x'.repeat(43),PILEHEAD_ACCOUNT_ENABLED:'1',PILEHEAD_PLAYER_ORIGIN:'https://bad.test'};
 const row={database_id:id,privacy_reviewed:true,guest_profiles:true,accounts:true,round_history:true,private_history:true,progression:true,quick_play:true,pilot_accounts:[account],player_ready:true,account_ready:true,receipts_ready:true,history_ready:true,progression_ready:true,matchmaking_ready:true};
 const hash=C.emailHash(' Pilot@example.test ');assert.equal(hash,C.emailHash('pilot@example.test'));
-const yes=C.effective(env,row,row,[hash]);
+const yes=C.effective(env,row,row);
 assert.equal(yes.PILEHEAD_PLAYER_ORIGIN,C.ORIGIN);assert.equal(yes.PILEHEAD_PLAYER_PRIVACY_URL,C.PRIVACY);
 for(const k of ['PLAYER_ENABLED','ACCOUNT_ENABLED','ROUND_HISTORY_ENABLED','PRIVATE_HISTORY_ENABLED','PROGRESSION_ENABLED','MATCHMAKING_LIVE_PILOT_ENABLED'])assert.equal(yes['PILEHEAD_'+k],'1');
-assert.equal(C.effective(env,row,row,[]).PILEHEAD_ACCOUNT_ENABLED,undefined);
+assert.equal(yes.PILEHEAD_ACCOUNT_OPEN_REGISTRATION,'1');
+assert.equal(yes.PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES,undefined);
+assert.equal(C.effective(env,{...row,accounts:false},row).PILEHEAD_ACCOUNT_ENABLED,undefined);
+assert.equal(C.effective(env,row,row).PILEHEAD_ACCOUNT_ENABLED,'1');
+assert.equal(C.effective({...env,PILEHEAD_GOOGLE_CLIENT_SECRET:undefined},row,row).PILEHEAD_ACCOUNT_ENABLED,undefined);
 assert.equal(C.effective(env,row,{...row,database_id:account},[hash]).PILEHEAD_ACCOUNT_ENABLED,undefined);
 assert.equal(C.effective(env,row,{...row,privacy_reviewed:false},[hash]).PILEHEAD_ACCOUNT_ENABLED,undefined);
 assert.equal(C.effective(env,row,{...row,progression_ready:false},[hash]).PILEHEAD_PROGRESSION_ENABLED,undefined);
@@ -17,10 +21,10 @@ assert.equal(C.deriveSeatKey(env.PILEHEAD_ACCOUNT_FLOW_SECRET),C.deriveSeatKey(e
 assert.equal(Buffer.from(C.deriveSeatKey(env.PILEHEAD_ACCOUNT_FLOW_SECRET),'base64url').length,32);assert.equal(C.deriveSeatKey('short'),null);
 (async()=>{
  let clock=0,reads=0,active=true,broken=false;
- const query=async sql=>{reads++;if(broken)throw Error('offline');return sql===C.INVITES_SQL?[{email_hash:hash}]:[{...row,accounts:active}]};
+ const query=async sql=>{reads++;if(broken)throw Error('offline');assert.equal(sql,C.SQL);return [{...row,accounts:active}]};
  const load=C.createLoader({env,roomQuery:query,playerQuery:query,now:()=>clock,ttl:3});
- const [a,b]=await Promise.all([load(),load()]);assert.equal(a,b);assert.equal(reads,3);
- assert.equal((await load()).PILEHEAD_ACCOUNT_ENABLED,'1');assert.equal(reads,3);
+ const [a,b]=await Promise.all([load(),load()]);assert.equal(a,b);assert.equal(reads,2);
+ assert.equal((await load()).PILEHEAD_ACCOUNT_ENABLED,'1');assert.equal(reads,2);
  active=false;clock=4;assert.equal((await load()).PILEHEAD_ACCOUNT_ENABLED,undefined);
  broken=true;clock=8;assert.equal((await load()).PILEHEAD_ROUND_HISTORY_ENABLED,undefined);
  const reports=[];
@@ -28,6 +32,11 @@ assert.equal(Buffer.from(C.deriveSeatKey(env.PILEHEAD_ACCOUNT_FLOW_SECRET),'base
  await missing();await missing();assert.deepEqual(reports,['player_url_missing']);
  const fail=C.createLoader({env,roomQuery:async()=>[row],playerQuery:async()=>{throw Object.assign(Error('DO NOT LOG postgres://secret'),{code:'28P01'})},report:s=>reports.push(s)});
  await fail();assert.equal(reports.at(-1),'player_authentication');assert.ok(!reports.some(s=>s.includes('secret')));
+ const fakeUrl='postgresql://test:fake-secret@example.test/neondb?sslmode=require';
+ assert.equal(C.connectionString(fakeUrl),fakeUrl);
+ for(const invalid of ['psql '+fakeUrl, ' '+fakeUrl, fakeUrl+'\n', 'https://example.test', 'postgresql://test@example.test/neondb'])assert.throws(()=>C.connectionString(invalid),{code:'PILEHEAD_INVALID_DB_URL'});
+ const nested=C.createLoader({env,roomQuery:async()=>[row],playerQuery:async()=>{throw Object.assign(Error('private details'),{sourceError:{code:'ENOTFOUND'}})},report:s=>reports.push(s)});
+ await nested();assert.equal(reports.at(-1),'player_dns');assert.ok(!reports.some(s=>s.includes('private details')));
  const mismatch=C.createLoader({env,roomQuery:async()=>[row],playerQuery:async()=>[{...row,database_id:account}],report:s=>reports.push(s)});
  await mismatch();assert.equal(reports.at(-1),'database_mismatch');
  const ready=C.createLoader({env,roomQuery:query,playerQuery:query,report:s=>reports.push(s)});
