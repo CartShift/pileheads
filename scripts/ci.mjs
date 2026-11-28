@@ -35,6 +35,7 @@ const stages = {
   ],
   'browser-test': [
     node('tests/stack-homepage-browser.cjs'),
+    node('tests/stack-pwa-browser.cjs'),
     node('tests/stack-launch-performance.cjs'),
     node('tests/stack-next-browser.cjs'),
     node('tests/stack-player-profile-browser.cjs'),
@@ -67,10 +68,13 @@ for (const step of stages[mode]) {
     continue;
   }
   const [command, ...commandArgs] = step;
+  // Exercise the flagged PWA only in CI's isolated integrated build.
+  // Normal npm run build (Vercel/Render) retains the default-off flag.
+  const pwaTestBuild = ['build','full-core','full'].includes(mode) && commandArgs.slice(-2).join(' ') === 'run build';
   const result = spawnSync(command, commandArgs, {
     cwd: root,
     stdio: 'inherit',
-    env: { ...process.env, CI: 'true', NEXT_TELEMETRY_DISABLED: '1' },
+    env: { ...process.env, CI: 'true', NEXT_TELEMETRY_DISABLED: '1', ...(pwaTestBuild ? {NEXT_PUBLIC_PILEHEADS_PWA:'1'} : {}) },
     shell: process.platform === 'win32' && command === 'npm.cmd',
   });
   if (result.error) throw result.error;
