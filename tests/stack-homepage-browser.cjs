@@ -45,8 +45,14 @@ async function check(browser,width,height){
     const cta=page.getByRole("link",{name:"Play free online",exact:true});
     assert.equal(await cta.getAttribute("href"),"/play");
     const rect=await cta.boundingBox();assert.ok(rect&&rect.height>=44&&rect.x>=-1&&rect.x+rect.width<=width+1,"primary CTA must fit and be touch-friendly");
-    for(const href of ["/play","/deck","/how-to-play"]){assert.ok(await page.locator('a[href="'+href+'"]').count(),href);assert.equal((await page.request.get(BASE+href)).status(),200,href)}
+    for(const href of ["/play","/deck","/how-to-play","/privacy","/terms","/impressum"]){assert.ok(await page.locator('a[href="'+href+'"]').count(),href);assert.equal((await page.request.get(BASE+href)).status(),200,href)}
     await page.screenshot({path:path.join(ARTIFACTS,"homepage-"+width+".png"),fullPage:true,animations:"disabled"});
+    for(const [href,title] of [["/privacy","Privacy notice"],["/terms","Terms of use"],["/impressum","Impressum"]]){
+      const legalResponse=await page.goto(BASE+href);assert.equal(legalResponse.status(),200,href);assert.equal(await page.getByRole("heading",{level:1,name:title,exact:true}).count(),1);
+      assert.equal((await page.request.get(BASE+href+"/")).status(),200,href+" trailing slash");
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),href+" fits viewport");
+    }
+    await page.goto(BASE+"/stack",{waitUntil:"networkidle"});
     const demo=page.getByTestId("move-examples");
     for(const [move,trigger,result] of [["DUMP","Play DUMP","Your opponent received all three cards"],["BURN","Play BURN","The pile and BURN are gone"],["SLAM","Complete the SLAM","Four sevens"]]){
       await demo.getByRole("button",{name:new RegExp("^"+move)}).click();

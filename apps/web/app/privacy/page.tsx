@@ -1,0 +1,56 @@
+import {routeMetadata} from "../../lib/seo";
+import Link from "next/link";
+import SiteHeader from "../../components/site-header";
+import styles from "./privacy.module.css";
+import OperatorContact from "../../components/operator-contact";
+
+export const metadata = routeMetadata("/privacy");
+
+// RELEASE BLOCKER: replace draft controller and review fields with verified
+// public details and reviewed text before merging or enabling accounts.
+export default function PrivacyPage() {
+  return <main className="game-shell stack-lobby">
+    <SiteHeader />
+    <article className={styles.document} aria-labelledby="privacy-title">
+      <Link href="/">← Back to PILEHEADS</Link>
+      <p className={styles.eyebrow}>YOUR DATA. YOUR CHOICE.</p>
+      <h1 id="privacy-title">Privacy notice</h1>
+      <p className={styles.draft} role="note">Draft for operator review. Not a published or approved privacy notice. Account registration must remain disabled until review is complete.</p>
+      <p>You can play PILEHEADS without creating an account. This notice explains the data involved in the website, online games, and optional player features.</p>
+      <h2>1. Who is responsible?</h2>
+      <p>PILEHEADS is currently operated by an individual who is responsible for processing personal data.</p>
+      <OperatorContact/>
+      <p>See also the <Link href="/impressum">Impressum (legal notice)</Link>.</p>
+      <h2>2. Playing without an account</h2>
+      <p>Local play uses browser storage for game state and preferences. Online private tables require room and seat identifiers, player nicknames, game state and actions, and credentials that allow you to reconnect. Other players at your table can see your nickname and the game information available to them under the rules. Avoid using your real name in a nickname or sharing an invitation publicly if you want a private game.</p>
+      <h2>3. Optional Google sign-in</h2>
+      <p>If account registration is enabled and you choose to sign in, you are redirected to Google. PILEHEADS requests OpenID Connect identity and email information to verify your identity and that your email is verified. It receives and validates an identity token and uses Google's stable account identifier to create or locate your PILEHEADS account.</p>
+      <p>The account database stores an internal account ID, Google account identifier, nickname, preferences and account/session records. The account system does not store your Google email address or Google access or refresh tokens, and does not request access to Gmail, Drive or contacts. Google processes information according to its own <a href="https://policies.google.com/privacy">privacy policy</a>.</p>
+      <h2>4. Cookies and device storage</h2>
+      <p>Sign-in uses a short-lived secure cookie (up to 10 minutes) to protect the authentication flow. Account session cookies expire after 30 days; optional guest profile cookies expire after 90 days. Session tokens are stored as hashes on the server. Your browser also stores local game preferences and saves, and may store public game assets if you choose to download offline play. Clearing browser data removes local information, but does not itself delete a server-side account.</p>
+      <h2>5. Optional features</h2>
+      <p>Guest profiles, personal round history, progression, matchmaking, voluntary playtest reports, measurement and deck-update emails are separate features. Their availability depends on release settings. If offered, personal round history is linked only to your own account and opted-in round; optional session measurement requires an affirmative choice and can be stopped. A deck-update waitlist, if offered, uses email confirmation and an unsubscribe mechanism. You can play without signing up for these optional measurement or email features.</p>
+      <h3>Optional website analytics</h3>
+      <p>If enabled and you consent, Google Analytics 4 uses first-party cookies and device/browser information to measure selected public page views, recognized campaign categories and clicks on play links. Playing does not require consent. The implementation is separate from optional first-party gameplay measurement and does not intentionally send player names, room codes, account identifiers or card contents. Advertising consent is denied by the implementation. You can reject or withdraw consent in Analytics preferences; withdrawal does not affect the lawfulness of earlier processing.</p>
+      <p>The proposed basis is consent under Article 6(1)(a) GDPR and, where applicable, Section 25(1) TDDDG. See <a href="https://support.google.com/analytics/answer/6004245">Google Analytics data privacy information</a>. <strong>Before activation:</strong> confirm the actual Google stream settings, processing terms, international transfer safeguards, user/event retention and cookie durations. Keep analytics disabled until the separate review is complete.</p>
+      <h2>6. Hosting and service providers</h2>
+      <p>Vercel hosts the website and application endpoints; Neon provides database services; Google provides sign-in. These services may process technical request information such as IP addresses and browser details in delivering and securing their services. If deck-update email delivery is activated, the relevant email provider must also be disclosed.</p>
+      <p>Our database is hosted in an EU region. Hosting, authentication, support and infrastructure services may also involve processing outside the EEA. See the <a href="https://vercel.com/legal/privacy-notice">Vercel privacy notice</a>, <a href="https://vercel.com/legal/dpa">Vercel data processing terms</a> and <a href="https://neon.com/security">Neon security and privacy information</a>. Where required, international transfers must be covered by an applicable adequacy decision or appropriate safeguards, such as standard contractual clauses. Contact the operator for information about the applicable safeguards and how to obtain a copy.</p>
+      <p><strong>Operator review before release:</strong> confirm actual provider contractual coverage, applicable transfer mechanisms and retention settings; do not infer them solely from public provider documents.</p>
+      <h2>7. Why information is processed</h2>
+      <p>The proposed legal bases under Article 6(1) GDPR are: performance of a contract or requested pre-contractual steps (b) for requested game and account functionality; legitimate interests (f) in keeping the game available, preventing abuse and securing accounts; consent (a) for optional measurement and deck-update emails; and compliance with legal obligations (c) where applicable. These purposes and the balancing of legitimate interests require operator review before release. Consent can be withdrawn at any time without affecting processing that took place before withdrawal.</p>
+      <p>Providing account identity data is optional for playing the game, but necessary if you choose Google sign-in. Online room data is necessary to participate in online tables. No automated decision-making with legal or similarly significant effects is intended for these account features.</p>
+      <h2>8. How long data is kept</h2>
+      <p>Account sessions expire after 30 days; guest profiles expire after 90 days. Persistent accounts are not automatically deleted by the existing cleanup tool. When personal round history is enabled, linked records are subject to the 90-day receipt expiry. Expired records are excluded from relevant reads; expiry does not guarantee immediate physical deletion. Account deletion removes the account and linked sessions and personal history from the active account database; local saves and separate guest profiles are not the same account.</p>
+      <p><strong>Before publication: confirm room and provider-log retention, backup retention, actual cleanup cadence and any exceptions required by law.</strong></p>
+      <h2>9. Your choices and rights</h2>
+      <p>When account features are enabled, you can change your nickname, sign out, or delete your account in <Link href="/profile">your profile</Link>. Under applicable data protection law you may have rights of access, correction, erasure, restriction, portability, objection, withdrawal of consent and complaint to a supervisory authority.</p>
+      <p>To exercise your rights, contact the operator using the details above. You can object to processing based on legitimate interests for reasons relating to your particular situation, and object to direct marketing at any time. You may complain to a competent data protection authority, including the <a href="https://www.datenschutz-berlin.de/buergerinnen-und-buerger/beschwerde/">Berlin Commissioner for Data Protection and Freedom of Information</a>. Account requests may require proportionate identity verification.</p>
+      <p>Google identity information is used only for the sign-in and account functions described above, not for advertising profiles or sale. Revoking PILEHEADS access in your Google account does not by itself delete the PILEHEADS account; use the profile deletion feature or contact the operator.</p>
+      <p><strong>Operator review before release:</strong> confirm rights-request procedures and account eligibility for younger players.</p>
+      <h2>10. Changes</h2>
+      <p>This notice must be updated when processing practices change. <strong>Publication date and approved version: pending review.</strong></p>
+      <p><Link href="/terms">Terms of use</Link> · <Link href="/impressum">Impressum</Link></p>
+    </article>
+  </main>;
+}

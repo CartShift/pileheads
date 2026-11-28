@@ -78,6 +78,24 @@
       "title": "PILEHEADS Endgame Rules Lab",
       "index": false,
       "follow": false
+    },
+    "/privacy": {
+      "title": "Privacy notice | PILEHEADS",
+      "index": false,
+      "follow": true,
+      "canonical": "/privacy"
+    },
+    "/terms": {
+      "title": "Terms of use | PILEHEADS",
+      "index": false,
+      "follow": true,
+      "canonical": "/terms"
+    },
+    "/impressum": {
+      "title": "Impressum | PILEHEADS",
+      "index": false,
+      "follow": true,
+      "canonical": "/impressum"
     }
   }
 }

@@ -89,7 +89,7 @@ async function serveFile(req, res, url) {
   }
   if (pathname === '/play' || pathname === '/play/') pathname = '/play.html';
   else if (pathname === '/stack' || pathname === '/stack/') pathname = '/stack.html';
-  else if (['/growth','/growth/','/deck-updates','/deck-updates/','/how-to-play','/how-to-play/','/deck','/deck/','/profile','/profile/','/quick-play','/quick-play/','/strategy','/strategy/','/guides/shithead-vs-pileheads','/guides/shithead-vs-pileheads/','/pilehead/print','/pilehead/print/','/pilehead/playtest','/pilehead/playtest/','/pilehead/endgame-lab','/pilehead/endgame-lab/','/pilehead/gallery','/pilehead/gallery/'].includes(pathname)) pathname = pathname.replace(/\/$/,'') + '.html';
+  else if (['/growth','/growth/','/deck-updates','/deck-updates/','/how-to-play','/how-to-play/','/deck','/deck/','/profile','/profile/','/quick-play','/quick-play/','/privacy','/privacy/','/terms','/terms/','/impressum','/impressum/','/strategy','/strategy/','/guides/shithead-vs-pileheads','/guides/shithead-vs-pileheads/','/pilehead/print','/pilehead/print/','/pilehead/playtest','/pilehead/playtest/','/pilehead/endgame-lab','/pilehead/endgame-lab/','/pilehead/gallery','/pilehead/gallery/'].includes(pathname)) pathname = pathname.replace(/\/$/,'') + '.html';
   if (pathname.includes('\0') || pathname.includes('\\')) return respond(res, 400, 'Bad Request');
 
   const filename = path.resolve(root, '.' + pathname);
