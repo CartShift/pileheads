@@ -1818,6 +1818,37 @@ async function unifiedNavigationScenario(browser) {
   console.log("PASS shared navigation: seven routes, game dialog, current-page state and four viewport widths");
 }
 
+async function deniedTabletopStorageScenario(browser) {
+  const context = await browser.newContext({viewport:{width:390,height:844},reducedMotion:"reduce"});
+  try {
+    await context.addInitScript(() => {
+      const read=Storage.prototype.getItem, write=Storage.prototype.setItem;
+      const denied=key=>String(key).startsWith("stack-next-")||key==="stack-final-duel-default-v1";
+      Storage.prototype.getItem=function(key){
+        if(denied(key))throw new DOMException("Storage denied","SecurityError");
+        return read.call(this,key);
+      };
+      Storage.prototype.setItem=function(key,value){
+        if(denied(key))throw new DOMException("Storage denied","QuotaExceededError");
+        return write.call(this,key,value);
+      };
+    });
+    const page=await context.newPage();
+    await page.goto(WEB+"/play");
+    await page.getByRole("button",{name:"Quick play",exact:true}).click();
+    await page.locator('.game-table-shell[data-phase="play"]').waitFor();
+    await page.goto(WEB+"/play");
+    await page.getByRole("textbox",{name:"Your name"}).fill("Storage-limited host");
+    await page.getByRole("button",{name:/Create a room/}).click();
+    await page.waitForURL(/room=[A-HJ-NP-Z2-9]{8}/);
+    await page.getByRole("button",{name:"I'm ready"}).waitFor();
+    await page.getByText("This browser cannot save your room session. Keep this tab open to retain your seat.",{exact:true}).waitFor();
+    await page.getByRole("button",{name:"I'm ready"}).click();
+    await page.getByRole("button",{name:"Change cards",exact:true}).waitFor();
+    console.log("PASS tabletop local play and authenticated online actions with denied preference/session storage");
+  } finally { await context.close(); }
+}
+
 async function main() {
   fs.mkdirSync(path.resolve(ROOT, "artifacts/next"), {recursive:true});
   const apiProc = fork(path.resolve(ROOT, "scripts/render-server.cjs"), [], {
@@ -1871,6 +1902,7 @@ async function main() {
         drills:()=>specialMoveDrillsScenario(browser),
         interrupts:()=>localInterruptParityScenarios(browser),
         mixed:()=>mixedBotScenarios(browser),
+        storage:()=>deniedTabletopStorageScenario(browser),
         recovery:()=>abandonedRoomScenario(browser)
       };
       if(!Object.hasOwn(scenarios,selected)) throw Error("Unknown PILEHEADS browser scenario: "+selected);
@@ -1902,6 +1934,7 @@ async function main() {
     await sharedMoveAnimationScenarios(browser);
     await mixedBotScenarios(browser);
     await abandonedRoomScenario(browser);
+    await deniedTabletopStorageScenario(browser);
   } catch (e) {
     console.error("Next browser acceptance failed:", e);
     console.error("INTEGRATED SERVER LOGS", apiLog.slice(-6000));
