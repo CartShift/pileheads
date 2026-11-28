@@ -45,10 +45,16 @@ export default function OfflineControl(){
     const detect=()=>setOnline(navigator.onLine);
     detect();window.addEventListener("online",detect);window.addEventListener("offline",detect);
     setAvailable(true);
-    void request("status").then(value=>{if(live)setSnapshot(value);}).catch(()=>{
-      if(live)setMessage("Offline setup is unavailable. Reopen the game after the app update.");
-    });
-    return()=>{live=false;window.removeEventListener("online",detect);window.removeEventListener("offline",detect);};
+    const refresh=()=>{
+      if(document.visibilityState==="hidden"||running.current)return;
+      void request("status").then(value=>{if(live)setSnapshot(value);}).catch(()=>{
+        if(live)setMessage("Offline setup is unavailable. Reopen the game after the app update.");
+      });
+    };
+    refresh();
+    document.addEventListener("visibilitychange",refresh);
+    navigator.serviceWorker.addEventListener("controllerchange",refresh);
+    return()=>{live=false;window.removeEventListener("online",detect);window.removeEventListener("offline",detect);document.removeEventListener("visibilitychange",refresh);navigator.serviceWorker.removeEventListener("controllerchange",refresh);};
   },[]);
   async function act(action:"download"|"remove"){
     if(running.current)return;
@@ -69,7 +75,7 @@ export default function OfflineControl(){
       <button type="button" className="secondary-button" disabled={!snapshot||busy||!online||!!(snapshot?.ready&&!snapshot.updateAvailable)}
         onClick={()=>void act("download")}>{busy&&progress?"Downloading "+progress.done+" / "+progress.total:
           snapshot?.ready?(snapshot.updateAvailable?"Update offline table":"Downloaded"):"Download offline table"}</button>
-      {snapshot?.ready&&<button type="button" className="secondary-button" disabled={busy} onClick={()=>void act("remove")}>Remove offline files</button>}
+      {(snapshot?.ready||(!snapshot&&message))&&<button type="button" className="secondary-button" disabled={busy} onClick={()=>void act("remove")}>Remove offline files</button>}
     </div>
     {message&&<p role="status">{message}</p>}
   </section>;
