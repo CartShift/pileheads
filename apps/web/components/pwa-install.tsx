@@ -1,18 +1,23 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 type InstallPrompt = Event & {
   prompt: () => Promise<unknown>;
   userChoice: Promise<{outcome:"accepted"|"dismissed"}>;
 };
 const enabled = process.env.NEXT_PUBLIC_PILEHEADS_PWA === "1";
+type State = {ready:boolean; installed:boolean; available:boolean; ios:boolean; busy:boolean; requestInstall:()=>Promise<boolean>};
+const InstallContext = createContext<State>({ready:false,installed:false,available:false,ios:false,busy:false,requestInstall:async()=>false});
 
-export default function PwaInstall() {
+/** Root-lifetime listener: preserve the single-use browser prompt across route changes.
+ * The flagged worker is network-only, not an opt-in offline download.
+ */
+export function PwaProvider({children}:{children:React.ReactNode}) {
   const prompt = useRef<InstallPrompt | null>(null);
+  const inFlight = useRef(false);
   const [available,setAvailable] = useState(false);
   const [installed,setInstalled] = useState(false);
   const [ready,setReady] = useState(false);
-  const [guide,setGuide] = useState(false);
   const [ios,setIos] = useState(false);
   const [busy,setBusy] = useState(false);
   useEffect(() => {
@@ -25,41 +30,49 @@ export default function PwaInstall() {
       prompt.current = event as InstallPrompt;
       setAvailable(true);
     };
-    const onInstalled = () => {prompt.current = null;setAvailable(false);setInstalled(true);setGuide(false);};
-    detect();
-    setIos(/iPad|iPhone|iPod/.test(nav.userAgent) || (nav.platform === "MacIntel" && nav.maxTouchPoints > 1));
-    setReady(true);
+    const onInstalled = () => {prompt.current = null;setAvailable(false);setInstalled(true);};
     window.addEventListener("beforeinstallprompt", onPrompt);
     window.addEventListener("appinstalled", onInstalled);
     mode.addEventListener("change", detect);
+    detect();
+    setIos(/iPad|iPhone|iPod/.test(nav.userAgent) || (nav.platform === "MacIntel" && nav.maxTouchPoints > 1));
+    setReady(true);
+    // Register before the browser evaluates installability, never from a game
+    // action. The flag is off by default. No cache, push permission or reload.
+    if ("serviceWorker" in nav && window.isSecureContext &&
+        ["/","/play","/play/"].includes(location.pathname) && !location.search) {
+      void nav.serviceWorker.register("/pwa-sw.js",{scope:"/",updateViaCache:"none"}).catch(() => {});
+    }
     return () => {
       window.removeEventListener("beforeinstallprompt", onPrompt);
       window.removeEventListener("appinstalled", onInstalled);
       mode.removeEventListener("change", detect);
     };
   }, []);
-  const install = async () => {
-    if (busy) return;
+  const requestInstall = async () => {
+    const event=prompt.current;
+    if (!event || inFlight.current) return false;
+    inFlight.current=true;
     setBusy(true);
-    const event = prompt.current;
+    prompt.current=null;
+    setAvailable(false);
     try {
-      if (event) {
-        prompt.current = null;
-        setAvailable(false);
-        await event.prompt();
-        const choice = await event.userChoice;
-        setGuide(choice.outcome !== "accepted");
-      } else setGuide(value => !value);
-    } catch {setGuide(true);}
-    finally {
-      // Registration is an explicit install interaction, never a gameplay side effect.
-      if ("serviceWorker" in navigator && window.isSecureContext) {
-        void navigator.serviceWorker.register("/pwa-sw.js",{scope:"/",updateViaCache:"none"}).catch(() => {});
-      }
-      setBusy(false);
-    }
+      await event.prompt();
+      return (await event.userChoice).outcome === "accepted";
+    } catch {return false;}
+    finally {inFlight.current=false;setBusy(false);}
   };
+  return <InstallContext.Provider value={{ready,installed,available,ios,busy,requestInstall}}>{children}</InstallContext.Provider>;
+}
+
+export default function PwaInstall() {
+  const {ready,installed,available,ios,busy,requestInstall}=useContext(InstallContext);
+  const [guide,setGuide]=useState(false);
   if (!enabled || !ready || installed) return null;
+  const install=async()=>{
+    if(available){setGuide(!(await requestInstall()));}
+    else setGuide(value=>!value);
+  };
   return <section className="pwa-install" aria-label="Install PILEHEADS">
     <button type="button" className="secondary-button" disabled={busy} onClick={install}
       aria-expanded={guide} aria-controls="pwa-install-help">{available ? "Install PILEHEADS" : "Add to home screen"}</button>
