@@ -5,10 +5,10 @@ const e={PILEHEAD_MATCHMAKING_PREVIEW_ENABLED:'1',PILEHEAD_MATCHMAKING_SCHEMA_RE
 assert.equal(M.config({}).enabled,false);assert.equal(M.config(e).enabled,true);assert.equal(M.config({...e,VERCEL_ENV:'production'}).enabled,false);
 assert.equal(M.config({...e,PILEHEAD_MATCHMAKING_PREVIEW_ORIGIN:'https://pileheads.com',PILEHEAD_PLAYER_ORIGIN:'https://pileheads.com'}).enabled,false);
 assert.equal(M.config({...e,PILEHEAD_MATCHMAKING_PREVIEW_ACCOUNTS:''}).enabled,false);
-const live={...e,VERCEL_ENV:'production',PILEHEAD_MATCHMAKING_PREVIEW_ORIGIN:'https://pileheads.com',PILEHEAD_PLAYER_ORIGIN:'https://pileheads.com',PILEHEAD_PLAYER_PRIVACY_URL:'https://pileheads.com/privacy',PILEHEAD_GOOGLE_CLIENT_ID:'test-client',PILEHEAD_GOOGLE_CLIENT_SECRET:'test-only-not-real-secret',PILEHEAD_ACCOUNT_FLOW_SECRET:'x'.repeat(48),PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED:'1',PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES:['a'.repeat(64)],PILEHEAD_MATCHMAKING_LIVE_PILOT_ENABLED:'1'};
+const live={...e,VERCEL_ENV:'production',PILEHEAD_MATCHMAKING_PREVIEW_ORIGIN:'https://pileheads.com',PILEHEAD_PLAYER_ORIGIN:'https://pileheads.com',PILEHEAD_PLAYER_PRIVACY_URL:'https://pileheads.com/privacy',PILEHEAD_GOOGLE_CLIENT_ID:'test-client',PILEHEAD_GOOGLE_CLIENT_SECRET:'test-only-not-real-secret',PILEHEAD_ACCOUNT_FLOW_SECRET:'x'.repeat(48),PILEHEAD_ACCOUNT_PUBLIC_BETA_ENABLED:'1',PILEHEAD_MATCHMAKING_LIVE_PILOT_ENABLED:'1'};
 assert.equal(M.config(live).enabled,true);assert.equal(M.config(live).live,true);
 assert.equal(M.config({...live,PILEHEAD_MATCHMAKING_LIVE_PILOT_ENABLED:'0'}).enabled,false);
-assert.equal(M.config({...live,PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES:[]}).enabled,false);
+assert.equal(M.config({...live,PILEHEAD_ACCOUNT_PUBLIC_BETA_ENABLED:'0'}).enabled,false);
 assert.equal(M.config({...live,PILEHEAD_MATCHMAKING_PREVIEW_ACCOUNTS:''}).enabled,false);
 assert.equal(M.config({...live,PILEHEAD_MATCHMAKING_PREVIEW_ORIGIN:'https://www.pileheads.com',PILEHEAD_PLAYER_ORIGIN:'https://www.pileheads.com'}).enabled,false);
 for(const action of ['claim','assign','set-rating'])assert.equal(M.valid({action}),false);

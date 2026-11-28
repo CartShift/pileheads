@@ -52,9 +52,10 @@ function configuration(env){
  const pilotValid=pilotEmails.length>0&&pilotEmails.length<=50&&pilotEmails.every(email=>email.length<=254&&/^[^\s@,]+@[^\s@,]+\.[^\s@,]+$/.test(email));
  const pilotEmailHashes=Array.isArray(env.PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES)?env.PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES:[];
  const hashValid=pilotEmailHashes.length>0&&pilotEmailHashes.length<=50&&pilotEmailHashes.every(h=>/^[0-9a-f]{64}$/.test(h));
- const pilotReady=canonical?origin==='https://pileheads.com'&&env.PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED==='1'&&(env.VERCEL_ENV==='production'?hashValid:pilotValid||hashValid):!pilotEmails.length||pilotValid;
+ const publicSignup=env.VERCEL_ENV==='production'&&origin==='https://pileheads.com'&&env.PILEHEAD_ACCOUNT_PUBLIC_BETA_ENABLED==='1';
+ const pilotReady=canonical?origin==='https://pileheads.com'&&(publicSignup||(env.VERCEL_ENV!=='production'&&env.PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED==='1'&&(pilotValid||hashValid))):!pilotEmails.length||pilotValid;
  const enabled=configured&&pilotReady&&Boolean(privacyUrl)&&env.PILEHEAD_ACCOUNT_ENABLED==='1'&&Boolean(clientId&&clientSecret&&flowSecret?.length>=32);
- return {configured,enabled,origin,privacyUrl,clientId,clientSecret,flowSecret,pilotEmails:pilotValid?pilotEmails:[],pilotEmailHashes:hashValid?pilotEmailHashes:[]};
+ return {configured,enabled,origin,privacyUrl,clientId,clientSecret,flowSecret,publicSignup,pilotEmails:!publicSignup&&pilotValid?pilotEmails:[],pilotEmailHashes:!publicSignup&&hashValid?pilotEmailHashes:[]};
 }
 function createHandlers({config,store,history=async()=>[],historyConfigured=false,progression=async()=>null,progressionConfigured=false,exchange=OIDC.exchangeGoogle,allowRead=limiter(300),allowWrite=limiter(90),allowLogin=limiter(30),now=Date.now}){
  const result=row=>({enabled:Boolean(config.enabled),privacyUrl:config.privacyUrl??null,profile:publicAccount(row)});
@@ -124,7 +125,7 @@ function createHandlers({config,store,history=async()=>[],historyConfigured=fals
    if(!flow||!OIDC.safeEqual(state,flow.state)||!code||code.length>2048||url.searchParams.has('error')||issuer.length>1||(issuer.length===1&&issuer[0]!=='https://accounts.google.com')||!allowLogin())
     return redirect(res,'/profile?login=failed');
    const identity=await exchange(config,code,flow);
-   const opened=await store.loginVerifiedIdentity(identity,session(req));
+   const opened=await store.loginVerifiedIdentity(identity,session(req),{publicSignup:config.publicSignup===true});
    setCookie(res,SESSION,opened.token,TTL);
    return redirect(res,'/profile');
   }catch{return redirect(res,'/profile?login=failed')}

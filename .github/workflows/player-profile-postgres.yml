@@ -11,6 +11,7 @@ on:
       - 'tests/pilehead-player-retention.cjs'
       - 'scripts/account-store.cjs'
       - 'db/player-accounts-v1.sql'
+      - 'db/player-public-signup.sql'
       - 'tests/pilehead-account-store.cjs'
       - 'db/player-profiles-v1.sql'
       - 'tests/player-profile-postgres.cjs'

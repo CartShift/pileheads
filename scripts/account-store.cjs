@@ -44,12 +44,35 @@ const SQL={
  remove:`DELETE FROM pileheads_accounts a USING pileheads_account_sessions s
  WHERE s.token_hash=$1 AND s.account_id=a.id AND s.expires_at>now() RETURNING a.id`
 };
+// Existing accounts bypass the new-registration budget. All writes, including
+// the quota increment, account creation and session creation, are one statement.
+// Concurrent first sign-ins for the same identity may consume an extra slot;
+// they cannot create a duplicate identity or exceed the daily ceiling.
+SQL.loginPublic=SQL.login.replace(`WITH account AS (
+ INSERT INTO pileheads_accounts(id,provider,provider_subject)
+ VALUES($1,'google',$2) ON CONFLICT(provider,provider_subject) DO UPDATE SET provider_subject=EXCLUDED.provider_subject
+ RETURNING id,display_name,preferred_deck
+ )`,`WITH existing AS MATERIALIZED (
+ SELECT id,display_name,preferred_deck FROM pileheads_accounts WHERE provider='google' AND provider_subject=$2
+ ), quota AS (
+ INSERT INTO pileheads_account_signup_quota(day,hits)
+ SELECT (now() AT TIME ZONE 'UTC')::date,1 WHERE NOT EXISTS(SELECT 1 FROM existing)
+ ON CONFLICT(day) DO UPDATE SET hits=pileheads_account_signup_quota.hits+1
+ WHERE pileheads_account_signup_quota.hits<250 RETURNING hits
+ ), created AS (
+ INSERT INTO pileheads_accounts(id,provider,provider_subject)
+ SELECT $1::uuid,'google',$2 FROM quota
+ ON CONFLICT(provider,provider_subject) DO UPDATE SET provider_subject=EXCLUDED.provider_subject
+ RETURNING id,display_name,preferred_deck
+ ), account AS (
+ SELECT * FROM existing UNION ALL SELECT * FROM created
+ )`);
 function createAccountStore(query,{uuid=crypto.randomUUID,token=()=>crypto.randomBytes(32).toString('base64url')}={}){
  return {
-  async loginVerifiedIdentity(identity,previousToken){
+  async loginVerifiedIdentity(identity,previousToken,{publicSignup=false}={}){
    const subject=validateIdentity(identity),fresh=token(),freshDigest=digest(fresh),oldDigest=digest(previousToken);
    if(!freshDigest||freshDigest===oldDigest)throw Error('session rotation failed');
-   const [account]=await query(SQL.login,[uuid(),subject,freshDigest,oldDigest]);
+   const [account]=await query(publicSignup?SQL.loginPublic:SQL.login,[uuid(),subject,freshDigest,oldDigest]);
    if(!account)throw Error('account session not created');
    // The future server adapter must put token in an HttpOnly Secure cookie,
    // never return it in JSON, logs, URLs, telemetry or localStorage.
