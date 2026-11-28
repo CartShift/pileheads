@@ -39,7 +39,7 @@ assert.ok(officialHome.includes("/stack-media/stack-home-logo-web.webp"), "Homep
 assert.ok(officialHome.includes("/stack-media/stack-home-explorer-v2.webp"), "Hero must use the canonical Explorer mascot");
 assert.equal(read("stack-media/stack-home-explorer-v2.webp").toString("ascii",8,12),"WEBP");
 
-for (const asset of ["stack-home-gameplay-rc3.webp","stack-home-gameplay-wide-rc3.webp","stack-home-gameplay-desktop-rc3.webp","stack-home-sunset.webp"]) { assert.equal(read("stack-media/"+asset).toString("ascii",8,12),"WEBP"); assert.ok(officialHome.includes("/stack-media/"+asset)); }
+for (const asset of ["stack-home-gameplay-rc3.webp","stack-home-gameplay-wide-rc3.webp","stack-home-gameplay-desktop-rc3.webp"]) { assert.equal(read("stack-media/"+asset).toString("ascii",8,12),"WEBP"); assert.ok(officialHome.includes("/stack-media/"+asset)); }
 
 for(const asset of ["stack-home-box-side-v2.webp","stack-home-box-top-v2.webp"]) { assert.equal(read("stack-media/"+asset).toString("ascii",8,12),"WEBP"); assert.ok(officialHome.includes("/stack-media/"+asset)); }
 for(const asset of ["print-grain.svg","comic-cloud.svg","barlow-condensed-black-italic.ttf","barlow-OFL.txt"]) assert.ok(read("stack-media/"+asset).length>100,asset);
@@ -63,3 +63,20 @@ const social=read("stack-media/pileheads-social.png");
 assert.equal(social.toString("hex",0,8),"89504e470d0a1a0a");assert.equal(social.readUInt32BE(16),1200);assert.equal(social.readUInt32BE(20),630);
 
 for(let i=-1;i<16;i++)for(const width of [140,280]){const image=read("stack-media/cards/"+(i<0?"back":"face-"+i)+"-"+width+".webp");assert.equal(image.subarray(8,12).toString(),"WEBP");assert.ok(image.length<50000,"individual web face delivery budget");}
+
+// Curated Universe graphics must survive the integrated export.
+const universeAssets=["hero-game-night","character-three-chef","character-ten-victory","state-defeat-keep-cool","state-explorer-lost","rule-play-higher"];
+let universeBytes=0;
+for(const name of universeAssets){
+  const asset=read("stack-media/universe/"+name+".webp");
+  assert.equal(asset.toString("ascii",0,4),"RIFF",name);
+  assert.equal(asset.toString("ascii",8,12),"WEBP",name);
+  assert.ok(asset.length>100,name+" must contain image data");
+  universeBytes+=asset.length;
+}
+assert.ok(universeBytes<400000,"curated illustration delivery budget");
+assert.ok(officialHome.includes('/stack-media/universe/hero-game-night.webp'),"closing illustration missing");
+const rulesHtml=read("how-to-play.html").toString("utf8");
+for(const name of ["character-three-chef","rule-play-higher"])assert.ok(rulesHtml.includes('/stack-media/universe/'+name+'.webp'),name+" missing from rules");
+assert.ok(read("404.html").toString("utf8").includes('/stack-media/universe/state-explorer-lost.webp'),"branded 404 illustration missing");
+console.log("PASS curated Universe assets and integrated public routes");
