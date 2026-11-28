@@ -1,8 +1,8 @@
 "use client";
 import type { RoomGame } from "../lib/room";
 import { PlayingCard, type DeckTheme } from "./card-view";
-export default function CenterBoard({g, theme: deckTheme, selection, canPlay, busy, playSelected, freshBlindMove, rule, onInspect}: {
-  g: RoomGame; theme: DeckTheme; selection: number[]; canPlay: boolean; busy: boolean;
+export default function CenterBoard({g, theme: deckTheme, canPlay, busy, playSelected, freshBlindMove, rule, onInspect}: {
+  g: RoomGame; theme: DeckTheme; canPlay: boolean; busy: boolean;
   playSelected: () => void; freshBlindMove: number | null; rule: string; onInspect: () => void;
 }) {
   return <div className="table-center">
