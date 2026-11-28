@@ -79,3 +79,28 @@ Additional capped Classic seeds (players / seed / starter / rotation / moves; al
 - 5 / 1691463555 / 3 / 2 / 1800
 
 Raw artifacts (retention 30 days): [3 seats](https://github.com/CartShift/pileheads/actions/runs/46088132878/artifacts/15239747405), [4 seats](https://github.com/CartShift/pileheads/actions/runs/46088132878/artifacts/15239394680), [5 seats](https://github.com/CartShift/pileheads/actions/runs/46088132878/artifacts/15239652776). Reproduce with `node scripts/bench-simulator.cjs 10000 1800 20261128 3` (or 4/5) on #211 candidate. Full-size S02 benchmark execution is now verified; capped-state trace analysis and human preference remain open.
+
+## Capped-case trace follow-up
+
+Re-executed all 16 capped Classic tuples from the full sample, using canonical engine at 06771aa, the same online bot scheduler priority, same seed/starter/policy rotation, same 96-event cap, and a 10,000-step ceiling. Checked invariants after every step. Compared a decision-state signature containing phase, turn, RNG, threshold flag moves>110, restriction, SLAM/SNAP/pending decisions, ordered card IDs for stock/pile/ashes/all player zones, out/finished order, and last 24 event seat/reason/rank (the fields read by the bot scoring policy). Excluded presentation timestamps, absolute move count after the threshold and cumulative pickup counters. No repeated signature occurred in these 16 runs; this is not a proof of universal termination.
+
+| Players | Seed | Classic steps to finish | Final Duel steps to finish |
+| ---: | ---: | ---: | ---: |
+| 2 | 67756809 | 2342 | 124 |
+| 2 | 2569167974 | 2314 | 166 |
+| 2 | 1216671677 | 2183 | 129 |
+| 2 | 3147958191 | 2429 | 88 |
+| 2 | 951830930 | 2121 | 97 |
+| 2 | 1732672000 | 2035 | 119 |
+| 3 | 887427994 | 2373 | 99 |
+| 3 | 96814659 | 1904 | 198 |
+| 3 | 1095424672 | 2006 | 144 |
+| 3 | 669317640 | 5972 | 204 |
+| 4 | 4201457820 | 2271 | 363 |
+| 4 | 1614910024 | 1856 | 144 |
+| 4 | 1157790689 | 1862 | 187 |
+| 5 | 349080934 | 2042 | 151 |
+| 5 | 2031244791 | 3219 | 284 |
+| 5 | 1691463555 | 2808 | 222 |
+
+At step 1,800, all 16 Classic cases had precisely two active players and an empty stock. All ultimately completed (1,856–5,972 steps) with no invariant exceptions. Their matched Final Duel cases all completed in 88–363 steps. This supports an optional endgame-attrition setting and deliberate human comparison, not a forced rule change. The full-sample cap statistics remain unchanged, since those distributions used a predefined 1,800-step observation window.
