@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 
 type InstallPrompt = Event & {
   prompt: () => Promise<unknown>;
@@ -13,6 +14,7 @@ const InstallContext = createContext<State>({ready:false,installed:false,availab
  * The flagged worker is network-only, not an opt-in offline download.
  */
 export function PwaProvider({children}:{children:React.ReactNode}) {
+  const pathname = usePathname();
   const prompt = useRef<InstallPrompt | null>(null);
   const inFlight = useRef(false);
   const [available,setAvailable] = useState(false);
@@ -37,18 +39,19 @@ export function PwaProvider({children}:{children:React.ReactNode}) {
     detect();
     setIos(/iPad|iPhone|iPod/.test(nav.userAgent) || (nav.platform === "MacIntel" && nav.maxTouchPoints > 1));
     setReady(true);
-    // Register before the browser evaluates installability, never from a game
-    // action. The flag is off by default. No cache, push permission or reload.
-    if ("serviceWorker" in nav && window.isSecureContext &&
-        ["/","/play","/play/"].includes(location.pathname) && !location.search) {
-      void nav.serviceWorker.register("/pwa-sw.js",{scope:"/",updateViaCache:"none"}).catch(() => {});
-    }
     return () => {
       window.removeEventListener("beforeinstallprompt", onPrompt);
       window.removeEventListener("appinstalled", onInstalled);
       mode.removeEventListener("change", detect);
     };
   }, []);
+  useEffect(() => {
+    // Register before prompting, including after a client-side navigation
+    // from another public page. Never on a token-bearing invite URL.
+    if (!enabled || !("serviceWorker" in navigator) || !window.isSecureContext ||
+        !["/","/play","/play/"].includes(pathname ?? "") || location.search) return;
+    void navigator.serviceWorker.register("/pwa-sw.js",{scope:"/",updateViaCache:"none"}).catch(() => {});
+  }, [pathname]);
   const requestInstall = async () => {
     const event=prompt.current;
     if (!event || inFlight.current) return false;
