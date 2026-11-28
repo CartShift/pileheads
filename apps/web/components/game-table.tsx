@@ -3,6 +3,7 @@
 import Link from "next/link";
 import SiteHeader, {BrandLink} from "./site-header";
 import PwaInstall from "./pwa-install";
+import OfflineControl, {offlineEnabled} from "./offline-control";
 import { motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
@@ -138,6 +139,14 @@ function asLocalRoom(game: Game): RoomGame {
 export default function GameTable() {
   const {emit:emitFunnel}=useFunnel();
   const [mode, setMode] = useState<Mode>("home");
+  const [offlineNetwork,setOfflineNetwork]=useState(false);
+  useEffect(()=>{
+    if(!offlineEnabled)return;
+    const detect=()=>setOfflineNetwork(!navigator.onLine);
+    detect();
+    window.addEventListener("online",detect);window.addEventListener("offline",detect);
+    return()=>{window.removeEventListener("online",detect);window.removeEventListener("offline",detect);};
+  },[]);
   const [local, setLocal] = useState<Game | null>(null);
   const [room, setRoom] = useState<Room | null>(null);
   const [name, setName] = useState("Player");
@@ -911,6 +920,7 @@ export default function GameTable() {
   }
 
   async function createOnlineRoom() {
+    if(offlineNetwork){setNotice("Reconnect to create an online room.");return;}
     if (onlineHumans + onlineBots < 2 || onlineHumans + onlineBots > 5) {
       setNotice("Choose 2–5 seats in total."); return;
     }
@@ -920,6 +930,7 @@ export default function GameTable() {
   }
 
   async function joinOnlineRoom() {
+    if(offlineNetwork){setNotice("Reconnect to join an online room.");return;}
     localStorage.setItem("stack-next-display-name", name);
     await submit({ action: "join", name, code: joinCode.trim().toUpperCase() }, true);
   }
@@ -933,7 +944,7 @@ export default function GameTable() {
         <div className="entry-intro"><div className="eyebrow">WELCOME TO THE TABLE</div>
           <h1>{inviteEntry ? <>You’re<br/><em>invited.</em></> : <>One pile.<br /><em>One loser.</em></>}</h1>
           <p>{inviteEntry ? "Your friends are waiting. Pick a nickname and join the table." : "Get rid of your cards before everyone else. Play free with bots or invite friends."}</p>
-          <div className="lobby-facts"><span>2–5 players</span><span>Free to play</span><span>No account required</span></div><div className="lobby-art" aria-hidden="true"><span className="lobby-card lobby-burn"/><span className="lobby-card lobby-dump"/><span className="lobby-card lobby-ghost"/><img src="/stack-media/stack-home-explorer-web-mobile.webp" width={360} height={452} alt="" decoding="async"/></div><div className="lobby-links"><button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>Game settings</button>{!inviteEntry&&<Link className="secondary-button" href="/profile">Your profile</Link>}</div>{!inviteEntry && mode === "home" && <PwaInstall/>}
+          <div className="lobby-facts"><span>2–5 players</span><span>Free to play</span><span>No account required</span></div><div className="lobby-art" aria-hidden="true"><span className="lobby-card lobby-burn"/><span className="lobby-card lobby-dump"/><span className="lobby-card lobby-ghost"/><img src="/stack-media/stack-home-explorer-web-mobile.webp" width={360} height={452} alt="" decoding="async"/></div><div className="lobby-links"><button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>Game settings</button>{!inviteEntry&&<Link className="secondary-button" href="/profile">Your profile</Link>}</div>{!inviteEntry && mode === "home" && <><PwaInstall/><OfflineControl/></>}
         </div>
         <div className="entry-options"><h2 className="lobby-choice-heading">{inviteEntry ? "Join the table" : "Choose your table"}<span>.</span></h2>
           {inviteEntry ? <form className="mode-card invite-mode" onSubmit={event=>{event.preventDefault();if(!busy&&name.trim()&&joinCode.length===8)void joinOnlineRoom();}}><div className="eyebrow">PRIVATE INVITATION</div><h2>Room {joinCode}</h2><label>Your name <input maxLength={24} required value={name} onChange={e=>setName(e.target.value)}/></label><button className="cta" type="submit" disabled={busy||!name.trim()}>{busy?"Connecting…":"Join"} <span aria-hidden>→</span></button><button type="button" className="learn-button" onClick={()=>{setInviteEntry(false);setJoinCode("");setNotice("");history.replaceState(null,"","/play");}}>Back to all tables</button></form> : <>
@@ -977,7 +988,7 @@ export default function GameTable() {
             <div className="lobby-join-label">Already have an invite?</div><div className="join-row"><input aria-label="Room code" maxLength={8} placeholder="8-letter room code"
               value={joinCode} onChange={e => setJoinCode(e.target.value.toUpperCase())} />
               <button disabled={busy || joinCode.length !== 8 || !name.trim()} onClick={() => void joinOnlineRoom()}>Join</button></div>
-          </div><section className="mode-card public-matchmaking-card" aria-label="Find an online opponent"><div className="eyebrow">03 · QUICK PLAY</div><h2>Find an opponent.</h2><p>Meet another human player for a three-round table. Check availability before joining; a verified account is required.</p><Link className="cta" href="/quick-play">Find opponent <span aria-hidden>→</span></Link><Link className="learn-button" href="/profile">Your account &amp; progress</Link></section></>}
+          </div><section className="mode-card public-matchmaking-card" aria-label="Find an online opponent"><div className="eyebrow">03 · QUICK PLAY</div><h2>Find an opponent.</h2><p>Meet another human player for a three-round table. Check availability before joining; a verified account is required.</p><Link className="cta" href="/quick-play">Find opponent <span aria-hidden>→</span></Link><Link className="learn-button" href="/profile">Your account &amp; progress</Link></section></>}</>}
         </div>
       </section>
       <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/how-to-play">Read the rules ↗</a><a href="/pilehead/print.html">Print playtest cards</a><button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button><FunnelConsent/></footer>
