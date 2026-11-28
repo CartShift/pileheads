@@ -49,30 +49,71 @@ function effective(e,room,player,invites){
  }
  return out;
 }
-function createLoader({env=process.env,roomQuery,playerQuery,now=Date.now,ttl=3000}={}){
- let cached=null,expires=0,pending=null;
+// Diagnostics are restricted to fixed categories. Never log a URL, exception
+// message, stack, database identifier, credential, email or request header.
+function errorCategory(error){
+ const code=error?.code;
+ if(code==='28P01'||code==='28000')return 'authentication';
+ if(code==='42501')return 'permission';
+ if(code==='42P01'||code==='42703')return 'schema';
+ if(code==='3D000')return 'database';
+ if(code==='57014')return 'timeout';
+ return 'connection_or_query';
+}
+function createLoader({env=process.env,roomQuery,playerQuery,now=Date.now,ttl=3000,report=()=>{}}={}){
+ let cached=null,expires=0,pending=null,lastReport=null;
+ function note(reason){
+  if(reason===lastReport)return;
+  lastReport=reason;
+  try{report(reason)}catch{} // Diagnostics cannot affect gameplay.
+ }
  return async function load(){
-  if(!managed(env))return env;
-  if(!env.PILEHEAD_DATABASE_URL||!env.PILEHEAD_PLAYER_DATABASE_URL)return disabledEnv(env);
+  if(!managed(env)){
+   if(env.NODE_ENV==='production'&&!env.VERCEL_ENV)note('deployment_environment_missing');
+   return env;
+  }
+  if(!env.PILEHEAD_DATABASE_URL||!env.PILEHEAD_PLAYER_DATABASE_URL){
+   note(!env.PILEHEAD_DATABASE_URL?'room_url_missing':'player_url_missing');
+   return disabledEnv(env);
+  }
   if(cached&&now()<expires)return cached;
   if(pending)return pending;
   pending=(async()=>{
    try{
-    const [r,p]=await Promise.all([roomQuery(SQL,[]),playerQuery(SQL,[])]);
-    const room=r[0],player=p[0];let invites=[];
-    if(room?.accounts===true&&player?.accounts===true&&room.database_id===player.database_id)invites=(await playerQuery(INVITES_SQL,[])).map(x=>x.email_hash);
-    cached=effective(env,room,player,invites);
-   }catch{cached=disabledEnv(env)}
+    const [r,p]=await Promise.allSettled([Promise.resolve().then(()=>roomQuery(SQL,[])),Promise.resolve().then(()=>playerQuery(SQL,[]))]);
+    if(r.status==='rejected'||p.status==='rejected'){
+     note(r.status==='rejected'?'room_'+errorCategory(r.reason):'player_'+errorCategory(p.reason));
+     cached=disabledEnv(env);
+    }else{
+     const room=r.value[0],player=p.value[0];let invites=[];
+     if(!room||!player)note('settings_row_missing');
+     else if(!UUID.test(room.database_id||'')||room.database_id!==player.database_id)note('database_mismatch');
+     else if(room.accounts===true&&player.accounts===true){
+      try{invites=(await playerQuery(INVITES_SQL,[])).map(x=>x.email_hash)}
+      catch(e){note('invites_'+errorCategory(e));cached=disabledEnv(env);expires=now()+ttl;return cached}
+     }
+     cached=effective(env,room,player,invites);
+     if(room&&player&&room.database_id===player.database_id){
+      if(cached.PILEHEAD_ACCOUNT_SCHEMA_READY!=='1')note('account_schema_not_ready');
+      else if(!env.PILEHEAD_GOOGLE_CLIENT_ID||!env.PILEHEAD_GOOGLE_CLIENT_SECRET||!deriveSeatKey(env.PILEHEAD_ACCOUNT_FLOW_SECRET))note('oauth_credentials_missing');
+      else note('ready');
+     }
+    }
+   }catch{note('unexpected_configuration_failure');cached=disabledEnv(env)}
    expires=now()+ttl;return cached;
   })();
   try{return await pending}finally{pending=null}
  };
 }
+
 let roomDb,playerDb;
 const query=(kind,sql,args)=>{
  const neon=require('@neondatabase/serverless').neon;
  if(kind==='room'){roomDb??=neon(process.env.PILEHEAD_DATABASE_URL);return roomDb.query(sql,args)}
  playerDb??=neon(process.env.PILEHEAD_PLAYER_DATABASE_URL);return playerDb.query(sql,args);
 };
-const load=createLoader({roomQuery:(s,a)=>query('room',s,a),playerQuery:(s,a)=>query('player',s,a)});
+const load=createLoader({roomQuery:(s,a)=>query('room',s,a),playerQuery:(s,a)=>query('player',s,a),report:reason=>{
+ const message=JSON.stringify({event:'pileheads_runtime_readiness',reason});
+ if(reason==='ready')console.info(message);else console.warn(message);
+}});
 module.exports={SQL,INVITES_SQL,ORIGIN,PRIVACY,managed,emailHash,deriveSeatKey,effective,createLoader,load};

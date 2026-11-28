@@ -12,6 +12,8 @@ on:
       - 'scripts/private-history.cjs'
       - 'scripts/matchmaking-queue.cjs'
       - 'scripts/matchmaking-assignment.cjs'
+      - 'scripts/matchmaking-settlement.cjs'
+      - 'tests/pilehead-matchmaking-settlement.cjs'
       - 'scripts/online-game.cjs'
       - 'tests/pilehead-matchmaking-assignment.cjs'
       - 'tests/pilehead-matchmaking-queue.cjs'
@@ -65,6 +67,7 @@ jobs:
           const H=require('./scripts/private-history.cjs');
           const Q=require('./scripts/matchmaking-queue.cjs');
           const A=require('./scripts/matchmaking-assignment.cjs');
+          const S=require('./scripts/matchmaking-settlement.cjs');
           const P=require('./scripts/player-progression.cjs');
           const C=require('./scripts/runtime-config.cjs');
           const id = process.env.PG_TEST_CONTAINER;
@@ -323,6 +326,31 @@ jobs:
 
 
 
+            // Exercise the new settlement SQL with a real assigned game,
+            // not a synthetic finished flag. GET/status remains read-only.
+            const rawSeat='a'.repeat(43),seatKey=require('./scripts/account-store.cjs').digest(rawSeat);
+            psql("INSERT INTO pileheads_account_sessions(token_hash,account_id) VALUES('"+seatKey+"','"+ids[0]+"');");
+            qrun(Q.SQL.join,[keys[0],tid(0)]);qrun(Q.SQL.join,[keys[2],tid(2)]);qrun(Q.SQL.claim,[oid(5)]);
+            qrun(Q.SQL.accept,[keys[0],oid(5)]);qrun(Q.SQL.accept,[keys[2],oid(5)]);
+            const game=require('./scripts/online-game.cjs').freshGame({players:2,humans:2,bots:0,roundLimit:3});
+            game.publicMatch=true;require('./scripts/public-room-deadlines.cjs').advance(null,game,1000);
+            assert.equal(qrun(A.SQL.assign,[oid(5),'SETTLE01',JSON.stringify(game),'settle-a','settle-b','v1']),'SETTLE01');
+            assert.equal(qrun(S.SQL.due,[keys[1],oid(5)]),'','outsider cannot settle');
+            assert.equal(qrun(S.SQL.due,[keys[0],oid(4)]),'','stale assignment cannot settle a new room');
+            const argsSql=args=>args.map(x=>x===null?'NULL':"'"+String(x).replaceAll("'","''")+"'").join(',');
+            const settle=S.createSettlement(async(sql,args)=>{
+             const out=psql('PREPARE settle_action AS '+sql+'; EXECUTE settle_action('+argsSql(args)+');',runtime);
+             if(!out)return [];
+             if(sql===S.SQL.due){const [code,revision,state,now_ms]=out.split('\t');return [{code,revision:Number(revision),state:JSON.parse(state),now_ms}]}
+             return [{code:'SETTLE01'}];
+            });
+            assert.equal(await settle(rawSeat,oid(5)),true);
+            assert.equal(await settle(rawSeat,oid(5)),false,'settlement is not repeated');
+            assert.equal(psql("SELECT status||':'||(state->'tournamentWithdrawal'->>'reason')||':'||(state->'roomStandings'->>'completedRounds') FROM pilehead_rooms WHERE code='SETTLE01';"),'finished:deadline:0');
+            assert.equal(qrun(A.SQL.release,[keys[0],oid(5)]),oid(5));
+            assert.ok(qrun(A.SQL.recover,[keys[2]]).includes('SETTLE01'),'rival can still recover');
+            assert.equal(qrun(A.SQL.release,[keys[2],oid(5)]),oid(5));
+            console.log('PASS exact assignment deadline SQL: caller scope, database clock, one CAS, no synthetic results and independent release');
             psql(fs.readFileSync('db/player-profiles-v1.sql','utf8'));
             psql("CREATE ROLE pileheads_player_runtime_access NOLOGIN; GRANT USAGE ON SCHEMA public TO pileheads_player_runtime_access;");
             psql(fs.readFileSync('db/product-runtime-settings.sql','utf8'));

@@ -6,6 +6,7 @@ const {digest}=require('./account-store.cjs');
 const {configuration:accountConfiguration}=require('./account-api.cjs');
 const {createQueue,SQL:Q}=require('./matchmaking-queue.cjs');
 const {createAssignment,SQL:A}=require('./matchmaking-assignment.cjs');
+const {createSettlement}=require('./matchmaking-settlement.cjs');
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TOKEN=/^[A-Za-z0-9_-]{43}$/;
 const VERSION=/^[A-Za-z0-9_-]{1,32}$/;
@@ -58,6 +59,7 @@ function createService(query,c){
  const assign=A.assign.replace('WHERE o.id=$1::uuid','WHERE o.account_a=ANY($7::uuid[]) AND o.account_b=ANY($7::uuid[]) AND o.id=$1::uuid');
  const q=createQueue((sql,args)=>sql===Q.claim?query(claim,[...args,c.allow]):query(sql,args));
  const a=createAssignment((sql,args)=>sql===A.assign?query(assign,[...args,c.allow]):query(sql,args),c);
+ const settle=createSettlement(query);
  return {
   async authorize(raw){const key=digest(raw);if(!key)return null;const [r]=await query(actorSQL,[key]);const id=r?.account_id;if(typeof id!=='string'||!c.allow.includes(id.toLowerCase()))return null;return id;},
   async quota(id){const bucket=crypto.createHash('sha256').update('quick-play-preview|'+id+'|'+Math.floor(Date.now()/60000)).digest('hex');const [r]=await query(quotaSQL,[bucket]);return Number(r?.hits)<=60;},
@@ -66,14 +68,14 @@ function createService(query,c){
    let s=await q.status(raw);
    if(s.state==='waiting'){await q.claim();s=await q.status(raw)}
    if(s.state==='ready'){await a.assign(s.offer);s=await q.status(raw)}
-   if(s.state==='assigned'){const [r]=await query(terminalSQL,[digest(raw),s.offer]);return {...s,canRelease:r?.terminal===true,canRecover:r?.recoverable===true}}
+   if(s.state==='assigned'){await settle(raw,s.offer);const [r]=await query(terminalSQL,[digest(raw),s.offer]);return {...s,canRelease:r?.terminal===true,canRecover:r?.recoverable===true}}
    return s;
   },
   async join(raw){await query(Q.expireOffers,[]);await query(Q.expireWaiting,[]);await q.join(raw);return this.tick(raw)},
   async accept(raw,offer){await q.accept(raw,offer);return this.tick(raw)},
   async cancel(raw,b){await q.cancel(raw,b);return this.status(raw)},
-  async recover(raw){return a.recover(raw)},
-  async release(raw,offer){await a.release(raw,offer);return this.status(raw)}
+  async recover(raw){await settle(raw);return a.recover(raw)},
+  async release(raw,offer){await settle(raw,offer);await a.release(raw,offer);return this.status(raw)}
  };
 }
 function createHandler(c,service){
