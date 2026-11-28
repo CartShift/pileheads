@@ -5,6 +5,7 @@ const {webcrypto}=require('node:crypto');
 const ORIGIN='https://pileheads.test';
 const key=url=>new URL(typeof url==='string'?url:url.url,ORIGIN).href;
 const stores=new Map();
+let quotaFailure=false;
 const caches={
   async has(name){return stores.has(name);},
   async keys(){return [...stores.keys()];},
@@ -12,13 +13,13 @@ const caches={
   async open(name){
     if(!stores.has(name))stores.set(name,new Map());
     const store=stores.get(name);
-    return {async put(url,response){store.set(key(url),response.clone());},
+    return {async put(url,response){if(quotaFailure&&!name.endsWith('meta'))throw Error('QuotaExceededError');store.set(key(url),response.clone());},
       async match(url){return store.get(key(url))?.clone();},
       async keys(){return [...store.keys()];}};
   }
 };
 (async()=>{
-  const {PUBLIC_ASSETS,buildOfflineIndex,publishOfflineWorker}=await import('../scripts/build-pwa-offline.mjs');
+  const {PUBLIC_ASSETS,buildOfflineIndex,publishOfflineWorker,retirementSource,publishPwaWorker}=await import('../scripts/build-pwa-offline.mjs');
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'pileheads-pwa-'));
   try{
     const template=path.resolve('scripts/pwa-offline-worker.js');
@@ -78,13 +79,40 @@ const caches={
     assert.equal((await worker.command('status')).updateAvailable,true);
     badHash=true;assert.equal((await worker.command('download')).ok,false);badHash=false;
     privateHeader=true;assert.equal((await worker.command('download')).ok,false);privateHeader=false;
+    quotaFailure=true;assert.equal((await worker.command('download')).ok,false);quotaFailure=false;
     assert.equal((await worker.command('status')).version,index.version,'failed updates retain completed release');
+    assert.equal((await worker.command('download')).version,next.version);
+    // Simulate partial eviction of the newest snapshot; navigation must
+    // use the previous complete release, not advertise a broken app.
+    const newest=[...stores.keys()].find(name=>name.startsWith('pileheads-offline-v1-'+next.version+'-'));
+    stores.get(newest).delete(key('/_next/static/chunks/runtime.js'));
+    assert.equal((await worker.command('status')).version,index.version);
+    disconnected=true;
+    const previousBody=await (await worker.fetch('/play/')).text();
+    assert(!previousBody.endsWith(' changed'));
+    disconnected=false;
     assert.equal((await worker.command('download')).version,next.version);
     await caches.open('other-app');
     assert.equal((await worker.command('remove')).ready,false);
     assert.deepEqual(await caches.keys(),['other-app']);
     disconnected=true;
     assert.equal((await worker.fetch('/play')).status,503);
+    disconnected=false;
+    assert.equal((await worker.command('download')).ready,true);
+    let unregistered=0,activation;
+    vm.runInNewContext(retirementSource(false),{self:{addEventListener:(name,fn)=>{assert.equal(name,'activate');activation=fn;},registration:{unregister:async()=>{unregistered++;}}},caches});
+    let pending;activation({waitUntil:value=>pending=value});await pending;
+    assert.deepEqual(await caches.keys(),['other-app']);assert.equal(unregistered,0);
+    assert.equal((await worker.command('download')).ready,true);
+    vm.runInNewContext(retirementSource(true),{self:{addEventListener:(name,fn)=>{activation=fn;},registration:{unregister:async()=>{unregistered++;}}},caches});
+    activation({waitUntil:value=>pending=value});await pending;
+    assert.deepEqual(await caches.keys(),['other-app']);assert.equal(unregistered,1);
+    fs.writeFileSync(path.join(root,'pwa-sw.js'),'// foundation');
+    assert.equal(publishPwaWorker(root,{pwaEnabled:true,offlineEnabled:false,template}),null);
+    assert(fs.readFileSync(path.join(root,'pwa-sw.js'),'utf8').includes('// foundation'));
+    assert.equal(publishPwaWorker(root,{pwaEnabled:false,offlineEnabled:true,template}),null);
+    const retired=fs.readFileSync(path.join(root,'pwa-sw.js'),'utf8');
+    assert(retired.includes('registration.unregister'));assert(!retired.includes('// foundation'));
     fs.unlinkSync(path.join(root,'play.html'));
     assert.throws(()=>buildOfflineIndex(root));
     console.log('PWA offline build hashes, opt-in, privacy, rollback, update and removal contracts passed');

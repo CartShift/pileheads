@@ -50,3 +50,20 @@ export function publishOfflineWorker(root,template){
   fs.writeFileSync(path.join(root,'pwa-sw.js'),source.replace('/*__OFFLINE_INDEX__*/ null',JSON.stringify(index)));
   return index;
 }
+
+/** A rollback is an ordinary worker update, not forced activation. */
+export function retirementSource(unregister){
+  return `self.addEventListener("activate",event=>event.waitUntil((async()=>{
+    try {
+      for(const name of await caches.keys())if(name.startsWith("pileheads-offline-v1-"))await caches.delete(name);
+    } catch { /* browser storage may be unavailable */ }
+    ${unregister?'await self.registration.unregister();':''}
+  })()));\n`;
+}
+export function publishPwaWorker(root,{pwaEnabled,offlineEnabled,template}){
+  if(pwaEnabled&&offlineEnabled)return publishOfflineWorker(root,template);
+  const target=path.join(root,'pwa-sw.js');
+  const source=pwaEnabled?fs.readFileSync(target,'utf8')+'\n':'"use strict";\n';
+  fs.writeFileSync(target,source+retirementSource(!pwaEnabled));
+  return null;
+}

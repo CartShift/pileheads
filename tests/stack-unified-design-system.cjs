@@ -7,7 +7,8 @@ for(const page of ["endgame-lab","gallery","playtest","print"]){const html=read(
 assert.ok(read("apps/web/app/layout.tsx").includes("/stack-media/stack-design-system.css"));
 assert.ok(read("apps/web/app/homepage-refinement.module.css").includes("var(--brand-display)"));
 const game=read("apps/web/components/game-table.tsx"), header=read("apps/web/components/site-header.tsx");
-assert.match(game,/<BrandLink compact\s*\/>/);
+assert.match(game,/<BrandLink compact offline=\{offlineNetwork\}\s*\/>/);
+assert.match(header,/if\(offline\)return <span className=.*stack-site-brand.*stack-home-logo-web\.webp/);
 assert.match(header,/compact\?"logo ":""\)\+"stack-site-brand"/);
 assert.match(header,/stack-home-logo-web\.webp/);
 assert.match(header,/<BrandLink current=/);

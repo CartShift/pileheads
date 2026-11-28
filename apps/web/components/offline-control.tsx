@@ -39,6 +39,7 @@ export default function OfflineControl(){
   const [progress,setProgress]=useState<Progress|null>(null);
   const [message,setMessage]=useState("");
   const running=useRef(false);
+  const channelRef=useRef<BroadcastChannel|null>(null);
   useEffect(()=>{
     if(!offlineEnabled||!("serviceWorker" in navigator)||!("caches" in window)||!window.isSecureContext)return;
     let live=true;
@@ -47,14 +48,20 @@ export default function OfflineControl(){
     setAvailable(true);
     const refresh=()=>{
       if(document.visibilityState==="hidden"||running.current)return;
-      void request("status").then(value=>{if(live)setSnapshot(value);}).catch(()=>{
+      void request("status").then(value=>{if(live&&!running.current){setSnapshot(value);setMessage("");}}).catch(()=>{
         if(live)setMessage("Offline setup is unavailable. Reopen the game after the app update.");
       });
     };
     refresh();
+    try{
+      if("BroadcastChannel" in window){
+        const channel=new BroadcastChannel("pileheads-offline-status-v1");
+        channel.onmessage=refresh;channelRef.current=channel;
+      }
+    }catch{/* visibility refresh remains available */}
     document.addEventListener("visibilitychange",refresh);
     navigator.serviceWorker.addEventListener("controllerchange",refresh);
-    return()=>{live=false;window.removeEventListener("online",detect);window.removeEventListener("offline",detect);document.removeEventListener("visibilitychange",refresh);navigator.serviceWorker.removeEventListener("controllerchange",refresh);};
+    return()=>{live=false;channelRef.current?.close();channelRef.current=null;window.removeEventListener("online",detect);window.removeEventListener("offline",detect);document.removeEventListener("visibilitychange",refresh);navigator.serviceWorker.removeEventListener("controllerchange",refresh);};
   },[]);
   async function act(action:"download"|"remove"){
     if(running.current)return;
@@ -62,6 +69,7 @@ export default function OfflineControl(){
     try{
       const value=await request(action,setProgress);
       setSnapshot(value);
+      try{channelRef.current?.postMessage("changed");}catch{}
       setMessage(action==="download"?"Offline table downloaded. You can reopen /play without internet.":"Offline files removed. Your saved local game is unchanged.");
     }catch{setMessage("Could not finish. Check your connection or storage and try again. Previously completed downloads remain available.");}
     finally{running.current=false;setBusy(false);setProgress(null);}

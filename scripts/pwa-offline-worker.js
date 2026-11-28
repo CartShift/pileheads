@@ -94,10 +94,10 @@ self.addEventListener("message",event=>{
   });
   event.waitUntil(queue);
 });
-async function cached(request){
+async function cached(request,navigation=false){
   for(const s of await snapshots()){
-    if(!await caches.has(s.name))continue;
-    const response=await (await caches.open(s.name)).match(request.url);
+    if(!await caches.has(s.name)||(navigation&&!await complete(s)))continue;
+    const response=await (await caches.open(s.name)).match(navigation?"/play":request.url);
     if(response)return response;
   }
   return null;
@@ -129,8 +129,8 @@ self.addEventListener("fetch",event=>{
   // Cache is considered only for a network exception, never an HTTP error.
   event.respondWith(fetch(request,navigation?{cache:"no-store"}:undefined).catch(async()=>{
     try{
-      if(asset||(navigation&&url.pathname==="/play")){
-        const response=await cached(request);
+      if(asset||(navigation&&["/play","/play/"].includes(url.pathname))){
+        const response=await cached(request,navigation);
         if(response)return withRange(response,request,url);
       }
     }catch{/* storage unavailable: fall back honestly */}
