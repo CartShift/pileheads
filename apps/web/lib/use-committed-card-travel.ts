@@ -116,6 +116,7 @@ export function useCommittedCardTravel({
       if (Math.hypot(dx, dy) < 12) continue;
       // Stable testing evidence on the real pile card, never an extra DOM face.
       node.dataset.arrivalMotion = String(moveNo);
+      if (typeof node.animate !== "function") continue;
       const animation = node.animate([
         { transform: `translate3d(${dx}px,${dy}px,0) rotate(-5deg) scale(.96)`,
           opacity: .88, offset: 0 },
@@ -152,6 +153,7 @@ export function useCommittedCardTravel({
         const dy = before.stock.y - to.y;
         if (Math.hypot(dx, dy) < 12) continue;
         node.dataset.drawMotion = String(moveNo);
+        if (typeof node.animate !== "function") continue;
         const animation = node.animate([
           { transform: `translate3d(${dx}px,${dy}px,0) rotateY(-72deg) scale(.86)`,
             opacity: .35, offset: 0 },
@@ -186,10 +188,14 @@ export function useCommittedCardTravel({
     window.addEventListener("resize", invalidate);
     window.visualViewport?.addEventListener("resize", invalidate);
     document.addEventListener("visibilitychange", backgrounded);
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const preference = () => { if (media.matches) invalidate(); };
+    media.addEventListener("change", preference);
     return () => {
       window.removeEventListener("resize", invalidate);
       window.visualViewport?.removeEventListener("resize", invalidate);
       document.removeEventListener("visibilitychange", backgrounded);
+      media.removeEventListener("change", preference);
       invalidate();
     };
   }, []);
