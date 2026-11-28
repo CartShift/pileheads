@@ -6,6 +6,7 @@ import "./launch-experience.css";
 import "./product-shell.css";
 import "./pwa.css";
 import FunnelProvider from "../components/funnel-provider";
+import { PwaProvider } from "../components/pwa-install";
 
 const pwaEnabled = process.env.NEXT_PUBLIC_PILEHEADS_PWA === "1";
 export const viewport: Viewport = pwaEnabled ? {themeColor:"#086879",viewportFit:"cover"} : {};
@@ -25,7 +26,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <head><link rel="preload" href="/stack-media/barlow-condensed-black-italic.ttf" as="font" type="font/ttf" crossOrigin="anonymous"/><link rel="stylesheet" href="/stack-media/stack-design-system.css" /></head>
-      <body data-pwa-enabled={pwaEnabled ? "true" : undefined}><FunnelProvider>{children}</FunnelProvider></body>
+      <body data-pwa-enabled={pwaEnabled ? "true" : undefined}><PwaProvider><FunnelProvider>{children}</FunnelProvider></PwaProvider></body>
     </html>
   );
 }
