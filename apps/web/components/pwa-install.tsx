@@ -82,7 +82,7 @@ export default function PwaInstall() {
     <div id="pwa-install-help" hidden={!guide}>
       <p>{ios ? "On iPhone or iPad, open in Safari, tap Share, then Add to Home Screen." :
         "Open your browser menu and look for Install app or Add to Home Screen. If unavailable, keep playing in your browser."}</p>
-      <p>No account or download required to play in the browser. Internet is required to open the game.</p>
+      <p>No account or download required to play in the browser. Internet is required to open the game unless you have downloaded the optional offline table.</p>
     </div>
   </section>;
 }
