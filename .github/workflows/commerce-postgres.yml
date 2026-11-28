@@ -1,0 +1,46 @@
+name: Commerce PostgreSQL acceptance
+on:
+  pull_request:
+    paths:
+      - 'db/commerce-test-v1.sql'
+      - 'db/commerce-test-operations-v1.sql'
+      - 'tests/commerce-operations-postgres.cjs'
+      - 'scripts/commerce-admin.cjs'
+      - 'tests/pilehead-commerce-admin.cjs'
+      - '.github/workflows/commerce-postgres.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: commerce-postgres-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  isolated-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Run commerce contracts
+        run: |
+          node tests/pilehead-commerce.cjs
+          node tests/pilehead-commerce-test.cjs
+          node tests/pilehead-commerce-admin.cjs
+      - name: Run exact commerce SQL against disposable PostgreSQL
+        env:
+          PG_TEST_CONTAINER: ${{ job.services.postgres.id }}
+        run: node tests/commerce-operations-postgres.cjs

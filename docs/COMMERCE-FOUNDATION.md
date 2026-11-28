@@ -1,0 +1,43 @@
+# PILEHEADS commerce foundation
+
+## Scope and launch state
+The shop is a branded, static-export-compatible product preview. It reuses the existing double-opt-in deck waitlist when configured. No sales, preorders, deposits or delivery promises are accepted. One stable draft SKU, PH-ORIGINAL-01; no approved retail price or stock. EUR and direct sales are proposed initial defaults, not commitments.
+
+## Architecture
+- Next.js static /shop route; shared navigation and existing artwork.
+- Vercel API functions for future checkout and webhook endpoints; use a distinct least-privilege commerce database role and connection.
+- Neon commerce schema is a proposed owner-run migration, never a build or runtime migration. It creates draft catalog, inactive offers, zero inventory, order/line snapshots and processed-event IDs. No buyer PII or runtime grants yet.
+- Server-authoritative merchandise quote rejects client prices, duplicate/unknown SKUs, unavailable offers, noninteger quantities, out-of-stock requests and unsupported currencies. It is not a payable quote or a stock reservation.
+- Stripe Checkout is the proposed payment provider, subject to seller onboarding and test-mode acceptance. No provider credentials or products created. Do not enable payments in this phase.
+
+## Next implementation milestones
+1. Confirm legal seller, Germany-first shipping scope, tax treatment, return address, landed unit cost, price, packaging, inventory and launch date. Approve consumer information, cancellation/returns, privacy, terms, product safety/labeling and packaging obligations before launch.
+2. Approve migration in development database; test constraints and add separate runtime role. Define required minimal order contact/address retention and access controls; no marketing enrollment from purchase without separate consent.
+3. Build cart and checkout API with strict origin/body limits, server-side published offers, transactional expiring stock reservations, idempotency keys and rate limits. Determine inclusive tax/shipping calculation and reconcile total against Stripe session.
+4. Create test-mode Stripe products/prices and Checkout Sessions. Verify signed raw webhook bodies, livemode/account, session/order linkage, amount/currency and eligible payment status. Record event and transition atomically; handle duplicate/out-of-order events, asynchronous payment, expiry, cancellations and refunds. Do not fulfill from browser redirects.
+5. Provide order lookup through authenticated account or expiring high-entropy guest link, transactional receipts, fulfillment queue, tracking, returns and refund reconciliation. Guest checkout should not require game account.
+6. Implement optional single-use physical-deck redemption separately: random codes, hashes at rest, batch association, atomic claim to account, revocation rules; never print real codes until manufacturing feasibility is agreed.
+7. Add separate digital entitlement and wholesale workflows later. Digital sales tax, withdrawal handling, entitlements and wholesale pricing need independent review.
+
+## Acceptance and rollout
+Unit tests: node tests/pilehead-commerce.cjs. Run npm test, frontend typecheck/build and responsive browser tests. Test shop links, mobile nav, enabled/disabled waitlist, and PWA network-only checkout. Validate migration against isolated Postgres; no production DB changes before approval. Checkout launch gate defaults OFF until test-mode purchases, failure/retry/refunds, stock concurrency, privacy/legal review and fulfillment rehearsal pass. Monitor operational failures without logging secrets or buyer PII.
+
+## Sandbox checkout implementation
+The preview-only /api/commerce-test and /api/commerce-test-webhook endpoints use a fixed fictional EUR 15.00 offer, card-only Stripe-hosted checkout, DE test addresses and a separate disposable database. No real stock, commercial tax, shipping, refunds, fulfillment or buyer PII storage. Never use real customer details. The visible shop remains a coming-soon preview on production.
+Configuration (Vercel Preview only):
+- PILEHEAD_COMMERCE_TEST_ENABLED=1
+- PILEHEAD_COMMERCE_TEST_ORIGIN: optional exact HTTPS VERCEL_URL or VERCEL_BRANCH_URL origin; defaults to the current deployment URL. Use the stable branch alias for a sandbox webhook across preview redeployments.
+- PILEHEAD_COMMERCE_TEST_STRIPE_KEY: sandbox sk_test_ secret, never live
+- PILEHEAD_COMMERCE_TEST_WEBHOOK_SECRET: sandbox endpoint signing secret
+- PILEHEAD_COMMERCE_TEST_DATABASE_URL: separate Neon endpoint and database named pileheads_commerce_test, scoped user
+Apply db/commerce-test-v1.sql manually to that disposable database; grant the isolated test role schema USAGE, table SELECT/INSERT/UPDATE as needed and EXECUTE on start_order, no access to production. Keep preview deployment access restricted. This gate is not proof of database isolation: provision a separate disposable Neon project/branch and scoped credentials; never clone or use customer data. Stripe webhook delivery must be separately tested with deployment protection (use an approved narrowly scoped bypass mechanism or isolated test endpoint; never disable protection globally).
+Use a dedicated sandbox account, create a webhook endpoint for checkout.session.completed and checkout.session.expired, then test Stripe card 4242 4242 4242 4242, decline, cancel, expiry, retry, duplicate event and invalid signature. Use fake addresses. The return URL is not a payment assertion; only signed, provider-retrieved events reconcile test orders. The test checkout is deliberately nonportable to production: live checkout requires a separate integration with real offers, transactional inventory, tax, shipping, refunds, PII handling, customer consent and legal gates.
+
+## Operations sandbox
+The unlinked, noindex /commerce-admin page is a test operator interface. It uses POST /api/commerce-test-admin, with the same strict preview/test database gate plus PILEHEAD_COMMERCE_TEST_ADMIN_TOKEN (random 32-byte base64url token, 43 characters minimum). Do not expose this token in frontend build variables, URLs, storage or logs. Keep Vercel deployment protection enabled. Token is a temporary single-operator sandbox credential, not a production staff authentication model.
+Apply db/commerce-test-operations-v1.sql only after the test schema, using the disposable database owner. Grant the scoped test role access only to the new sandbox tables and fulfillment column as needed, plus EXECUTE on advance_order and adjust_stock. The dashboard reads all-time sandbox order counts, verified gross test payments (not net revenue), paid units, and a filtered paginated order list without provider IDs or buyer data. Paid orders can rehearse packing and shipping using guarded transitions and operation IDs. Stock adjustments are version-checked and audited; stock is fictional and deliberately independent of checkout, not a real reservation system. No refunds or shipping providers invoked.
+Production requires individual staff authentication, role authorization, actor-attributed audit, transactional allocation, refund reconciliation, privacy controls and order/fulfillment access review. Run contract tests and real Postgres concurrency/rollback tests before enabling the preview dashboard.
+
+PostgreSQL operations integration test: run `PG_TEST_CONTAINER=<disposable PostgreSQL container ID> node tests/commerce-operations-postgres.cjs` in a fresh container. It checks concurrent transitions, duplicate adjustment IDs, rollback/guards and limited permissions. Never point it at a live database.
+
+A path-scoped GitHub Actions workflow `commerce-postgres.yml` runs the three dependency-free contract tests and disposable database integration test. Production deployment is not part of this workflow.
