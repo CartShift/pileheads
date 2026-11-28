@@ -6,6 +6,7 @@ const HASH=/^[0-9a-f]{64}$/;
 const SQL=`SELECT database_id,privacy_reviewed,guest_profiles,accounts,round_history,private_history,progression,quick_play,pilot_accounts,
  (to_regclass('public.pileheads_guest_profiles') IS NOT NULL AND to_regclass('public.pileheads_profile_quota') IS NOT NULL) AS player_ready,
  (to_regclass('public.pileheads_accounts') IS NOT NULL AND to_regclass('public.pileheads_account_sessions') IS NOT NULL) AS account_ready,
+ (to_regclass('public.pileheads_account_signup_quota') IS NOT NULL) AS signup_ready,
  (to_regclass('public.pileheads_round_receipts') IS NOT NULL) AS receipts_ready,
  (to_regclass('public.pileheads_round_consents') IS NOT NULL AND to_regclass('public.pileheads_player_rounds') IS NOT NULL) AS history_ready,
  (to_regclass('public.pileheads_player_progression') IS NOT NULL AND EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid=to_regclass('public.pileheads_round_consents') AND attname='progression_opt_in' AND NOT attisdropped)) AS progression_ready,
@@ -29,16 +30,15 @@ function effective(e,room,player,invites){
  if(privacy)out.PILEHEAD_PLAYER_PRIVACY_URL=PRIVACY;
  const profile=ready('player_ready'),account=profile&&ready('account_ready');
  const receipts=ready('receipts_ready'),history=account&&receipts&&ready('history_ready'),progress=history&&ready('progression_ready');
- const hashes=Array.isArray(invites)&&invites.length>0&&invites.length<=50&&invites.every(x=>typeof x==='string'&&HASH.test(x))?[...new Set(invites)]:[];
  const allow=Array.isArray(room.pilot_accounts)&&Array.isArray(player.pilot_accounts)&&room.pilot_accounts.length<=50&&room.pilot_accounts.every(x=>typeof x==='string'&&UUID.test(x))&&JSON.stringify(room.pilot_accounts)===JSON.stringify(player.pilot_accounts)?room.pilot_accounts:[];
  const oauth=Boolean(out.PILEHEAD_GOOGLE_CLIENT_ID&&out.PILEHEAD_GOOGLE_CLIENT_SECRET&&deriveSeatKey(out.PILEHEAD_ACCOUNT_FLOW_SECRET));
- const accountOn=account&&privacy&&on('accounts')&&hashes.length>0&&oauth;
+ const accountOn=account&&ready('signup_ready')&&privacy&&on('accounts')&&oauth;
  flag('PILEHEAD_PLAYER_SCHEMA_READY',profile);flag('PILEHEAD_ACCOUNT_SCHEMA_READY',account);
  flag('PILEHEAD_HISTORY_SHARED_DATABASE_READY',history||ready('matchmaking_ready'));
  flag('PILEHEAD_ROUND_HISTORY_SCHEMA_READY',receipts);flag('PILEHEAD_PRIVATE_HISTORY_SCHEMA_READY',history);flag('PILEHEAD_PROGRESSION_SCHEMA_READY',progress);
  flag('PILEHEAD_PLAYER_ENABLED',profile&&privacy&&on('guest_profiles'));
- flag('PILEHEAD_ACCOUNT_ENABLED',accountOn);flag('PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED',accountOn);
- out.PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES=hashes;
+ flag('PILEHEAD_ACCOUNT_ENABLED',accountOn);flag('PILEHEAD_ACCOUNT_PUBLIC_BETA_ENABLED',accountOn);
+ // Public login only requests openid. The legacy invitation table is not read.
  const receiptOn=receipts&&privacy&&on('round_history'),historyOn=history&&accountOn&&receiptOn&&on('private_history');
  flag('PILEHEAD_ROUND_HISTORY_ENABLED',receiptOn);flag('PILEHEAD_PRIVATE_HISTORY_ENABLED',historyOn);flag('PILEHEAD_PROGRESSION_ENABLED',progress&&historyOn&&on('progression'));
  flag('PILEHEAD_MATCHMAKING_SCHEMA_READY',ready('matchmaking_ready'));
@@ -85,16 +85,13 @@ function createLoader({env=process.env,roomQuery,playerQuery,now=Date.now,ttl=30
      note(r.status==='rejected'?'room_'+errorCategory(r.reason):'player_'+errorCategory(p.reason));
      cached=disabledEnv(env);
     }else{
-     const room=r.value[0],player=p.value[0];let invites=[];
+     const room=r.value[0],player=p.value[0];
      if(!room||!player)note('settings_row_missing');
      else if(!UUID.test(room.database_id||'')||room.database_id!==player.database_id)note('database_mismatch');
-     else if(room.accounts===true&&player.accounts===true){
-      try{invites=(await playerQuery(INVITES_SQL,[])).map(x=>x.email_hash)}
-      catch(e){note('invites_'+errorCategory(e));cached=disabledEnv(env);expires=now()+ttl;return cached}
-     }
-     cached=effective(env,room,player,invites);
+     cached=effective(env,room,player,[]);
      if(room&&player&&room.database_id===player.database_id){
       if(cached.PILEHEAD_ACCOUNT_SCHEMA_READY!=='1')note('account_schema_not_ready');
+      else if(!room.signup_ready||!player.signup_ready)note('signup_schema_not_ready');
       else if(!env.PILEHEAD_GOOGLE_CLIENT_ID||!env.PILEHEAD_GOOGLE_CLIENT_SECRET||!deriveSeatKey(env.PILEHEAD_ACCOUNT_FLOW_SECRET))note('oauth_credentials_missing');
       else note('ready');
      }

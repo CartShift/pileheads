@@ -81,6 +81,30 @@ async function main(){
  assert.equal(await accountStore.remove(rotated.token),true);
  assert.equal(await psql("SELECT count(*) FROM pileheads_account_sessions WHERE account_id="+quote(first.account.id)+";"),'0');
  assert.ok(await accountStore.find(other.token));
+ // The real public signup statement must allow a previously registered
+ // account to return at capacity and roll back quota on session failures.
+ await psql('CREATE ROLE pileheads_player_runtime_access NOLOGIN; GRANT USAGE ON SCHEMA public TO pileheads_player_runtime_access;');
+ await psql(fs.readFileSync('db/player-public-signup.sql','utf8'));
+ await psql('GRANT pileheads_player_runtime_access TO '+runtime+';');
+ const budget=async()=>Number(await psql("SELECT hits FROM pileheads_account_signup_quota WHERE day=(now() AT TIME ZONE 'UTC')::date;"));
+ const sign=(subject,previous)=>accountStore.loginVerifiedIdentity({provider:'google',subject},previous,{publicSignup:true});
+ assert.ok(await sign('public-new-1'));assert.equal(await budget(),1);
+ assert.ok(await sign('public-new-1'));assert.equal(await budget(),1);
+ await psql("UPDATE pileheads_account_signup_quota SET hits=249;");
+ const attempts=await Promise.allSettled(Array.from({length:4},(_,i)=>sign('public-race-'+i)));
+ assert.equal(attempts.filter(x=>x.status==='fulfilled').length,1);assert.equal(await budget(),250);
+ await assert.rejects(sign('public-over-limit'),/session not created/);
+ assert.ok(await sign('public-new-1'),'existing account can sign in at ceiling');
+ await psql("UPDATE pileheads_account_signup_quota SET hits=249;");
+ const collision=createAccountStore(async(sql,args)=>{
+  const out=await psql('PREPARE collision_action AS '+sql+'; EXECUTE collision_action('+args.map(quote).join(',')+');',runtime);
+  return out?[{}]:[];
+ },{token:()=>other.token});
+ await assert.rejects(collision.loginVerifiedIdentity({provider:'google',subject:'public-rollback'},undefined,{publicSignup:true}),/duplicate key/i);
+ assert.equal(await budget(),249);
+ assert.equal(await psql("SELECT count(*) FROM pileheads_accounts WHERE provider_subject='public-rollback';"),'0');
+ await assert.rejects(psql('DELETE FROM pileheads_account_signup_quota;',runtime),/permission denied/i);
+ console.log('PASS exact public account signup: concurrent daily ceiling, existing sign-in, atomic rollback, least privilege');
  console.log('PASS exact account SQL: verified subject reuse, multi-device restore, session rotation, explicit guest import, expiry, logout and cascading deletion');
  console.log('PASS exact profile SQL: expiry, isolation, escaped nickname, transactional quota rollback, concurrent daily ceiling, least privilege and deletion');
 }

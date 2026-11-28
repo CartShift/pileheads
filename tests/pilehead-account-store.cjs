@@ -24,5 +24,7 @@ const service=createAccountStore(async(sql,args)=>{calls.push({sql,args});return
  for(const sql of [SQL.find,SQL.preferences,SQL.importGuest,SQL.remove])assert.match(sql,/s\.expires_at>now\(\)/);
  assert.match(SQL.importGuest,/g\.expires_at>now\(\)/);
  assert.equal(await service.remove(null),false);
+ await service.loginVerifiedIdentity({provider:'google',subject:'123'},t1,{publicSignup:true});
+ assert.equal(calls.at(-1).sql,SQL.loginPublic);assert.match(SQL.loginPublic,/pileheads_account_signup_quota/);assert.match(SQL.loginPublic,/hits<250/);
  console.log('PASS account storage contract: verified-adapter boundary, rotation, token hashing, safe projections and authenticated operations');
 })().catch(e=>{console.error(e);process.exitCode=1});

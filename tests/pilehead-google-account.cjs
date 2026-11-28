@@ -57,7 +57,9 @@ async function call(handler,{method='GET',url='/api/account',input={},cookie,hea
  assert.equal(configuration(live).enabled,false);
  assert.equal(configuration({...live,PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED:'1'}).enabled,false);
  assert.equal(configuration({...live,PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED:'1',PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES:['invalid']}).enabled,false);
- const allowedLive=configuration({...live,PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED:'1',PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES:['a'.repeat(64)]});
- assert.equal(allowedLive.enabled,true);assert.deepEqual(allowedLive.pilotEmailHashes,['a'.repeat(64)]);
+ assert.equal(configuration({...live,PILEHEAD_ACCOUNT_LIVE_PILOT_ENABLED:'1',PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES:['a'.repeat(64)]}).enabled,false);
+ const allowedLive=configuration({...live,PILEHEAD_ACCOUNT_PUBLIC_BETA_ENABLED:'1',PILEHEAD_ACCOUNT_PILOT_EMAIL_HASHES:['a'.repeat(64)]});
+ assert.equal(allowedLive.enabled,true);assert.equal(allowedLive.publicSignup,true);assert.deepEqual(allowedLive.pilotEmailHashes,[]);
+ assert.equal(new URL(O.authorizationUrl(allowedLive,signed.flow)).searchParams.get('scope'),'openid');
  console.log('PASS Google OIDC and account API contracts: signed flow, real JWT verification, claim/signature rejection, session rotation, CSRF and deletion');
 })().catch(e=>{console.error(e);process.exitCode=1});

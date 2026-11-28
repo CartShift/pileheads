@@ -53,7 +53,7 @@ export default function AccountPanel(){
   {error&&<p role="alert">{error} <button type="button" className="learn-button" disabled={busy} onClick={()=>void update()}>Retry</button></p>}
   {data?.privacyUrl&&<p><a href={data.privacyUrl}>Privacy notice</a></p>}
   {data&&!data.enabled&&!data.profile&&<p role="status">Sign-in is not available yet. Account preferences, saved rounds and optional XP will be available when enabled. You can still play for free.</p>}
-  {data?.enabled&&!data.profile&&<><p>Sign in to keep your nickname and favorite deck across devices, and access optional private history and progression when available. A free guest profile or no account still works.</p><button className="cta" disabled={busy} onClick={()=>void update({action:"login"})}>Continue with Google</button></>}
+  {data?.enabled&&!data.profile&&<><p>Create a free account with Google to keep your nickname and favorite deck across devices. Optional private history and progression will be available when enabled. A free guest profile or no account still works.</p><button className="cta" disabled={busy} onClick={()=>void update({action:"login"})}>Continue with Google</button></>}
   {data?.profile&&<>
    <form onSubmit={e=>{e.preventDefault();void update({action:"preferences",name,deck});}}>
     <label>Account nickname <input maxLength={24} required value={name} disabled={busy||!data.enabled} onChange={e=>{setName(e.target.value);setSaved(false);}}/></label>

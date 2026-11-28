@@ -4,6 +4,7 @@ on:
     paths:
       - 'db/room-*.sql'
       - 'db/product-runtime-settings.sql'
+      - 'db/player-public-signup.sql'
       - 'scripts/runtime-config.cjs'
       - 'tests/pilehead-runtime-config.cjs'
       - 'scripts/room-retention.cjs'
@@ -354,12 +355,13 @@ jobs:
             psql(fs.readFileSync('db/player-profiles-v1.sql','utf8'));
             psql("CREATE ROLE pileheads_player_runtime_access NOLOGIN; GRANT USAGE ON SCHEMA public TO pileheads_player_runtime_access;");
             psql(fs.readFileSync('db/product-runtime-settings.sql','utf8'));
+            psql(fs.readFileSync('db/player-public-signup.sql','utf8'));
             const playerRole='pileheads_player_runtime_access';
             const readConfig=role=>JSON.parse(psql("SELECT row_to_json(t) FROM ("+C.SQL+") t;",role));
             let roomConfig=readConfig(runtime),playerConfig=readConfig(playerRole);
             assert.equal(roomConfig.database_id,playerConfig.database_id);
             for(const flag of ['privacy_reviewed','guest_profiles','accounts','round_history','private_history','progression','quick_play'])assert.equal(roomConfig[flag],false);
-            for(const ready of ['player_ready','account_ready','receipts_ready','history_ready','progression_ready','matchmaking_ready'])assert.equal(roomConfig[ready],true);
+            for(const ready of ['player_ready','account_ready','signup_ready','receipts_ready','history_ready','progression_ready','matchmaking_ready'])assert.equal(roomConfig[ready],true);
             assert.throws(()=>psql("UPDATE pileheads_product_settings SET accounts=true;",runtime),/permission denied/i);
             assert.throws(()=>psql("UPDATE pileheads_product_settings SET accounts=true;",playerRole),/permission denied/i);
             assert.throws(()=>psql("UPDATE pileheads_product_settings SET accounts=true;"),/check constraint/i);
