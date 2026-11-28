@@ -29,7 +29,7 @@ export default function PlayerHandArea({g, current, theme: deckTheme, ready, act
               const upAvailability = upCard ? getCardAvailability(g, active, upCard.id) : "neutral";
               return <div className="faceup-pair" key={index}>
                 {index < current.downCount && <div className="blind-under">
-                  <PlayingCard hidden theme={deckTheme} onClick={stage === "down" && active ? () => clickBlind(index) : undefined} />
+                  <PlayingCard hidden theme={deckTheme} description={`Flip face-down card ${index + 1} of ${current.downCount}`} onClick={stage === "down" && active ? () => clickBlind(index) : undefined} />
                 </div>}
                 {upCard && <div className="visible-up">
                   <PlayingCard card={upCard} theme={deckTheme} selected={selection.includes(upCard.id)}
