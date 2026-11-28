@@ -296,7 +296,7 @@ async function localScenarios(browser) {
       await safeFirst.click();
       const play = page.getByRole("button", { name: /Play cards/ });
       assert.equal(await play.isEnabled(), true, "first opening card is legal");
-      assert.match(await play.textContent(), /Play cards \\(1\\)/, "selected count is explicit in the primary action");
+      assert.ok((await play.textContent()).includes("Play cards (1)"), "selected count is explicit in the primary action");
       await play.click();
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves >= 1
