@@ -142,7 +142,7 @@ async function raceCommands(code,revision,commands){
  const gate=casGate={code,revision,arrivals:0,promise,release};
  try{
   const responses=await Promise.all(commands.map(([body,token])=>request({code,revision,...body},token)));
-  assert.equal(gate.arrivals,2,'both contenders reach the actual database revision CAS');
+  assert.equal(gate.arrivals,2,'both contenders reach the actual database revision CAS: '+JSON.stringify(responses.map(r=>({status:r.status,error:r.data.error||null}))));
   assert.deepEqual(responses.map(r=>r.status).sort(),[200,409]);
   assert.equal(responses.find(r=>r.status===409).data.error,'stale_revision');
   assert.equal(rooms.get(code).revision,revision+1,'exactly one revision committed');
@@ -468,7 +468,8 @@ async function run(){
  assert.equal(botThreat.data.game.botSlamReady,true);
  assert.equal(botThreat.data.game.players[2].hand,undefined);
  assert.equal(botThreat.data.game.players[2].handCount,4);
- const normalAgainstBot=Engine.options(staged,0)[0];
+ // The pile is nonempty, so TAKE is legal independent of the randomized deal.
+ const normalAgainstBot=Engine.options(staged,0).find(move=>move.type==='take');
  assert.ok(normalAgainstBot,'normal action is legal while bot SLAM is eligible');
  await raceCommands(hybridCode,3,[[{action:'move',move:normalAgainstBot},hybridHost],[{action:'advance'},hybridFriend]]);
  rooms.get(hybridCode).state=backup;rooms.get(hybridCode).revision=3;checks++;
@@ -623,7 +624,8 @@ async function run(){
  assert.equal(raceOpen.status,200);
  assert.equal(raceOpen.data.game.followup.length,1);
  const raceBefore=structuredClone(rooms.get(raceCode).state);
- const raceMove=Engine.options(rooms.get(raceCode).state,1)[0];
+ const raceMove=Engine.options(rooms.get(raceCode).state,1).find(move=>move.type==='take');
+ assert.ok(raceMove,'the next player can always take the nonempty pile');
  const guestWins=await request({action:'move',code:raceCode,revision:4,move:raceMove},raceGuest.data.session);
  assert.equal(guestWins.status,200,JSON.stringify(guestWins));
  assert.notEqual(rooms.get(raceCode).state.followUp?.seat,0,'next action ends the previous actor’s SNAP, even if the next action opens its own');
