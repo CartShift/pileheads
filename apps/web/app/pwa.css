@@ -10,3 +10,6 @@ body[data-pwa-enabled="true"] .game-table-shell.game-shell {
 .pwa-install { margin-block: 12px; }
 .pwa-install button { min-height:44px; padding: 8px 14px; }
 .pwa-install p { max-width: 45ch; font-size: .9rem; line-height: 1.5; }
+
+.pwa-offline-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.pwa-offline strong { display:block; }
