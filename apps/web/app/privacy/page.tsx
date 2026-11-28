@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../../components/site-header";
 import styles from "./privacy.module.css";
+import OperatorContact from "../../components/operator-contact";
 
 export const metadata: Metadata = {
   title: "Privacy notice | PILEHEADS",
@@ -21,7 +22,9 @@ export default function PrivacyPage() {
       <p className={styles.draft} role="note">Draft for operator review. Not a published or approved privacy notice. Account registration must remain disabled until review is complete.</p>
       <p>You can play PILEHEADS without creating an account. This notice explains the data involved in the website, online games, and optional player features.</p>
       <h2>1. Who is responsible?</h2>
-      <p>PILEHEADS is currently operated by an individual. <strong>Before publication: insert the verified controller name, appropriate contact address and working privacy email.</strong></p>
+      <p>PILEHEADS is currently operated by an individual who is responsible for processing personal data.</p>
+      <OperatorContact/>
+      <p>See also the <Link href="/impressum">Impressum (legal notice)</Link>.</p>
       <h2>2. Playing without an account</h2>
       <p>Local play uses browser storage for game state and preferences. Online private tables require room and seat identifiers, player nicknames, game state and actions, and credentials that allow you to reconnect. Other players at your table can see your nickname and the game information available to them under the rules. Avoid using your real name in a nickname or sharing an invitation publicly if you want a private game.</p>
       <h2>3. Optional Google sign-in</h2>
@@ -44,7 +47,7 @@ export default function PrivacyPage() {
       <p><strong>Before publication: confirm processing purposes and lawful bases, rights-request contact and handling, applicable supervisory authority, and account eligibility for younger players.</strong></p>
       <h2>10. Changes</h2>
       <p>This notice must be updated when processing practices change. <strong>Publication date and approved version: pending review.</strong></p>
-      <p><Link href="/terms">Terms of use</Link></p>
+      <p><Link href="/terms">Terms of use</Link> · <Link href="/impressum">Impressum</Link></p>
     </article>
   </main>;
 }

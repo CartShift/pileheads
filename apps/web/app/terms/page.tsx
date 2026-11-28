@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import SiteHeader from "../../components/site-header";
 import styles from "../privacy/privacy.module.css";
+import OperatorContact from "../../components/operator-contact";
 
 export const metadata: Metadata = {
   title: "Terms of use | PILEHEADS",
@@ -20,7 +21,8 @@ export default function TermsPage(){
       <p className={styles.draft} role="note">Draft for operator review. Not approved terms.</p>
       <h2>1. About PILEHEADS</h2>
       <p>PILEHEADS is a free browser card game in development. Play locally against bots or invite others to a private table. Creating an account is optional. No physical purchase, subscription or premium benefit is promised by these terms.</p>
-      <p><strong>Before publication: add the verified operator identity, contact details, account eligibility and effective date.</strong></p>
+      <OperatorContact/>
+      <p><strong>Before publication: confirm account eligibility and effective date.</strong> See the <Link href="/impressum">Impressum</Link>.</p>
       <h2>2. Fair play and private rooms</h2>
       <p>Respect other players. Do not harass others, impersonate someone, access another player's account or private room without permission, exploit security defects or interfere with the service. Keep room invitations private when you intend to play privately.</p>
       <h2>3. Accounts and preferences</h2>
