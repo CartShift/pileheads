@@ -939,12 +939,12 @@ export default function GameTable() {
 
   if (!g || !current) return (
     <main className="game-shell stack-lobby">
-      <SiteHeader current="/play"/>
+      <SiteHeader current="/play" offline={offlineNetwork}/>
       <section className="entry launch-entry">
         <div className="entry-intro"><div className="eyebrow">WELCOME TO THE TABLE</div>
           <h1>{inviteEntry ? <>You’re<br/><em>invited.</em></> : <>One pile.<br /><em>One loser.</em></>}</h1>
           <p>{inviteEntry ? "Your friends are waiting. Pick a nickname and join the table." : "Get rid of your cards before everyone else. Play free with bots or invite friends."}</p>
-          <div className="lobby-facts"><span>2–5 players</span><span>Free to play</span><span>No account required</span></div><div className="lobby-art" aria-hidden="true"><span className="lobby-card lobby-burn"/><span className="lobby-card lobby-dump"/><span className="lobby-card lobby-ghost"/><img src="/stack-media/stack-home-explorer-web-mobile.webp" width={360} height={452} alt="" decoding="async"/></div><div className="lobby-links"><button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>Game settings</button>{!inviteEntry&&<Link className="secondary-button" href="/profile">Your profile</Link>}</div>{!inviteEntry && mode === "home" && <><PwaInstall/><OfflineControl/></>}
+          <div className="lobby-facts"><span>2–5 players</span><span>Free to play</span><span>No account required</span></div><div className="lobby-art" aria-hidden="true"><span className="lobby-card lobby-burn"/><span className="lobby-card lobby-dump"/><span className="lobby-card lobby-ghost"/><img src="/stack-media/stack-home-explorer-web-mobile.webp" width={360} height={452} alt="" decoding="async"/></div><div className="lobby-links"><button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>Game settings</button>{!inviteEntry&&!offlineNetwork&&<Link className="secondary-button" href="/profile">Your profile</Link>}</div>{!inviteEntry && mode === "home" && <><PwaInstall/><OfflineControl/></>}
         </div>
         <div className="entry-options"><h2 className="lobby-choice-heading">{inviteEntry ? "Join the table" : "Choose your table"}<span>.</span></h2>
           {inviteEntry ? <form className="mode-card invite-mode" onSubmit={event=>{event.preventDefault();if(!busy&&name.trim()&&joinCode.length===8)void joinOnlineRoom();}}><div className="eyebrow">PRIVATE INVITATION</div><h2>Room {joinCode}</h2><label>Your name <input maxLength={24} required value={name} onChange={e=>setName(e.target.value)}/></label><button className="cta" type="submit" disabled={busy||!name.trim()}>{busy?"Connecting…":"Join"} <span aria-hidden>→</span></button><button type="button" className="learn-button" onClick={()=>{setInviteEntry(false);setJoinCode("");setNotice("");history.replaceState(null,"","/play");}}>Back to all tables</button></form> : <>
@@ -991,7 +991,7 @@ export default function GameTable() {
           </div><section className="mode-card public-matchmaking-card" aria-label="Find an online opponent"><div className="eyebrow">03 · QUICK PLAY</div><h2>Find an opponent.</h2><p>Meet another human player for a three-round table. Check availability before joining; a verified account is required.</p><Link className="cta" href="/quick-play">Find opponent <span aria-hidden>→</span></Link><Link className="learn-button" href="/profile">Your account &amp; progress</Link></section></>}</>}
         </div>
       </section>
-      <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span><a href="/how-to-play">Read the rules ↗</a><a href="/pilehead/print.html">Print playtest cards</a><button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button><FunnelConsent/></footer>
+      <footer className="lobby-footer"><span>PILEHEADS · The card game with character.</span>{!offlineNetwork&&<><a href="/how-to-play">Read the rules ↗</a><a href="/pilehead/print.html">Print playtest cards</a></>}<button type="button" className="secondary-button" onClick={() => setShowSettings(true)}>Playtest report</button><FunnelConsent/></footer>
       {notice && <div className="alert" role="status">{notice}</div>}
       {showSettings && <div className="modal-backdrop" onClick={() => setShowSettings(false)}>
         <section className="game-modal" role="dialog" aria-label="Game settings" aria-modal="true"
@@ -1038,7 +1038,7 @@ export default function GameTable() {
   return (
     <main className="game-shell game-table-shell" data-phase={g.phase} data-drill={drill?.id} data-hand-count={handCount} data-turn={g.phase === "play" ? active ? "self" : "other" : "none"}>
       <header className="game-header">
-        <BrandLink compact/>
+        <BrandLink compact offline={offlineNetwork}/>
         <div className="game-head-actions">
           {room && !g.publicMatch && <button className={"room-code " + (copiedInvite ? "is-copied" : "")}
             onClick={() => void copyInvite()}
