@@ -1118,7 +1118,7 @@ export default function GameTable() {
         <OpponentsStrip g={g} me={me} theme={deckTheme} room={room} nameForSeat={nameForSeat}
           choosingDumpTarget={choosingDumpTarget} chooseDumpSeat={chooseDumpSeat} onInspect={setInspectSeat}
           newestReactions={newestReactions} reactionSymbols={reactionSymbols} />
-        <CenterBoard g={g} theme={deckTheme} selection={selection} canPlay={canPlay} busy={busy}
+        <CenterBoard g={g} theme={deckTheme} canPlay={canPlay} busy={busy}
           playSelected={playSelected} freshBlindMove={freshBlindMove} rule={rule} onInspect={() => setPileOpen(true)} />
         {finalDuel && <div className="duel-banner" role="status">
           <strong>FINAL DUEL</strong><span>Every pickup burns the visible top card first.</span>
