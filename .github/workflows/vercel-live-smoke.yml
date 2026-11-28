@@ -8,7 +8,7 @@ permissions:
   contents: read
 jobs:
   live-smoke:
-    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'deploy/vercel-restore-20261126' || (github.head_ref == 'verify/simulator-canonical-live-20261128' && github.event.action == 'opened')))
+    if: github.event_name == 'workflow_dispatch' || (github.event.pull_request.head.repo.full_name == github.repository && (github.head_ref == 'deploy/vercel-restore-20261126' || (github.head_ref == 'verify/simulator-canonical-live-20261128' && github.event.action == 'synchronize')))
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -20,4 +20,6 @@ jobs:
           node-version: '24'
       - run: npm ci --ignore-scripts
       - name: Verify canonical domain with two authenticated players
+        env:
+          SMOKE_MOVE_SAMPLES: ${{ github.head_ref == 'verify/simulator-canonical-live-20261128' && '20' || '1' }}
         run: node scripts/smoke-live.cjs https://pileheads.com
