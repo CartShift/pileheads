@@ -4,6 +4,7 @@ import SiteHeader from "../components/site-header";
 import CampaignPlayLink from "../components/campaign-play-link";
 import DeckWaitlist from "../components/deck-waitlist";
 import MoveExamples from "../components/move-examples";
+import UniverseIllustration from "../components/universe-illustration";
 import {FunnelConsent} from "../components/funnel-provider";
 import styles from "./official-home.module.css";
 import polish from "./homepage-refinement.module.css";
@@ -78,7 +79,7 @@ export default function HomePage() {
       <div className={styles.productArt} aria-label="PILEHEADS card deck illustration" role="group"><div className={styles.productBox + " " + polish.box}><img src="/stack-media/stack-home-box-web.webp?v=production-rc3" alt="PILEHEADS packaging concept, 54 cards for 2–5 players" width={440} height={607} loading="lazy"/><img className={polish.boxSide} src="/stack-media/stack-home-box-side-v2.webp?v=production-rc3" alt="" width={242} height={1000} loading="lazy"/><img className={polish.boxTop} src="/stack-media/stack-home-box-top-v2.webp?v=production-rc3" alt="" width={720} height={240} loading="lazy"/></div><div className={styles.productBack}/></div>
       <div><p className={styles.kicker}>From screen to table</p><h2>The physical<br/>game<span>.</span></h2><p>Small box. Big fun. Made for game nights, holidays and spontaneous showdowns. The physical deck is currently in playtesting.</p><Button href="/deck" kind="yellow">Meet the physical deck →</Button><p className={styles.releaseNote}>Physical retail launch to be announced.</p><DeckWaitlist/></div><div className={polish.physicalFan} role="group" aria-label="Three illustrated numbered cards">{["2","3","1"].map((name,i)=><Card key={name} name={name} className={polish["physicalCard"+i]}/>)}</div>
     </div></section>
-    <section className={styles.closing}><div className={styles.closingArt} aria-hidden="true"><img src="/stack-media/stack-home-sunset.webp" alt="" width={700} height={165} loading="lazy"/></div><div className={styles.closingCopy}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring PILEHEADS<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></div></section>
+    <section className={styles.closing}><div className={styles.closingCrew}><UniverseIllustration name="hero-game-night"/></div><div className={styles.closingCopy}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring PILEHEADS<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></div></section>
     <footer className={styles.footer}><Link href="/" aria-label="PILEHEADS home"><Brand/></Link><nav aria-label="Footer navigation"><CampaignPlayLink href="/play">Play online</CampaignPlayLink><Link href="/quick-play">Quick Play</Link><a href="/how-to-play">How to play</a><a href="/deck">The deck</a><a href="/#physical">The physical game</a><Link href="/profile">Profile</Link></nav><small>© PILEHEADS</small><FunnelConsent/></footer>
   </main>;
 }
