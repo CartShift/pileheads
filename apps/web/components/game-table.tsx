@@ -4,7 +4,6 @@ import Link from "next/link";
 import SiteHeader, {BrandLink} from "./site-header";
 import PwaInstall from "./pwa-install";
 import OfflineControl, {offlineEnabled} from "./offline-control";
-import { motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { ACTIONS, ACTION_DESCRIPTIONS, cardLabel, PlayingCard, type DeckTheme } from "./card-view";
@@ -145,8 +144,6 @@ export default function GameTable() {
   const handStageRef = useRef<HTMLDivElement | null>(null);
   const [handArea, setHandArea] = useState({ width: 0, cardWidth: 0 });
   const [motionLevel, setMotionLevel] = useState<MotionLevel>("balanced");
-  const systemReducedMotion = useReducedMotion();
-  const staticResults = motionLevel === "reduced" || systemReducedMotion === true;
   const [endgameRule, setEndgameRule] = useState<EndgameRule>("classic");
   const [pendingRule, setPendingRule] = useState<EndgameRule | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -1110,10 +1107,7 @@ export default function GameTable() {
           onSort={() => setHandSort(order => order === "dealt" ? "asc" : order === "asc" ? "desc" : "dealt")}
           handSort={handSort} handStageRef={handStageRef} handCount={handCount} handLayout={handLayout}
           handRows={handRows} handColumns={handColumns} handCards={handCards} lastRowShift={lastRowShift} swapHand={swapHand} />
-        {outcome && <motion.section className="results-overlay" data-outcome={outcome.kind}
-          initial={staticResults ? false : {opacity:0, y:8, scale:.98}}
-          animate={{opacity:1,y:0,scale:1}}
-          transition={staticResults ? {duration:0} : {duration:.18,ease:"easeOut"}}
+        {outcome && <section className="results-overlay" data-outcome={outcome.kind} data-motion={motionLevel}
           role="region" aria-label="Round results">
           <div className="eyebrow">ROUND COMPLETE</div>
           <h2 ref={resultTitleRef} tabIndex={-1}>{outcome.title}</h2>
@@ -1129,7 +1123,7 @@ export default function GameTable() {
           {mode==="online"&&!!g.roundLimit&&g.round>=g.roundLimit&&<button className="primary-button" onClick={leaveTable}>Back to lobby</button>}
           <div className="results-stats"><span>{g.moves} plays</span>
             <span>{g.ashesCount} cards burned</span><span>{g.players.length} players</span></div>
-        </motion.section>}
+        </section>}
       </div>
 
       {inspectedOpponent && <div className="react-pile-backdrop"
