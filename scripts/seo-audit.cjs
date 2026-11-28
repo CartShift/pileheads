@@ -3,6 +3,8 @@ const assert=require("node:assert/strict");
 const config=require("../apps/web/lib/seo-routes.json");
 const publicRoutes=Object.keys(config.routes).filter(route=>config.routes[route].index);
 const canonical=route=>new URL(route,config.origin).href;
+// Next serializes the bare origin without a slash; HTTP treats both forms as the same root.
+const normalizeRoot=values=>values.map(value=>value===config.origin?config.origin+"/":value);
 const sitemapUrls=xml=>Array.from(xml.matchAll(/<loc>([^<]+)<\/loc>/g),m=>m[1]);
 const decode=s=>s.replace(/&(?:amp|quot|apos|#39|#x27|lt|gt);/g,x=>({"&amp;":"&","&quot;":'"',"&apos;":"'","&#39;":"'","&#x27;":"'","&lt;":"<","&gt;":">"})[x]);
 function tags(html,tag){
@@ -35,11 +37,11 @@ function validatePage(route,html){
   if(p.index){
     assert.deepEqual(a.titles,[p.title],route+" title");
     assert.deepEqual(a.description,[p.description],route+" description");
-    assert.deepEqual(a.canonicals,[canonical(route)],route+" canonical");
+    assert.deepEqual(normalizeRoot(a.canonicals),[canonical(route)],route+" canonical");
     assert.ok(!a.robots.some(x=>/\bnoindex\b/i.test(x)),route+" unexpectedly noindex");
     assert.deepEqual(a.ogTitle,[p.title],route+" OG title");
     assert.deepEqual(a.ogDescription,[p.description],route+" OG description");
-    assert.deepEqual(a.ogUrl,[canonical(route)],route+" OG URL");
+    assert.deepEqual(normalizeRoot(a.ogUrl),[canonical(route)],route+" OG URL");
     assert.deepEqual(a.ogImage,[canonical(config.socialImage)],route+" OG image");
     assert.deepEqual(a.twitterTitle,[p.title],route+" Twitter title");
     assert.equal(a.lang,"en",route+" HTML language");
@@ -48,7 +50,7 @@ function validatePage(route,html){
     if(route==="/play")assert.ok(a.schema.some(s=>s["@type"]==="VideoGame"&&s.url===canonical("/play")),route+" VideoGame");
   }else{
     assert.ok(a.robots.some(x=>/\bnoindex\b/i.test(x)),route+" missing noindex");
-    if(p.canonical)assert.deepEqual(a.canonicals,[canonical(p.canonical)],route+" alias canonical");
+    if(p.canonical)assert.deepEqual(normalizeRoot(a.canonicals),[canonical(p.canonical)],route+" alias canonical");
   }
   return a;
 }
