@@ -859,6 +859,10 @@ async function onlineScenarios(browser, server) {
     await host.screenshot({
       path:path.resolve(ROOT, "artifacts/next/online-results.png"),fullPage:true
     });
+    await host.emulateMedia({reducedMotion:"reduce"});
+    await host.waitForFunction(()=>getComputedStyle(document.querySelector(".results-overlay")).animationName==="none");
+    assert.ok(await host.locator(".results-overlay h2").isVisible(),
+      "reduced motion must preserve the result content without an entrance animation");
     await host.getByRole("button", { name: "Play another round" }).click();
     await host.getByRole("button", { name: "Deal again" }).click();
     await host.getByRole("button", { name: "I'm ready" }).waitFor({ timeout: 15000 });

@@ -231,6 +231,17 @@
   box-shadow: 0 5px 0 #192a23, 0 16px 40px #092921b5;
   backdrop-filter: none;
 }
+/* A single entrance does not need a runtime animation library. Preserve the
+   existing independent centering translate and reduced-motion behavior. */
+@keyframes tabletop-result-enter {
+  from { opacity:0; transform:translateY(8px) scale(.98); }
+  to { opacity:1; transform:none; }
+}
+@media (prefers-reduced-motion:no-preference) {
+  .game-table-shell .results-overlay:not([data-motion="reduced"]) {
+    animation:tabletop-result-enter 180ms ease-out both;
+  }
+}
 .game-table-shell .results-overlay .eyebrow { color: #86422a; }
 .game-table-shell .results-overlay h2 {
   font-family: var(--brand-display, Georgia, serif);
