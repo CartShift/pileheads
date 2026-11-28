@@ -5,7 +5,7 @@ const {pageFor,safeReferrer,isProductionHost,isMeasurementId,isPrivacyUrl}=requi
 test("public route allowlist and fixed attribution",()=>{
   assert.deepEqual(pageFor("/deck/","?utm_source=instagram&utm_campaign=launch&room=SECRET&email=private@example.com"),{page_title:"Deck",page_location:"https://pileheads.com/deck?utm_source=instagram&utm_campaign=launch"});
   assert.equal(pageFor("/","?utm_source=private@example.com").page_location,"https://pileheads.com/");
-  for(const path of ["/play","/profile","/growth","/quick-play","/checkout","/constructor","/toString"])assert.equal(pageFor(path),null);
+  for(const path of ["/play","/profile","/deck-updates","/strategy","/guides/shithead-vs-pileheads","/growth","/quick-play","/checkout","/constructor","/toString"])assert.equal(pageFor(path),null);
 });
 test("referrers never contain paths, credentials, query strings or fragments",()=>{
   assert.equal(safeReferrer("https://user:pass@example.org/private?room=secret#x"),"https://example.org/");

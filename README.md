@@ -4,7 +4,7 @@
 
 PILEHEADS is an original, 54-card shedding game for 2–5 players. It combines a printable deck, fast tactical interruptions, bot opponents and private online multiplayer. The browser experience is built to feel like playing with real cards, while the rules engine remains the source of truth.
 
-[**Play online**](https://pileheads.com/play) · [**See the deck gallery**](https://pileheads.com/pilehead/gallery.html) · [**Read the engineering case study**](docs/CASE-STUDY.md)
+[**Play online**](https://pileheads.com/play) · [**See the deck gallery**](https://pileheads.com/deck) · [**Read the engineering case study**](docs/CASE-STUDY.md)
 
 > **Project status:** Active product/playtest project, not a commercial release. Hosted demo availability and real-device multiplayer acceptance must be verified separately from automated tests. The canonical playtest is hosted on Vercel; Render is retained as a fallback until real-device acceptance.
 

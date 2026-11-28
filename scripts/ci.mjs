@@ -22,12 +22,13 @@ const stages = {
     npm('run', 'build:shared-assets'),
     'shared-boundaries',
   ],
-  build: [npm('run', 'build')],
+  build: [npm('run', 'build'), node('tests/seo-static.cjs')],
   'full-core': [
     npm('run', 'typecheck', '--prefix', 'apps/web'),
     npm('run', 'build'),
     npm('test'),
     npm('run', 'test:integrated'),
+    node('tests/seo-static.cjs'),
   ],
   'browser-setup': [
     npm('install', '--no-save', '--no-audit', '--no-fund', 'playwright@' + playwrightVersion),

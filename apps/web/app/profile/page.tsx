@@ -1,8 +1,8 @@
+import {routeMetadata} from "../../lib/seo";
 import SiteHeader from "../../components/site-header";
-import type {Metadata} from "next";
 import PlayerProfile from "../../components/player-profile";
 import AccountPanel from "../../components/account-panel";
-export const metadata:Metadata={title:"Your profile | PILEHEADS",robots:{index:false,follow:true}};
+export const metadata = routeMetadata("/profile");
 export default function ProfilePage(){
  return <main className="game-shell stack-lobby">
   <SiteHeader current="/profile"/>
