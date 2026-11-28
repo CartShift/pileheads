@@ -48,3 +48,34 @@ Five-player capped Classic case: seed 349080934, starter 3, rotation 2, 1800 ste
 ## Decision and open work
 
 Keep Classic as the default and Final Duel optional. These synthetic results support investigating long-game experiences and comparing variants during consented human playtests; they do not prove commercial enjoyment, fairness for real users or guaranteed termination. Do not silently force a cap or change rules. Extend 3–5 seats to 10,000 each, investigate capped seeds with state/event traces, compare human duration and preference, and retain raw reports for final acceptance. The old [2026-11-22 benchmark](stack-balance-benchmark.md) remains historical; its policy and rules cohorts are not directly interchangeable.
+
+## Full 80,000 distinct-match acceptance — 2026-11-28
+
+The remaining 3–5 player cohorts completed on Node 24 in [workflow 46088132878](https://github.com/CartShift/pileheads/actions/runs/46088132878), candidate 04e9355. All three matrix jobs succeeded with 10,000 seeds per rule and seat count, identical first seed/cap/policies to the preliminary run. The previously executed two-player large sample remains the two-player evidence. Earlier smaller samples are overlapping, not additional unique matches. No invariant exceptions. Raw JSON includes events, per-seat/starter outcomes and capped seeds.
+
+| Players | Rule | Completed / 10000 | Mean observed moves | Observed p50 | p95 | p99 | Max observed | Longest stall |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 2 | Classic | 9994 | 130.7928 | 101 | 289 | 549 | 1800 | 1581 |
+| 2 | Final Duel | 10000 | 100.0461 | 91 | 166 | 244 | 535 | 253 |
+| 3 | Classic | 9996 | 148.3209 | 119 | 307 | 567 | 1800 | 1682 |
+| 3 | Final Duel | 10000 | 115.1268 | 110 | 171 | 210 | 383 | 231 |
+| 4 | Classic | 9997 | 165.4036 | 138 | 334 | 575 | 1800 | 1346 |
+| 4 | Final Duel | 10000 | 133.5094 | 125 | 215 | 281 | 701 | 500 |
+| 5 | Classic | 9997 | 182.9417 | 155 | 359 | 618 | 1800 | 1621 |
+| 5 | Final Duel | 10000 | 148.7391 | 140 | 236 | 315 | 742 | 323 |
+
+40,000 Classic games: 39,984 completed, 16 capped. 40,000 Final Duel games: all completed. Mean observed moves across equally sized cohorts: Classic 156.86475, Final Duel 124.35535 (20.7% shorter). These are observed capped distributions, not human durations or a proof of termination. No rule changes approved or implemented.
+
+Additional capped Classic seeds (players / seed / starter / rotation / moves; all 1,800 steps):
+- 3 / 887427994 / 2 / 0 / 1800
+- 3 / 96814659 / 2 / 2 / 1800
+- 3 / 1095424672 / 1 / 2 / 1800
+- 3 / 669317640 / 0 / 2 / 1800
+- 4 / 4201457820 / 0 / 2 / 1800
+- 4 / 1614910024 / 0 / 2 / 1800
+- 4 / 1157790689 / 1 / 1 / 1799
+- 5 / 349080934 / 3 / 2 / 1799
+- 5 / 2031244791 / 3 / 0 / 1798
+- 5 / 1691463555 / 3 / 2 / 1800
+
+Raw artifacts (retention 30 days): [3 seats](https://github.com/CartShift/pileheads/actions/runs/46088132878/artifacts/15239747405), [4 seats](https://github.com/CartShift/pileheads/actions/runs/46088132878/artifacts/15239394680), [5 seats](https://github.com/CartShift/pileheads/actions/runs/46088132878/artifacts/15239652776). Reproduce with `node scripts/bench-simulator.cjs 10000 1800 20261128 3` (or 4/5) on #211 candidate. Full-size S02 benchmark execution is now verified; capped-state trace analysis and human preference remain open.
