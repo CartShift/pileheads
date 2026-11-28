@@ -34,3 +34,11 @@ From the same artifact's next/launch-performance.json (Chromium, local server, e
 - #211 large benchmark: [matrix](https://github.com/CartShift/pileheads/actions/runs/46088132878) passed all 3–5 player cohorts; full results in [balance report](SIMULATOR-BALANCE-20261128.md).
 
 No visual redesign, rules, pricing, tracking or paid infrastructure changes. Still open: real device acceptance, live room/latency smoke, usability pilot, motion/audio recordings, accessibility and performance profiling. Do not close GE09 or public release gates.
+
+## Verified subsequent fixes
+
+- #210 merged 1505060 after [full acceptance](https://github.com/CartShift/pileheads/actions/runs/46088324476). Selected count, legal pile activation, remote DUMP waiting feedback, busy target controls, modal keyboard isolation and distinct online matchmaking label. Initial failed regex assertion corrected and retested.
+- #212 merged 06771aa after [full acceptance](https://github.com/CartShift/pileheads/actions/runs/46088280155). Downloaded [after artifact 15240081799](https://github.com/CartShift/pileheads/actions/runs/46088280155/artifacts/15240081799) and visually inspected resilience-320x640.png and resilience-430x932.png. At 320px controls wrap without covering logo or Rules. At 430px ordinary single-row header remains. Very short viewports still scroll naturally; fix does not claim entire 320x640 table fits.
+- #211 merged 5581cb7; dedicated benchmark matrix and full acceptance passed.
+- #215 input timing instrument and #216 pure adaptive-hand geometry were opened for automated acceptance; status at capture pending full CI.
+- Browser connector reported no originating browser context. Direct container GET could not resolve pileheads.com; public web open was also inaccessible. Production metadata verified independently, but current live API/multiplayer not confirmed.
