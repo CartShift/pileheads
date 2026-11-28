@@ -41,6 +41,8 @@ The 54-card deck has 40 number cards (1–10, four of each) and six kinds of act
 
 Read the [architecture overview](docs/ARCHITECTURE.md), [engineering case study](docs/CASE-STUDY.md) and [playtest rules](docs/pilehead-design.md).
 
+**Current milestone:** [Game Experience & Reliability execution plan](docs/SIMULATOR-MASTER-PLAN.md). Existing launch and physical-device gates remain open until verified.
+
 ## Run locally
 
 **Requirements:** Node.js 24 and npm.
