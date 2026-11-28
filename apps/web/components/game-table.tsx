@@ -15,6 +15,7 @@ import TableStandings from "./table-standings";
 import RoundHistoryConsent from "./round-history-consent";
 import PublicDeadline from "./public-deadline";
 import ResultShare from "./result-share";
+import UniverseIllustration from "./universe-illustration";
 import {resultCardData} from "../lib/result-card";
 const ResultShareCore = require("../lib/result-share-core.cjs") as { resultShare: (input: { phase:string; kind:string; players:number; drill:boolean }) => {title:string;text:string;url:string} | null };
 import { useGameFeedback } from "../lib/use-game-feedback";
@@ -1094,6 +1095,7 @@ export default function GameTable() {
         {outcome && <section className="results-overlay" data-outcome={outcome.kind} data-motion={motionLevel}
           role="region" aria-label="Round results">
           <div className="eyebrow">ROUND COMPLETE</div>
+          {!drill && !offlineNetwork && (outcome.kind === "first" || outcome.kind === "loss") && <UniverseIllustration name={outcome.kind === "first" ? "character-ten-victory" : "state-defeat-keep-cool"} className="universe-round-result"/>}
           <h2 ref={resultTitleRef} tabIndex={-1}>{outcome.title}</h2>
           <p>{drill ? "Practice complete. Repeat the drill or leave the table." : outcome.description}</p>
           <ol className="results-standings">
