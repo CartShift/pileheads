@@ -9,6 +9,46 @@ const ROOT=path.resolve(__dirname,".."),BASE="http://127.0.0.1:44294";
 const out=path.join(ROOT,"artifacts/next/launch-performance.json");
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function ready(){for(let i=0;i<100;i++){try{if((await fetch(BASE+"/livez")).ok)return}catch{}await sleep(200)}throw Error("integrated server unavailable")}
+// Measure real trusted pointer interactions inside the browser, excluding
+// Playwright RPC time. Mutation -> two animation frames is a paint proxy,
+// not the Event Timing API, INP, production latency or hardware FPS.
+async function measureSelection(page,profile){
+ await page.getByRole("button",{name:"Quick play",exact:true}).click();
+ await page.getByRole("heading",{name:"Your move."}).waitFor();
+ const card=page.locator(".player-hand .card-hit").first();
+ await card.waitFor();
+ await page.evaluate(()=>{
+  const values=[];window.__selectionTiming=values;
+  document.addEventListener("click",event=>{
+   const button=event.target.closest?.(".player-hand .card-hit");
+   if(!event.isTrusted||!button)return;
+   const before=button.getAttribute("aria-pressed"),start=performance.now();
+   const observer=new MutationObserver(()=>{
+    if(button.getAttribute("aria-pressed")===before)return;
+    observer.disconnect();const committed=performance.now();
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+     values.push({commitMs:committed-start,paintProxyMs:performance.now()-start});
+    }));
+   });
+   observer.observe(button,{attributes:true,attributeFilter:["aria-pressed"]});
+   setTimeout(()=>observer.disconnect(),2000);
+  },{capture:true});
+ });
+ for(let i=0;i<20;i++){
+  if(profile.mobile)await card.tap();
+  else await card.click();
+  await page.waitForFunction(n=>window.__selectionTiming.length>=n,i+1,{timeout:5000});
+ }
+ const samples=await page.evaluate(()=>window.__selectionTiming);
+ assert.equal(samples.length,20,"one timing sample per trusted selection gesture");
+ const stats=key=>{
+  const sorted=samples.map(s=>s[key]).sort((a,b)=>a-b);
+  const p=q=>Math.round(sorted[Math.ceil(sorted.length*q)-1]*10)/10;
+  return {p50:p(.5),p95:p(.95),max:p(1)};
+ };
+ return {count:samples.length,commit:stats("commitMs"),paintProxy:stats("paintProxyMs"),samples,
+  note:"Trusted click/tap to aria-pressed commit and two RAFs; synthetic lab proxy, not INP."};
+}
 async function measure(browser,route,profile){
  const context=await browser.newContext({viewport:profile.mobile?{width:390,height:844}:{width:1440,height:900},isMobile:profile.mobile,hasTouch:profile.mobile,deviceScaleFactor:1,reducedMotion:"reduce"});
  try{
@@ -44,7 +84,10 @@ async function measure(browser,route,profile){
   assert.equal(measured.horizontalOverflow,false,route+" must fit viewport");
   assert.deepEqual(errors,[],route+" must not have client errors");
   assert.deepEqual([...external],[],route+" must not send pre-consent requests to third parties");
-  return {route,profile:profile.name,...measured,externalOrigins:[...external],errors};
+  const selection=route==="/play"?await measureSelection(page,profile):undefined;
+  assert.deepEqual(errors,[],route+" must not have interaction errors");
+  assert.deepEqual([...external],[],route+" must not send pre-consent requests during interaction");
+  return {route,profile:profile.name,...measured,selection,externalOrigins:[...external],errors};
  }finally{await context.close()}
 }
 (async()=>{
@@ -59,7 +102,7 @@ async function measure(browser,route,profile){
    }
   }
  }finally{
-  fs.writeFileSync(out,JSON.stringify({kind:"synthetic lab baseline; not field CWV or production network",browser:"Chromium",lcpTargetMs:2500,clsTarget:.1,inp:"not measured",rows},null,2)+"\n");
+  fs.writeFileSync(out,JSON.stringify({kind:"synthetic lab baseline; not field CWV or production network",browser:"Chromium",lcpTargetMs:2500,clsTarget:.1,inp:"not measured",selectionTargetMs:100,rows},null,2)+"\n");
   if(browser)await browser.close();server.kill("SIGTERM");
  }
 })().catch(error=>{console.error(error);process.exitCode=1});
