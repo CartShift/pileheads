@@ -737,6 +737,11 @@ async function onlineScenarios(browser, server) {
     await host.locator(".opponent-seat .seat-reaction").first().waitFor({ timeout: 12000 });
 
     await host.locator(".player-hand .card-hit").first().click();
+    const selectedBefore=host.locator(".player-hand .playing-card.is-selected");
+    await selectedBefore.waitFor();
+    server.send({type:"selection-revision",code});
+    await host.locator(".opponent-seat").getByText("Guest synced",{exact:true}).waitFor({timeout:14000});
+    assert.equal(await selectedBefore.count(),1,"a legal selection survives unrelated authoritative revisions");
     await host.getByRole("button", { name: /Play cards/ }).click();
     // The authoritative pile is visible immediately on both displays.
     // A duplicate flying card would imply the actor played twice.
@@ -776,8 +781,14 @@ async function onlineScenarios(browser, server) {
       "reconnect restores seat");
     // A real server-side finish should render the same results to both seats,
     // and the existing room/session must survive a rematch.
+    const legalCard=host.locator('.player-hand .playing-card[data-availability="playable"] .card-hit').first();
+    // The prior pickup gave the host a turn; an empty pile makes its hand legal.
+    await legalCard.click();
+    await host.locator(".player-hand .playing-card.is-selected").waitFor();
     server.send({ type: "finish", code });
     await host.getByRole("button", { name: "Play another round" }).waitFor({ timeout: 16000 });
+    assert.equal(await host.locator(".player-hand .playing-card.is-selected").count(),0,
+      "a phase change discards any selection from the previous playable state");
     await host.getByRole("region", { name: "Round results" }).waitFor();
     assert.equal(await host.locator(".results-standings li[data-self=\"true\"]").count(),1);
     assert.equal(await host.locator(".results-overlay h2").evaluate(el=>document.activeElement===el),true,

@@ -253,9 +253,27 @@ export default function GameTable() {
         roomRef.current.revision === next.revision &&
         JSON.stringify(roomRef.current.game) === JSON.stringify(next.game) &&
         JSON.stringify(roomRef.current.members) === JSON.stringify(next.members)) return;
-    // An authoritative move supersedes any locally selected cards.
-    if (roomRef.current?.code === next.code && next.revision !== roomRef.current.revision) {
-      setSelection([]);
+    // Keep an ordinary selection only when the new authoritative legal
+    // groups still contain every selected card. Never carry IDs into a new
+    // round/seat, a pending decision, or an opponent's turn.
+    const previous = roomRef.current;
+    if (previous?.code === next.code && previous.revision !== next.revision) {
+      const sameRound = previous.me === next.me && previous.game.round === next.game.round;
+      const game = next.game;
+      const canRetain = sameRound && previous.game.phase === "play" &&
+        game.phase === "play" && game.turn === next.me && !game.pendingDump &&
+        !game.pendingCounter && !game.tournamentWithdrawal;
+      setSelection(selected => {
+        if (!selected.length) return selected;
+        return canRetain && game.legal.some(move => move.type === "play" &&
+          move.source !== "down" && selected.every(id => move.ids?.includes(id)))
+          ? selected : [];
+      });
+      setSwapHand(id => sameRound && previous.game.phase === "setup" &&
+        game.phase === "setup" && !game.setupReady[next.me] &&
+        game.players[next.me]?.hand?.some(card => card.id === id) ? id : null);
+      // A target confirmation is bound to the displayed revision. Keep a
+      // still-legal DUMP selection, but require a new explicit target choice.
       setNeedsTarget(false);
     }
     if (next.session) {
@@ -342,7 +360,11 @@ export default function GameTable() {
         try { live.send(JSON.stringify({type: "sync-hint"})); } catch { /* polling still converges */ }
       }
       if(payload.action==="join")emitFunnel("room_joined");
-      setSelection([]); setSwapHand(null); setNeedsTarget(false);
+      // Background bot progress is not a user gesture. applyRoom already
+      // reconciles selection against its authoritative snapshot.
+      if (payload.action !== "advance") {
+        setSelection([]); setSwapHand(null); setNeedsTarget(false);
+      }
     } catch (err) {
       if (epoch !== roomEpoch.current) return;
       const message = err instanceof Error ? err.message : "network_unavailable";
