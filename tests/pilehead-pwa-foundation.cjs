@@ -42,6 +42,6 @@ function request(path, {mode='navigate',method='GET'}={}) {
   assert.match(component,/beforeinstallprompt/);
   assert.match(component,/standalone/);
   const game=fs.readFileSync('apps/web/components/game-table.tsx','utf8');
-  assert.match(game,/!inviteEntry && mode === "home" && <PwaInstall\/>/);
+  assert(game.includes('!inviteEntry && mode === "home" && <><PwaInstall/><OfflineControl/></>'));
   console.log('PWA manifest, feature gate and network-only worker contract passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});
