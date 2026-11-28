@@ -48,7 +48,8 @@ async function check(browser,width,height){
     for(const href of ["/play","/deck","/how-to-play","/privacy","/terms","/impressum"]){assert.ok(await page.locator('a[href="'+href+'"]').count(),href);assert.equal((await page.request.get(BASE+href)).status(),200,href)}
     await page.screenshot({path:path.join(ARTIFACTS,"homepage-"+width+".png"),fullPage:true,animations:"disabled"});
     for(const [href,title] of [["/privacy","Privacy notice"],["/terms","Terms of use"],["/impressum","Impressum"]]){
-      await page.goto(BASE+href);assert.equal(await page.getByRole("heading",{level:1,name:title,exact:true}).count(),1);
+      const legalResponse=await page.goto(BASE+href);assert.equal(legalResponse.status(),200,href);assert.equal(await page.getByRole("heading",{level:1,name:title,exact:true}).count(),1);
+      assert.equal((await page.request.get(BASE+href+"/")).status(),200,href+" trailing slash");
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),href+" fits viewport");
     }
     await page.goto(BASE+"/stack",{waitUntil:"networkidle"});
