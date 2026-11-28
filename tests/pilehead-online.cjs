@@ -9,6 +9,15 @@ crypto.randomInt=(...args)=>{if(args.length===1)return Math.min(chosenStarter,ar
 const Engine=require('../dist/pilehead/engine.js');
 const rooms=new Map(),members=new Map(),buckets=new Map(),receipts=new Map();
 let failArchiveOnce=false;
+// Test-only barrier: both requests must reach the database CAS using the same
+// revision before either may commit. No production code or timing changes.
+let casGate=null;
+async function awaitCas(code,revision){
+ const gate=casGate;
+ if(!gate||gate.code!==code||gate.revision!==revision)return;
+ if(++gate.arrivals===2)gate.release();
+ await gate.promise;
+}
 let joinContentionOnce=false,failHostInsertOnce=false,expireOnJoin=false,withdrawOnJoin=false,authenticatedReads=0,legacyAuthReads=0;
 // Convert synthetic new-room fixtures into true pre-v1.6 52-card games.
 // Preserve all dealt slots by replacing each extra BURN with a stock card.
@@ -105,7 +114,9 @@ async function query(sql,args=[]){
   r.state=next;r.status=status;r.revision++;
   return[structuredClone(r)];
  }
- if(sql.startsWith('UPDATE pilehead_rooms')){const [state,status,code,rev]=args,r=rooms.get(code);
+ if(sql.startsWith('UPDATE pilehead_rooms')){const [state,status,code,rev]=args;
+  await awaitCas(code,rev);
+  const r=rooms.get(code);
   if(!r||r.revision!==rev)return [];
   r.state=JSON.parse(state);r.status=status;r.revision++;return [structuredClone(r)]}
  throw Error('Unknown test SQL: '+sql.slice(0,85));
@@ -122,6 +133,22 @@ async function request(body,session,headers={},method='POST',queryParams={}){
   ...(session?{authorization:'Bearer '+session}:{}),...headers},body,socket:{remoteAddress:'127.0.0.1'}};
  const res={statusCode:200,status(n){this.statusCode=n;return this},setHeader(){return this},json(v){return {status:this.statusCode,data:v}}};
  return handler(req,res);
+}
+async function raceCommands(code,revision,commands){
+ assert.equal(casGate,null);
+ let release,reject;
+ const promise=new Promise((resolve,fail)=>{release=resolve;reject=fail;});
+ const timer=setTimeout(()=>reject(Error('Both contenders did not reach CAS')),2500);
+ const gate=casGate={code,revision,arrivals:0,promise,release};
+ try{
+  const responses=await Promise.all(commands.map(([body,token])=>request({code,revision,...body},token)));
+  assert.equal(gate.arrivals,2,'both contenders reach the actual database revision CAS');
+  assert.deepEqual(responses.map(r=>r.status).sort(),[200,409]);
+  assert.equal(responses.find(r=>r.status===409).data.error,'stale_revision');
+  assert.equal(rooms.get(code).revision,revision+1,'exactly one revision committed');
+  Engine.invariant(rooms.get(code).state);
+  return responses;
+ }finally{clearTimeout(timer);casGate=null;}
 }
 async function run(){
  let checks=0;
@@ -441,7 +468,11 @@ async function run(){
  assert.equal(botThreat.data.game.botSlamReady,true);
  assert.equal(botThreat.data.game.players[2].hand,undefined);
  assert.equal(botThreat.data.game.players[2].handCount,4);
- rooms.get(hybridCode).state=backup;checks++;
+ const normalAgainstBot=Engine.options(staged,0)[0];
+ assert.ok(normalAgainstBot,'normal action is legal while bot SLAM is eligible');
+ await raceCommands(hybridCode,3,[[{action:'move',move:normalAgainstBot},hybridHost],[{action:'advance'},hybridFriend]]);
+ rooms.get(hybridCode).state=backup;rooms.get(hybridCode).revision=3;checks++;
+ console.log('PASS actual overlapping database CAS: bot SLAM versus human turn');
  const prematureBot=await request({action:'advance',code:hybridCode,revision:3},hybridHost);
  assert.equal(prematureBot.status,409);assert.equal(prematureBot.data.error,'not_bot_turn');checks++;
  // Put the turn on a bot; server chooses from its hidden hand and commits exactly one move.
@@ -591,6 +622,7 @@ async function run(){
  const raceOpen=await request({action:'move',code:raceCode,revision:3,move:{type:'play',source:'hand',ids:[raceIDs[0]]}},raceHost);
  assert.equal(raceOpen.status,200);
  assert.equal(raceOpen.data.game.followup.length,1);
+ const raceBefore=structuredClone(rooms.get(raceCode).state);
  const raceMove=Engine.options(rooms.get(raceCode).state,1)[0];
  const guestWins=await request({action:'move',code:raceCode,revision:4,move:raceMove},raceGuest.data.session);
  assert.equal(guestWins.status,200,JSON.stringify(guestWins));
@@ -599,6 +631,17 @@ async function run(){
  assert.equal(outdatedSnap.status,409,'concurrent SNAP must respect revision race');
  const tooLateSnap=await request({action:'move',code:raceCode,revision:5,move:raceOpen.data.game.followup[0]},raceHost);
  assert.equal(tooLateSnap.status,400,'SNAP cannot be played after the next action');checks++;
+ // Restore only the isolated mock fixture to test actual overlap, not just
+ // a sequential stale request. Both operations are legal at revision 4.
+ const raceRecord=rooms.get(raceCode),afterSequential=structuredClone(raceRecord.state);
+ const snapCommand={action:'move',move:raceOpen.data.game.followup[0]};
+ raceRecord.state=structuredClone(raceBefore);raceRecord.revision=4;
+ await raceCommands(raceCode,4,[[snapCommand,raceHost],[{action:'move',move:raceMove},raceGuest.data.session]]);
+ raceRecord.state=structuredClone(raceBefore);raceRecord.revision=4;
+ await raceCommands(raceCode,4,[[snapCommand,raceHost],[snapCommand,raceHost]]);
+ assert.equal(raceRecord.state.moves,raceBefore.moves+1,'duplicate SNAP commits one move only');
+ raceRecord.state=afterSequential;raceRecord.revision=5;checks++;
+ console.log('PASS actual overlapping database CAS: SNAP versus next turn and duplicate SNAP');
 
  {
  // In-progress rooms from v1.3 remain readable after the v1.4 deploy.
