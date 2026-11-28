@@ -9,6 +9,7 @@ Status: implementation in progress; issue #173; not released. Canonical React /p
 - No forced activation or reload; existing games continue. Worker updates follow browser lifecycle. No notification permissions.
 
 ## 2. Device acceptance
+Automated evidence (2026-11-28): fast and security checks passed on f78a9df; full core including integrated export passed. Chromium acceptance timed out on simulated network disconnection; corrected the test to stop the HTTP origin and forced network-only navigation fetch. Re-run required on the corrected SHA.
 Check manifest/icon sizes, contrast and maskable crop; install Chromium Android, desktop and iOS Safari; standalone safe areas, orientation, keyboard, 2–5 player tables, invitations, reconnect, lock/foreground and Wi-Fi switch. Confirm normal browsers remain unchanged. Test actual production-like HTTPS preview, unsupported browsers, blocked storage and worker failures. Keep flag off publicly until accepted.
 
 ## 3. Opt-in offline bots (separate PR)
