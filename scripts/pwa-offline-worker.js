@@ -127,7 +127,7 @@ self.addEventListener("fetch",event=>{
   if(!navigation&&!asset)return;
   // Network-first: online HTML/API/realtime never come from Cache Storage.
   // Cache is considered only for a network exception, never an HTTP error.
-  event.respondWith(fetch(request).catch(async()=>{
+  event.respondWith(fetch(request,navigation?{cache:"no-store"}:undefined).catch(async()=>{
     try{
       if(asset||(navigation&&url.pathname==="/play")){
         const response=await cached(request);
