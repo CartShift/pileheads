@@ -48,12 +48,22 @@ function effective(e,room,player){
 // Diagnostics are restricted to fixed categories. Never log a URL, exception
 // message, stack, database identifier, credential, email or request header.
 function errorCategory(error){
- const code=error?.code;
+ const code=error?.code||error?.sourceError?.code||error?.cause?.code;
+ if(code==='PILEHEAD_INVALID_DB_URL')return 'invalid_connection_string';
+ if(['ENOTFOUND','EAI_AGAIN'].includes(code))return 'dns';
+ if(['ETIMEDOUT','UND_ERR_CONNECT_TIMEOUT','ABORT_ERR'].includes(code)||error?.name==='TimeoutError')return 'timeout';
+ if(['ECONNREFUSED','ECONNRESET','EHOSTUNREACH','ENETUNREACH'].includes(code))return 'network';
  if(code==='28P01'||code==='28000')return 'authentication';
  if(code==='42501')return 'permission';
  if(code==='42P01'||code==='42703')return 'schema';
  if(code==='3D000')return 'database';
  if(code==='57014')return 'timeout';
+ // Inspect messages internally, returning fixed categories only; never log raw errors.
+ const message=typeof error?.message==='string'?error.message:'';
+ if(/password authentication failed|invalid password|authentication failed/i.test(message))return 'authentication';
+ if(/invalid connection string|invalid url|connection string.*postgres/i.test(message))return 'invalid_connection_string';
+ if(/endpoint.*(disabled|not found|does not exist)|project.*(disabled|not found)/i.test(message))return 'endpoint_unavailable';
+ if(/fetch failed|error connecting to database/i.test(message))return 'http_transport';
  return 'connection_or_query';
 }
 function createLoader({env=process.env,roomQuery,playerQuery,now=Date.now,ttl=3000,report=()=>{}}={}){
@@ -99,13 +109,21 @@ function createLoader({env=process.env,roomQuery,playerQuery,now=Date.now,ttl=30
 }
 
 let roomDb,playerDb;
+function connectionString(value){
+ try{
+  if(typeof value!=='string'||value!==value.trim()||/[\r\n]/.test(value))throw Error();
+  const parsed=new URL(value);
+  if(!['postgres:','postgresql:'].includes(parsed.protocol)||!parsed.hostname||!parsed.username||!parsed.password||parsed.pathname.length<2||parsed.hash)throw Error();
+  return value;
+ }catch{throw Object.assign(Error('Invalid database connection string'),{code:'PILEHEAD_INVALID_DB_URL'})}
+}
 const query=(kind,sql,args)=>{
  const neon=require('@neondatabase/serverless').neon;
- if(kind==='room'){roomDb??=neon(process.env.PILEHEAD_DATABASE_URL);return roomDb.query(sql,args)}
- playerDb??=neon(process.env.PILEHEAD_PLAYER_DATABASE_URL);return playerDb.query(sql,args);
+ if(kind==='room'){roomDb??=neon(connectionString(process.env.PILEHEAD_DATABASE_URL));return roomDb.query(sql,args)}
+ playerDb??=neon(connectionString(process.env.PILEHEAD_PLAYER_DATABASE_URL));return playerDb.query(sql,args);
 };
 const load=createLoader({roomQuery:(s,a)=>query('room',s,a),playerQuery:(s,a)=>query('player',s,a),report:reason=>{
  const message=JSON.stringify({event:'pileheads_runtime_readiness',reason});
  if(reason==='ready')console.info(message);else console.warn(message);
 }});
-module.exports={SQL,ORIGIN,PRIVACY,managed,emailHash,deriveSeatKey,effective,createLoader,load};
+module.exports={SQL,ORIGIN,PRIVACY,managed,emailHash,deriveSeatKey,effective,createLoader,connectionString,load};

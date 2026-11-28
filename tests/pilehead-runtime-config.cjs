@@ -32,6 +32,11 @@ assert.equal(Buffer.from(C.deriveSeatKey(env.PILEHEAD_ACCOUNT_FLOW_SECRET),'base
  await missing();await missing();assert.deepEqual(reports,['player_url_missing']);
  const fail=C.createLoader({env,roomQuery:async()=>[row],playerQuery:async()=>{throw Object.assign(Error('DO NOT LOG postgres://secret'),{code:'28P01'})},report:s=>reports.push(s)});
  await fail();assert.equal(reports.at(-1),'player_authentication');assert.ok(!reports.some(s=>s.includes('secret')));
+ const fakeUrl='postgresql://test:fake-secret@example.test/neondb?sslmode=require';
+ assert.equal(C.connectionString(fakeUrl),fakeUrl);
+ for(const invalid of ['psql '+fakeUrl, ' '+fakeUrl, fakeUrl+'\n', 'https://example.test', 'postgresql://test@example.test/neondb'])assert.throws(()=>C.connectionString(invalid),{code:'PILEHEAD_INVALID_DB_URL'});
+ const nested=C.createLoader({env,roomQuery:async()=>[row],playerQuery:async()=>{throw Object.assign(Error('private details'),{sourceError:{code:'ENOTFOUND'}})},report:s=>reports.push(s)});
+ await nested();assert.equal(reports.at(-1),'player_dns');assert.ok(!reports.some(s=>s.includes('private details')));
  const mismatch=C.createLoader({env,roomQuery:async()=>[row],playerQuery:async()=>[{...row,database_id:account}],report:s=>reports.push(s)});
  await mismatch();assert.equal(reports.at(-1),'database_mismatch');
  const ready=C.createLoader({env,roomQuery:query,playerQuery:query,report:s=>reports.push(s)});
