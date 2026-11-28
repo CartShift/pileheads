@@ -2,20 +2,23 @@
 
 Status: implementation in progress; issue #173; not released. Canonical React /play only. Web-first, mobile-first, native-ready.
 
-## 1. Install foundation (this PR)
+## 1. Install foundation (#205)
 - Build official logo-based 192/512 PNG, maskable 512, Apple touch 180; manifest stable ID, /play start URL, standalone, brand colors.
 - Contextual install control in the non-active lobby; no automatic prompt, no account, iOS Safari instructions; hide in standalone. Feature flag NEXT_PUBLIC_PILEHEADS_PWA=1 is build-time opt-in for preview only until acceptance.
 - Root-lifetime install prompt listener and network-only worker registration on eligible public routes in flagged builds, before prompting. Offline downloads still require explicit user consent. Network-first public root/play navigation, no query strings, no Cache Storage, no API or private data interception. Offline notice only; no offline play promise.
 - No forced activation or reload; existing games continue. Worker updates follow browser lifecycle. No notification permissions.
 
 ## 2. Device acceptance
+Initial foundation full core and security/fast checks passed; first browser run failed at offline simulation. Foundation PR carries the disconnected-origin test correction; follow its CI for exact candidate evidence.
 Check manifest/icon sizes, contrast and maskable crop; install Chromium Android, desktop and iOS Safari; standalone safe areas, orientation, keyboard, 2–5 player tables, invitations, reconnect, lock/foreground and Wi-Fi switch. Confirm normal browsers remain unchanged. Test actual production-like HTTPS preview, unsupported browsers, blocked storage and worker failures. Keep flag off publicly until accepted.
 
-## 3. Opt-in offline bots (separate PR)
+## 3. Opt-in offline bots (dependent draft)
+Implemented candidate, not released: `NEXT_PUBLIC_PILEHEADS_OFFLINE=1` is separate and also requires `NEXT_PUBLIC_PILEHEADS_PWA=1`. Build the static React export, generate a bounded SHA-256 inventory, embed it in the worker, verify each asset on explicit download and commit a snapshot pointer only after completion. Retain one prior successful release; network-first public navigation and asset fallback only on fetch rejection. No runtime response caching, no auth/API/room URLs, no automatic downloads or background sync. Storage cap: 64 MiB per release (proposed guardrail; actual size must be measured). Explicit remove deletes only PILEHEADS offline cache entries and leaves local saves alone. Existing local game engine is reused; offline lobby disables private-room and Quick Play entry. A failed download preserves the previous completed snapshot. Unit and browser tests are included, not yet verified. Full match, multiple tabs, storage limits and physical iOS/Android airplane-mode acceptance remain open. No server-backed account or multiplayer progress is available offline.
+
 Reuse #91 historical allowlist concepts, not Classic UI. Generate a release-specific allowlist for canonical /play export and required immutable chunks, artwork/audio/font; validate complete download before marking ready; versioned cache with explicit removal and storage quota recovery. Never cache requests with query strings unless exact approved public asset URL, authenticated/private pages, API, payment, player/profile/customer/room data or responses marked private/no-store. Never cache cross-origin resources. No automatic navigation reload, background sync, or queued multiplayer moves. Offline local-only practice with versioned existing saves, no server progression. Test complete games in airplane mode, multiple tabs/update, storage failure, removal and online recovery. Keep disabled until real device acceptance.
 
 ## 4. Retention and notifications (separate product decision)
 Opt-in useful invitations/rematch notifications only after permission/privacy and backend subscription lifecycle review. No push request on arrival. iOS requires installed Home Screen web app for Web Push. No paid infrastructure by default.
 
 ## Release / rollback
-Do not merge without exact-SHA checks. No new dependencies. Preview with flag on; production defaults off. If worker has already been installed, disabling UI is not worker removal: ship a same-URL retirement worker and validate lifecycle/unregister separately. No production changes claimed here.
+Do not merge without exact-SHA checks. No new dependencies. Preview with explicitly enabled flags; production defaults off. Offline rollback publishes the network-only worker; an already installed offline worker follows ordinary service-worker update lifecycle. Cache retirement remains a release gate. If worker has already been installed, disabling UI is not worker removal: ship a same-URL retirement worker and validate lifecycle/unregister separately. No production changes claimed here.
