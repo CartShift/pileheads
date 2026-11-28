@@ -16,7 +16,7 @@ const ENABLED=process.env.NEXT_PUBLIC_GA4_ENABLED==="1"&&Core.isMeasurementId(ID
 const KEY="pileheads-ga4-consent-v1";
 type Choice="granted"|"denied";
 type TagWindow=Window&{dataLayer?:unknown[];gtag?:(...args:unknown[])=>void;[key:`ga-disable-${string}`]:boolean|undefined};
-const tag=()=>window as TagWindow;
+const tag=()=>window as unknown as TagWindow;
 const denyAds={ad_storage:"denied",ad_user_data:"denied",ad_personalization:"denied"} as const;
 let initialized=false;
 function disable(){tag()[`ga-disable-${ID}`]=true;}
