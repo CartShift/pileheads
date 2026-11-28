@@ -1,0 +1,6 @@
+.ga4-privacy{position:fixed;bottom:max(12px,env(safe-area-inset-bottom));left:12px;z-index:1000;max-width:min(420px,calc(100vw - 24px));font-family:system-ui,sans-serif;color:#202020}
+.ga4-panel{background:#fffaf0;border:2px solid #202020;border-radius:12px;padding:14px;box-shadow:3px 4px 0 #202020;font-size:14px;line-height:1.45}
+.ga4-panel p{margin:8px 0}.ga4-panel a{color:#075b6a;text-decoration:underline}
+.ga4-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.ga4-actions button,.ga4-settings{background:#fffaf0;color:#202020;border:1px solid #202020;border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
+.ga4-settings{font-size:12px;padding:5px 8px}.ga4-actions button:focus-visible,.ga4-settings:focus-visible{outline:3px solid #086879;outline-offset:3px}
