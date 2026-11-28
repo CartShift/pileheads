@@ -714,6 +714,21 @@ async function onlineScenarios(browser, server) {
     await host.locator(".connection-chip.is-online").waitFor({ timeout: 10000 });
     assert.ok(await host.evaluate(() => window.__stackTestSockets.length) >= 2,
       "live room should establish a replacement WebSocket without reload");
+    // Foreground/network restoration should request a fresh snapshot
+    // immediately rather than wait for the connected 9.5s polling interval.
+    for(const event of ["visibilitychange","online","pageshow"]){
+      await Promise.all([
+        host.waitForRequest(req=>req.url().endsWith("/api/pilehead")&&
+          req.method()==="POST"&&req.postDataJSON()?.action==="state",{timeout:3500}),
+        host.evaluate(kind=>{
+          if(kind==="visibilitychange")document.dispatchEvent(new Event(kind));
+          else if(kind==="pageshow")window.dispatchEvent(new PageTransitionEvent(kind,{persisted:true}));
+          else window.dispatchEvent(new Event(kind));
+        },event)
+      ]);
+    }
+    assert.ok(await host.getByRole("heading",{name:"Your move."}).isVisible(),
+      "foreground refresh preserves the current seat and turn");
     await host.screenshot({path:path.resolve(ROOT,"artifacts/next/online-host.png"),fullPage:true});
     await guest.locator(".player-hand .playing-card").first().waitFor();
 
