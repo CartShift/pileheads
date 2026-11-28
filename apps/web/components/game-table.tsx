@@ -973,7 +973,7 @@ export default function GameTable() {
               <button className="learn-button" onClick={()=>startDrill(drillChoice)}>Practice special move</button>
             </details>
           </div>
-          <div className="mode-card">
+          {offlineNetwork?<section className="mode-card" role="status"><h2>You’re offline.</h2><p>Bot games are available. Reconnect for private rooms and Quick Play.</p></section>:<><div className="mode-card">
             <div className="eyebrow">02 · WITH FRIENDS</div><h2>Private room</h2>
             <p>Invite real players, fill empty seats with bots.</p>
             <label>Your name <input maxLength={24} value={name} onChange={e => setName(e.target.value)} /></label>
