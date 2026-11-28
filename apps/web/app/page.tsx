@@ -1,4 +1,6 @@
-import type { Metadata } from "next";
+import SeoJsonLd from "../components/seo-json-ld";
+import {websiteSchema} from "../lib/seo";
+import {routeMetadata} from "../lib/seo";
 import Link from "next/link";
 import SiteHeader from "../components/site-header";
 import CampaignPlayLink from "../components/campaign-play-link";
@@ -9,11 +11,7 @@ import {FunnelConsent} from "../components/funnel-provider";
 import styles from "./official-home.module.css";
 import polish from "./homepage-refinement.module.css";
 
-export const metadata: Metadata = {
-  title: "PILEHEADS | One pile. One loser.",
-  alternates: { canonical: "/" },
-  description: "Get rid of your cards, surprise your friends and avoid being the Pilehead. Play free online with bots or 2–5 players. No account needed."
-};
+export const metadata = routeMetadata("/");
 
 const faces = ["1","2","3","4","5","6","7","8","9","10","RESET","GHOST","UNDER","SKIP","BURN","DUMP"];
 function Card({name, className = ""}: {name: string; className?: string}) {
@@ -34,7 +32,7 @@ function BenefitIcon({kind}: {kind: "bolt"|"friends"|"repeat"}) {
 }
 const actions = ["BURN", "DUMP", "GHOST", "RESET"];
 export default function HomePage() {
-  return <main className={styles.home + " " + polish.refined} data-testid="official-home">
+  return <main className={styles.home + " " + polish.refined} data-testid="official-home"><SeoJsonLd data={websiteSchema}/>
     <a href="#main-content" className={styles.skip}>Skip to content</a>
     <SiteHeader current="/" />
     <section className={styles.hero} id="main-content" aria-labelledby="home-heading" tabIndex={-1}>
@@ -42,7 +40,7 @@ export default function HomePage() {
         <div className={styles.heroCopy + " " + polish.heroEditorial}>
           <p className={styles.kicker}>The card game with character</p>
           <h1 id="home-heading">ONE PILE.<br/><span className={polish.headlineLine}>ONE LOSER<span>.</span></span></h1>
-          <p className={styles.lead}>Get rid of your cards. Turn the tables on your friends. Whatever you do, don’t be the Pilehead.</p>
+          <p className={styles.lead}>An illustrated card game for 2–5 players. Get rid of your cards, turn the tables on your friends and don’t be the Pilehead.</p>
           <div className={styles.buttons + " " + polish.heroActions}><Button href="/play"><span aria-hidden="true">▶</span> Play free online</Button><Button href="#physical" kind="cream">Discover the deck <span aria-hidden="true">↘</span></Button></div>
           <div className={styles.facts + " " + polish.heroFacts}><span>2–5 players</span><span>No download</span><span>No account</span></div>
         </div>
@@ -80,6 +78,6 @@ export default function HomePage() {
       <div><p className={styles.kicker}>From screen to table</p><h2>The physical<br/>game<span>.</span></h2><p>Small box. Big fun. Made for game nights, holidays and spontaneous showdowns. The physical deck is currently in playtesting.</p><Button href="/deck" kind="yellow">Meet the physical deck →</Button><p className={styles.releaseNote}>Physical retail launch to be announced.</p><DeckWaitlist/></div><div className={polish.physicalFan} role="group" aria-label="Three illustrated numbered cards">{["2","3","1"].map((name,i)=><Card key={name} name={name} className={polish["physicalCard"+i]}/>)}</div>
     </div></section>
     <section className={styles.closing}><div className={styles.closingCrew}><UniverseIllustration name="hero-game-night"/></div><div className={styles.closingCopy}><p className={styles.kicker}>Good games. Great company.</p><h2>Bring PILEHEADS<br/>to your table<span>.</span></h2><Button href="/play" kind="yellow">One more round? →</Button></div></section>
-    <footer className={styles.footer}><Link href="/" aria-label="PILEHEADS home"><Brand/></Link><nav aria-label="Footer navigation"><CampaignPlayLink href="/play">Play online</CampaignPlayLink><Link href="/quick-play">Quick Play</Link><a href="/how-to-play">How to play</a><a href="/deck">The deck</a><a href="/#physical">The physical game</a><Link href="/profile">Profile</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/impressum">Impressum</Link></nav><small>© PILEHEADS</small><FunnelConsent/></footer>
+    <footer className={styles.footer}><Link href="/" aria-label="PILEHEADS home"><Brand/></Link><nav aria-label="Footer navigation"><CampaignPlayLink href="/play">Play online</CampaignPlayLink><Link href="/quick-play">Quick Play</Link><a href="/how-to-play">How to play</a><a href="/deck">The deck</a><Link href="/strategy">Game strategy</Link><a href="/#physical">The physical game</a><Link href="/profile">Profile</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/impressum">Impressum</Link></nav><small>© PILEHEADS</small><FunnelConsent/></footer>
   </main>;
 }

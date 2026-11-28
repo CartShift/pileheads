@@ -1,14 +1,10 @@
-import type {Metadata} from "next";
+import {routeMetadata} from "../../lib/seo";
 import Link from "next/link";
 import SiteHeader from "../../components/site-header";
 import OperatorContact from "../../components/operator-contact";
 import styles from "../privacy/privacy.module.css";
 
-export const metadata:Metadata={
- title:"Impressum | PILEHEADS",
- alternates:{canonical:"/impressum"},
- robots:{index:false,follow:true}
-};
+export const metadata = routeMetadata("/impressum");
 export default function ImpressumPage(){
  return <main className="game-shell stack-lobby">
   <SiteHeader/>

@@ -1,14 +1,10 @@
-import type { Metadata } from "next";
+import {routeMetadata} from "../../lib/seo";
 import Link from "next/link";
 import SiteHeader from "../../components/site-header";
 import styles from "../privacy/privacy.module.css";
 import OperatorContact from "../../components/operator-contact";
 
-export const metadata: Metadata = {
-  title: "Terms of use | PILEHEADS",
-  alternates: { canonical: "/terms" },
-  robots: { index: false, follow: true }
-};
+export const metadata = routeMetadata("/terms");
 
 // Draft only: owner and legal review required before publication.
 export default function TermsPage(){

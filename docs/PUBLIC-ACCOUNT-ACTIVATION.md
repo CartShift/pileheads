@@ -25,6 +25,9 @@ Status: BLOCKED pending operator privacy review and live OAuth acceptance. No pr
 - Google user-data policy: https://developers.google.com/terms/api-services-user-data-policy ; branding verification: https://developers.google.com/identity/protocols/oauth2/production-readiness/brand-verification .
 - The legal drafts now include proposed Article 6 bases, optional/required data distinctions, objection, complaint and Google data-use limitations. Owner-supplied contact details are centralized. Remaining approval items: provider DPA/transfer and retention settings, age/contract policy, actual contact/rights workflow and final legal copy review. Do not mark the database privacy gate as reviewed simply because the UI builds.
 
+## Integration with SEO and GA4
+The legal routes are classified as noindex/follow with self-canonical URLs in the SEO registry and excluded from the sitemap. GA4 has a separate consent and provider review gate; its draft disclosure is incorporated, but do not activate analytics or alter analytics flags as part of account activation. See GA4-PRIVACY-NOTICE-DRAFT.md.
+
 ## Retention readiness
 Read-only production inspection on 2026-11-28: 47 expired room rows; zero expired account sessions, guest profiles or round receipts. No deletion performed. Verify the dedicated maintenance credentials, bounded expiry-only cleanup, backup/log retention, and an operator-approved maintenance cadence before enabling persistent account collection. Do not treat this point-in-time count as ongoing monitoring.
 

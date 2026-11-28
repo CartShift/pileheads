@@ -1,3 +1,3 @@
-import type {Metadata} from "next";
-export const metadata:Metadata={title:"PILEHEADS Deck Updates",robots:{index:false,follow:false}};
+import {routeMetadata} from "../../lib/seo";
+export const metadata=routeMetadata("/deck-updates");
 export default function Layout({children}:{children:React.ReactNode}){return children;}

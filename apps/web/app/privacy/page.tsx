@@ -1,14 +1,10 @@
-import type { Metadata } from "next";
+import {routeMetadata} from "../../lib/seo";
 import Link from "next/link";
 import SiteHeader from "../../components/site-header";
 import styles from "./privacy.module.css";
 import OperatorContact from "../../components/operator-contact";
 
-export const metadata: Metadata = {
-  title: "Privacy notice | PILEHEADS",
-  alternates: { canonical: "/privacy" },
-  robots: { index: false, follow: true }
-};
+export const metadata = routeMetadata("/privacy");
 
 // RELEASE BLOCKER: replace draft controller and review fields with verified
 // public details and reviewed text before merging or enabling accounts.
@@ -34,6 +30,9 @@ export default function PrivacyPage() {
       <p>Sign-in uses a short-lived secure cookie (up to 10 minutes) to protect the authentication flow. Account session cookies expire after 30 days; optional guest profile cookies expire after 90 days. Session tokens are stored as hashes on the server. Your browser also stores local game preferences and saves, and may store public game assets if you choose to download offline play. Clearing browser data removes local information, but does not itself delete a server-side account.</p>
       <h2>5. Optional features</h2>
       <p>Guest profiles, personal round history, progression, matchmaking, voluntary playtest reports, measurement and deck-update emails are separate features. Their availability depends on release settings. If offered, personal round history is linked only to your own account and opted-in round; optional session measurement requires an affirmative choice and can be stopped. A deck-update waitlist, if offered, uses email confirmation and an unsubscribe mechanism. You can play without signing up for these optional measurement or email features.</p>
+      <h3>Optional website analytics</h3>
+      <p>If enabled and you consent, Google Analytics 4 uses first-party cookies and device/browser information to measure selected public page views, recognized campaign categories and clicks on play links. Playing does not require consent. The implementation is separate from optional first-party gameplay measurement and does not intentionally send player names, room codes, account identifiers or card contents. Advertising consent is denied by the implementation. You can reject or withdraw consent in Analytics preferences; withdrawal does not affect the lawfulness of earlier processing.</p>
+      <p>The proposed basis is consent under Article 6(1)(a) GDPR and, where applicable, Section 25(1) TDDDG. See <a href="https://support.google.com/analytics/answer/6004245">Google Analytics data privacy information</a>. <strong>Before activation:</strong> confirm the actual Google stream settings, processing terms, international transfer safeguards, user/event retention and cookie durations. Keep analytics disabled until the separate review is complete.</p>
       <h2>6. Hosting and service providers</h2>
       <p>Vercel hosts the website and application endpoints; Neon provides database services; Google provides sign-in. These services may process technical request information such as IP addresses and browser details in delivering and securing their services. If deck-update email delivery is activated, the relevant email provider must also be disclosed.</p>
       <p>Our database is hosted in an EU region. Hosting, authentication, support and infrastructure services may also involve processing outside the EEA. See the <a href="https://vercel.com/legal/privacy-notice">Vercel privacy notice</a>, <a href="https://vercel.com/legal/dpa">Vercel data processing terms</a> and <a href="https://neon.com/security">Neon security and privacy information</a>. Where required, international transfers must be covered by an applicable adequacy decision or appropriate safeguards, such as standard contractual clauses. Contact the operator for information about the applicable safeguards and how to obtain a copy.</p>

@@ -24,3 +24,5 @@ await import("./social-card.mjs");
 await import("./public-card-assets.mjs");
 
 await import("./pwa-icons.mjs");
+
+await import("./sync-seo.mjs");

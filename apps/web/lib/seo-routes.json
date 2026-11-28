@@ -1,0 +1,101 @@
+{
+  "origin": "https://pileheads.com",
+  "socialImage": "/stack-media/pileheads-social.png",
+  "routes": {
+    "/": {
+      "title": "PILEHEADS – The Card Game for Friends & Game Nights",
+      "description": "One pile. One loser. Discover an illustrated card game for 2–5 players. Play free online with friends or bots, or explore the physical deck.",
+      "index": true
+    },
+    "/play": {
+      "title": "Play PILEHEADS Online Free – Multiplayer Card Game",
+      "description": "Challenge friends or practice against bots in your browser. Play free with no download or account needed.",
+      "index": true
+    },
+    "/how-to-play": {
+      "title": "PILEHEADS Card Game Rules – How to Play",
+      "description": "Learn setup, the six action cards, SNAP, SLAM and Counter DUMP. Read the rules and practice online.",
+      "index": true
+    },
+    "/deck": {
+      "title": "PILEHEADS Card Game – Explore the 54-Card Deck",
+      "description": "Meet the 16 illustrated card faces, six special actions and original card back. Explore the physical playtest deck and sign up for updates.",
+      "index": true
+    },
+    "/strategy": {
+      "title": "PILEHEADS Card Game Strategy – Tactics & Examples",
+      "description": "Learn when to save action cards, take the pile, prepare your face-up cards and use SNAP, SLAM and Counter DUMP.",
+      "index": true
+    },
+    "/guides/shithead-vs-pileheads": {
+      "title": "Shithead vs. PILEHEADS – How the Card Games Differ",
+      "description": "Compare traditional Shithead, also called Palace or Karma, with the original 54-card PILEHEADS game. Learn the similarities and new mechanics.",
+      "index": true
+    },
+    "/profile": {
+      "title": "Your profile | PILEHEADS",
+      "index": false,
+      "follow": true
+    },
+    "/quick-play": {
+      "title": "Quick Play | PILEHEADS",
+      "index": false,
+      "follow": false
+    },
+    "/deck-updates": {
+      "title": "PILEHEADS Deck Updates",
+      "index": false,
+      "follow": false
+    },
+    "/growth": {
+      "title": "PILEHEADS Growth",
+      "index": false,
+      "follow": false
+    },
+    "/stack": {
+      "title": "PILEHEADS | One pile. One loser.",
+      "index": false,
+      "follow": true,
+      "canonical": "/"
+    },
+    "/pilehead/gallery": {
+      "title": "PILEHEADS legacy gallery",
+      "index": false,
+      "follow": true,
+      "canonical": "/deck"
+    },
+    "/pilehead/print": {
+      "title": "PILEHEADS printable playtest deck",
+      "index": false,
+      "follow": true
+    },
+    "/pilehead/playtest": {
+      "title": "PILEHEADS playtest kit",
+      "index": false,
+      "follow": true
+    },
+    "/pilehead/endgame-lab": {
+      "title": "PILEHEADS Endgame Rules Lab",
+      "index": false,
+      "follow": false
+    },
+    "/privacy": {
+      "title": "Privacy notice | PILEHEADS",
+      "index": false,
+      "follow": true,
+      "canonical": "/privacy"
+    },
+    "/terms": {
+      "title": "Terms of use | PILEHEADS",
+      "index": false,
+      "follow": true,
+      "canonical": "/terms"
+    },
+    "/impressum": {
+      "title": "Impressum | PILEHEADS",
+      "index": false,
+      "follow": true,
+      "canonical": "/impressum"
+    }
+  }
+}

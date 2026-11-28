@@ -65,7 +65,7 @@ async function check(browser,width,height){
     }
     await page.getByRole("navigation",{name:"Main navigation"}).getByRole("link",{name:"The deck"}).click();
     await page.waitForURL("**/deck");
-    assert.match(await page.locator("h1").innerText(),/Every card\s*has a role/i);
+    assert.match(await page.locator("h1").innerText(),/The PILEHEADS\s*deck/i);
     assert.equal(await page.locator(".public-card").count(),17);
     await page.goto(BASE+"/stack");
     await page.getByRole("link",{name:"Play free online",exact:true}).click();

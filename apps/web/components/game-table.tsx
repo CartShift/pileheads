@@ -943,7 +943,7 @@ export default function GameTable() {
       <section className="entry launch-entry">
         <div className="entry-intro"><div className="eyebrow">WELCOME TO THE TABLE</div>
           <h1>{inviteEntry ? <>You’re<br/><em>invited.</em></> : <>One pile.<br /><em>One loser.</em></>}</h1>
-          <p>{inviteEntry ? "Your friends are waiting. Pick a nickname and join the table." : "Get rid of your cards before everyone else. Play free with bots or invite friends."}</p>
+          <p>{inviteEntry ? "Your friends are waiting. Pick a nickname and join the table." : "Play the free PILEHEADS multiplayer card game in your browser. Get rid of your cards against bots or invite friends."}</p>
           <div className="lobby-facts"><span>2–5 players</span><span>Free to play</span><span>No account required</span></div><div className="lobby-art" aria-hidden="true"><span className="lobby-card lobby-burn"/><span className="lobby-card lobby-dump"/><span className="lobby-card lobby-ghost"/><img src="/stack-media/stack-home-explorer-web-mobile.webp" width={360} height={452} alt="" decoding="async"/></div><div className="lobby-links"><button className="secondary-button entry-settings" onClick={() => setShowSettings(true)}>Game settings</button>{!inviteEntry&&!offlineNetwork&&<Link className="secondary-button" href="/profile">Your profile</Link>}</div>{!inviteEntry && mode === "home" && <><PwaInstall/><OfflineControl/></>}
         </div>
         <div className="entry-options"><h2 className="lobby-choice-heading">{inviteEntry ? "Join the table" : "Choose your table"}<span>.</span></h2>
