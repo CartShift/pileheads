@@ -93,6 +93,8 @@ The active milestone is [Game Experience 4.0](docs/GAME-EXPERIENCE-MASTER-PLAN.m
 
 ## Mobile roadmap
 
+[PWA implementation and acceptance plan](docs/PWA-IMPLEMENTATION-PLAN.md): installable web foundation, then opt-in offline bots. Preview-only until acceptance.
+
 See [Mobile & cross-platform implementation plan](docs/MOBILE-IMPLEMENTATION-PLAN.md) and [shared game engine](packages/game-engine/README.md). Android/iOS are planned; no native app is released yet.
 
 ## Development and verification
