@@ -279,12 +279,15 @@ async function localScenarios(browser) {
       // Mobile can inspect real public face-ups without touching private hand
       // identities or the authoritative room state.
       const inspect=page.getByRole("button",{name:/Bot 1 face-up cards/});
+      await page.locator('.player-hand .card-hit:not([aria-label^="DUMP"])').first().click();
       await inspect.click();
       const publicCards=page.getByRole("dialog",{name:"Bot 1 face-up cards"});
       await publicCards.waitFor();
       assert.equal(await publicCards.locator(".playing-card:not(.is-back)").count(),3,
         "inspector shows exactly the publicly visible cards");
       assert.match(await publicCards.textContent(),/Hands and face-down cards stay private/);
+      await page.keyboard.press("p");
+      assert.equal((await readGame(page)).moves,0,"table shortcuts must not play behind the opponent inspector");
       await page.keyboard.press("Escape");
       assert.equal(await publicCards.count(),0,"Escape closes public-card inspection");
       // DUMP intentionally asks for a target in 3+ player matches. Avoid
@@ -293,6 +296,7 @@ async function localScenarios(browser) {
       await safeFirst.click();
       const play = page.getByRole("button", { name: /Play cards/ });
       assert.equal(await play.isEnabled(), true, "first opening card is legal");
+      assert.ok((await play.textContent()).includes("Play cards (1)"), "selected count is explicit in the primary action");
       await play.click();
       await page.waitForFunction(() =>
         JSON.parse(localStorage.getItem("stack-next-local-save-v1") || "null")?.game?.moves >= 1
