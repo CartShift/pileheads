@@ -39,3 +39,5 @@ Apply db/commerce-test-operations-v1.sql only after the test schema, using the d
 Production requires individual staff authentication, role authorization, actor-attributed audit, transactional allocation, refund reconciliation, privacy controls and order/fulfillment access review. Run contract tests and real Postgres concurrency/rollback tests before enabling the preview dashboard.
 
 PostgreSQL operations integration test: run `PG_TEST_CONTAINER=<disposable PostgreSQL container ID> node tests/commerce-operations-postgres.cjs` in a fresh container. It checks concurrent transitions, duplicate adjustment IDs, rollback/guards and limited permissions. Never point it at a live database.
+
+A path-scoped GitHub Actions workflow `commerce-postgres.yml` runs the three dependency-free contract tests and disposable database integration test. Production deployment is not part of this workflow.
