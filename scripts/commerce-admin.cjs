@@ -51,16 +51,8 @@ function createStore(url){
   return row?.ok===true;
  },
  async adjust(b){
-  const rows=await q(`WITH changed AS (
-   UPDATE pileheads_commerce_test.stock SET units=units+$2,version=version+1
-   WHERE singleton AND version=$3 AND units+$2 BETWEEN 0 AND 100000
-   AND NOT EXISTS(SELECT 1 FROM pileheads_commerce_test.stock_events WHERE id=$1::uuid) RETURNING units
-  ), event AS (
-   INSERT INTO pileheads_commerce_test.stock_events(id,delta,reason,resulting_units)
-   SELECT $1::uuid,$2,$4,units FROM changed RETURNING id
-  ) SELECT id FROM event`,[b.eventId,b.delta,b.version,b.reason]);
-  if(rows.length)return true;
-  return (await q('SELECT id FROM pileheads_commerce_test.stock_events WHERE id=$1::uuid AND delta=$2 AND reason=$3',[b.eventId,b.delta,b.reason])).length===1;
+  const [row]=await q('SELECT pileheads_commerce_test.adjust_stock($1::uuid,$2::integer,$3::integer,$4) AS ok',[b.eventId,b.delta,b.version,b.reason]);
+  return row?.ok===true;
  }
  };
 }
