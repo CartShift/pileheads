@@ -230,7 +230,7 @@ async function brandCaptureScenarios(browser) {
       await page.getByRole("button",{name:"Learn with a bot"}).click();
       await page.getByRole("button",{name:"Start round"}).click();
       await page.getByRole("heading",{name:"Your move."}).waitFor();
-      await page.getByRole("combobox",{name:"Deck style"}).selectOption("refined");
+      assert.equal(await page.getByRole("combobox",{name:"Deck style"}).count(),0);
       await page.waitForFunction(()=>document.querySelectorAll(".player-hand .playing-card.theme-refined").length===3);
       await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.images].map(i=>i.decode().catch(()=>{})))});
       assert.match(await page.title(),/PILEHEADS/);
@@ -350,13 +350,16 @@ async function localScenarios(browser) {
       await page.getByRole("dialog", { name: "PILEHEADS quick rules" }).waitFor();
       assert.ok(await page.getByText("Final Duel:", { exact: false }).count(), "rules explain duel");
       await page.getByRole("button", { name: "Back to table" }).click();
-      await page.getByRole("combobox", { name: "Deck style" }).selectOption("original");
-      assert.equal(await page.locator(".player-hand .playing-card.theme-original").count(), 3);
-      assert.equal(await page.evaluate(() => localStorage.getItem("stack-next-deck-theme-v1")), "original");
+      assert.equal(await page.getByRole("combobox", { name: "Deck style" }).count(), 0);
+      assert.equal(await page.locator(".player-hand .playing-card.theme-refined").count(), 3);
+      // A stale preference from an older deployment must not override official artwork.
+      await page.evaluate(() => localStorage.setItem("stack-next-deck-theme-v1", "original"));
       await page.reload({ waitUntil: "domcontentloaded" });
       await page.getByRole("button", { name: "Resume game" }).click();
       assert.equal((await readGame(page)).moves, 0, "resume recovers saved state");
-      assert.equal(await page.locator(".player-hand .playing-card.theme-original").count(), 3);
+      assert.equal(await page.locator(".player-hand .playing-card.theme-refined").count(), 3);
+      assert.equal(await page.getByRole("combobox", { name: "Deck style" }).count(), 0);
+      assert.equal(await page.locator(".playing-card.theme-original, .playing-card.theme-characters").count(), 0);
       const geometry = await page.evaluate(() => {
         // Atomic snapshot, not two async measurements while Motion is still
         // settling a restored hand.
@@ -372,7 +375,7 @@ async function localScenarios(browser) {
         "action dock must never obstruct hand cards: " + JSON.stringify(geometry));
       const drawBack = await page.locator(".pile-zone .playing-card.is-back .card-art").first()
         .evaluate(el => getComputedStyle(el).backgroundImage);
-      assert.match(drawBack, /stack-back\.webp/, "draw pile uses a real card back, not the face sprite");
+      assert.match(drawBack, /stack-back-v2\.webp/, "draw pile uses the official card back");
       const viewport = await page.evaluate(() => ({
         viewport: document.documentElement.clientWidth,
         page: document.documentElement.scrollWidth
@@ -847,7 +850,7 @@ async function onlineScenarios(browser, server) {
 /**
  * Actual same-origin multiplayer in 3- and 5-seat rooms. Two independent
  * mobile browser profiles are human players, remaining seats are server bots.
- * This covers the seat layout, private-hand contract, independent deck themes
+ * This covers the seat layout, private-hand contract, official deck consistency
  * and WebSocket/lobby start without fabricating client-side game state.
  */
 async function onlineMixedSeatScenarios(browser) {
@@ -871,6 +874,7 @@ async function onlineMixedSeatScenarios(browser) {
       await host.getByRole("button",{name:/Create a room/}).click();
       await host.waitForURL(/room=[A-HJ-NP-Z2-9]{8}/,{timeout:14000});
       const code=new URL(host.url()).searchParams.get("room");
+      await guest.addInitScript(()=>localStorage.setItem("stack-next-deck-theme-v1","characters"));
       await guest.goto(WEB+"/play?room="+code);
       await guest.getByRole("textbox",{name:"Your name"}).fill("Guest "+seats);
       await guest.getByRole("button",{name:"Join"}).click();
@@ -914,10 +918,12 @@ async function onlineMixedSeatScenarios(browser) {
         document.querySelectorAll(".opponent-seat").length===expected,
         seats-1,{timeout:13000})));
 
-      await guest.getByRole("combobox",{name:"Deck style"}).selectOption("original");
-      assert.ok(await guest.locator(".player-hand .playing-card.theme-original").count()>0);
-      assert.ok(await host.locator(".player-hand .playing-card.theme-refined").count()>0,
-        "one player choosing a deck theme cannot rewrite the other's deck");
+      for(const page of [host,guest]) {
+        assert.equal(await page.getByRole("combobox",{name:"Deck style"}).count(),0);
+        assert.ok(await page.locator(".player-hand .playing-card.theme-refined").count()>0,
+          "both players use the official deck, regardless of old local preferences");
+        assert.equal(await page.locator(".playing-card.theme-original, .playing-card.theme-characters").count(),0);
+      }
 
       for(const [page,label,expectedSeat] of [
         [host,"host",0],[guest,"guest",1]]) {
