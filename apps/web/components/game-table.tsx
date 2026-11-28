@@ -34,6 +34,12 @@ const LocalTable = require("../lib/local-table-core.cjs") as {
   localBotOpportunity:(engine:typeof Engine,game:Game)=>{seat:number;kind:"dump"|"snap"|"slam"|"turn";ids:string}|null;
   asLocalRoom:(engine:typeof Engine,game:Game)=>RoomGame;
 };
+const RoomReconciliation = require("../lib/room-reconciliation.cjs") as {
+  disposition:(previous:Room|null,next:Room)=>"apply"|"stale"|"identical";
+  selectionBoundary:(previous:Room|null,next:Room)=>boolean;
+  retainSelection:(previous:Room,next:Room,selected:number[])=>number[];
+  retainSwap:(previous:Room,next:Room,id:number|null)=>number|null;
+};
 const HandLayout = require("../lib/hand-layout-core.cjs") as {
   computeHandLayout:(count:number,area:{width:number;cardWidth:number})=>{
     handColumns:number;handRows:number;lastRowShift:number;handLayout:CSSProperties;
@@ -229,34 +235,12 @@ export default function GameTable() {
   const [freshBlindMove, setFreshBlindMove] = useState<number | null>(null);
 
   const applyRoom = useCallback((next: Room) => {
-    if (roomRef.current?.code === next.code && next.revision < roomRef.current.revision) return;
-    // Heartbeats do not invalidate the card scene. Keep DOM/card identity
-    // stable unless gameplay, membership or ephemeral public events changed.
-    if (roomRef.current?.code === next.code &&
-        roomRef.current.revision === next.revision &&
-        JSON.stringify(roomRef.current.game) === JSON.stringify(next.game) &&
-        JSON.stringify(roomRef.current.members) === JSON.stringify(next.members)) return;
-    // Keep an ordinary selection only when the new authoritative legal
-    // groups still contain every selected card. Never carry IDs into a new
-    // round/seat, a pending decision, or an opponent's turn.
     const previous = roomRef.current;
-    if (previous?.code === next.code && previous.revision !== next.revision) {
-      const sameRound = previous.me === next.me && previous.game.round === next.game.round;
-      const game = next.game;
-      const canRetain = sameRound && previous.game.phase === "play" &&
-        game.phase === "play" && game.turn === next.me && !game.pendingDump &&
-        !game.pendingCounter && !game.tournamentWithdrawal;
-      setSelection(selected => {
-        if (!selected.length) return selected;
-        return canRetain && game.legal.some(move => move.type === "play" &&
-          move.source !== "down" && selected.every(id => move.ids?.includes(id)))
-          ? selected : [];
-      });
-      setSwapHand(id => sameRound && previous.game.phase === "setup" &&
-        game.phase === "setup" && !game.setupReady[next.me] &&
-        game.players[next.me]?.hand?.some(card => card.id === id) ? id : null);
-      // A target confirmation is bound to the displayed revision. Keep a
-      // still-legal DUMP selection, but require a new explicit target choice.
+    if (RoomReconciliation.disposition(previous,next) !== "apply") return;
+    if (previous && RoomReconciliation.selectionBoundary(previous,next)) {
+      setSelection(selected => RoomReconciliation.retainSelection(previous,next,selected));
+      setSwapHand(id => RoomReconciliation.retainSwap(previous,next,id));
+      // A target confirmation is always bound to its displayed revision.
       setNeedsTarget(false);
     }
     if (next.session) {
