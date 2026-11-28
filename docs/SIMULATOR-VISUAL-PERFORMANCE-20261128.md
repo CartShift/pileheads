@@ -62,3 +62,20 @@ No visual redesign, rules, pricing, tracking or paid infrastructure changes. Sti
 | Mobile selection paint proxy p95 ms | 31.7 | 29.8 |
 
 119,968 fewer encoded JS bytes (~16.1%). Different candidate runs, not a paired controlled benchmark; LCP improvement is not demonstrated. Do not equate this with physical browser startup speed. Maintain all prior device/pilot gates. #227 independently extracts room reconciliation with new stale/equal/session/seat/round selection tests; acceptance pending at capture.
+
+## Integrated acceptance after PWA merges
+
+- #227 merged 85c858b: pure room reconciliation and new snapshot/session/selection boundary regression; [full acceptance](https://github.com/CartShift/pileheads/actions/runs/46091140519).
+- #228 merged 6e85be2: fixed randomized #225 mock CAS fixture by selecting guaranteed legal TAKE; the original arbitrary first legal option could be DUMP without a required target in a three-seat game. Two-arrival CAS barrier retained. [Full acceptance](https://github.com/CartShift/pileheads/actions/runs/46091187522). No runtime change.
+- #226 merged f4a7a1c: integrated CSS result transition with PWA, deterministic CAS fixture correction and dynamic reduced-motion regression. [Full acceptance](https://github.com/CartShift/pileheads/actions/runs/46091268379), [screenshots and performance artifact](https://github.com/CartShift/pileheads/actions/runs/46091268379/artifacts/15241761198).
+- Canonical [live smoke attempt 2](https://github.com/CartShift/pileheads/actions/runs/46089052791/attempts/2) passed all checks at 01:06:28–01:06:32 UTC. Alias metadata moved from 0637724 to 96e759f (docs-only change) during the run, so no single-SHA final live acceptance is claimed. Observed one move: ack 140ms, rival invalidation 597ms, both snapshots 952ms. No error/fatal groups returned by Vercel for preceding 15 minutes; not a comprehensive absence-of-errors guarantee.
+
+| /play lab metric | #215 prior baseline | #226 integrated |
+| --- | ---: | ---: |
+| Encoded JS bytes | 747183 | 635342 |
+| Mobile LCP ms | 2600 | 2600 |
+| Mobile CLS | .0068 | .0572 |
+| Mobile selection commit p95 ms | 5.9 | 4.9 |
+| Mobile selection paint proxy p95 ms | 31.7 | 31.7 |
+
+111,841 fewer encoded JS bytes (~15%); LCP remains slightly above 2500ms target. CLS remains below 0.1 but increased; raw sources include entry-options (.04885) and pwa-offline-actions (.00158) during late hydration plus text. Investigate reserved layout space and actual LCP element attribution before modifying the PWA or loading critical path. Different candidates, not a paired benchmark. Final deployed runtime smoke and physical/pilot gates still open at capture.
