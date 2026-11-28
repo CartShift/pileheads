@@ -16,13 +16,13 @@ export default function CenterBoard({g, theme: deckTheme, selection, canPlay, bu
           </div>
           <div className="pile-zone is-main">
             <span className="pile-title">PLAY PILE</span>
-            <div className={"pile-slot played " + (selection.length ? "is-drop-ready" : "")}
+            <div className={"pile-slot played " + (canPlay && !busy ? "is-drop-ready" : "")}
               data-drop-target="pile" role="button" tabIndex={0}
               aria-label="Play selected cards onto the pile"
               aria-disabled={!canPlay || busy}
-              onClick={() => { if (selection.length && !busy) playSelected(); }}
+              onClick={() => { if (canPlay && !busy) playSelected(); }}
               onKeyDown={e => {
-                if ((e.key === "Enter" || e.key === " ") && selection.length && !busy) {
+                if ((e.key === "Enter" || e.key === " ") && canPlay && !busy && !e.repeat) {
                   e.preventDefault(); playSelected();
                 }
               }}>
