@@ -71,12 +71,14 @@ function cohort({players,endgameRule,games,maxSteps,firstSeed}){
   observedMoves:distribution(moves),completedMoves:distribution(completedMoves),
   longestStall,wins,losses,starterGames,starterCompleted,starterWins,events};
 }
-function run({games=10000,maxSteps=1800,firstSeed=20261128}={}){
+function run({games=10000,maxSteps=1800,firstSeed=20261128,seatCounts=[2,3,4,5]}={}){
  if(!Number.isSafeInteger(games)||games<1||games>100000||
     !Number.isSafeInteger(maxSteps)||maxSteps<1||maxSteps>10000||
-    !Number.isInteger(firstSeed)||firstSeed<0||firstSeed>0xffffffff)throw Error('Invalid benchmark arguments');
+    !Number.isInteger(firstSeed)||firstSeed<0||firstSeed>0xffffffff||
+    !Array.isArray(seatCounts)||!seatCounts.length||new Set(seatCounts).size!==seatCounts.length||
+    seatCounts.some(n=>!Number.isInteger(n)||n<2||n>5))throw Error('Invalid benchmark arguments');
  const results=[];
- for(const players of [2,3,4,5])for(const endgameRule of rules)
+ for(const players of seatCounts)for(const endgameRule of rules)
   results.push(cohort({players,endgameRule,games,maxSteps,firstSeed}));
  return {rulesVersion:E.VERSION,gamesPerCohort:games,maxSteps,firstSeed,policies,
   note:'Synthetic deterministic bots with immediate interrupt priority; not human or live network evidence. Capped games are not failures of invariants; completed-only percentiles exclude them.',results};
@@ -84,7 +86,8 @@ function run({games=10000,maxSteps=1800,firstSeed=20261128}={}){
 module.exports={run,play};
 if(require.main===module){
  const args=process.argv.slice(2);
- if(args.length>3)throw Error('Usage: node scripts/bench-simulator.cjs [games] [maxSteps] [firstSeed]');
+ if(args.length>4)throw Error('Usage: node scripts/bench-simulator.cjs [games] [maxSteps] [firstSeed] [players]');
  console.log(JSON.stringify(run({games:args[0]===undefined?10000:Number(args[0]),
-  maxSteps:args[1]===undefined?1800:Number(args[1]),firstSeed:args[2]===undefined?20261128:Number(args[2])}),null,2));
+  maxSteps:args[1]===undefined?1800:Number(args[1]),firstSeed:args[2]===undefined?20261128:Number(args[2]),
+  seatCounts:args[3]===undefined?[2,3,4,5]:[Number(args[3])]}),null,2));
 }

@@ -5,6 +5,9 @@ const args={games:12,maxSteps:300,firstSeed:20261128};
 const report=run(args);
 assert.deepEqual(report,run(args),'same inputs must produce same benchmark');
 assert.equal(report.results.length,8);
+assert.deepEqual(run({...args,seatCounts:[3]}).results,report.results.filter(c=>c.players===3));
+assert.throws(()=>run({...args,seatCounts:[6]}));
+assert.throws(()=>run({...args,seatCounts:[3,3]}));
 for(const c of report.results){
  assert.equal(c.completed+c.capped.length,c.games);
  assert.equal(c.starterGames.reduce((a,b)=>a+b,0),c.games);
