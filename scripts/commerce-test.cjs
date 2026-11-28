@@ -8,13 +8,14 @@ const PAYMENT=/^pi_[a-zA-Z0-9]+$/;
 function config(env){
  if(env.VERCEL_ENV!=='preview'||env.PILEHEAD_COMMERCE_TEST_ENABLED!=='1'||!/^sk_test_[a-zA-Z0-9]+$/.test(env.PILEHEAD_COMMERCE_TEST_STRIPE_KEY||'')||!/^whsec_[a-zA-Z0-9]+$/.test(env.PILEHEAD_COMMERCE_TEST_WEBHOOK_SECRET||'')||!env.PILEHEAD_COMMERCE_TEST_DATABASE_URL)return null;
  try{
-  const origin=new URL(env.PILEHEAD_COMMERCE_TEST_ORIGIN);
-  if(origin.protocol!=='https:'||!origin.hostname.endsWith('.vercel.app')||origin.origin!==env.PILEHEAD_COMMERCE_TEST_ORIGIN||origin.username||origin.password||origin.port)return null;
-  if(origin.hostname!==env.VERCEL_URL)return null;
+  const configuredOrigin=env.PILEHEAD_COMMERCE_TEST_ORIGIN||'https://'+env.VERCEL_URL;
+  const origin=new URL(configuredOrigin);
+  if(origin.protocol!=='https:'||!origin.hostname.endsWith('.vercel.app')||origin.origin!==configuredOrigin||origin.username||origin.password||origin.port)return null;
+  if(![env.VERCEL_URL,env.VERCEL_BRANCH_URL].includes(origin.hostname))return null;
   const db=new URL(env.PILEHEAD_COMMERCE_TEST_DATABASE_URL);
   if(!['postgres:','postgresql:'].includes(db.protocol)||!db.password||!db.username||!db.hostname||db.pathname!=='/pileheads_commerce_test')return null;
   for(const key of ['PILEHEAD_DATABASE_URL','PILEHEAD_PLAYER_DATABASE_URL','PILEHEAD_GROWTH_DATABASE_URL'])if(env[key]){
-   const other=new URL(env[key]);if(other.hostname===db.hostname)return null;
+   const other=new URL(env[key]);if(other.hostname.replace('-pooler.','.')===db.hostname.replace('-pooler.','.'))return null;
   }
   return {origin:origin.origin,key:env.PILEHEAD_COMMERCE_TEST_STRIPE_KEY,secret:env.PILEHEAD_COMMERCE_TEST_WEBHOOK_SECRET,dbUrl:env.PILEHEAD_COMMERCE_TEST_DATABASE_URL};
  }catch{return null;}

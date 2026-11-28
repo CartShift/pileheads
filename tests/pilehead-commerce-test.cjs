@@ -2,9 +2,12 @@
 const assert=require('node:assert/strict'),crypto=require('node:crypto');
 const core=require('../scripts/commerce-test.cjs');
 const {createHandler}=require('../api/commerce-test.js');
-const {createHandler:makeWebhook}=require('../api/commerce-test-webhook.js');
+const {createHandler:makeWebhook,rawBody}=require('../api/commerce-test-webhook.js');
+const {Readable}=require('node:stream');
 const env={VERCEL_ENV:'preview',VERCEL_URL:'pileheads-preview.vercel.app',PILEHEAD_COMMERCE_TEST_ENABLED:'1',PILEHEAD_COMMERCE_TEST_ORIGIN:'https://pileheads-preview.vercel.app',PILEHEAD_COMMERCE_TEST_STRIPE_KEY:'sk_test_example',PILEHEAD_COMMERCE_TEST_WEBHOOK_SECRET:'whsec_example',PILEHEAD_COMMERCE_TEST_DATABASE_URL:'postgres://tester:fictional@test.example/pileheads_commerce_test'};
 const c=core.config(env);assert.ok(c);
+assert.ok(core.config({...env,PILEHEAD_COMMERCE_TEST_ORIGIN:undefined}));
+assert.ok(core.config({...env,VERCEL_BRANCH_URL:'branch-preview.vercel.app',PILEHEAD_COMMERCE_TEST_ORIGIN:'https://branch-preview.vercel.app'}));
 for(const patch of [{VERCEL_ENV:'production'},{PILEHEAD_COMMERCE_TEST_ENABLED:'0'},{PILEHEAD_COMMERCE_TEST_STRIPE_KEY:'sk_live_example'},{PILEHEAD_COMMERCE_TEST_ORIGIN:'https://pileheads.com'},{PILEHEAD_COMMERCE_TEST_DATABASE_URL:'postgres://tester:fictional@test.example/neondb'},{PILEHEAD_DATABASE_URL:'postgres://runtime:fictional@test.example/neondb'}])assert.equal(core.config({...env,...patch}),null);
 const id=crypto.randomUUID(),order={id,quantity:2,amount_minor:3000,state:'pending',session_id:'cs_test_example'};
 const session={id:order.session_id,livemode:false,mode:'payment',client_reference_id:id,metadata:{pileheads_test_order:id},currency:'eur',amount_total:3000,amount_subtotal:3000,status:'open',url:'https://checkout.stripe.com/c/pay/cs_test_example'};
@@ -25,6 +28,9 @@ assert.deepEqual(core.transition({...event,type:'checkout.session.expired'},{...
 assert.equal(core.createParams(order,c.origin).get('line_items[0][quantity]'),'2');
 function call(handler,req){let status,body;const res={setHeader(){},status(s){status=s;return this;},json(b){body=b;return this;}};return handler(req,res).then(()=>({status,body}));}
 (async()=>{
+ const stream=Readable.from([raw.subarray(0,5),raw.subarray(5)]);Object.defineProperty(stream,'body',{get(){throw Error('must not parse');}});
+ assert.deepEqual(await rawBody(stream),raw);
+ await assert.rejects(rawBody(Readable.from([Buffer.alloc(262145)])));
  let settlements=0,attached=0;
  const store=()=>({start:async()=>order,get:async()=>order,attach:async()=>{attached++;return true},settle:async()=>{settlements++;return true}});
  const handler=createHandler({env,store,provider:async()=>session});

@@ -2,10 +2,11 @@
 const core=require('../scripts/commerce-test.cjs');
 const {createStore}=require('../scripts/commerce-test-store.cjs');
 async function rawBody(req){
- if(Buffer.isBuffer(req.body)){if(req.body.length>262144)throw Error('too_large');return req.body;}
- if(req.body!==undefined)throw Error('body_already_parsed');
+ // Read the original IncomingMessage stream without invoking Vercel's lazy req.body parser.
+ if(req.readableEnded||typeof req[Symbol.asyncIterator]!=='function')throw Error('raw_stream_unavailable');
  const chunks=[];let size=0;
  for await(const chunk of req){const bytes=Buffer.from(chunk);size+=bytes.length;if(size>262144)throw Error('too_large');chunks.push(bytes);}
+ if(!size)throw Error('empty_body');
  return Buffer.concat(chunks);
 }
 function createHandler({env=process.env,store=createStore,provider=core.stripe,read=rawBody}={}){
@@ -36,3 +37,4 @@ function createHandler({env=process.env,store=createStore,provider=core.stripe,r
 }
 module.exports=createHandler();module.exports.createHandler=createHandler;
 module.exports.config={api:{bodyParser:false}};
+module.exports.rawBody=rawBody;

@@ -8,6 +8,8 @@ function createStore(url){
   async attach(id,session){return (await query("UPDATE pileheads_commerce_test.orders SET session_id=$2,updated_at=now() WHERE id=$1::uuid AND state='pending' AND (session_id IS NULL OR session_id=$2) RETURNING id",[id,session])).length===1;},
   async settle(event,order,next){
    // State and event receipt commit together. Never regress a terminal state.
+   const previous=await query('SELECT order_id,state FROM pileheads_commerce_test.events WHERE event_id=$1',[event.id]);
+   if(previous.length)return previous[0].order_id===order.id&&previous[0].state===next.state;
    const rows=await query(`WITH changed AS (
     UPDATE pileheads_commerce_test.orders SET state=$3,payment_id=$4,updated_at=now()
     WHERE id=$1::uuid AND session_id=$2 AND (state='pending' OR (state=$3 AND payment_id IS NOT DISTINCT FROM $4::text)) RETURNING id
