@@ -91,6 +91,10 @@ The `dist/pilehead/` directory contains **maintained source code**, despite its 
 
 The active milestone is [Game Experience 4.0](docs/GAME-EXPERIENCE-MASTER-PLAN.md): polish the web tabletop, verify real-device gameplay and resolve deployment blockers before starting native app implementation. The [multiplayer master plan](docs/MULTIPLAYER-MASTER-PLAN.md) owns subsequent tournament and competitive expansion.
 
+## SEO & organic growth roadmap
+
+[SEO Foundation & Organic Growth implementation plan](docs/SEO-IMPLEMENTATION-PLAN.md): technical search foundations, public content, consent-safe measurement, physical deck discovery and evidence-based growth. Commercial activation remains subject to [#172](https://github.com/CartShift/pileheads/issues/172); indexing, performance and live acceptance are independently verified.
+
 ## Mobile roadmap
 
 [PWA implementation and acceptance plan](docs/PWA-IMPLEMENTATION-PLAN.md): installable web foundation, then opt-in offline bots. Preview-only until acceptance.
