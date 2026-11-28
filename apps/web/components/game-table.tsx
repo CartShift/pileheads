@@ -196,6 +196,8 @@ export default function GameTable() {
   const [undoAvailable, setUndoAvailable] = useState(false);
   const [connected, setConnected] = useState(false);
   const [connectionRetry, setConnectionRetry] = useState(0);
+  // Retry generation triggers a new socket; failure count is reset on auth.
+  const reconnectAttempts = useRef(0);
   // Heartbeat timestamps are diagnostic only: never rerender all animated
   // cards just because an identical HTTP state was polled.
   const lastSyncAt = useRef(0);
@@ -471,7 +473,8 @@ export default function GameTable() {
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     let ws: WebSocket;
     try { ws = new WebSocket(wsUrl.toString()); } catch {
-      retryTimer = setTimeout(() => setConnectionRetry(n => n + 1), 3500);
+      const backoff = Math.min(20000, 1000 * 2 ** Math.min(reconnectAttempts.current++, 5));
+      retryTimer = setTimeout(() => setConnectionRetry(n => n + 1), backoff);
       return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
     }
     wsRef.current = ws;
@@ -480,7 +483,11 @@ export default function GameTable() {
       if (cancelled || wsRef.current !== ws) return;
       try {
         const packet = JSON.parse(ev.data);
-        if (packet.type === "ready") { setConnected(true); void synchronize(code, token, true, false); }
+        if (packet.type === "ready") {
+          reconnectAttempts.current = 0;
+          setConnected(true);
+          void synchronize(code, token, true, false);
+        }
         if (packet.type === "reaction" && packet.reaction) applyReaction(packet.reaction as Reaction);
         if (packet.type === "reaction-error") setNotice("Reactions are limited. Try again soon.");
         if (packet.type === "invalidate" &&
@@ -497,7 +504,7 @@ export default function GameTable() {
         setNotice("Room session rejected. Rejoin this room or create a new one.");
         return;
       }
-      const backoff = Math.min(20000, 1000 * 2 ** Math.min(connectionRetry, 5));
+      const backoff = Math.min(20000, 1000 * 2 ** Math.min(reconnectAttempts.current++, 5));
       retryTimer = setTimeout(() => setConnectionRetry(n => n + 1),
         backoff + Math.floor(Math.random() * 250));
     };
@@ -517,7 +524,22 @@ export default function GameTable() {
     const interval = window.setInterval(
       () => void synchronize(code, token, true), connected ? 9500 : 1700
     );
-    return () => clearInterval(interval);
+    // Mobile browsers suspend background timers and sockets. Refresh as soon
+    // as the page becomes usable again, not at the next periodic tick.
+    const resume = () => {
+      if (document.visibilityState !== "visible") return;
+      void synchronize(code, token, true);
+    };
+    const restorePage = (event: PageTransitionEvent) => { if (event.persisted) resume(); };
+    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("online", resume);
+    window.addEventListener("pageshow", restorePage);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", resume);
+      window.removeEventListener("online", resume);
+      window.removeEventListener("pageshow", restorePage);
+    };
   }, [mode, room?.code, connected, synchronize]);
 
   const commitLocal = useCallback((change: (g: Game) => void, recordUndo = false) => {
@@ -843,6 +865,7 @@ export default function GameTable() {
 
   function leaveTable() {
     roomEpoch.current++;
+    reconnectAttempts.current = 0;
     if (wsRef.current) wsRef.current.close();
     setDrill(null);
     freshDealKey.current = null;
