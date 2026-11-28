@@ -29,6 +29,28 @@
           "value": "frame-ancestors 'none'; object-src 'none'; base-uri 'self'"
         }
       ]
+    },
+    {
+      "source": "/pwa-sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        }
+      ]
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/manifest+json"
+        }
+      ]
     }
   ],
   "cleanUrls": true,

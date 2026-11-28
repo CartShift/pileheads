@@ -1,0 +1,12 @@
+/* Only flagged builds opt into viewport-fit=cover. Preserve zoom and the
+   active table's existing bottom safe-area padding. */
+body[data-pwa-enabled="true"] {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+body[data-pwa-enabled="true"]:has(.game-table-shell.game-shell) { padding-bottom: 0; }
+body[data-pwa-enabled="true"] .game-table-shell.game-shell {
+  min-height: calc(100dvh - env(safe-area-inset-top));
+}
+.pwa-install { margin-block: 12px; }
+.pwa-install button { min-height:44px; padding: 8px 14px; }
+.pwa-install p { max-width: 45ch; font-size: .9rem; line-height: 1.5; }

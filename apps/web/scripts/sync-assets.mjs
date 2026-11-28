@@ -22,3 +22,5 @@ for (const name of sounds) await copyFile(path.join(repo, "dist/pilehead/assets/
 await import("./social-card.mjs");
 
 await import("./public-card-assets.mjs");
+
+await import("./pwa-icons.mjs");
