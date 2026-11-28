@@ -8,7 +8,7 @@ self.addEventListener("fetch", event => {
   if (request.method !== "GET" || request.mode !== "navigate" ||
       url.origin !== self.location.origin ||
       !["/","/play","/play/"].includes(url.pathname) || url.search) return;
-  event.respondWith(fetch(request).catch(() => new Response(offline, {
+  event.respondWith(fetch(request,{cache:"no-store"}).catch(() => new Response(offline, {
     status:503, headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store"}
   })));
 });
