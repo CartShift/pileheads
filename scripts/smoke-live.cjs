@@ -56,7 +56,10 @@ function connect(code, token) {
 function privacy(state) {
   assert(Array.isArray(state.game.players[state.me].hand), 'Own hand missing');
   for (const p of state.game.players) {
-    if (p.seat !== state.me) assert(!Object.hasOwn(p, 'hand'), 'Opponent hand leaked');
+    if (p.seat !== state.me) {
+      assert(!Object.hasOwn(p, 'hand'), 'Opponent hand leaked');
+      assert(!Object.hasOwn(p, 'blindSlots'), 'Opponent blind slots leaked');
+    } else assert(Array.isArray(p.blindSlots)&&p.blindSlots.every((slot,i)=>slot===i),'Own blind slots must be indexes only');
   }
 }
 async function main() {
@@ -85,28 +88,52 @@ async function main() {
   await Promise.all([sa.wait(m => m.type === 'invalidate' && m.revision >= current.revision),
     sb.wait(m => m.type === 'invalidate' && m.revision >= current.revision)]);
   console.log('PASS private hands and synchronized start');
-  const actor = current.game.turn === 0 ? a : b;
-  const before = await state(actor);
-  const move = before.game.legal.find(m => m.type === 'play') || before.game.legal.find(m => m.type === 'take');
-  assert(move, 'No supported opening move');
-  const began = performance.now();
-  const after = await mutate(actor, before.revision, 'move', {move});
-  const ackAt = performance.now();
-  assert(after.revision > before.revision);
-  // Match the browser: a hint asks the authenticated hub to check Neon,
-  // not to trust the client. Record arrival time before the waiter polls.
-  (actor === a ? sa : sb).ws.send(JSON.stringify({type:'sync-hint'}));
-  const signals = await Promise.all([sa.wait(m => m.type === 'invalidate' && m.revision >= after.revision),
-    sb.wait(m => m.type === 'invalidate' && m.revision >= after.revision)]);
-  const synced = await Promise.all([state(a), state(b)]);
-  const syncedAt = performance.now();
-  assert(synced.every(s => s.revision === after.revision));
-  synced.forEach(privacy);
-  console.log('PASS gameplay move and both clients converge');
-  console.log(JSON.stringify({event:'multiplayer_latency_sample',samples:1,
-    commandAckMs:Math.round(ackAt-began),
-    rivalInvalidationMs:Math.round(signals[actor===a?1:0].receivedAt-began),
-    bothSnapshotsMs:Math.round(syncedAt-began)}));
+  const count=Number(process.env.SMOKE_MOVE_SAMPLES || 1);
+  assert(Number.isSafeInteger(count)&&count>=1&&count<=30,'SMOKE_MOVE_SAMPLES must be 1–30');
+  const samples=[];
+  let after=current, views=await Promise.all([state(a),state(b)]);
+  const clients=[a,b],live=[sa,sb];
+  for(let i=0;i<count&&views[0].game.phase==='play';i++){
+    const g=views[0].game;
+    const seat=g.pendingDump?.seat??g.pendingCounter?.seat??g.turn;
+    const actor=clients[seat],before=views[seat];
+    const action=g.pendingDump?'dump-target':'move';
+    const move=before.game.legal.find(m=>m.type==='play'||m.type==='counter-dump')||before.game.legal[0];
+    assert(action==='dump-target'||move,'No supported legal move');
+    const extra=action==='dump-target'?{target:1-seat}:{move};
+    const began=performance.now();
+    after=await mutate(actor,before.revision,action,extra);
+    const ackAt=performance.now();
+    assert.equal(after.revision,before.revision+1,'One command commits exactly one revision');
+    live[seat].ws.send(JSON.stringify({type:'sync-hint'}));
+    const signals=await Promise.all(live.map(socket=>socket.wait(m=>m.type==='invalidate'&&m.revision>=after.revision)));
+    views=await Promise.all([state(a),state(b)]);
+    const syncedAt=performance.now();
+    assert(views.every(s=>s.revision===after.revision),'Both clients must converge to the committed revision');
+    views.forEach(privacy);
+    // Compare public projection without reading or logging private cards.
+    const publicGame=({game})=>({turn:game.turn,phase:game.phase,moves:game.moves,
+      stockCount:game.stockCount,ashesCount:game.ashesCount,pile:game.pile,limit:game.limit,
+      pendingDump:game.pendingDump,pendingCounter:game.pendingCounter,finishedOrder:game.finishedOrder,loser:game.loser,
+      players:game.players.map(({seat,out,up,handCount,downCount})=>({seat,out,up,handCount,downCount}))});
+    assert(JSON.stringify(publicGame(views[0]))===JSON.stringify(publicGame(views[1])),
+      'Public game projection diverged');
+    const sample={commandAckMs:Math.round(ackAt-began),
+      rivalInvalidationMs:Math.round(signals[1-seat].receivedAt-began),
+      bothSnapshotsMs:Math.round(syncedAt-began)};
+    samples.push(sample);
+    console.log(JSON.stringify({event:'multiplayer_latency_sample',sample:i+1,...sample}));
+  }
+  assert(samples.length>0,'Expected at least one move sample');
+  const distribution=key=>{
+    const sorted=samples.map(s=>s[key]).sort((a,b)=>a-b);
+    return {p50:sorted[Math.ceil(sorted.length*.5)-1],p95:sorted[Math.ceil(sorted.length*.95)-1],max:sorted.at(-1)};
+  };
+  console.log('PASS gameplay moves and both clients converge');
+  console.log(JSON.stringify({event:'multiplayer_latency_summary',samples:samples.length,requested:count,
+    commandAckMs:distribution('commandAckMs'),rivalInvalidationMs:distribution('rivalInvalidationMs'),
+    bothSnapshotsMs:distribution('bothSnapshotsMs'),
+    note:'Single sequential room; runner location unverified; snapshots include 100ms wait-loop scheduling and presence reads.'}));
   sa.ws.send(JSON.stringify({type:'react',kind:'gg'}));
   await sb.wait(m => m.type === 'reaction' && m.reaction?.kind === 'gg' && m.reaction?.seat === 0);
   console.log('PASS realtime reaction');
